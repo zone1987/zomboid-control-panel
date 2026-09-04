@@ -163,10 +163,23 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton disabled tooltip={t('nav.comingSoon')}>
-                  <Terminal />
-                  <span>{t('nav.console')}</span>
-                </SidebarMenuButton>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <Terminal />
+                    <span>{t('nav.console')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/console`)}
+                    tooltip={t('nav.console')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/console`}>
+                      <Terminal />
+                      <span>{t('nav.console')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>

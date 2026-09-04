@@ -55,3 +55,12 @@ services:
     App\Server\Bridge\BridgeInstaller:
         arguments:
             $bridgeSourcePath: '%kernel.project_dir%/resources/bridge/ZomboidControlBridge.lua'
+
+when@test:
+    services:
+        # Public so a test can swap in a recording double; the console and
+        # the moderation endpoints are otherwise untestable without a
+        # server on the other end. The alias keeps autowiring intact.
+        App\Server\Rcon\RconClientInterface:
+            alias: App\Server\Rcon\SourceRconClient
+            public: true

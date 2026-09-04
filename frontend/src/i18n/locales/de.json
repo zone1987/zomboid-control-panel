@@ -459,5 +459,31 @@
     },
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
     "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu."
+  },
+  "console": {
+    "title": "RCON-Konsole",
+    "description": "Befehle direkt an den Server schicken.",
+    "descriptionFor": "Befehle direkt an {{server}} schicken.",
+    "placeholder": "Befehl eingeben, z. B. players",
+    "send": "Senden",
+    "sendAnyway": "Trotzdem senden",
+    "clear": "Verlauf leeren",
+    "empty": "Noch nichts gesendet. Wähle oben einen Befehl oder tippe ihn ein.",
+    "noReply": "(Der Server hat nichts geantwortet.)",
+    "failed": "Der Befehl konnte nicht ausgeführt werden.",
+    "pickCommand": "Befehl wählen",
+    "noMatch": "Kein passender Befehl.",
+    "commandCount": "{{count}} Befehle vom Server gemeldet",
+    "dangerous": "Riskant",
+    "noCommands": "Die Befehlsliste konnte nicht geladen werden",
+    "noCommandsHint": "Du kannst trotzdem Befehle eingeben — sie werden dann nur nicht auf Tippfehler geprüft. Prüfe die RCON-Verbindung in der Serverkonfiguration.",
+    "confirmTitle": "Diesen Befehl wirklich senden?",
+    "confirmDescription": "„{{command}}“ kann den Server anhalten oder Daten verändern. Willst du ihn wirklich ausführen?",
+    "problem": {
+      "unknownCommand": "Den Befehl „{{command}}“ kennt dieser Server nicht.",
+      "tooFewArguments": "Es fehlt noch etwas: erwartet werden {{expected}} Angaben, eingegeben sind {{given}}. Als Nächstes kommt „{{missing}}“.",
+      "tooManyArguments": "Zu viele Angaben: erwartet werden höchstens {{expected}}, eingegeben sind {{given}}.",
+      "unbalancedQuote": "Ein Anführungszeichen wurde nicht geschlossen."
+    }
   }
 }

@@ -22,6 +22,7 @@ const TITLES: Record<string, string> = {
 // Segments that follow a server id and name a page of their own.
 const SUB_PAGES: Record<string, string> = {
   players: 'nav.players',
+  console: 'nav.console',
 }
 
 export function Breadcrumbs() {

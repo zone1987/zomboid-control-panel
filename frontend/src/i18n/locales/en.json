@@ -459,5 +459,31 @@
     },
     "bridgeOutdated": "The server is running an older bridge",
     "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards."
+  },
+  "console": {
+    "title": "RCON console",
+    "description": "Send commands straight to the server.",
+    "descriptionFor": "Send commands straight to {{server}}.",
+    "placeholder": "Type a command, for example players",
+    "send": "Send",
+    "sendAnyway": "Send anyway",
+    "clear": "Clear the transcript",
+    "empty": "Nothing sent yet. Pick a command above, or type one.",
+    "noReply": "(The server answered with nothing.)",
+    "failed": "The command could not be carried out.",
+    "pickCommand": "Pick a command",
+    "noMatch": "No command matches.",
+    "commandCount": "{{count}} commands reported by the server",
+    "dangerous": "Risky",
+    "noCommands": "The command list could not be loaded",
+    "noCommandsHint": "You can still type commands; they simply will not be checked for typing mistakes. Check the RCON connection in the server configuration.",
+    "confirmTitle": "Really send this command?",
+    "confirmDescription": "“{{command}}” can stop the server or change data. Do you want to run it?",
+    "problem": {
+      "unknownCommand": "This server does not know the command “{{command}}”.",
+      "tooFewArguments": "Something is still missing: {{expected}} arguments are expected, {{given}} given. Next comes “{{missing}}”.",
+      "tooManyArguments": "Too many arguments: at most {{expected}} are expected, {{given}} given.",
+      "unbalancedQuote": "A quotation mark was never closed."
+    }
   }
 }

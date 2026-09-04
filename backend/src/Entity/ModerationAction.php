@@ -25,6 +25,9 @@ class ModerationAction
     public const UNBAN = 'unban';
     public const ACCESS_LEVEL = 'access_level';
 
+    /** A command typed into the console rather than driven by a button. */
+    public const CONSOLE = 'console';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

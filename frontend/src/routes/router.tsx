@@ -82,6 +82,12 @@ export const router = createBrowserRouter(
                         Component: (await import('@/features/players/players-page')).PlayersPage,
                       }),
                     },
+                    {
+                      path: 'servers/:id/console',
+                      lazy: async () => ({
+                        Component: (await import('@/features/console/console-page')).ConsolePage,
+                      }),
+                    },
                   ],
                 },
                 {
