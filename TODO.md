@@ -1,142 +1,91 @@
 # What to do next
 
-Written 2026-09-04 before a compaction, so work can continue without the
-conversation. Read `CONTEXT.md` first for the state everything rests on.
+Written 2026-09-04 before a compaction. **All six items on the original
+list are done** — what each turned into is recorded below, because three
+of them rested on assumptions that proved wrong.
 
-Order matters below: each item is doable on its own, and earlier ones
-unblock later ones.
-
----
-
-## 1. Correct the teleport dialog — small, do it first
-
-`frontend/src/features/players/teleport-dialog.tsx` tells the operator
-that teleporting to coordinates is impossible over RCON. **That is
-wrong**, and the wrong explanation is worse than none.
-
-What is true, verified against the live server on 2026-09-04:
-
-- `teleportto x,y,z` — one argument, moves whoever typed it. RCON has
-  nobody, so it answers a bare `Error`.
-- `teleportto "name" x,y,z` — **two arguments, moves a named player.**
-  Answers *"admin teleported to 10778,9770,0 please wait two seconds to
-  show the map around you."* Quotes optional, coordinates
-  comma-separated without spaces.
-
-To do:
-
-- Add `teleportToCoordinates()` to `PlayerModerator`, alongside the
-  existing `teleportToPlayer()`.
-- Accept `{ x, y, z }` in the teleport endpoint as an alternative to
-  `{ target }`.
-- Give the dialog two tabs — to a player, to coordinates — and delete
-  the note claiming coordinates are impossible.
-- Sanity-check the numbers: Kentucky runs roughly 0–15000 on both axes,
-  z is 0–7. Reject anything outside that rather than sending it.
-- Landmarks as hints, the way the reference panel does: Muldraugh
-  10500,9700 · West Point 11800,6900 · Riverside 6500,5300.
+Read `CONTEXT.md` first for the state everything rests on.
 
 ---
 
-## 2. Event console, the RCON half
+## Still open
 
-Brief: `docs/superpowers/briefs/07-event-console.md`, which describes
-every control the operator asked for. Everything here works over RCON
-today and needs no bridge change.
+### 1. The two-way bridge
 
-One page, controls listed down the left, chosen control on the right,
-each stating plainly whether it is RCON or bridge. A recent-actions
-panel records what the page did — these change the world and it should
-be clear afterwards who caused what.
+The last piece of brief 07. Everything marked "bridge" there — snow,
+fog, wind, temperature, the in-game clock, time speed, electricity and
+water, placed sounds, safehouse and faction management — needs the panel
+to ask the server to do something rather than only read what it wrote.
 
-Buildable now, all verified present in the live server's own `help`:
+`CONTEXT.md` has a section, "The reference panel's two-way bridge", with
+the analysis of how the other panel solves this: the queue shape, the
+forward-only resync and its reasoning, tombstones for dropped sequence
+numbers, and the mistakes its changelog records. **Start there.** It was
+studied, not copied.
 
-- **Rain and storms** — `startrain`, `stoprain`, `startstorm`,
-  `stopweather`, `thunder`, `lightning`
-- **Sounds** — `chopper`, `gunshot`, `alarm`
-- **Vehicle** — `addvehicle`
-- **Teleport** — `teleportplayer`, and `teleportto` per item 1
-- **Broadcast** — `servermsg`, already built in the chat page; reuse
-  `ChatBroadcaster` rather than writing it twice
-- **Zombies** — `createhorde`, `createhorde2`, `removezombies`
+One thing to settle first, cheaply: whether `getFileReader` in this
+project's bridge can read a file the panel uploads over FTP into the
+Lua directory. Everything else depends on that answer.
 
-The catalogue of 60 commands with their syntax is already parsed and
-cached: `App\Server\Rcon\CommandCatalogue`. Use it to decide what to
-show rather than hard-coding a list — a modded server may have more.
+### 2. Move the access checks onto permissions
 
-Grey out anything the connected server does not report, the way the
-console page already does.
+Roles carrying permissions exist and are editable, but every controller
+still guards with `ROLE_SERVER_ADMIN` or `ROLE_ADMIN`. `PermissionVoter`
+grants from an assigned role *or* from a legacy role name, so both are
+in force and a controller can move over one at a time without breaking
+anything.
 
----
+Until they do, a custom role restricts nothing. Worth doing per
+controller with its test alongside, rather than in one sweep.
 
-## 3. World map
+### 3. Assigning roles in the account dialog
 
-Behaves like projectzomboidmap.com — pan, zoom, layer switching,
-search — with our own controls and look.
-
-Unknowns to settle before building:
-
-- **Where do the tiles come from?** projectzomboidmap.com serves its
-  own. Rendering the operator's actual world would mean reading map
-  chunks off the server, which is a large piece of work on its own.
-  Decide: link out, embed someone else's tiles, or render our own.
-- Coordinates are the same space the bridge already reports for
-  players, so overlaying them is straightforward once tiles exist.
-
-Then:
-
-- Live player positions from `players.json` (already read every 3s).
-- Safehouses from `safehouses.json` (already read, currently unused).
-- Right-click menu to teleport a player to the clicked spot — needs
-  item 1 and nothing else.
+`PATCH /api/accounts/{id}` already takes `assignedRoles` and reports the
+permissions a user holds; `GET /api/accounts` lists the roles to choose
+from. The dialog does not offer them yet.
 
 ---
 
-## 4. Two-way bridge
+## Done, and what came of it
 
-Everything else in brief 07 — snow, fog, wind, temperature, the in-game
-clock, time speed, electricity and water, placed sounds, safehouse and
-faction management — needs the panel to ask the server to do something.
+### Teleport to coordinates — the assumption was wrong
 
-What is proven:
+`teleportto` has two argument forms. The single-argument one moves
+whoever typed it, which over RCON is nobody, hence the bare `Error`
+that led to the wrong conclusion. `teleportto "name" x,y,z` works, and
+the command class names its capability `TeleportToCoordinates`.
 
-- `getFileInput(path)` returns a `DataInputStream`, `getFileOutput` a
-  `DataOutputStream`. The bridge has read and written a binary file end
-  to end (a 420-byte PNG, byte-identical).
-- **`getFileInput` resolves inside the Lua cache directory only** and
-  blocks `..`. So the panel writes its command file to `Lua/<name>` over
-  FTP — the same place the bridge already writes to.
+### Event console — larger than expected
 
-What is not proven, and needs deciding:
+14 actions over RCON. Two argument forms came from the command classes:
+`createhorde2` and `removezombies` are varargs taking `-x -y -z
+-radius`, so hordes never needed the bridge at all, and `gunshot` and
+`alarm` take no argument.
 
-- The queue shape. It needs acknowledgements so a command cannot run
-  twice and the panel can tell whether it worked. A sequence number
-  written back into a result file is the obvious approach.
-- How often the bridge polls for commands without costing frames.
+`createhorde2` answers "invalid location" when no player is near the
+spot — the chunk has to be loaded. That is a world constraint, not a
+syntax error, and the page says so.
 
-Read `reference/zomboid-control-panel/pz-mod/PanelBridge/media/lua/server/PanelBridge.lua`
-first — it does exactly this, with `getFileReader` and a cursor file.
-Study it; do not copy it.
+### World map — no renderer, no foreign tiles
 
----
+Rendering the world isometrically costs about 404 GB. pzmap.org's tiles
+are barred by their `robots.txt` and blocked by a
+`cross-origin-resource-policy` header.
 
-## 5. Icon upload screen
+Neither is needed: the game draws its own map and ships the result.
+`pyramid.zip`, 6582 tiles, 51 MB, five levels, level 0 being exactly the
+world in squares. `app:map:import` takes it from a game or server
+installation.
 
-`app:icons:extract` needs a path to a local game installation. That
-works for the operator who has the game on the same machine as the
-panel, and for nobody else.
+### Texture pack upload
 
-A hosted server ships no texture packs — GTX does not — so every other
-operator needs to upload `UI.pack`, `UI2.pack` and `ApComUI.pack`
-through the interface. The parser and store already exist
-(`App\Server\Items\Icons`); this is an upload form and a progress
-report, nothing more.
+Packs upload in the settings; `apiFetch` passes `FormData` through
+untouched, because setting a content type strips the multipart boundary.
 
----
+### Roles and permissions
 
-## 6. Brief 06, configurable roles and permissions
-
-Untouched. `docs/superpowers/briefs/06-role-permissions.md`.
+17 permissions in five groups, three built-in roles that refuse deletion
+and keep their identifiers when renamed.
 
 ---
 

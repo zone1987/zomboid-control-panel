@@ -1,6 +1,6 @@
 # Brief 07 — Event console, world map, teleport
 
-**Status:** not started
+**Status:** RCON half and world map complete; the two-way bridge is what remains
 **Depends on:** [01](01-foundation-auth-servers.md), [02](02-lua-bridge-players.md),
 [03](03-live-log-chat-rcon.md)
 
@@ -37,8 +37,10 @@ Grouped roughly as:
 - **Sounds** — the RCON ones (`chopper`, `gunshot`, `alarm`) and,
   through the bridge, a sound placed at a player or at coordinates with
   a radius.
-- **Players** — spawn a horde around somebody or clear zombies (bridge),
-  spawn a vehicle (`addvehicle`), teleport, broadcast (`servermsg`).
+- **Players** — spawn a horde around somebody or at a point, clear
+  zombies (all RCON: `createhorde`, `createhorde2` and `removezombies`
+  take `-x -y -z -radius` as varargs), spawn a vehicle (`addvehicle`),
+  teleport, broadcast (`servermsg`).
 - **Advanced** — safehouse and faction management through the bridge.
 
 A recent-actions panel records what this page did, since these are
@@ -54,10 +56,11 @@ menu that teleports any player to the clicked spot.
 
 ### Teleport to coordinates
 
-Already established as impossible over RCON: `teleportto` moves whoever
-typed it, and RCON has nobody — the live server answers a bare `Error`.
-Doing this needs the bridge to accept a command, which is the piece the
-event console needs anyway.
+**Built. The earlier reading was wrong.** `teleportto` has two argument
+forms: the single-argument one moves whoever typed it, which over RCON
+is nobody, hence the bare `Error`. `teleportto "name" x,y,z` moves a
+named player and works — the command class even names its capability
+`TeleportToCoordinates`.
 
 ## What the screenshots showed, control by control
 
@@ -104,9 +107,13 @@ need an admin in game, and that these draw zombies.
 place it — at a chosen player, or at world coordinates with x and y
 fields — each with gunshot, alarm and noise buttons.
 
-**Spawn horde** (bridge): a count slider, spawn near or spawn behind a
-random player; then a clear radius slider, remove near a random player,
-and remove all loaded zombies.
+**Spawn horde** (RCON, not bridge as first assumed): a count slider,
+spawn near or spawn behind a random player; then a clear radius slider,
+remove near a random player, and remove all loaded zombies.
+`createhorde2` and `removezombies` are varargs taking `-x -y -z
+-radius`, so both work at any point in the world. A horde needs the
+chunk to be loaded — with nobody nearby the server answers "invalid
+location".
 
 **Spawn vehicle** (RCON): a vehicle dropdown and a per-player button.
 Spawns beside an online player.
@@ -128,21 +135,30 @@ fields, and an execute button, with the inputs validated before sending.
 An event-target switch in the top banner chooses between "all online"
 and a named player, and applies to the controls that can be aimed.
 
-## The thing to establish first
+## What was built, and what is left
 
-**The bridge has to become two-way.** Everything above marked "bridge"
-depends on the panel being able to ask the server to do something, not
-just read what it wrote.
+**Built:** the event console with 14 RCON actions, teleport to
+coordinates, and the world map with live players, safehouses and
+right-click teleport. Verified against the live server.
 
-Verified so far: `getFileInput`/`getGameFilesInput` return a
-`DataInputStream`, `getFileOutput` a `DataOutputStream`, and the bridge
-has read and written a binary file end to end. Reading a command file
-the panel uploads over FTP is therefore plausible — but it is not yet
-proven, and the shape matters: a queue with acknowledgements, so a
-command is not run twice and the panel can tell whether it worked.
+**The map needed neither a renderer nor foreign tiles.** Rendering the
+world isometrically costs about 404 GB, and pzmap.org's tiles are barred
+by their `robots.txt` and blocked by a `cross-origin-resource-policy`
+header. Neither is needed: the game draws its own map and ships it as
+`media/maps/<map>/pyramid.zip` — 6582 tiles, 51 MB, five levels, level 0
+being exactly the world in squares.
 
-Until that exists, only the RCON actions can be built. They are worth
-building on their own.
+**Left: the bridge has to become two-way.** Everything above still
+marked "bridge" — climate floats, the in-game clock, time speed,
+electricity and water, placed sounds, safehouses and factions — depends
+on the panel being able to ask the server to do something.
+
+Verified: `getFileInput`/`getGameFilesInput` return a `DataInputStream`,
+`getFileOutput` a `DataOutputStream`, and the bridge has read and
+written a binary file end to end. Not yet proven: that the bridge can
+read a command file the panel uploads over FTP. `CONTEXT.md` carries an
+analysis of how the reference panel does it — queue shape, forward-only
+resync, tombstones for dropped sequence numbers.
 
 ## What "done" looks like
 

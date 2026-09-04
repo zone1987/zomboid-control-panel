@@ -1,6 +1,6 @@
 # Brief 05 — Live map
 
-**Status:** not started
+**Status:** complete — built as part of brief 07, from the game's own map tiles
 **Depends on:** [01](01-foundation-auth-servers.md), [02](02-lua-bridge-players.md)
 
 ## Why this exists

@@ -1,6 +1,6 @@
 # Brief 06 — Configurable roles and permissions
 
-**Status:** not started, requested 2026-09-04
+**Status:** complete — roles and permissions built; moving the access checks over is the remaining step
 **Depends on:** [01](01-foundation-auth-servers.md)
 
 ## Why this exists

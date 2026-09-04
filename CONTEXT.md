@@ -24,61 +24,71 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ## Next concrete step
 
-**The task list is in `TODO.md`** — six items in the order they should be
-done, each with what is known and what still has to be decided. What
-follows here is the background those tasks rest on.
+**Everything in `TODO.md` is done.** All six items were built and
+verified on 2026-09-04; `TODO.md` now records what came of each. What
+remains open is listed at the end of this section.
 
-**Brief 07 — the event console, the world map, and teleport to
-coordinates.** All three were requested on 2026-09-04 and are written
-out in `docs/superpowers/briefs/07-event-console.md`, which includes a
-control-by-control description of the fourteen screenshots the operator
-sent, so it stands without them.
+Three assumptions in that list turned out to be wrong, and each
+correction is worth more than the code it changed:
 
-The order to work in:
-
-1. **The RCON half of the event console.** Rain, storms, thunder,
-   lightning, helicopter, gunshot, alarm, vehicle spawn, broadcast and
-   player-to-player teleport all work over RCON today and need no bridge
-   change. This is worth building on its own and is the larger half by
-   usefulness.
-
-2. **The world map.** Pan, zoom, layer switching and search, behaving
-   like projectzomboidmap.com but with our own controls and look. Live
-   player positions and safehouses on top of it — both already arrive
-   through the bridge (`players.json`, `safehouses.json`). A right-click
-   menu to teleport a player to the clicked spot, which needs step 3.
-
-3. **A two-way bridge.** Everything else — snow, fog, wind, temperature,
-   the in-game clock, time speed, electricity and water, hordes, placed
-   sounds, safehouse and faction management, and teleport to coordinates
-   — needs the panel to ask the server to do something rather than only
-   read what it wrote.
-
-   What is already proven: `getGameFilesInput`/`getFileInput` return a
-   `DataInputStream`, `getFileOutput` a `DataOutputStream`, and the
-   bridge has read and written a binary file end to end. What is not
-   proven: that the bridge can read a command file the panel uploads
-   over FTP, and what shape that queue should take — it needs
-   acknowledgements so a command cannot run twice and the panel can tell
-   whether it worked. The reference panel under `reference/` does
-   exactly this with `getFileReader` and is worth reading first.
-
-**Teleport to coordinates DOES work over RCON** — corrected 2026-09-04
-after decompiling `TeleportToCommand`. It has two argument forms, and
-only the first one fails:
+**1. Teleport to coordinates works over RCON.** `teleportto` has two
+argument forms; only the first fails.
 
 - `teleportto x,y,z` — one argument, moves whoever typed it. RCON has
   nobody, so the server answers a bare `Error`. This is what misled the
   first attempt.
 - `teleportto "name" x,y,z` — **two arguments, moves a named player.**
-  Verified against the live server: *"admin teleported to 10778,9770,0
-  please wait two seconds to show the map around you."* Quotes are
-  optional; the coordinates must be comma-separated with no spaces.
+  Verified live: *"admin teleported to 10778,9770,0 please wait two
+  seconds to show the map around you."* Quotes optional, coordinates
+  comma-separated without spaces.
 
-The teleport dialog and its explanatory note in
-`frontend/src/features/players/teleport-dialog.tsx` are therefore wrong
-and must be corrected: coordinates are possible, and the map's
-right-click teleport needs no bridge at all.
+The command class confirms it independently: its capability is named
+`TeleportToCoordinates`.
+
+**2. Hordes and zombie removal need no bridge.** `createhorde2` and
+`removezombies` are varargs taking `-count -x -y -z -radius`, so both
+work over RCON at any point in the world. Verified live:
+`removezombies -x 10778 -y 9770 -z 0 -radius 30` answers *"Zombies
+removed."* `createhorde2` with the same flags answers *"invalid
+location"* when no player is nearby — the flag form parses, but the
+chunk has to be loaded. The interface says so.
+
+**3. The world map needs no renderer and no foreign tiles.** The
+research pointed at two dead ends: rendering the world isometrically
+costs about 404 GB, and pzmap.org's tiles are barred by their own
+`robots.txt` and blocked outright by a `cross-origin-resource-policy`
+header.
+
+Neither is needed. **Project Zomboid draws its own in-game map and
+ships the result**: `media/maps/Muldraugh, KY/pyramid.zip` holds 6582
+tiles of 256 pixels in five levels, 51 MB in all. Level 0 is
+19968x16128 — exactly the world in squares — so one pixel is one square
+and one tile is one cell. A player's position needs no projection.
+
+Only the main map carries a pyramid; the other eleven directories are
+start areas inside it.
+
+### What is still open
+
+- **The two-way bridge.** Everything in brief 07 marked "bridge" —
+  snow, fog, wind, temperature, the in-game clock, time speed,
+  electricity and water, placed sounds, safehouse and faction
+  management — still needs the panel to ask the server to do something
+  rather than only read what it wrote. The reference panel's approach
+  is analysed in detail below under "The reference panel's two-way
+  bridge"; that analysis is the starting point.
+
+- **Moving the access checks onto permissions.** Roles carrying
+  permissions exist and are editable, but every controller still guards
+  with `ROLE_SERVER_ADMIN` or `ROLE_ADMIN`. The voter grants a
+  permission from an assigned role *or* from a legacy role name, so
+  both are in force and checks can move one at a time. Nothing is
+  broken until they do; a custom role simply does not restrict anything
+  yet.
+
+- **Assigning roles in the interface.** The API takes `assignedRoles`
+  on a user and reports the permissions they hold, but the account
+  dialog does not offer them yet.
 
 ---
 
@@ -113,27 +123,34 @@ right-click teleport needs no bridge at all.
 | Item icons | **4,343 of 5,092 extracted from the texture packs** |
 | Giving items | **an axe and 150 nails delivered into a player's inventory** |
 | World state | **in-game date, time, weather read from the bridge** |
+| Teleport to coordinates | **`teleportto "name" x,y,z` answered live** |
+| Event console | **rain started and stopped on the live server from the page** |
+| Zombie removal | **`removezombies` with -x/-y/-radius answered "Zombies removed."** |
+| Texture pack upload | **a real pack uploaded through the browser, icons extracted** |
+| Roles and permissions | 17 permissions in five groups, three built-in roles |
+| World map | **the game's own tiles; searching 11800,6900 lands on 11800,6900** |
 | Production image | **builds, starts healthy, serves the whole panel** |
 
-263 backend tests, 38 frontend tests. Both suites green.
+339 backend tests, 45 frontend tests. Both suites green.
 
 ### Not yet built
 
-- Brief 05, live map (folded into brief 07)
-- Brief 06, configurable roles and permissions
-- Brief 07, event console and two-way bridge — **the next thing**
+- The two-way bridge — the last piece of brief 07
+- Moving the access checks from role names onto permissions
+- Assigning roles to users in the interface (the API takes them already)
 
 ### Known open risks
 
 1. **The bridge is one-way.** It writes; nothing reads a command from the
-   panel. Everything in brief 07 marked "bridge" waits on this, and it is
-   unproven — see "Next concrete step".
-2. **Icons come from the operator's own installation.** The texture packs
-   are absent from a hosted server (GTX ships none), so `app:icons:extract`
-   has to be pointed at a local game install. There is no upload screen for
-   them yet, which every self-hosting operator will need.
-3. **Bridge 0.7.0 is uploaded but the server has not restarted since.** The
-   session id it stamps only takes effect on the next start.
+   panel. What is left of brief 07 waits on this — see "The reference
+   panel's two-way bridge" for how the other panel solves it.
+2. **A custom role does not restrict anything yet.** Permissions exist and
+   are editable, but every controller still guards with a legacy role
+   name. The voter honours both, so nothing is broken; the restriction
+   simply has no effect until the checks move over.
+3. **Map tiles are the operator's own artefact.** `app:map:import` needs a
+   path to `media/maps` from a game or server installation. The map says
+   so and names the command when the tiles are missing.
 4. **Mail lands in spam** without DKIM. Not a defect — see the DNS section
    — but new operators will hit it. The deliverability check now names the
    exact record.
@@ -321,6 +338,81 @@ running npm on the host fails with missing native bindings.
 
 ---
 
+## The reference panel's two-way bridge
+
+The panel under `reference/zomboid-control-panel` (gitignored, MIT, read
+but never copied) solves the two-way problem this project still has open.
+Its `PanelBridge.lua` is 9132 lines and its changelog is a catalogue of
+mistakes worth not repeating. Analysed 2026-09-04; the essentials:
+
+**A write restriction that may or may not apply here.** Its changelog
+says Build 42 buildid 24449161 (2026-07-29) restricted `getFileWriter`
+to a small set of extensions and refuses `.json` outright, returning
+nil. It works around this by appending `.txt` to every path it writes
+(`status.json.txt`), leaving the content JSON.
+
+**This project's bridge writes plain `.json` and it works.** Verified
+2026-09-04 against the live GTX server: `players.json` carried a
+timestamp from moments earlier while the server was running. So either
+the restriction was lifted, or it never applied to that server's build.
+Worth remembering if writes ever start failing silently, but not worth
+pre-emptively changing.
+
+`getFileReader` is unaffected either way. The panel writes the files it
+owns (`inbox/cmd-*.json`) under their plain names, because it writes
+from outside the game's sandbox.
+
+**Directories cannot be created from Lua in Build 42.** The panel has to
+create `inbox/` and `outbox/` itself.
+
+**The queue.** Two counters, each owned by exactly one side and read by
+the other: the bridge keeps `lastCommandSeq` in its own state file, the
+panel keeps `nextCommandSeq` in its own. Command files are named
+`cmd-<10-digit-seq>.json` and written atomically (temp file plus
+rename), because a half-written file would otherwise be read.
+
+Three separate guards stop a command running twice: the sequence
+cursor, setting `lastCommandSeq` *before* the handler runs (a crash
+therefore loses a command rather than repeating it), and a set of
+already-seen command ids.
+
+**Resync is forward-only.** If the two counters drift — the documented
+case is a redeployed panel whose state file was reset while the mod kept
+counting — every command waits forever on a file that will never
+appear. The bridge reads the panel's declared position after 10 seconds
+stuck and moves *forward* to it, never backward. The reasoning is the
+part worth keeping: a stale read of the other side's counter can only
+ever be too low, never invented too high, so a forward-only jump cannot
+replay a command that already ran.
+
+**Every gap in a sequential numbering must be filled actively.** When
+its result buffer overflows it writes a tombstone result for the
+dropped number rather than skipping it, because the reader is strictly
+sequential and would otherwise wait forever.
+
+**A heartbeat that does not travel the command path proves nothing.**
+Its status file is written outside the queue, so it reported healthy
+while every command was stuck. It now carries the queue counters.
+
+**Not thrown is not succeeded.** Most of its changelog is one mistake in
+different clothes: an action reporting success while doing nothing.
+`triggerCustomWeatherStage` returns a real boolean that was discarded;
+a fallback chain put a method that never throws first, so the real one
+was never reached.
+
+**Whether a value can be read back has to be settled per method.**
+`ClimateFloat.getFinalValue()` is not refreshed until the next game
+tick, so reading it straight after writing proves nothing — but
+`getAdminValue()` is a plain field read and does. `permanentlyRemove()`
+removes from the live collection synchronously, so re-checking works
+there. Both look identical in Lua and behave oppositely.
+
+**Java methods are not always Lua fields.** Guarding with
+`if obj.method then` reports false for methods that are callable. This
+made a live server with 21 vehicles report zero.
+
+---
+
 ## Mail deliverability
 
 The first real test message reached the user's inbox but landed in spam. The
@@ -443,3 +535,65 @@ Paired fields aligned; Hetzner and five more providers added. Commit `9945fe7`.
 ### 2026-09-04 — Mail deliverability and password visibility
 HTML mail templates, an SPF/DKIM/DMARC checker, and a reveal toggle on every
 password field. Commit `4e24f67`.
+
+### 2026-09-04 — Teleport to coordinates
+`teleportto` has two argument forms and only the single-argument one fails
+over RCON, because it moves the caller and RCON has none. `PlayerModerator`
+gained `teleportToCoordinates()`, the endpoint takes `{x, y, z}` as an
+alternative to `{target}`, and the dialog has two tabs plus six landmarks.
+The note claiming coordinates were impossible is gone. Commit `52eba8e`.
+
+### 2026-09-04 — Event console
+`App\Server\Events`: a catalogue of 14 actions declared once with their
+fields and handed to the interface, so a control and its command cannot
+drift. Each is marked with the commands it needs and greyed out when the
+server's own `help` does not report them.
+
+Two argument forms came from the command classes rather than guesswork:
+`createhorde2` and `removezombies` are varargs taking `-x -y -z -radius`,
+which is why hordes are RCON here rather than waiting for the bridge, and
+`gunshot`/`alarm` take no argument at all.
+
+Verified live: rain started and stopped from the page, and the action was
+recorded with time and author. `removezombies` answered "Zombies removed."
+`createhorde2` answers "invalid location" without a player nearby — the
+flags parse, the chunk has to be loaded — and the page says so.
+Commits `48da285`, `f8879ce`.
+
+### 2026-09-04 — Texture pack upload
+A rented server ships no texture packs, so `app:icons:extract` served only
+operators running the panel beside the game. Packs can now be uploaded in
+the settings. `apiFetch` had to learn to pass `FormData` through untouched:
+setting a content type of its own strips the multipart boundary.
+Verified with a real pack through the browser. Commit `a1b3dae`.
+
+### 2026-09-04 — Roles carrying permissions
+Brief 06. A `Role` entity with 17 permissions in five groups, editable in
+the interface, assignable to users. Three built-in roles refuse deletion so
+an installation cannot lock itself out, and keep their identifiers when
+renamed because code refers to them by name.
+
+Permissions and the legacy role names are both in force, as the brief asks:
+`PermissionVoter` grants from an assigned role *or* from a legacy name, so
+checks can move over one at a time and nothing breaks in the meantime.
+Commit `4f1970d`.
+
+### 2026-09-04 — World map
+The research offered two dead ends — rendering the world isometrically costs
+about 404 GB, and pzmap.org's tiles are barred by their `robots.txt` and
+blocked by a `cross-origin-resource-policy` header.
+
+Neither is needed: **the game ships its own map**. `pyramid.zip` holds 6582
+tiles of 256 pixels in five levels, 51 MB, and level 0 is 19968x16128 —
+exactly the world in squares, so no projection is needed at all.
+
+`MapTileStore` reads a tile straight out of the archive (a zip's central
+directory is an index, so unpacking 6582 files would buy nothing).
+`app:map:import` takes the archive from a game or server installation.
+
+Two things had to line up in Leaflet, each wrong once against the browser
+before it was right: `CRS.Simple` puts one unit on one pixel at zoom 0 while
+the pyramid's finest level is the *highest* zoom, and Simple's y axis runs
+upward while tile rows run downward — which left every requested row
+negative. Verified by measuring what sits under the viewport centre:
+searching 11800,6900 lands on 11800,6900. Commit `d7b9db0`.
