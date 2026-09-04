@@ -8,47 +8,30 @@ Read `CONTEXT.md` first for the state everything rests on.
 
 ---
 
-## Waiting on a server restart
+## Nothing is open
 
-**Bridge 0.8.0 is built and uploaded but not yet proven.** The server is
-still running 0.7.0, which cannot read commands. Everything else is
-verified.
-
-### What to do when the server has restarted
-
-1. **Upload the bridge** — the servers page offers it when the installed
-   version is older than the one the panel ships.
-
-2. **Restart the server**, so Lua loads 0.8.0.
-
-3. **Press a bridge action** in the event console — "Nebel" is the
-   harmless one. It should answer within a second or two.
-
-Already verified without a restart: the command file arrives on the
-live server with the right contents (`{"action":"setClimateValue",
-"index":5,"value":0.6}`), the panel's cursor follows it, the
-directories are created, and a bridge that cannot answer fails cleanly
-after twelve seconds rather than hanging.
-
-### If it does not answer
-
-The one assumption still untested is that `getFileReader` can read a
-file the panel uploaded over FTP into the Lua directory. Everything else
-in the queue is exercised by tests.
-
-Should that turn out to be blocked, the reference panel's workaround is
-in `CONTEXT.md` under "The reference panel's two-way bridge": Build 42
-restricted `getFileWriter` to certain extensions at one point and the
-answer was to append `.txt` to written paths. The same trick would apply
-to reading if it comes to that. Note that this project's bridge writes
-plain `.json` today and it works, so the restriction may not apply to
-this build at all.
+Every task on the original list is done and verified against the live
+server. The two-way bridge -- the last unproven piece -- was confirmed
+on 2026-09-05: see below.
 
 ---
 
 ## Done, and what came of it
 
-### Permissions, all the way through
+### The two-way bridge works
+
+Confirmed against the live server after a restart. `getFileReader` does
+read a file the panel uploaded over FTP -- the assumption everything
+rested on.
+
+A command takes **1 to 1.5 seconds** from click to answer. Every handler
+type was exercised: the in-game clock, the date, rain on and off, a
+sound at a point, and a climate value. Each answers with a real verdict
+because it reads the value back rather than reporting that the call did
+not throw.
+
+The proof that the loop closes: setting the hour to 13 through the panel
+put `"hour":13` into the world state the bridge writes a minute later.
 
 Every endpoint guards on a permission; the navigation shows only what
 the user can reach; roles are assignable in the account dialog. A

@@ -70,19 +70,12 @@ start areas inside it.
 
 ### What is still open
 
-**Nothing is unbuilt. One thing is unproven.**
+**Nothing from the task list.** Bridge 0.8.0 was confirmed against the
+live server on 2026-09-05, which was the last unproven piece.
 
-Bridge 0.8.0 reads commands as well as writing state, and twelve event
-actions travel that way. It is uploaded but the server has not
-restarted, so it is still running 0.7.0 and cannot answer yet.
-
-What is already verified without a restart: the command file arrives on
-the live server with the right contents, the panel's cursor follows it,
-the directories are created, and a bridge that cannot answer fails
-cleanly after twelve seconds. What is not: that `getFileReader` can
-read a file the panel uploaded over FTP into the Lua directory. That is
-the single remaining assumption, and `TODO.md` says what to do if it
-does not hold.
+`getFileReader` does read a file the panel uploaded over FTP into the
+Lua directory -- the assumption the whole queue rested on. A command
+takes 1 to 1.5 seconds from click to answer.
 
 Permissions are fully in force since the roles work landed: every
 endpoint guards on one, the navigation shows only what the user can
@@ -637,3 +630,25 @@ truncated any value containing an escaped quote — Lua patterns have no
 alternation, so `"(.-)"` stops at the escaped one. It is a character
 scanner now, and `BridgeDecoderTest` checks the copy in the test has
 not drifted from the bridge. Commit `d3642d7`.
+
+### 2026-09-05 — Two-way bridge confirmed live
+The server restarted with 0.8.0 and answered. The assumption everything
+rested on holds: **`getFileReader` reads a file the panel uploaded over
+FTP into the Lua directory.**
+
+A command takes 1 to 1.5 seconds from click to answer. Every handler
+type was exercised against the live server — `setTime`, `setDate`,
+`bridgeStartRain`, `bridgeStopRain`, `soundAtPoint`, `setClimateValue`
+— and each answered with a real verdict rather than "the call did not
+throw":
+
+    {"seq":1,"ok":true,"message":"climate value set",
+     "data":{"index":5,"value":0.6000,"asked":0.6000}}
+
+The loop closes end to end: setting the hour to 13 from the panel put
+`"hour":13` into the world state the bridge writes a minute later.
+
+One thing worth noting for later: the bridge picked up the command file
+left over from the pre-restart test and processed it on startup, which
+is the queue behaving exactly as intended — a command survives a
+restart rather than being lost.
