@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/api'
 
-export type ChatKind = 'message' | 'broadcast' | 'system'
+export type ChatKind = 'message' | 'broadcast' | 'system' | 'ignore'
 
 export type ChatLine = {
   kind: ChatKind

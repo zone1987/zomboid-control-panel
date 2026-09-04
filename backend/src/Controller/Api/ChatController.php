@@ -81,11 +81,18 @@ final class ChatController extends AbstractController
             return $this->storageFailure($exception);
         }
 
+        $lines = array_map(ChatLine::parse(...), $result['lines']);
+
         return new JsonResponse([
-            'lines' => array_map(
-                static fn (string $line): array => (array) ChatLine::parse($line),
-                $result['lines'],
-            ),
+            'lines' => array_values(array_map(
+                static fn (ChatLine $line): array => (array) $line,
+                array_filter(
+                    $lines,
+                    // The server logs each message twice; the duplicate is
+                    // marked rather than guessed at again here.
+                    static fn (ChatLine $line): bool => $line->kind !== ChatLine::KIND_IGNORE,
+                ),
+            )),
             'offset' => $result['offset'],
             'file' => $chat['name'],
             'rotated' => $result['rotated'],

@@ -569,6 +569,7 @@
     "sendFailed": "Die Nachricht konnte nicht gesendet werden. Antwortet RCON?",
     "rotated": "Der Server wurde neu gestartet — der Chatverlauf beginnt von vorn.",
     "noLog": "Keine Chat-Logdatei gefunden",
-    "noLogHint": "Senden funktioniert trotzdem. Zum Mitlesen muss der Server eine Chat-Logdatei schreiben; prüfe den Logpfad in der Serverkonfiguration."
+    "noLogHint": "Senden funktioniert trotzdem. Zum Mitlesen muss der Server eine Chat-Logdatei schreiben; prüfe den Logpfad in der Serverkonfiguration.",
+    "emptyHintNoPlayers": "Sobald jemand im Spiel etwas schreibt, erscheint es hier — genauso wie das, was du von hier aus sendest."
   }
 }

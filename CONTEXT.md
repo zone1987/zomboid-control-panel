@@ -157,8 +157,28 @@ Confirmed present and used by the bridge:
 
 Hard limits:
 
-- **No server-side chat event.** `OnAddMessage` is client-only. Chat must be
-  read from the engine's `_chat.txt` log and sent via RCON `servermsg`.
+- **No server-side chat event.** `OnAddMessage` is client-only, and
+  `ChatServer` (package `zombie.network.chat`, not `zombie.chat`) never calls
+  `LuaEventManager.triggerEvent` at all. Chat is read from the `_chat.txt` log
+  and sent via RCON `servermsg`.
+- **Player messages are logged, but as a Java `toString()`.** `ChatServer`
+  writes `Got message:ChatMessage{chat=<tabKey>, author='<name>',
+  text='<text>'}`, then the same message again as `Message ... sent to chat
+  (id = N) members` — so every message appears twice and the duplicate has to
+  be dropped. Nothing is escaped, so the text can contain `'` and `}`; the
+  author runs to the first `', text='` and the text to the last `'}`.
+  `chat=` holds a translation key, not "Say" or "Shout", so the chat type is
+  only recoverable through the numeric id and the `"<Type> chat has id = N"`
+  lines written at startup.
+- **The Discord bridge has a third shape**: `Got message '<msg>' by author
+  '<author>' from discord`.
+- **Chat logging cannot be switched off.** `ServerOptions` has `GlobalChat`,
+  `ChatStreams`, `ChatMessageCharacterLimit` and others, but no `ChatLogs`.
+- **`servermsg` is the only chat command over RCON.** Nothing sends to one
+  player, and nothing sends under a chosen name — `ChatServer` can do both in
+  Java, but neither is reachable from RCON.
+- **Log lines are stamped `dd-MM-yy HH:mm:ss.SSS`** by `ZLogger`, with the
+  level in a second bracket only when the caller passed one.
 - **No HTTP, no sockets in Lua.** The file bridge is mandatory.
 - **The `Every*` events run on in-game time, not real time.** `EveryOneMinute`
   fires when a game minute passes, which depends on the sandbox day length and

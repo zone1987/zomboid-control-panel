@@ -84,6 +84,11 @@ export function ChatPage() {
     [entries, showSystem],
   )
 
+  const hasPlayerMessages = useMemo(
+    () => entries.some((entry) => entry.kind === 'message'),
+    [entries],
+  )
+
   const tooLong = message.length > MAX_MESSAGE_LENGTH
 
   return (
@@ -124,7 +129,9 @@ export function ChatPage() {
                 <MessagesSquare />
               </EmptyMedia>
               <EmptyTitle>{t('chat.empty')}</EmptyTitle>
-              <EmptyDescription>{t('chat.emptyHint')}</EmptyDescription>
+              <EmptyDescription>
+                {hasPlayerMessages ? t('chat.emptyHint') : t('chat.emptyHintNoPlayers')}
+              </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
@@ -202,10 +209,10 @@ function Line({ entry }: { entry: Entry }) {
   }
 
   return (
-    <p className="text-sm">
+    <p className="flex flex-wrap items-baseline gap-x-1.5 text-sm">
       <Stamp value={entry.timestamp} />
-      {entry.author !== null && <span className="mr-1.5 font-medium">{entry.author}:</span>}
-      {entry.text}
+      {entry.author !== null && <span className="font-medium">{entry.author}</span>}
+      <span className="break-words">{entry.text}</span>
     </p>
   )
 }

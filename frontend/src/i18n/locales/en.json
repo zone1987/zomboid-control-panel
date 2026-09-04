@@ -569,6 +569,7 @@
     "sendFailed": "The message could not be sent. Is RCON answering?",
     "rotated": "The server restarted — the chat starts over.",
     "noLog": "No chat log found",
-    "noLogHint": "Sending still works. To follow the chat the server must write a chat log; check the log path in the server configuration."
+    "noLogHint": "Sending still works. To follow the chat the server must write a chat log; check the log path in the server configuration.",
+    "emptyHintNoPlayers": "Anything said in game appears here, alongside whatever you send from this page."
   }
 }
