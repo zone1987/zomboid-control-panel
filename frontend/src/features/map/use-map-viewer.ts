@@ -71,7 +71,10 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
       showNavigator: false,
       animationTime: 0.4,
       springStiffness: 8,
-      maxZoomPixelRatio: 4,
+      // The game's map is one pixel per world square, so a tile pixel is
+      // tiny on screen. Letting it magnify well past 1:1 is what makes
+      // close inspection possible at all.
+      maxZoomPixelRatio: 16,
       minZoomLevel: 0.2,
       visibilityRatio: 0.6,
       constrainDuringPan: true,
