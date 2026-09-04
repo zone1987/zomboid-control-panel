@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Security\OAuth;
 
+use App\Entity\AppSetting;
 use App\Entity\OAuthIdentity;
 use App\Entity\User;
+use App\Settings\SettingsProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use KnpU\OAuth2ClientBundle\Security\Authenticator\OAuth2Authenticator;
@@ -26,7 +28,14 @@ final class GoogleAuthenticator extends OAuth2Authenticator
         private readonly ClientRegistry $clients,
         private readonly IdentityLinker $linker,
         private readonly EntityManagerInterface $entityManager,
+        private readonly SettingsProvider $settings,
     ) {
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->settings->isConfigured(AppSetting::GOOGLE_CLIENT_ID)
+            && $this->settings->isConfigured(AppSetting::GOOGLE_CLIENT_SECRET);
     }
 
     public function supports(Request $request): ?bool

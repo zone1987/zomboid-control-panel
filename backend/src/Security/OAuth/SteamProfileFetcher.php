@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Security\OAuth;
 
+use App\Entity\AppSetting;
 use App\Entity\OAuthIdentity;
 use App\Entity\User;
 use App\Repository\OAuthIdentityRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Settings\SettingsProvider;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -16,7 +18,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * display name comes from the Web API, which needs a key; without one
  * the account simply keeps its numeric label.
  */
-final readonly class SteamProfileFetcher
+final class SteamProfileFetcher
 {
     private const ENDPOINT = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/';
 
@@ -25,19 +27,21 @@ final readonly class SteamProfileFetcher
         private OAuthIdentityRepository $identities,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $logger,
-        private ?string $apiKey = null,
+        private SettingsProvider $settings,
     ) {
     }
 
     public function fetchPersonaName(string $steamId): ?string
     {
-        if ($this->apiKey === null || $this->apiKey === '') {
+        $apiKey = $this->settings->get(AppSetting::STEAM_API_KEY);
+
+        if ($apiKey === null) {
             return null;
         }
 
         try {
             $response = $this->http->request('GET', self::ENDPOINT, [
-                'query' => ['key' => $this->apiKey, 'steamids' => $steamId],
+                'query' => ['key' => $apiKey, 'steamids' => $steamId],
                 'timeout' => 5,
             ]);
 

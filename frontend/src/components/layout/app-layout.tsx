@@ -1,6 +1,6 @@
 import { Link, Outlet } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { LogOut, Moon, Sun, User } from 'lucide-react'
+import { LogOut, Moon, Settings, Sun, User } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/components/theme-provider'
@@ -10,7 +10,7 @@ import { changeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i
 export function AppLayout() {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const { user, signOut } = useAuth()
+  const { user, signOut, hasRole } = useAuth()
 
   return (
     <div className="min-h-svh bg-background">
@@ -41,6 +41,14 @@ export function AppLayout() {
           >
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
+
+          {hasRole('ROLE_ADMIN') && (
+            <Button variant="ghost" size="icon" aria-label={t('nav.settings')} asChild>
+              <Link to="/settings">
+                <Settings className="size-4" />
+              </Link>
+            </Button>
+          )}
 
           <Button variant="ghost" size="icon" aria-label={t('nav.profile')} asChild>
             <Link to="/profile">

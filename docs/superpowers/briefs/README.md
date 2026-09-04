@@ -15,3 +15,4 @@ that into steps.
 | [03-live-log-chat-rcon.md](03-live-log-chat-rcon.md) | Live log, chat, RCON console | Not started |
 | [04-item-grid.md](04-item-grid.md) | Item catalogue and granting | Not started |
 | [05-livemap.md](05-livemap.md) | Live map with players and safehouses | Not started |
+| [06-role-permissions.md](06-role-permissions.md) | Configurable roles and permissions | Not started |
