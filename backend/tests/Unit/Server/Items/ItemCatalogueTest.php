@@ -138,6 +138,11 @@ final class ItemCatalogueTest extends TestCase
 
 final class StubFileBrowser implements FileBrowserInterface
 {
+    public function download(FtpConfig $config, string $path, string $target): int
+    {
+        return 0;
+    }
+
     public int $catalogueReads = 0;
     public bool $failEverything = false;
     public string $sessionId = 'session-1';

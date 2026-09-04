@@ -242,4 +242,12 @@ final class FakeFiles implements FileBrowserInterface
     {
         return true;
     }
+
+    public function download(\App\Entity\FtpConfig $config, string $path, string $target): int
+    {
+        $contents = $this->contents[$path] ?? '';
+        file_put_contents($target, $contents);
+
+        return \strlen($contents);
+    }
 }

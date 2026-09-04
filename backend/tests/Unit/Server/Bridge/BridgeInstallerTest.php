@@ -119,6 +119,11 @@ final class RecordingFileBrowser implements FileBrowserInterface
 
     public bool $fileIsThere = true;
 
+    public function download(FtpConfig $config, string $path, string $target): int
+    {
+        return 0;
+    }
+
     public function directoryExists(FtpConfig $config, string $path): bool
     {
         return true;
