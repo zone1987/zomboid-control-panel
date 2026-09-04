@@ -12,7 +12,8 @@ that into steps.
 |---|---|---|
 | [01-foundation-auth-servers.md](01-foundation-auth-servers.md) | Foundation, authentication, server configuration | Complete |
 | [02-lua-bridge-players.md](02-lua-bridge-players.md) | Lua bridge and player management | Backend done, interface open |
-| [03-live-log-chat-rcon.md](03-live-log-chat-rcon.md) | Live log, chat, RCON console | Not started |
-| [04-item-grid.md](04-item-grid.md) | Item catalogue and granting | Not started |
+| [03-live-log-chat-rcon.md](03-live-log-chat-rcon.md) | Live log, chat, RCON console | Complete |
+| [04-item-grid.md](04-item-grid.md) | Item catalogue and granting | Complete |
 | [05-livemap.md](05-livemap.md) | Live map with players and safehouses | Not started |
 | [06-role-permissions.md](06-role-permissions.md) | Configurable roles and permissions | Not started |
+| [07-event-console.md](07-event-console.md) | Event console, world map, teleport | Not started |

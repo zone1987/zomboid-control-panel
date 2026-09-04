@@ -7,3 +7,8 @@
 # Browser automation artefacts: console logs and page snapshots from
 # manual verification runs. Diagnostic only, never part of the project.
 .playwright-mcp/
+
+# Studied for how others solved things, never copied and never shipped.
+# Clone it back with:
+#   git clone --depth 1 https://github.com/fpsacha/zomboid-control-panel.git reference/zomboid-control-panel
+/reference/

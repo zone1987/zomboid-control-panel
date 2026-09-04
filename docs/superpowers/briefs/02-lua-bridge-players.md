@@ -1,6 +1,6 @@
 # Brief 02 — Lua bridge and player management
 
-**Status:** backend complete, interface outstanding
+**Status:** complete
 **Depends on:** [01](01-foundation-auth-servers.md)
 
 ## Why this exists

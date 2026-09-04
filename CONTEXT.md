@@ -16,37 +16,69 @@ a DSN, an environment variable, a DNS record — has to be either avoided or
 explained in the interface. This has already shaped several decisions and
 should keep doing so.
 
-Work is split into six sub-projects; see `docs/superpowers/briefs/`.
-Sub-project 01 is complete. Sub-project 02 is in progress.
+Work is split into sub-projects; see `docs/superpowers/briefs/`.
+Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
+07 (event console) are not started.
 
 ---
 
 ## Next concrete step
 
-**Sub-project 02, remaining work: the player management interface.**
+**The task list is in `TODO.md`** — six items in the order they should be
+done, each with what is known and what still has to be decided. What
+follows here is the background those tasks rest on.
 
-The backend is finished and verified against a live server. What is missing
-is the frontend:
+**Brief 07 — the event console, the world map, and teleport to
+coordinates.** All three were requested on 2026-09-04 and are written
+out in `docs/superpowers/briefs/07-event-console.md`, which includes a
+control-by-control description of the fourteen screenshots the operator
+sent, so it stands without them.
 
-1. A player list page at `/servers/:id/players` — table of who is online,
-   with position, health, infection, access level, skills and traits.
-   Endpoint: `GET /api/servers/{serverId}/players`.
-2. Kick, ban and unban from that list. Ban needs a duration picker: the
-   preset list (1h, 2h, 6h, 12h, 1 day, 2 days, 5 days, 1 week, permanent)
-   plus a free-entry field, sent as `durationMinutes`.
-3. A ban list and moderation history, from `GET .../players/bans` and
-   `GET .../players/history`.
-4. Access level selector per player, from the six values in
-   `PlayerModerator::ACCESS_LEVELS`.
+The order to work in:
 
-Two smaller items also outstanding:
+1. **The RCON half of the event console.** Rain, storms, thunder,
+   lightning, helicopter, gunshot, alarm, vehicle spawn, broadcast and
+   player-to-player teleport all work over RCON today and need no bridge
+   change. This is worth building on its own and is the larger half by
+   usefulness.
 
-- The deliverability check has an endpoint
-  (`GET /api/settings/mail/deliverability`) but no button in the interface.
-- ReUI's `data-grid` was removed early on because it needs Base UI variants
-  of dropdown-menu, select and checkbox. The player list is where that
-  decision comes due: either install the Base UI variants, or build the
-  table with plain shadcn parts.
+2. **The world map.** Pan, zoom, layer switching and search, behaving
+   like projectzomboidmap.com but with our own controls and look. Live
+   player positions and safehouses on top of it — both already arrive
+   through the bridge (`players.json`, `safehouses.json`). A right-click
+   menu to teleport a player to the clicked spot, which needs step 3.
+
+3. **A two-way bridge.** Everything else — snow, fog, wind, temperature,
+   the in-game clock, time speed, electricity and water, hordes, placed
+   sounds, safehouse and faction management, and teleport to coordinates
+   — needs the panel to ask the server to do something rather than only
+   read what it wrote.
+
+   What is already proven: `getGameFilesInput`/`getFileInput` return a
+   `DataInputStream`, `getFileOutput` a `DataOutputStream`, and the
+   bridge has read and written a binary file end to end. What is not
+   proven: that the bridge can read a command file the panel uploads
+   over FTP, and what shape that queue should take — it needs
+   acknowledgements so a command cannot run twice and the panel can tell
+   whether it worked. The reference panel under `reference/` does
+   exactly this with `getFileReader` and is worth reading first.
+
+**Teleport to coordinates DOES work over RCON** — corrected 2026-09-04
+after decompiling `TeleportToCommand`. It has two argument forms, and
+only the first one fails:
+
+- `teleportto x,y,z` — one argument, moves whoever typed it. RCON has
+  nobody, so the server answers a bare `Error`. This is what misled the
+  first attempt.
+- `teleportto "name" x,y,z` — **two arguments, moves a named player.**
+  Verified against the live server: *"admin teleported to 10778,9770,0
+  please wait two seconds to show the map around you."* Quotes are
+  optional; the coordinates must be comma-separated with no spaces.
+
+The teleport dialog and its explanatory note in
+`frontend/src/features/players/teleport-dialog.tsx` are therefore wrong
+and must be corrected: coordinates are possible, and the map's
+right-click teleport needs no bridge at all.
 
 ---
 
@@ -69,25 +101,42 @@ Two smaller items also outstanding:
 | FTP/SFTP to the game server | **works against the user's GTX Gaming server** |
 | RCON to the game server | **works; "Players connected (1): -admin"** |
 | Lua bridge | **uploaded, loaded, writing correct player data** |
-| Player list backend | **verified: position, health, access level all correct** |
-| Moderation backend | kick, ban, unban, access level; timed bans via scheduler |
-| Mail sending | **user received a test message** (in spam, see below) |
+| Player list | **verified live: position, health, access level, skills** |
+| Moderation | kick, ban, unban, access level; timed bans via scheduler |
+| Mail sending | **user received a test message** |
+| Mail deliverability check | SPF, DKIM, DMARC with the exact record to publish |
+| Account administration | roles, activation, deletion; last admin protected |
+| Server log | **tailed live over FTP, all seven kinds found automatically** |
+| Chat | **sent from the panel, read back out of the log within 3s** |
+| RCON console | **60 commands read from the live server, syntax checked** |
+| Item catalogue | **5,092 items, 5,138 German names, from the live server** |
+| Item icons | **4,343 of 5,092 extracted from the texture packs** |
+| Giving items | **an axe and 150 nails delivered into a player's inventory** |
+| World state | **in-game date, time, weather read from the bridge** |
+| Production image | **builds, starts healthy, serves the whole panel** |
 
-115 backend tests green. Frontend builds without errors.
+263 backend tests, 38 frontend tests. Both suites green.
 
 ### Not yet built
 
-- Player management interface (see "Next concrete step")
-- Everything in sub-projects 03 to 06
+- Brief 05, live map (folded into brief 07)
+- Brief 06, configurable roles and permissions
+- Brief 07, event console and two-way bridge — **the next thing**
 
 ### Known open risks
 
-1. **Production image never built.** The compose file is valid; the image has
-   not been built or run. This is the largest untested area.
-2. **`data-grid` needs Base UI.** Decision due with the player list.
-3. **Bundle over 500 kB.** No code splitting yet.
-4. **Mail lands in spam** without DKIM. Not a defect in the application — see
-   the DNS section below — but new operators will hit it.
+1. **The bridge is one-way.** It writes; nothing reads a command from the
+   panel. Everything in brief 07 marked "bridge" waits on this, and it is
+   unproven — see "Next concrete step".
+2. **Icons come from the operator's own installation.** The texture packs
+   are absent from a hosted server (GTX ships none), so `app:icons:extract`
+   has to be pointed at a local game install. There is no upload screen for
+   them yet, which every self-hosting operator will need.
+3. **Bridge 0.7.0 is uploaded but the server has not restarted since.** The
+   session id it stamps only takes effect on the next start.
+4. **Mail lands in spam** without DKIM. Not a defect — see the DNS section
+   — but new operators will hit it. The deliverability check now names the
+   exact record.
 
 ---
 

@@ -1,6 +1,6 @@
 # Brief 04 — Item catalogue and granting
 
-**Status:** not started
+**Status:** complete — catalogue, grid, icons and granting all verified live
 **Depends on:** [01](01-foundation-auth-servers.md), [02](02-lua-bridge-players.md)
 
 ## Why this exists
