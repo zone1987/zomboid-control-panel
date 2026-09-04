@@ -15,7 +15,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.5.0"
+local BRIDGE_VERSION = "0.6.2"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -23,6 +23,12 @@ local BRIDGE_VERSION = "0.5.0"
 local PLAYERS_FILE = "ZomboidControl/players.json"
 local SERVER_FILE = "ZomboidControl/server.json"
 local SAFEHOUSES_FILE = "ZomboidControl/safehouses.json"
+-- Written once per server start: the catalogue only changes when mods do,
+-- and it is several thousand entries.
+local ITEMS_FILE = "ZomboidControl/items.json"
+-- Diagnostic: which media files the server actually has, so the panel
+-- knows whether icons can be extracted at all.
+local PROBE_FILE = "ZomboidControl/probe.json"
 
 -- Build 42 has no server-side event for a player joining or leaving:
 -- OnPlayerConnect and OnPlayerDisconnect do not exist, and OnConnected
@@ -322,6 +328,160 @@ local function writeSafehouses()
     ))
 end
 
+--- Reports what the server actually has on disk under media/.
+---
+--- Written once at startup so the panel can tell whether icons are
+--- reachable at all: a hosted server often ships without graphics, and
+--- guessing from the outside is unreliable.
+local function writeProbe()
+    local candidates = {
+        "media/texturepacks/UI.pack",
+        "media/texturepacks/UI2.pack",
+        "media/inventory/BerettaClip.png",
+        "media/items/items.xml",
+        "texturepacks/UI.pack",
+        "inventory/BerettaClip.png",
+        "items/items.xml",
+        "scripts/items.txt",
+    }
+
+    local parts = {}
+
+    for _, name in ipairs(candidates) do
+        local size = -1
+        local ok, stream = pcall(getGameFilesInput, name)
+
+        if ok and stream ~= nil then
+            -- available() reports what can be read without blocking,
+            -- which for a local file is its whole length.
+            local gotSize, value = pcall(function() return stream:available() end)
+
+            if gotSize and type(value) == "number" then
+                size = value
+            else
+                size = 0
+            end
+
+            pcall(function() stream:close() end)
+        end
+
+        table.insert(parts, string.format("\"%s\":%d", escape(name), size))
+    end
+
+    -- Where the game thinks its files are, which is the missing piece
+    -- when a path that exists over FTP cannot be opened from Lua.
+    local cacheDir = "?"
+    local okCache, value = pcall(function() return getCacheDir() end)
+
+    if okCache and value ~= nil then
+        cacheDir = tostring(value)
+    end
+
+    writeFile(PROBE_FILE, string.format(
+        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"cacheDir\":\"%s\",\"mediaFiles\":{%s}}",
+        BRIDGE_VERSION,
+        getTimestamp(),
+        escape(cacheDir),
+        table.concat(parts, ",")
+    ))
+end
+
+--- Every item the server knows, base game and mods alike.
+---
+--- Icons are named, not embedded: Lua has only a text writer, so it
+--- cannot read or copy a PNG. The name is what the panel needs to find
+--- the picture elsewhere.
+local function describeItem(item)
+    local fullType = item:getFullName()
+
+    if fullType == nil or fullType == "" then
+        return nil
+    end
+
+    local parts = {
+        string.format("\"type\":\"%s\"", escape(fullType)),
+        string.format("\"name\":\"%s\"", escape(item:getDisplayName())),
+    }
+
+    -- Translated through the server's own language files, which are
+    -- present even on an installation without graphics.
+    local ok, translated = pcall(getItemNameFromFullType, fullType)
+
+    if ok and translated ~= nil and translated ~= "" then
+        parts[2] = string.format("\"name\":\"%s\"", escape(translated))
+    end
+
+    local optional = {
+        { "icon", function() return item:getIcon() end, "%s" },
+        { "category", function() return item:getDisplayCategory() end, "%s" },
+        { "itemType", function() return item:getItemType() end, "%s" },
+        { "module", function() return item:getModuleName() end, "%s" },
+    }
+
+    for _, field in ipairs(optional) do
+        local got, value = pcall(field[2])
+
+        if got and value ~= nil and tostring(value) ~= "" then
+            table.insert(parts, string.format("\"%s\":\"%s\"", field[1], escape(value)))
+        end
+    end
+
+    local gotWeight, weight = pcall(function() return item:getActualWeight() end)
+
+    if gotWeight and type(weight) == "number" then
+        table.insert(parts, string.format("\"weight\":%.3f", weight))
+    end
+
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function writeItems()
+    local items = getAllItems()
+
+    if items == nil then
+        return
+    end
+
+    local writer = getFileWriter(ITEMS_FILE, true, false)
+
+    if writer == nil then
+        print("[ZomboidControl] Could not open " .. ITEMS_FILE .. " for writing.")
+        return
+    end
+
+    writer:write(string.format(
+        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"items\":[",
+        BRIDGE_VERSION,
+        getTimestamp()
+    ))
+
+    -- Written incrementally rather than joined in memory: five thousand
+    -- entries in one Lua string is a lot of garbage to make at once.
+    local written = 0
+
+    for i = 0, items:size() - 1 do
+        local item = items:get(i)
+
+        if item ~= nil then
+            local ok, entry = pcall(describeItem, item)
+
+            if ok and entry ~= nil then
+                if written > 0 then
+                    writer:write(",")
+                end
+
+                writer:write(entry)
+                written = written + 1
+            end
+        end
+    end
+
+    writer:write(string.format("],\"itemCount\":%d}", written))
+    writer:close()
+
+    print("[ZomboidControl] Wrote " .. written .. " items.")
+end
+
 --- Wraps a write so a fault in one file cannot stop the others.
 local function attempt(what, write, ...)
     local ok, err = pcall(write, ...)
@@ -364,6 +524,10 @@ Events.OnServerStarted.Add(function()
     attempt("players", writePlayers, getOnlinePlayers())
     attempt("server info", writeServerInfo)
     attempt("safehouses", writeSafehouses)
+    -- Once per start: mods are loaded by now, so the catalogue includes
+    -- whatever they added.
+    attempt("items", writeItems)
+    attempt("probe", writeProbe)
 end)
 
 print("[ZomboidControl] Bridge " .. BRIDGE_VERSION .. " loaded.")
