@@ -204,7 +204,13 @@
     "generic": "Something went wrong.",
     "network": "The server is unreachable.",
     "forbidden": "You do not have permission to do that.",
-    "notFound": "Not found."
+    "notFound": "Not found.",
+    "outdatedTitle": "This page is out of date",
+    "outdatedBody": "The dashboard was updated while this page was open. Reloading fetches the new version.",
+    "routeTitle": "This page could not be loaded",
+    "routeBody": "Something went wrong opening it. Reloading usually helps; if it does not, the message below is what to report.",
+    "reload": "Reload",
+    "showDetail": "Show the technical message"
   },
   "validation": {
     "displayNameTooShort": "Please enter at least 2 characters.",

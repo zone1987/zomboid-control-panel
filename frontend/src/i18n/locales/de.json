@@ -204,7 +204,13 @@
     "generic": "Es ist ein Fehler aufgetreten.",
     "network": "Der Server ist nicht erreichbar.",
     "forbidden": "Dafür fehlt dir die Berechtigung.",
-    "notFound": "Nicht gefunden."
+    "notFound": "Nicht gefunden.",
+    "outdatedTitle": "Diese Seite ist veraltet",
+    "outdatedBody": "Das Dashboard wurde aktualisiert, während diese Seite offen war. Ein Neuladen holt die neue Fassung.",
+    "routeTitle": "Diese Seite konnte nicht geladen werden",
+    "routeBody": "Etwas ist beim Öffnen schiefgegangen. Ein Neuladen hilft meistens; bleibt es dabei, hilft die Meldung unten beim Melden weiter.",
+    "reload": "Neu laden",
+    "showDetail": "Technische Meldung anzeigen"
   },
   "validation": {
     "displayNameTooShort": "Bitte gib mindestens 2 Zeichen ein.",
