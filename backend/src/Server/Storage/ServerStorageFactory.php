@@ -14,18 +14,45 @@ use League\Flysystem\PhpseclibV3\SftpConnectionProvider;
 
 /**
  * Builds a filesystem for one server's transfer credentials.
+ *
+ * Connections are kept for the lifetime of the request: listing a
+ * directory, checking a file and reading it are three operations that
+ * would otherwise open three FTP sessions, and the handshake costs more
+ * than every transfer put together.
  */
-final readonly class ServerStorageFactory
+final class ServerStorageFactory
 {
     private const TIMEOUT_SECONDS = 10;
 
+    /** @var array<string, Filesystem> */
+    private array $filesystems = [];
+
     public function create(FtpConfig $config): Filesystem
     {
-        return new Filesystem(
+        $key = $this->keyFor($config);
+
+        return $this->filesystems[$key] ??= new Filesystem(
             $config->getProtocol() === FtpConfig::PROTOCOL_SFTP
                 ? $this->sftpAdapter($config)
                 : $this->ftpAdapter($config),
         );
+    }
+
+    /**
+     * Everything that decides which machine and which directory a
+     * filesystem talks to. Credentials are not part of it: two configs
+     * that differ only by password would still be the same target, and
+     * keeping secrets out of an array key is worth the edge case.
+     */
+    private function keyFor(FtpConfig $config): string
+    {
+        return implode('|', [
+            $config->getProtocol(),
+            $config->getHost(),
+            (string) $config->getPort(),
+            $config->getUsername(),
+            $config->getBasePath(),
+        ]);
     }
 
     private function sftpAdapter(FtpConfig $config): SftpAdapter

@@ -15,7 +15,7 @@ use App\Server\Storage\StorageException;
  * protocols can do better when addressed directly: SFTP takes an offset
  * on the read, and FTP has the REST command for the same purpose.
  */
-final readonly class LogTailer
+final class LogTailer
 {
     private const TIMEOUT_SECONDS = 10;
 
@@ -25,6 +25,9 @@ final readonly class LogTailer
     /** No single poll returns more than this, however far behind it is. */
     public const MAX_CHUNK_BYTES = 262144;
 
+    /** @var array<string, ChunkReader> */
+    private array $readers = [];
+
     /**
      * @return array{lines: list<string>, offset: int, truncated: bool, rotated: bool}
      *
@@ -33,25 +36,18 @@ final readonly class LogTailer
     public function read(FtpConfig $config, string $path, ?int $fromOffset = null): array
     {
         $absolute = $this->absolutePath($config, $path);
+        $reader = $this->readerFor($config);
 
-        $reader = $config->getProtocol() === FtpConfig::PROTOCOL_SFTP
-            ? new SftpChunkReader($config, self::TIMEOUT_SECONDS)
-            : new FtpChunkReader($config, self::TIMEOUT_SECONDS);
+        $size = $reader->size($absolute);
 
-        try {
-            $size = $reader->size($absolute);
+        ['start' => $start, 'truncated' => $truncated, 'rotated' => $rotated]
+            = self::windowFor($size, $fromOffset);
 
-            ['start' => $start, 'truncated' => $truncated, 'rotated' => $rotated]
-                = self::windowFor($size, $fromOffset);
-
-            if ($start >= $size) {
-                return ['lines' => [], 'offset' => $size, 'truncated' => false, 'rotated' => $rotated];
-            }
-
-            $chunk = $reader->read($absolute, $start, $size - $start);
-        } finally {
-            $reader->close();
+        if ($start >= $size) {
+            return ['lines' => [], 'offset' => $size, 'truncated' => false, 'rotated' => $rotated];
         }
+
+        $chunk = $reader->read($absolute, $start, $size - $start);
 
         return [
             'lines' => self::splitLines($chunk, $start > 0),
@@ -59,6 +55,32 @@ final readonly class LogTailer
             'truncated' => $truncated,
             'rotated' => $rotated,
         ];
+    }
+
+    /**
+     * One reader per target for the lifetime of the request: reading the
+     * size and then the chunk are two operations, and a page showing
+     * several logs would otherwise reconnect for each.
+     */
+    private function readerFor(FtpConfig $config): ChunkReader
+    {
+        $key = implode('|', [
+            $config->getProtocol(),
+            $config->getHost(),
+            (string) $config->getPort(),
+            $config->getUsername(),
+        ]);
+
+        return $this->readers[$key] ??= $config->getProtocol() === FtpConfig::PROTOCOL_SFTP
+            ? new SftpChunkReader($config, self::TIMEOUT_SECONDS)
+            : new FtpChunkReader($config, self::TIMEOUT_SECONDS);
+    }
+
+    public function __destruct()
+    {
+        foreach ($this->readers as $reader) {
+            $reader->close();
+        }
     }
 
     /**

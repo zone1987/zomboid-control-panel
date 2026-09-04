@@ -1,27 +1,40 @@
 --[[
     ZomboidControl bridge — server side.
 
-    Writes a JSON snapshot of connected players to a file the control panel
-    reads over SFTP. Lua on the server has no HTTP client and no sockets, so
-    files are the only way out.
+    Writes JSON snapshots of server state into files the control panel
+    reads over FTP or SFTP. Lua on the server has no HTTP client and no
+    sockets, so files are the only way out.
 
-    Output lands in the Zomboid data folder: ~/Zomboid/Lua/ZomboidControl/status.json
+    Output lands in the Zomboid data folder, under Lua/ZomboidControl:
 
-    Install: upload to media/lua/server on the dedicated server, then restart
-    it. The panel uploads this file for you.
+        players.json    who is connected, with position and condition
+        server.json     time, weather and how long the server has been up
+        safehouses.json claimed safehouses and their members
+
+    Install: upload to media/lua/server on the dedicated server, then
+    restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.3.0"
--- getFileWriter writes into ~/Zomboid/Lua, which is documented.
--- getModFileWriter targets the mod's own common/ directory instead,
--- and its behaviour for a mod without one is not established.
-local STATUS_FILE = "ZomboidControl/status.json"
+local BRIDGE_VERSION = "0.4.0"
 
--- Build 42.20.2 has no EveryTenMinutes event, so OnTick is throttled by hand.
--- Roughly five seconds at 60 fps: the panel polls at the same rate, so a
--- player joining shows up within about ten seconds either way.
-local TICKS_BETWEEN_WRITES = 300
-local ticksSinceWrite = 0
+-- getFileWriter writes into ~/Zomboid/Lua, which is documented.
+-- getModFileWriter targets the mod's own common/ directory instead, and
+-- its behaviour for a mod without one is not established.
+local PLAYERS_FILE = "ZomboidControl/players.json"
+local SERVER_FILE = "ZomboidControl/server.json"
+local SAFEHOUSES_FILE = "ZomboidControl/safehouses.json"
+
+-- Build 42 has no server-side event for a player joining or leaving:
+-- OnPlayerConnect and OnPlayerDisconnect do not exist, and OnConnected
+-- and OnDisconnect fire in the client only. The roster is therefore
+-- checked on every tick -- reading a size and a name per player is
+-- cheap -- and the file is written the moment it differs.
+local TICKS_BETWEEN_FULL_WRITES = 180
+local TICKS_BETWEEN_SLOW_WRITES = 3600
+
+local ticksSincePlayers = 0
+local ticksSinceSlow = 0
+local lastRoster = ""
 
 local function escape(text)
     if text == nil then return "" end
@@ -36,13 +49,25 @@ local function escape(text)
     return text
 end
 
---- Skills the character has actually trained; level 0 entries are skipped
---- so the payload stays small.
+local function writeFile(name, contents)
+    local writer = getFileWriter(name, true, false)
+
+    if writer == nil then
+        print("[ZomboidControl] Could not open " .. name .. " for writing.")
+        return
+    end
+
+    writer:write(contents)
+    writer:close()
+end
+
+--- Skills the character has actually trained; level 0 entries are
+--- skipped so the payload stays small.
 local function describeSkills(player)
     local perks = player:getPerkList()
 
     if perks == nil then
-        return ""
+        return "{}"
     end
 
     local entries = {}
@@ -117,15 +142,27 @@ local function describePlayer(player)
     return "{" .. table.concat(parts, ",") .. "}"
 end
 
-local function writeStatus()
-    local writer = getFileWriter(STATUS_FILE, true, false)
-
-    if writer == nil then
-        print("[ZomboidControl] Could not open " .. STATUS_FILE .. " for writing.")
-        return
+--- Just the names, joined. Comparing this against the previous tick is
+--- what stands in for the join and leave events the API does not have.
+local function rosterOf(players)
+    if players == nil then
+        return ""
     end
 
-    local players = getOnlinePlayers()
+    local names = {}
+
+    for i = 0, players:size() - 1 do
+        local player = players:get(i)
+
+        if player ~= nil then
+            table.insert(names, player:getUsername())
+        end
+    end
+
+    return table.concat(names, "\30")
+end
+
+local function writePlayers(players)
     local entries = {}
 
     if players ~= nil then
@@ -138,33 +175,145 @@ local function writeStatus()
         end
     end
 
-    writer:write(string.format(
+    writeFile(PLAYERS_FILE, string.format(
         "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"playerCount\":%d,\"players\":[%s]}",
         BRIDGE_VERSION,
         getTimestamp(),
         #entries,
         table.concat(entries, ",")
     ))
+end
 
-    writer:close()
+local function writeServerInfo()
+    local time = getGameTime()
+    local climate = getClimateManager()
+
+    local parts = {
+        string.format("\"bridgeVersion\":\"%s\"", BRIDGE_VERSION),
+        string.format("\"generatedAt\":%d", getTimestamp()),
+    }
+
+    if time ~= nil then
+        table.insert(parts, string.format(
+            "\"gameTime\":{\"year\":%d,\"month\":%d,\"day\":%d,\"hour\":%d,\"minute\":%d,\"daysSurvived\":%d}",
+            time:getYear(), time:getMonth(), time:getDay(),
+            time:getHour(), time:getMinutes(), time:getDaysSurvived()
+        ))
+    end
+
+    if climate ~= nil then
+        table.insert(parts, string.format(
+            "\"weather\":{\"temperature\":%.1f,\"raining\":%s,\"snowing\":%s,\"windSpeed\":%.1f,\"season\":\"%s\"}",
+            climate:getTemperature(),
+            tostring(climate:isRaining()),
+            tostring(climate:isSnowing()),
+            climate:getWindspeedKph(),
+            escape(climate:getSeasonName())
+        ))
+    end
+
+    -- getMaxPlayers is a bare global; ServerOptions:getMaxPlayers() is
+    -- listed in the API but has no callsite anywhere in the game's own
+    -- Lua, so the documented form is the safer one. The game itself
+    -- wraps it in tonumber, which suggests it is not always a number.
+    local maxPlayers = tonumber(getMaxPlayers())
+
+    if maxPlayers ~= nil then
+        table.insert(parts, string.format("\"maxPlayers\":%d", maxPlayers))
+    end
+
+    writeFile(SERVER_FILE, "{" .. table.concat(parts, ",") .. "}")
+end
+
+local function describeSafehouse(house)
+    local members = {}
+    local players = house:getPlayers()
+
+    if players ~= nil then
+        for i = 0, players:size() - 1 do
+            local name = players:get(i)
+
+            if name ~= nil then
+                table.insert(members, string.format("\"%s\"", escape(name)))
+            end
+        end
+    end
+
+    return string.format(
+        "{\"title\":\"%s\",\"owner\":\"%s\",\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"members\":[%s]}",
+        escape(house:getTitle()),
+        escape(house:getOwner()),
+        house:getX(), house:getY(), house:getW(), house:getH(),
+        table.concat(members, ",")
+    )
+end
+
+local function writeSafehouses()
+    local list = SafeHouse.getSafehouseList()
+    local entries = {}
+
+    if list ~= nil then
+        for i = 0, list:size() - 1 do
+            local house = list:get(i)
+
+            if house ~= nil then
+                table.insert(entries, describeSafehouse(house))
+            end
+        end
+    end
+
+    writeFile(SAFEHOUSES_FILE, string.format(
+        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"safehouses\":[%s]}",
+        BRIDGE_VERSION,
+        getTimestamp(),
+        table.concat(entries, ",")
+    ))
+end
+
+--- Wraps a write so a fault in one file cannot stop the others.
+local function attempt(what, write, ...)
+    local ok, err = pcall(write, ...)
+
+    if not ok then
+        print("[ZomboidControl] Failed to write " .. what .. ": " .. tostring(err))
+    end
 end
 
 local function onTick()
-    ticksSinceWrite = ticksSinceWrite + 1
+    ticksSincePlayers = ticksSincePlayers + 1
+    ticksSinceSlow = ticksSinceSlow + 1
 
-    if ticksSinceWrite < TICKS_BETWEEN_WRITES then
-        return
+    local players = getOnlinePlayers()
+    local roster = rosterOf(players)
+
+    -- Somebody joined or left: write at once rather than waiting for the
+    -- interval, which is the whole point of checking every tick.
+    if roster ~= lastRoster then
+        lastRoster = roster
+        ticksSincePlayers = 0
+        attempt("players", writePlayers, players)
+    elseif ticksSincePlayers >= TICKS_BETWEEN_FULL_WRITES then
+        ticksSincePlayers = 0
+        attempt("players", writePlayers, players)
     end
 
-    ticksSinceWrite = 0
-
-    local ok, err = pcall(writeStatus)
-
-    if not ok then
-        print("[ZomboidControl] Failed to write status: " .. tostring(err))
+    -- Time, weather and safehouses move slowly, and reading them is more
+    -- expensive than reading the roster.
+    if ticksSinceSlow >= TICKS_BETWEEN_SLOW_WRITES then
+        ticksSinceSlow = 0
+        attempt("server info", writeServerInfo)
+        attempt("safehouses", writeSafehouses)
     end
 end
 
 Events.OnTick.Add(onTick)
+
+-- The first write happens as soon as the server is up rather than after
+-- the first interval, so the panel has something to read immediately.
+Events.OnServerStarted.Add(function()
+    attempt("players", writePlayers, getOnlinePlayers())
+    attempt("server info", writeServerInfo)
+    attempt("safehouses", writeSafehouses)
+end)
 
 print("[ZomboidControl] Bridge " .. BRIDGE_VERSION .. " loaded.")

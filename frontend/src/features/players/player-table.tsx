@@ -2,16 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import {
-  Ban as BanIcon,
-  Biohazard,
-  Heart,
-  LogOut,
-  MoreHorizontal,
-  RefreshCw,
-  Shield,
-  Users,
-} from 'lucide-react'
+import { Ban as BanIcon, Biohazard, Heart, LogOut, MoreHorizontal, Shield, Users } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -54,13 +45,13 @@ export function PlayerTable({ serverId }: { serverId: string }) {
   const [banning, setBanning] = useState<Player | null>(null)
   const [inspecting, setInspecting] = useState<Player | null>(null)
 
-  const { data, isPending, isFetching, refetch } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ['players', serverId, onlineOnly],
     queryFn: () => listPlayers(serverId, onlineOnly),
-    // The bridge writes every five seconds; polling at the same rate keeps
-    // the list live without a socket. It carries on in a background tab so
-    // a dashboard left open stays current.
-    refetchInterval: 5_000,
+    // The bridge writes on every join and leave, so a short interval is
+    // mostly about catching movement and health. It carries on in a
+    // background tab so a dashboard left open stays current.
+    refetchInterval: 3_000,
     refetchIntervalInBackground: true,
     // Showing the previous list while the next arrives avoids a flash of
     // skeleton every five seconds.
@@ -135,11 +126,6 @@ export function PlayerTable({ serverId }: { serverId: string }) {
               {bridge.version && ` · ${bridge.version}`}
             </span>
           )}
-
-          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
-            <RefreshCw className={isFetching ? 'size-4 animate-spin' : 'size-4'} />
-            {t('common.refresh')}
-          </Button>
         </div>
       </div>
 

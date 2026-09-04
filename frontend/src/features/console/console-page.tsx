@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { AlertTriangle, RefreshCw, Send, Terminal, Trash2 } from 'lucide-react'
+import { AlertTriangle, Send, Terminal, Trash2 } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -44,16 +44,14 @@ export function ConsolePage() {
 
   const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
 
-  const {
-    data: catalogue,
-    isPending: commandsPending,
-    isFetching: commandsFetching,
-    refetch: refetchCommands,
-  } = useQuery({
+  const { data: catalogue, isPending: commandsPending } = useQuery({
     queryKey: ['console-commands', id],
     queryFn: () => listCommands(id),
     retry: false,
-    staleTime: Number.POSITIVE_INFINITY,
+    // The command set only changes when the server is updated, so this is
+    // re-read on a long interval rather than on demand.
+    refetchInterval: 300_000,
+    staleTime: 60_000,
   })
 
   const commands = useMemo(() => catalogue?.items ?? [], [catalogue])
@@ -167,15 +165,6 @@ export function ConsolePage() {
             {t('console.commandCount', { count: commands.length })}
           </span>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={commandsFetching}
-            onClick={() => void refetchCommands()}
-          >
-            <RefreshCw className={commandsFetching ? 'size-4 animate-spin' : 'size-4'} />
-            {t('common.refresh')}
-          </Button>
         </div>
       )}
 
