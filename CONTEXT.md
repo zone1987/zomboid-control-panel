@@ -180,6 +180,15 @@ Hard limits:
 - **Log lines are stamped `dd-MM-yy HH:mm:ss.SSS`** by `ZLogger`, with the
   level in a second bracket only when the caller passed one.
 - **No HTTP, no sockets in Lua.** The file bridge is mandatory.
+- **Lua CAN read and write binary**, contrary to what this file said for
+  a while. `getGameFilesInput(path)` returns a `DataInputStream`,
+  `getFileInput(path)` likewise, and `getFileOutput(path)` a
+  `DataOutputStream`. `getFileWriter` is merely the text one.
+  **Paths for `getGameFilesInput` need the `media/` prefix** —
+  `media/inventory/BerettaClip.png` opens, `inventory/BerettaClip.png`
+  does not. Proven end to end on 2026-09-04: the bridge read that PNG
+  byte by byte and wrote it back through `getFileOutput`; the panel
+  fetched 420 bytes with a valid PNG signature, a readable 34×32 image.
 - **The `Every*` events run on in-game time, not real time.** `EveryOneMinute`
   fires when a game minute passes, which depends on the sandbox day length and
   stops entirely while the server is paused. `EveryTenMinutes`, `EveryHours`
