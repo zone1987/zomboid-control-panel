@@ -8,24 +8,41 @@ Read `CONTEXT.md` first for the state everything rests on.
 
 ---
 
-## Still open
+## Waiting on a server restart
 
-### 1. The two-way bridge
+**Bridge 0.8.0 is built and uploaded but not yet proven.** The server is
+still running 0.7.0, which cannot read commands. Everything else is
+verified.
 
-The last piece of brief 07. Everything marked "bridge" there — snow,
-fog, wind, temperature, the in-game clock, time speed, electricity and
-water, placed sounds, safehouse and faction management — needs the panel
-to ask the server to do something rather than only read what it wrote.
+### What to do when the server has restarted
 
-`CONTEXT.md` has a section, "The reference panel's two-way bridge", with
-the analysis of how the other panel solves this: the queue shape, the
-forward-only resync and its reasoning, tombstones for dropped sequence
-numbers, and the mistakes its changelog records. **Start there.** It was
-studied, not copied.
+1. **Upload the bridge** — the servers page offers it when the installed
+   version is older than the one the panel ships.
 
-One thing to settle first, cheaply: whether `getFileReader` in this
-project's bridge can read a file the panel uploads over FTP into the
-Lua directory. Everything else depends on that answer.
+2. **Restart the server**, so Lua loads 0.8.0.
+
+3. **Press a bridge action** in the event console — "Nebel" is the
+   harmless one. It should answer within a second or two.
+
+Already verified without a restart: the command file arrives on the
+live server with the right contents (`{"action":"setClimateValue",
+"index":5,"value":0.6}`), the panel's cursor follows it, the
+directories are created, and a bridge that cannot answer fails cleanly
+after twelve seconds rather than hanging.
+
+### If it does not answer
+
+The one assumption still untested is that `getFileReader` can read a
+file the panel uploaded over FTP into the Lua directory. Everything else
+in the queue is exercised by tests.
+
+Should that turn out to be blocked, the reference panel's workaround is
+in `CONTEXT.md` under "The reference panel's two-way bridge": Build 42
+restricted `getFileWriter` to certain extensions at one point and the
+answer was to append `.txt` to written paths. The same trick would apply
+to reading if it comes to that. Note that this project's bridge writes
+plain `.json` today and it works, so the restriction may not apply to
+this build at all.
 
 ---
 

@@ -70,13 +70,19 @@ start areas inside it.
 
 ### What is still open
 
-**Only the two-way bridge.** Everything in brief 07 marked "bridge" —
-snow, fog, wind, temperature, the in-game clock, time speed,
-electricity and water, placed sounds, safehouse and faction management
-— still needs the panel to ask the server to do something rather than
-only read what it wrote. The reference panel's approach is analysed
-below under "The reference panel's two-way bridge"; that analysis is
-the starting point.
+**Nothing is unbuilt. One thing is unproven.**
+
+Bridge 0.8.0 reads commands as well as writing state, and twelve event
+actions travel that way. It is uploaded but the server has not
+restarted, so it is still running 0.7.0 and cannot answer yet.
+
+What is already verified without a restart: the command file arrives on
+the live server with the right contents, the panel's cursor follows it,
+the directories are created, and a bridge that cannot answer fails
+cleanly after twelve seconds. What is not: that `getFileReader` can
+read a file the panel uploaded over FTP into the Lua directory. That is
+the single remaining assumption, and `TODO.md` says what to do if it
+does not hold.
 
 Permissions are fully in force since the roles work landed: every
 endpoint guards on one, the navigation shows only what the user can
@@ -607,3 +613,27 @@ are `ROLE_USER` now. A functional test caught that, not the browser.
 The seven server pages in the sidebar collapsed into a table on the way
 through — they were seven copies of the same twenty lines and each
 needed its permission added. Commits `d46519c`, `6e9b9d4`, `70c6313`.
+
+### 2026-09-04 — Two-way bridge
+Bridge 0.8.0 reads as well as writes: the panel writes cmd-<seq>.json,
+the bridge answers res-<seq>.json, each side owning its files and its
+cursor. Twelve event actions go that way — the in-game clock, the
+climate values, sounds at a point — because RCON has no command for any
+of them.
+
+Three decisions came from the reference panel's mistakes rather than
+from repeating them: the resync only moves forward (a stale read of the
+other cursor can be too low, never invented too high); the panel's
+cursor is written after the command it accounts for; and each handler
+confirms by reading back where that is safe — `getAdminValue` is a
+plain field read, `getFinalValue` is not refreshed until the next tick.
+
+`OnTickEvenPaused` replaces `OnTick`, so an empty server keeps
+listening.
+
+The Lua JSON reader is tested in Lua (`tests/Bridge/decode-test.lua`),
+because Lua is what runs on the game server. Its first version silently
+truncated any value containing an escaped quote — Lua patterns have no
+alternation, so `"(.-)"` stops at the escaped one. It is a character
+scanner now, and `BridgeDecoderTest` checks the copy in the test has
+not drifted from the bridge. Commit `d3642d7`.
