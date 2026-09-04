@@ -41,23 +41,41 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import type { Permission } from '@/features/auth/types'
 import { useAuth } from '@/features/auth/auth-context'
 import { useTheme } from '@/components/theme-provider'
 import { changeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
 
+/** One entry per page under a server, with what it takes to see it. */
+const SERVER_PAGES: {
+  path: string
+  label: string
+  icon: typeof Users
+  permission: Permission
+}[] = [
+  { path: 'players', label: 'nav.players', icon: Users, permission: 'players.view' },
+  { path: 'items', label: 'nav.items', icon: Package, permission: 'items.give' },
+  { path: 'chat', label: 'nav.chat', icon: MessagesSquare, permission: 'chat.read' },
+  { path: 'logs', label: 'nav.logs', icon: ScrollText, permission: 'log.view' },
+  { path: 'map', label: 'nav.map', icon: Map, permission: 'players.view' },
+  { path: 'events', label: 'nav.events', icon: Sparkles, permission: 'events.trigger' },
+  { path: 'console', label: 'nav.console', icon: Terminal, permission: 'console.use' },
+]
+
+
 export function AppSidebar() {
   const { t, i18n } = useTranslation()
   const { pathname } = useLocation()
-  const { user, signOut, hasRole } = useAuth()
+  const { user, signOut, can } = useAuth()
   const { theme, setTheme } = useTheme()
   const { activeServerId, setActiveServerId } = useActiveServer()
 
   const { data: servers } = useQuery({
     queryKey: ['servers'],
     queryFn: listServers,
-    enabled: hasRole('ROLE_SERVER_ADMIN'),
+    enabled: can('servers.view') || can('players.view'),
   })
 
   const activeServer =
@@ -134,7 +152,7 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {hasRole('ROLE_SERVER_ADMIN') && (
+        {(can('servers.view') || can('players.view')) && (
           <SidebarGroup>
             <SidebarGroupLabel>{t('nav.serverSection')}</SidebarGroupLabel>
             <SidebarMenu>
@@ -147,150 +165,33 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <Users />
-                    <span>{t('nav.players')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/players`)}
-                    tooltip={t('nav.players')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/players`}>
-                      <Users />
-                      <span>{t('nav.players')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
+              {SERVER_PAGES.filter((page) => can(page.permission)).map((page) => (
+                <SidebarMenuItem key={page.path}>
+                  {activeServer === undefined ? (
+                    <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                      <page.icon />
+                      <span>{t(page.label)}</span>
+                    </SidebarMenuButton>
+                  ) : (
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(`/servers/${activeServer.id}/${page.path}`)}
+                      tooltip={t(page.label)}
+                    >
+                      <Link to={`/servers/${activeServer.id}/${page.path}`}>
+                        <page.icon />
+                        <span>{t(page.label)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
+              ))}
 
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <Package />
-                    <span>{t('nav.items')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/items`)}
-                    tooltip={t('nav.items')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/items`}>
-                      <Package />
-                      <span>{t('nav.items')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <MessagesSquare />
-                    <span>{t('nav.chat')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/chat`)}
-                    tooltip={t('nav.chat')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/chat`}>
-                      <MessagesSquare />
-                      <span>{t('nav.chat')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <ScrollText />
-                    <span>{t('nav.logs')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/logs`)}
-                    tooltip={t('nav.logs')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/logs`}>
-                      <ScrollText />
-                      <span>{t('nav.logs')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <Map />
-                    <span>{t('nav.map')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/map`)}
-                    tooltip={t('nav.map')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/map`}>
-                      <Map />
-                      <span>{t('nav.map')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <Sparkles />
-                    <span>{t('nav.events')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/events`)}
-                    tooltip={t('nav.events')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/events`}>
-                      <Sparkles />
-                      <span>{t('nav.events')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                {activeServer === undefined ? (
-                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                    <Terminal />
-                    <span>{t('nav.console')}</span>
-                  </SidebarMenuButton>
-                ) : (
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(`/servers/${activeServer.id}/console`)}
-                    tooltip={t('nav.console')}
-                  >
-                    <Link to={`/servers/${activeServer.id}/console`}>
-                      <Terminal />
-                      <span>{t('nav.console')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                )}
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
         )}
 
-        {hasRole('ROLE_ADMIN') && (
+        {(can('users.manage') || can('users.invite') || can('settings.edit')) && (
           <SidebarGroup>
             <SidebarGroupLabel>{t('nav.administration')}</SidebarGroupLabel>
             <SidebarMenu>

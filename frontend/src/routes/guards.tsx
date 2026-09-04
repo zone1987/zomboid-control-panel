@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/features/auth/auth-context'
-import type { SetupStatus } from '@/features/auth/types'
+import type { Permission, SetupStatus } from '@/features/auth/types'
 import { FullPageSpinner } from '@/components/full-page-spinner'
 
 /**
@@ -72,6 +72,25 @@ export function RequireRole({ role }: { role: string }) {
   }
 
   if (!hasRole(role)) {
+    return <Navigate to="/" replace />
+  }
+
+  return <Outlet />
+}
+
+/**
+ * Guards a route by what the user may do rather than what they are
+ * called. Any one of the permissions is enough, so a section stays
+ * reachable for a role holding only part of it.
+ */
+export function RequirePermission({ anyOf }: { anyOf: Permission[] }) {
+  const { can, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <FullPageSpinner />
+  }
+
+  if (!anyOf.some((permission) => can(permission))) {
     return <Navigate to="/" replace />
   }
 

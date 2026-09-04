@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, use, useCallback, useMemo } from 'react'
 
 import { apiFetch } from '@/lib/api'
-import type { AuthenticatedUser, LoginResponse, SessionResponse } from './types'
+import type { AuthenticatedUser, LoginResponse, Permission, SessionResponse } from './types'
 
 type AuthContextValue = {
   user: AuthenticatedUser | null
@@ -12,6 +12,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>
   refresh: () => Promise<void>
   hasRole: (role: string) => boolean
+  can: (permission: Permission) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isLoading: isPending,
       hasRole: (role) => user?.roles.includes(role) ?? false,
+      can: (permission) => user?.permissions.includes(permission) ?? false,
       refresh,
       signIn: async (email, password) => {
         const response = await apiFetch<LoginResponse>('/login', {

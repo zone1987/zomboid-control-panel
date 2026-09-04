@@ -2,7 +2,7 @@ import { createBrowserRouter } from 'react-router'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginPage } from '@/features/auth/login-page'
-import { RequireAnonymous, RequireAuth, RequireRole, SetupGate } from './guards'
+import { RequireAnonymous, RequireAuth, RequirePermission, SetupGate } from './guards'
 
 // Only the sign-in screen ships in the first bundle; everything behind it
 // is fetched when the route is first visited.
@@ -61,7 +61,7 @@ export const router = createBrowserRouter(
                   }),
                 },
                 {
-                  element: <RequireRole role="ROLE_SERVER_ADMIN" />,
+                  element: <RequirePermission anyOf={['servers.view', 'players.view']} />,
                   children: [
                     {
                       path: 'servers',
@@ -121,7 +121,7 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
-                  element: <RequireRole role="ROLE_ADMIN" />,
+                  element: <RequirePermission anyOf={['users.manage', 'users.invite', 'settings.edit']} />,
                   children: [
                     {
                       path: 'settings',

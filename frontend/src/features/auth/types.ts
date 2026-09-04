@@ -1,8 +1,29 @@
+/** Mirrors App\Security\Permission\Permission on the backend. */
+export type Permission =
+  | 'players.view'
+  | 'players.kick'
+  | 'players.ban'
+  | 'players.teleport'
+  | 'players.accessLevel'
+  | 'items.give'
+  | 'log.view'
+  | 'chat.read'
+  | 'chat.send'
+  | 'console.use'
+  | 'events.trigger'
+  | 'servers.view'
+  | 'servers.edit'
+  | 'servers.bridge'
+  | 'users.invite'
+  | 'users.manage'
+  | 'settings.edit'
+
 export type AuthenticatedUser = {
   id: string
   email: string
   displayName: string
   roles: string[]
+  permissions: Permission[]
   locale: string
   twoFactorEnabled: boolean
   passkeyCount: number
