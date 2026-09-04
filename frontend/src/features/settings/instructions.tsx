@@ -89,18 +89,7 @@ export function MailerInstructions() {
   return (
     <div className="space-y-2">
       <p>{t('settings.mailerIntro')}</p>
-
-      <code className="block overflow-x-auto rounded bg-background px-2 py-1 text-xs">
-        smtp://user:password@smtp.example.com:587
-      </code>
-
       <p className="text-xs text-muted-foreground">{t('settings.mailerNote')}</p>
-
-      <p>
-        <DocLink href="https://symfony.com/doc/current/mailer.html#using-built-in-transports">
-          symfony.com/doc/current/mailer
-        </DocLink>
-      </p>
     </div>
   )
 }

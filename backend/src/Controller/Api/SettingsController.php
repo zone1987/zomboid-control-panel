@@ -22,9 +22,16 @@ final class SettingsController extends AbstractController
         AppSetting::STEAM_API_KEY,
         AppSetting::GOOGLE_CLIENT_ID,
         AppSetting::GOOGLE_CLIENT_SECRET,
-        AppSetting::MAILER_DSN,
+        AppSetting::MAIL_HOST,
+        AppSetting::MAIL_PORT,
+        AppSetting::MAIL_USERNAME,
+        AppSetting::MAIL_PASSWORD,
+        AppSetting::MAIL_ENCRYPTION,
         AppSetting::MAIL_FROM_ADDRESS,
         AppSetting::MAIL_FROM_NAME,
+        // Still accepted for anyone who would rather paste one, but the
+        // interface asks for the individual fields.
+        AppSetting::MAILER_DSN,
     ];
 
     public function __construct(
@@ -106,6 +113,39 @@ final class SettingsController extends AbstractController
      * Verifies the Steam key actually works, rather than only that it was
      * typed in.
      */
+    #[Route('/mail/test', name: 'api_settings_test_mail', methods: ['POST'])]
+    public function testMail(Request $request, \App\Mail\ConfiguredMailer $mailer, #[\Symfony\Component\Security\Http\Attribute\CurrentUser] \App\Entity\User $user): JsonResponse
+    {
+        $recipient = $request->toArray()['recipient'] ?? $user->getEmail();
+
+        if (!\is_string($recipient) || filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['recipient' => 'validation.emailInvalid'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $mailer->sendTestMessage($recipient);
+        } catch (\App\Mail\MailNotConfigured) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'settings.mailNotConfigured',
+            ], Response::HTTP_CONFLICT);
+        } catch (\Throwable $exception) {
+            // The transport's own message is the only useful clue here —
+            // wrong port, refused credentials, unreachable host all look
+            // the same from outside.
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'settings.mailFailed',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['status' => 'sent', 'recipient' => $recipient]);
+    }
+
     #[Route('/steam/test', name: 'api_settings_test_steam', methods: ['POST'])]
     public function testSteamKey(\App\Security\OAuth\SteamProfileFetcher $profiles): JsonResponse
     {

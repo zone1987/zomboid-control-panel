@@ -21,6 +21,11 @@ class AppSetting
     public const GOOGLE_CLIENT_ID = 'google.client_id';
     public const GOOGLE_CLIENT_SECRET = 'google.client_secret';
     public const MAILER_DSN = 'mailer.dsn';
+    public const MAIL_HOST = 'mailer.host';
+    public const MAIL_PORT = 'mailer.port';
+    public const MAIL_USERNAME = 'mailer.username';
+    public const MAIL_PASSWORD = 'mailer.password';
+    public const MAIL_ENCRYPTION = 'mailer.encryption';
     public const MAIL_FROM_ADDRESS = 'mailer.from_address';
     public const MAIL_FROM_NAME = 'mailer.from_name';
 
@@ -29,6 +34,7 @@ class AppSetting
         self::STEAM_API_KEY,
         self::GOOGLE_CLIENT_SECRET,
         self::MAILER_DSN,
+        self::MAIL_PASSWORD,
     ];
 
     #[ORM\Id]

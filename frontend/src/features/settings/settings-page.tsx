@@ -2,20 +2,32 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { PlugZap } from 'lucide-react'
+import { MailCheck, PlugZap } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CredentialField } from './credential-field'
 import {
-  GoogleOAuthInstructions,
-  MailerInstructions,
-  SteamKeyInstructions,
-} from './instructions'
-import { listSettings, SETTING_KEYS, testSteamKey, updateSettings, type SettingKey } from './settings'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { CredentialField } from './credential-field'
+import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
+import {
+  listSettings,
+  MAIL_PRESETS,
+  SETTING_KEYS,
+  testMail,
+  testSteamKey,
+  updateSettings,
+  type SettingKey,
+} from './settings'
 
 type Draft = Partial<Record<SettingKey, string>>
 
@@ -42,6 +54,31 @@ export function SettingsPage() {
           ? t('errors.forbidden')
           : t('errors.generic'),
       )
+    },
+  })
+
+  const probeMail = useMutation({
+    mutationFn: async () => {
+      // Testing the stored settings while the form holds newer ones would
+      // check the wrong server, so pending edits are saved first.
+      if (hasChanges) {
+        await updateSettings(draft)
+        setDraft({})
+        await queryClient.invalidateQueries({ queryKey: ['settings'] })
+      }
+
+      return testMail()
+    },
+    onSuccess: (result) => toast.success(t('settings.mailSent', { recipient: result.recipient })),
+    onError: (error) => {
+      const detail =
+        error instanceof ApiError && typeof error.payload === 'object' && error.payload !== null
+          ? ((error.payload as { detail?: string }).detail ?? '')
+          : ''
+
+      toast.error(detail === '' ? t('settings.mailFailed') : `${t('settings.mailFailed')} ${detail}`, {
+        duration: 12_000,
+      })
     },
   })
 
@@ -148,29 +185,116 @@ export function SettingsPage() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <CredentialField
-                id="mailer-dsn"
-                label={t('settings.mailerDsn')}
-                instructions={<MailerInstructions />}
-                {...field(SETTING_KEYS.mailerDsn)}
-              />
+              <div className="space-y-2">
+                <Label>{t('settings.mailProvider')}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {MAIL_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setDraft((previous) => ({
+                          ...previous,
+                          [SETTING_KEYS.mailHost]: preset.host,
+                          [SETTING_KEYS.mailPort]: preset.port,
+                          [SETTING_KEYS.mailEncryption]: preset.encryption,
+                        }))
+                      }
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">{t('settings.mailProviderHint')}</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
+                <CredentialField
+                  id="mail-host"
+                  label={t('settings.mailHost')}
+                  placeholder="smtp.example.com"
+                  instructions={<MailerInstructions />}
+                  {...field(SETTING_KEYS.mailHost)}
+                />
+
+                <CredentialField
+                  id="mail-port"
+                  label={t('settings.mailPort')}
+                  placeholder="587"
+                  {...field(SETTING_KEYS.mailPort)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mail-encryption">{t('settings.mailEncryption')}</Label>
+                <Select
+                  value={String(
+                    draft[SETTING_KEYS.mailEncryption] ??
+                      data?.items[SETTING_KEYS.mailEncryption]?.value ??
+                      'tls',
+                  )}
+                  onValueChange={(value) =>
+                    setDraft((previous) => ({ ...previous, [SETTING_KEYS.mailEncryption]: value }))
+                  }
+                >
+                  <SelectTrigger id="mail-encryption">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tls">{t('settings.encryptionTls')}</SelectItem>
+                    <SelectItem value="ssl">{t('settings.encryptionSsl')}</SelectItem>
+                    <SelectItem value="none">{t('settings.encryptionNone')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <CredentialField
+                  id="mail-username"
+                  label={t('settings.mailUsername')}
+                  placeholder="name@example.com"
+                  {...field(SETTING_KEYS.mailUsername)}
+                />
+                <p className="text-xs text-muted-foreground">{t('settings.mailUsernameHint')}</p>
+              </div>
 
               <CredentialField
-                id="mail-from-address"
-                label={t('settings.mailFromAddress')}
-                placeholder="noreply@example.com"
-                {...field(SETTING_KEYS.mailFromAddress)}
+                id="mail-password"
+                label={t('settings.mailPassword')}
+                {...field(SETTING_KEYS.mailPassword)}
               />
 
-              <CredentialField
-                id="mail-from-name"
-                label={t('settings.mailFromName')}
-                placeholder="ZomboidControl"
-                {...field(SETTING_KEYS.mailFromName)}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CredentialField
+                  id="mail-from-address"
+                  label={t('settings.mailFromAddress')}
+                  placeholder="noreply@example.com"
+                  {...field(SETTING_KEYS.mailFromAddress)}
+                />
+
+                <CredentialField
+                  id="mail-from-name"
+                  label={t('settings.mailFromName')}
+                  placeholder="ZomboidControl"
+                  {...field(SETTING_KEYS.mailFromName)}
+                />
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={probeMail.isPending}
+                onClick={() => probeMail.mutate()}
+              >
+                <MailCheck className="size-4" />
+                {probeMail.isPending ? t('common.loading') : t('settings.sendTestMail')}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
       <div className="flex gap-2">

@@ -11,7 +11,7 @@
     it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.1.0"
+local BRIDGE_VERSION = "0.2.0"
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead,
 -- and its behaviour for a mod without one is not established.
@@ -32,6 +32,58 @@ local function escape(text)
     text = text:gsub("\t", "\\t")
 
     return text
+end
+
+--- Skills the character has actually trained; level 0 entries are skipped
+--- so the payload stays small.
+local function describeSkills(player)
+    local perks = player:getPerkList()
+
+    if perks == nil then
+        return ""
+    end
+
+    local entries = {}
+
+    for i = 0, perks:size() - 1 do
+        local info = perks:get(i)
+
+        if info ~= nil and info.perk ~= nil then
+            local level = info:getLevel()
+
+            if level > 0 then
+                table.insert(entries, string.format("\"%s\":%d", escape(info.perk:getId()), level))
+            end
+        end
+    end
+
+    return "{" .. table.concat(entries, ",") .. "}"
+end
+
+local function describeTraits(player)
+    local traits = player:getCharacterTraits()
+
+    if traits == nil then
+        return "[]"
+    end
+
+    local known = traits:getKnownTraits()
+
+    if known == nil then
+        return "[]"
+    end
+
+    local entries = {}
+
+    for i = 0, known:size() - 1 do
+        local trait = known:get(i)
+
+        if trait ~= nil then
+            table.insert(entries, string.format("\"%s\"", escape(trait:getName())))
+        end
+    end
+
+    return "[" .. table.concat(entries, ",") .. "]"
 end
 
 local function describePlayer(player)
@@ -56,6 +108,9 @@ local function describePlayer(player)
         table.insert(parts, string.format("\"infected\":%s", tostring(body:isInfected())))
         table.insert(parts, string.format("\"infectionLevel\":%.3f", body:getApparentInfectionLevel()))
     end
+
+    table.insert(parts, string.format("\"skills\":%s", describeSkills(player)))
+    table.insert(parts, string.format("\"traits\":%s", describeTraits(player)))
 
     return "{" .. table.concat(parts, ",") .. "}"
 end
