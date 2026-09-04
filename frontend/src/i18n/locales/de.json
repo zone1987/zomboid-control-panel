@@ -109,7 +109,12 @@
     "confirmDelete": "„{{name}}“ wirklich löschen? Die hinterlegten Zugangsdaten gehen dabei verloren.",
     "ftpOk": "Verbindung steht. {{count}} Einträge im Basisverzeichnis gefunden.",
     "ftpOkZomboid": "Verbindung steht, und das Verzeichnis sieht nach einem Zomboid-Server aus ({{count}} Einträge).",
-    "rconOk": "RCON antwortet: {{reply}}"
+    "rconOk": "RCON antwortet: {{reply}}",
+    "fillBeforeTesting": "Host, Benutzername und Passwort ausfüllen, dann lässt sich die Verbindung testen.",
+    "fillBeforeTestingRcon": "Host und Passwort ausfüllen, dann lässt sich die Verbindung testen.",
+    "savedAndVerified": "Gespeichert und Verbindung geprüft.",
+    "savedButFtpFailed": "Gespeichert, aber der Dateizugriff schlug fehl: {{reason}}",
+    "savedButRconFailed": "Gespeichert, aber RCON schlug fehl: {{reason}}"
   },
   "profile": {
     "title": "Profil",

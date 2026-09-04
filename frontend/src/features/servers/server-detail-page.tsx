@@ -48,18 +48,69 @@ export function ServerDetailPage() {
     await queryClient.invalidateQueries({ queryKey: ['servers'] })
   }
 
+  /**
+   * Saving verifies whatever credentials it just stored, but a failed
+   * check never discards the input: a restarting game server would
+   * otherwise cost the operator everything they typed.
+   */
   const save = useMutation({
-    mutationFn: (values: ServerDraft) => updateServer(id, values),
-    onSuccess: async () => {
+    mutationFn: async (values: ServerDraft) => {
+      await updateServer(id, values)
+
+      const checks: Array<{ area: 'ftp' | 'rcon'; error: string }> = []
+
+      if (values.ftp) {
+        try {
+          await testFtp(id)
+        } catch (error) {
+          checks.push({ area: 'ftp', error: errorKey(error) })
+        }
+      }
+
+      if (values.rcon) {
+        try {
+          await testRcon(id)
+        } catch (error) {
+          checks.push({ area: 'rcon', error: errorKey(error) })
+        }
+      }
+
+      return checks
+    },
+    onSuccess: async (failures) => {
       setDraft({})
       await invalidate()
-      toast.success(t('servers.saved'))
+
+      if (failures.length === 0) {
+        toast.success(t('servers.savedAndVerified'))
+
+        return
+      }
+
+      for (const failure of failures) {
+        toast.warning(
+          t(failure.area === 'ftp' ? 'servers.savedButFtpFailed' : 'servers.savedButRconFailed', {
+            reason: t(failure.error),
+          }),
+          { duration: 10_000 },
+        )
+      }
     },
     onError: () => toast.error(t('errors.generic')),
   })
 
   const probeFtp = useMutation({
-    mutationFn: () => testFtp(id),
+    // Testing the stored credentials while the form holds newer ones would
+    // report on the wrong values, so pending edits are saved first.
+    mutationFn: async () => {
+      if (draft.ftp) {
+        await updateServer(id, { ftp: draft.ftp })
+        setDraft((prev) => ({ ...prev, ftp: undefined }))
+        await invalidate()
+      }
+
+      return testFtp(id)
+    },
     onSuccess: async (result) => {
       await invalidate()
       toast.success(
@@ -68,16 +119,24 @@ export function ServerDetailPage() {
           : t('servers.ftpOk', { count: result.entryCount }),
       )
     },
-    onError: (error) => toast.error(t(errorKey(error))),
+    onError: (error) => toast.error(t(errorKey(error)), { duration: 10_000 }),
   })
 
   const probeRcon = useMutation({
-    mutationFn: () => testRcon(id),
+    mutationFn: async () => {
+      if (draft.rcon) {
+        await updateServer(id, { rcon: draft.rcon })
+        setDraft((prev) => ({ ...prev, rcon: undefined }))
+        await invalidate()
+      }
+
+      return testRcon(id)
+    },
     onSuccess: async (result) => {
       await invalidate()
       toast.success(t('servers.rconOk', { reply: result.reply.split('\n')[0] }))
     },
-    onError: (error) => toast.error(t(errorKey(error))),
+    onError: (error) => toast.error(t(errorKey(error)), { duration: 10_000 }),
   })
 
   const remove = useMutation({
@@ -104,6 +163,18 @@ export function ServerDetailPage() {
     setDraft((prev) => ({ ...prev, rcon: { ...prev.rcon, [key]: value } }))
 
   const hasChanges = Object.keys(draft).length > 0
+
+  // A test is possible as soon as host, user and a secret exist, whether
+  // they were just typed or are already stored.
+  const ftpReady =
+    String(ftpField('host', server.ftp?.host)).trim() !== '' &&
+    String(ftpField('username', server.ftp?.username)).trim() !== '' &&
+    (Boolean(draft.ftp?.password) || Boolean(draft.ftp?.privateKey) ||
+      Boolean(server.ftp?.hasPassword) || Boolean(server.ftp?.hasPrivateKey))
+
+  const rconReady =
+    String(draft.rcon?.host ?? server.rcon?.host ?? '').trim() !== '' &&
+    (Boolean(draft.rcon?.password) || Boolean(server.rcon?.hasPassword))
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -226,7 +297,7 @@ export function ServerDetailPage() {
                 label={t('servers.basePath')}
                 value={String(ftpField('basePath', server.ftp?.basePath ?? '/'))}
                 onChange={(value) => setFtp('basePath', value)}
-                onBrowse={server.ftp ? () => setBrowsingFor('basePath') : undefined}
+                onBrowse={server.ftp?.lastVerifiedAt ? () => setBrowsingFor('basePath') : undefined}
               />
 
               <PathField
@@ -235,7 +306,7 @@ export function ServerDetailPage() {
                 value={String(ftpField('luaServerPath', server.ftp?.luaServerPath))}
                 placeholder="media/lua/server"
                 onChange={(value) => setFtp('luaServerPath', value)}
-                onBrowse={server.ftp ? () => setBrowsingFor('luaServerPath') : undefined}
+                onBrowse={server.ftp?.lastVerifiedAt ? () => setBrowsingFor('luaServerPath') : undefined}
               />
 
               <PathField
@@ -244,18 +315,24 @@ export function ServerDetailPage() {
                 value={String(ftpField('logPath', server.ftp?.logPath))}
                 placeholder="Logs"
                 onChange={(value) => setFtp('logPath', value)}
-                onBrowse={server.ftp ? () => setBrowsingFor('logPath') : undefined}
+                onBrowse={server.ftp?.lastVerifiedAt ? () => setBrowsingFor('logPath') : undefined}
               />
 
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={probeFtp.isPending || !server.ftp}
-                onClick={() => probeFtp.mutate()}
-              >
-                <PlugZap className="size-4" />
-                {probeFtp.isPending ? t('common.loading') : t('servers.testConnection')}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={probeFtp.isPending || !ftpReady}
+                  onClick={() => probeFtp.mutate()}
+                >
+                  <PlugZap className="size-4" />
+                  {probeFtp.isPending ? t('common.loading') : t('servers.testConnection')}
+                </Button>
+
+                {!ftpReady && (
+                  <p className="text-sm text-muted-foreground">{t('servers.fillBeforeTesting')}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -319,15 +396,21 @@ export function ServerDetailPage() {
                 />
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={probeRcon.isPending || !server.rcon}
-                onClick={() => probeRcon.mutate()}
-              >
-                <PlugZap className="size-4" />
-                {probeRcon.isPending ? t('common.loading') : t('servers.testConnection')}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={probeRcon.isPending || !rconReady}
+                  onClick={() => probeRcon.mutate()}
+                >
+                  <PlugZap className="size-4" />
+                  {probeRcon.isPending ? t('common.loading') : t('servers.testConnection')}
+                </Button>
+
+                {!rconReady && (
+                  <p className="text-sm text-muted-foreground">{t('servers.fillBeforeTestingRcon')}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

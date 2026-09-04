@@ -109,7 +109,12 @@
     "confirmDelete": "Really delete \"{{name}}\"? Its stored credentials go with it.",
     "ftpOk": "Connected. Found {{count}} entries in the base directory.",
     "ftpOkZomboid": "Connected, and the directory looks like a Zomboid server ({{count}} entries).",
-    "rconOk": "RCON replied: {{reply}}"
+    "rconOk": "RCON replied: {{reply}}",
+    "fillBeforeTesting": "Fill in host, username and password, then the connection can be tested.",
+    "fillBeforeTestingRcon": "Fill in host and password, then the connection can be tested.",
+    "savedAndVerified": "Saved, and the connection works.",
+    "savedButFtpFailed": "Saved, but file access failed: {{reason}}",
+    "savedButRconFailed": "Saved, but RCON failed: {{reason}}"
   },
   "profile": {
     "title": "Profile",

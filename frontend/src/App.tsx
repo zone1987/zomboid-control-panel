@@ -28,7 +28,9 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <RouterProvider router={router} />
-          <Toaster richColors closeButton />
+          {/* Failures get longer than confirmations: they carry a reason
+              worth reading. The close button dismisses either early. */}
+          <Toaster richColors closeButton duration={6000} />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
