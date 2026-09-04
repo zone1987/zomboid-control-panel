@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CheckCircle2, Plus, Server as ServerIcon } from 'lucide-react'
+import { ChevronRight, CircleCheckBig, Plus, Server as ServerIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -74,35 +74,31 @@ export function ServerListPage() {
         <ul className="space-y-3">
           {data.items.map((server) => (
             <li key={server.id}>
-              <Card className="transition-colors hover:border-primary/50">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <ServerIcon className="size-5 shrink-0 text-muted-foreground" />
+              {/* The whole card is the target; a link around it keeps
+                  middle-click and keyboard navigation working. */}
+              <Link to={`/servers/${server.id}`} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Card className="transition-colors group-hover:border-primary/50 group-hover:bg-accent/40">
+                  <CardContent className="flex items-center gap-4 py-4">
+                    <ServerIcon className="size-5 shrink-0 text-muted-foreground" />
 
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/servers/${server.id}`} className="font-medium hover:underline">
-                      {server.name}
-                    </Link>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {server.ftp?.host ?? t('servers.notConfigured')}
-                    </p>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{server.name}</p>
+                      <p className="truncate text-sm text-muted-foreground">
+                        {server.ftp?.host ?? t('servers.notConfigured')}
+                      </p>
+                    </div>
 
-                  <div className="flex shrink-0 gap-1">
-                    {server.ftp?.lastVerifiedAt && (
-                      <Badge variant="secondary" className="gap-1">
-                        <CheckCircle2 className="size-3" />
-                        {server.ftp.protocol.toUpperCase()}
-                      </Badge>
-                    )}
-                    {server.rcon?.lastVerifiedAt && (
-                      <Badge variant="secondary" className="gap-1">
-                        <CheckCircle2 className="size-3" />
-                        RCON
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {server.ftp?.lastVerifiedAt && (
+                        <VerifiedBadge label={server.ftp.protocol.toUpperCase()} />
+                      )}
+                      {server.rcon?.lastVerifiedAt && <VerifiedBadge label="RCON" />}
+
+                      <ChevronRight className="ml-1 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </li>
           ))}
         </ul>
@@ -142,5 +138,18 @@ export function ServerListPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+/** A verified connection reads as done at a glance: filled, and green. */
+function VerifiedBadge({ label }: { label: string }) {
+  return (
+    <Badge
+      variant="secondary"
+      className="gap-1 border-emerald-600/30 bg-emerald-600/15 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300"
+    >
+      <CircleCheckBig className="size-3 fill-emerald-600/25 dark:fill-emerald-400/25" />
+      {label}
+    </Badge>
   )
 }

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CheckCircle2, FolderSearch, PlugZap, Trash2 } from 'lucide-react'
+import { CircleCheckBig, FolderSearch, PlugZap, Trash2 } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -213,12 +213,7 @@ export function ServerDetailPage() {
                   <CardTitle>{t('servers.transferTitle')}</CardTitle>
                   <CardDescription>{t('servers.transferDescription')}</CardDescription>
                 </div>
-                {server.ftp?.lastVerifiedAt && (
-                  <Badge variant="secondary" className="gap-1">
-                    <CheckCircle2 className="size-3" />
-                    {t('servers.verified')}
-                  </Badge>
-                )}
+                {server.ftp?.lastVerifiedAt && <VerifiedBadge label={t('servers.verified')} />}
               </div>
             </CardHeader>
 
@@ -345,12 +340,7 @@ export function ServerDetailPage() {
                   <CardTitle>{t('servers.rconTitle')}</CardTitle>
                   <CardDescription>{t('servers.rconDescription')}</CardDescription>
                 </div>
-                {server.rcon?.lastVerifiedAt && (
-                  <Badge variant="secondary" className="gap-1">
-                    <CheckCircle2 className="size-3" />
-                    {t('servers.verified')}
-                  </Badge>
-                )}
+                {server.rcon?.lastVerifiedAt && <VerifiedBadge label={t('servers.verified')} />}
               </div>
             </CardHeader>
 
@@ -438,6 +428,19 @@ export function ServerDetailPage() {
         />
       )}
     </div>
+  )
+}
+
+/** Matches the list view, so a verified connection looks the same everywhere. */
+function VerifiedBadge({ label }: { label: string }) {
+  return (
+    <Badge
+      variant="secondary"
+      className="gap-1 border-emerald-600/30 bg-emerald-600/15 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300"
+    >
+      <CircleCheckBig className="size-3 fill-emerald-600/25 dark:fill-emerald-400/25" />
+      {label}
+    </Badge>
   )
 }
 
