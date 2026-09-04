@@ -476,11 +476,23 @@
     "giveItems": "Give items",
     "teleport": "Teleport",
     "teleportTitle": "Teleport {{username}}",
-    "teleportDescription": "The player is moved to another player at once.",
+    "teleportDescription": "The player is moved at once — to another player or to fixed coordinates.",
     "teleportTarget": "Destination player",
     "teleportChoose": "Choose a player",
     "teleportNoOthers": "Nobody else is online to teleport to.",
-    "teleportCoordinatesNote": "Project Zomboid has no RCON command that puts a named player at coordinates — “teleportto” always moves whoever typed it, and RCON has nobody. Only player-to-player is possible.",
+    "teleportToPlayer": "To a player",
+    "teleportToCoordinates": "To coordinates",
+    "teleportZHint": "Z is the floor: 0 is ground level, 1 to 7 are storeys above, -1 is a basement.",
+    "teleportOutsideWorld": "Those coordinates lie outside the map. X and Y run from 0 to 20000, Z from -1 to 7.",
+    "teleportLandmarks": "Known places",
+    "landmarks": {
+      "muldraugh": "Muldraugh",
+      "westPoint": "West Point",
+      "riverside": "Riverside",
+      "rosewood": "Rosewood",
+      "marchRidge": "March Ridge",
+      "louisville": "Louisville"
+    },
     "teleported": "Player teleported."
   },
   "console": {

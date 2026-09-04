@@ -49,6 +49,7 @@ import {
   teleportPlayer,
   type AccessLevel,
   type Player,
+  type TeleportDestination,
 } from './players'
 
 export function PlayerTable({ serverId }: { serverId: string }) {
@@ -116,8 +117,8 @@ export function PlayerTable({ serverId }: { serverId: string }) {
   })
 
   const teleport = useMutation({
-    mutationFn: (input: { username: string; target: string }) =>
-      teleportPlayer(serverId, input.username, input.target),
+    mutationFn: (input: { username: string; destination: TeleportDestination }) =>
+      teleportPlayer(serverId, input.username, input.destination),
     ...report('players.teleported'),
   })
 
@@ -349,8 +350,8 @@ export function PlayerTable({ serverId }: { serverId: string }) {
           open
           pending={teleport.isPending}
           onOpenChange={(open) => !open && setTeleporting(null)}
-          onConfirm={(target) => {
-            teleport.mutate({ username: teleporting.username, target })
+          onConfirm={(destination) => {
+            teleport.mutate({ username: teleporting.username, destination })
             setTeleporting(null)
           }}
         />

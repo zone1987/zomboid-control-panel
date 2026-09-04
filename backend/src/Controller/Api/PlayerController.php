@@ -223,22 +223,45 @@ final class PlayerController extends AbstractController
     #[Route('/{username}/teleport', name: 'api_players_teleport', methods: ['POST'])]
     public function teleport(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
-        $target = $this->payloadOf($request)['target'] ?? null;
+        $payload = $this->payloadOf($request);
+        $target = $payload['target'] ?? null;
 
-        if (!\is_string($target) || trim($target) === '') {
+        if (\is_string($target) && trim($target) !== '') {
+            return $this->moderate(
+                $serverId,
+                fn (GameServer $server): string => $this->moderator->teleportToPlayer($server, $username, $target),
+                ModerationAction::TELEPORT,
+                $username,
+                $actor,
+                $target,
+            );
+        }
+
+        if (!isset($payload['x'], $payload['y'])) {
             return new JsonResponse([
                 'status' => 'failed',
                 'errors' => ['target' => 'validation.required'],
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $x = filter_var($payload['x'], \FILTER_VALIDATE_INT);
+        $y = filter_var($payload['y'], \FILTER_VALIDATE_INT);
+        $z = filter_var($payload['z'] ?? 0, \FILTER_VALIDATE_INT);
+
+        if ($x === false || $y === false || $z === false || !PlayerModerator::isInsideWorld($x, $y, $z)) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['coordinates' => 'validation.outsideWorld'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         return $this->moderate(
             $serverId,
-            fn (GameServer $server): string => $this->moderator->teleportToPlayer($server, $username, $target),
+            fn (GameServer $server): string => $this->moderator->teleportToCoordinates($server, $username, $x, $y, $z),
             ModerationAction::TELEPORT,
             $username,
             $actor,
-            $target,
+            sprintf('%d,%d,%d', $x, $y, $z),
         );
     }
 

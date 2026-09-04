@@ -90,12 +90,45 @@ export function unbanPlayer(serverId: string, username: string) {
   )
 }
 
-export function teleportPlayer(serverId: string, username: string, target: string) {
+export type TeleportDestination = { target: string } | { x: number; y: number; z: number }
+
+export function teleportPlayer(
+  serverId: string,
+  username: string,
+  destination: TeleportDestination,
+) {
   return apiFetch<{ status: string; reply: string }>(
     `/servers/${serverId}/players/${encodeURIComponent(username)}/teleport`,
-    { method: 'POST', body: { target } },
+    { method: 'POST', body: destination },
   )
 }
+
+/** Knox Country spans roughly this square; z is basement to top floor. */
+export const WORLD_BOUNDS = { min: 0, max: 20000, minZ: -1, maxZ: 7 } as const
+
+export function isInsideWorld(x: number, y: number, z: number): boolean {
+  return (
+    Number.isInteger(x) &&
+    Number.isInteger(y) &&
+    Number.isInteger(z) &&
+    x >= WORLD_BOUNDS.min &&
+    x <= WORLD_BOUNDS.max &&
+    y >= WORLD_BOUNDS.min &&
+    y <= WORLD_BOUNDS.max &&
+    z >= WORLD_BOUNDS.minZ &&
+    z <= WORLD_BOUNDS.maxZ
+  )
+}
+
+/** Offered as hints in the teleport dialog, not as a complete gazetteer. */
+export const LANDMARKS = [
+  { id: 'muldraugh', x: 10778, y: 9770 },
+  { id: 'westPoint', x: 11800, y: 6900 },
+  { id: 'riverside', x: 6500, y: 5300 },
+  { id: 'rosewood', x: 8000, y: 11800 },
+  { id: 'marchRidge', x: 10100, y: 12800 },
+  { id: 'louisville', x: 12800, y: 2000 },
+] as const
 
 export function setAccessLevel(serverId: string, username: string, level: AccessLevel) {
   return apiFetch<{ status: string; reply: string }>(

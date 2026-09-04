@@ -19,6 +19,14 @@ final readonly class PlayerModerator
 {
     public const ACCESS_LEVELS = ['admin', 'moderator', 'overseer', 'gm', 'observer', 'none'];
 
+    /** Knox Country spans roughly this square; a cell is 300 tiles. */
+    public const WORLD_MIN = 0;
+    public const WORLD_MAX = 20000;
+
+    /** Ground is 0, the rest are floors above and basements below. */
+    public const LEVEL_MIN = -1;
+    public const LEVEL_MAX = 7;
+
     public function __construct(private RconClientInterface $rcon)
     {
     }
@@ -53,9 +61,7 @@ final readonly class PlayerModerator
     }
 
     /**
-     * Moves one player to another. RCON has no command that puts a named
-     * player at coordinates -- "teleportto" moves the caller, and RCON
-     * has no caller, so it answers "Error".
+     * Moves one player to another.
      *
      * @throws RconException
      */
@@ -66,6 +72,37 @@ final readonly class PlayerModerator
             $this->sanitise($username),
             $this->sanitise($target),
         ));
+    }
+
+    /**
+     * Moves a named player to a point in the world.
+     *
+     * The two-argument form of "teleportto" is the one that takes a name;
+     * the single-argument form moves the caller, which over RCON is
+     * nobody and answers a bare "Error".
+     *
+     * @throws RconException
+     */
+    public function teleportToCoordinates(GameServer $server, string $username, int $x, int $y, int $z): string
+    {
+        if (!self::isInsideWorld($x, $y, $z)) {
+            throw new RconCommandFailed(sprintf('Coordinates %d,%d,%d lie outside the world.', $x, $y, $z));
+        }
+
+        return $this->run($server, sprintf(
+            'teleportto "%s" %d,%d,%d',
+            $this->sanitise($username),
+            $x,
+            $y,
+            $z,
+        ));
+    }
+
+    public static function isInsideWorld(int $x, int $y, int $z): bool
+    {
+        return $x >= self::WORLD_MIN && $x <= self::WORLD_MAX
+            && $y >= self::WORLD_MIN && $y <= self::WORLD_MAX
+            && $z >= self::LEVEL_MIN && $z <= self::LEVEL_MAX;
     }
 
     public function setAccessLevel(GameServer $server, string $username, string $level): string
