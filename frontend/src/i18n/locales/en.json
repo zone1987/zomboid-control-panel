@@ -1,0 +1,89 @@
+{
+  "common": {
+    "appName": "ZomboidControl",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "continue": "Continue",
+    "loading": "Loading …",
+    "search": "Search",
+    "close": "Close",
+    "required": "Required"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email address",
+    "password": "Password",
+    "forgotPassword": "Forgot your password?",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithSteam": "Sign in with Steam",
+    "signInWithPasskey": "Sign in with a passkey",
+    "orContinueWith": "Or continue with",
+    "invalidCredentials": "That email address or password is wrong.",
+    "accountInactive": "This account has been deactivated.",
+    "twoFactorTitle": "Two-step verification",
+    "twoFactorHint": "Enter the six-digit code from your authenticator app.",
+    "useBackupCode": "Use a recovery code",
+    "invalidCode": "That code is invalid or has expired."
+  },
+  "setup": {
+    "title": "First-run setup",
+    "description": "Create the first administrator account. This wizard locks itself afterwards.",
+    "displayName": "Display name",
+    "createAccount": "Create account",
+    "alreadyCompleted": "Setup has already been completed."
+  },
+  "nav": {
+    "dashboard": "Overview",
+    "servers": "Servers",
+    "players": "Players",
+    "console": "Console",
+    "users": "Users",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "servers": {
+    "title": "Servers",
+    "empty": "No server configured yet.",
+    "add": "Add server",
+    "name": "Name",
+    "description": "Description",
+    "connection": "Connection",
+    "testConnection": "Test connection",
+    "connectionSucceeded": "Connection succeeded.",
+    "connectionFailed": "Connection failed: {{reason}}",
+    "protocol": "Protocol",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username",
+    "basePath": "Base directory",
+    "luaServerPath": "Path to media/lua/server",
+    "logPath": "Path to the Logs directory",
+    "browse": "Browse",
+    "rconPassword": "RCON password",
+    "passwordUnchanged": "Leave unchanged",
+    "uploadBridge": "Upload bridge",
+    "bridgeUploaded": "Bridge uploaded successfully."
+  },
+  "profile": {
+    "title": "Profile",
+    "language": "Language",
+    "passkeys": "Passkeys",
+    "passkeysHint": "Each device can hold its own passkey.",
+    "addPasskey": "Add a passkey",
+    "passkeyName": "Device name",
+    "lastUsed": "Last used",
+    "never": "Never",
+    "linkedAccounts": "Linked accounts",
+    "twoFactor": "Two-step verification"
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "network": "The server is unreachable.",
+    "forbidden": "You do not have permission to do that.",
+    "notFound": "Not found."
+  }
+}

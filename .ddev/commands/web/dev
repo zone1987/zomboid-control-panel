@@ -1,0 +1,20 @@
+#!/bin/bash
+## Description: Start the Vite dev server with hot reload
+## Usage: dev
+## Example: "ddev dev"
+
+set -e
+
+cd /var/www/html/frontend
+
+if [ ! -d node_modules ]; then
+    echo "Installing frontend dependencies..."
+    npm ci
+fi
+
+echo ""
+echo "  Frontend:  https://${DDEV_HOSTNAME}:5173/app/"
+echo "  API:       https://${DDEV_HOSTNAME}/api/health"
+echo ""
+
+exec npm run dev

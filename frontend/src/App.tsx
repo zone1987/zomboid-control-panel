@@ -1,0 +1,33 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from 'react-router/dom'
+
+import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
+import { router } from '@/routes/router'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // An expired session must surface as a redirect, not as retries.
+        if (error instanceof Response && error.status === 401) {
+          return false
+        }
+
+        return failureCount < 2
+      },
+      staleTime: 30_000,
+    },
+  },
+})
+
+export function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <RouterProvider router={router} />
+        <Toaster richColors closeButton />
+      </ThemeProvider>
+    </QueryClientProvider>
+  )
+}

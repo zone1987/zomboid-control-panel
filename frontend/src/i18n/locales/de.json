@@ -1,0 +1,89 @@
+{
+  "common": {
+    "appName": "ZomboidControl",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "continue": "Weiter",
+    "loading": "Wird geladen …",
+    "search": "Suchen",
+    "close": "Schließen",
+    "required": "Pflichtfeld"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "signInWithGoogle": "Mit Google anmelden",
+    "signInWithSteam": "Mit Steam anmelden",
+    "signInWithPasskey": "Mit Passkey anmelden",
+    "orContinueWith": "Oder weiter mit",
+    "invalidCredentials": "E-Mail-Adresse oder Passwort ist falsch.",
+    "accountInactive": "Dieses Konto wurde deaktiviert.",
+    "twoFactorTitle": "Bestätigung in zwei Schritten",
+    "twoFactorHint": "Gib den sechsstelligen Code aus deiner Authenticator-App ein.",
+    "useBackupCode": "Wiederherstellungscode verwenden",
+    "invalidCode": "Der Code ist ungültig oder abgelaufen."
+  },
+  "setup": {
+    "title": "Ersteinrichtung",
+    "description": "Lege das erste Administratorkonto an. Danach ist dieser Assistent gesperrt.",
+    "displayName": "Anzeigename",
+    "createAccount": "Konto anlegen",
+    "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen."
+  },
+  "nav": {
+    "dashboard": "Übersicht",
+    "servers": "Server",
+    "players": "Spieler",
+    "console": "Konsole",
+    "users": "Benutzer",
+    "settings": "Einstellungen",
+    "profile": "Profil"
+  },
+  "servers": {
+    "title": "Server",
+    "empty": "Noch kein Server eingerichtet.",
+    "add": "Server hinzufügen",
+    "name": "Name",
+    "description": "Beschreibung",
+    "connection": "Verbindung",
+    "testConnection": "Verbindung testen",
+    "connectionSucceeded": "Verbindung erfolgreich.",
+    "connectionFailed": "Verbindung fehlgeschlagen: {{reason}}",
+    "protocol": "Protokoll",
+    "host": "Host",
+    "port": "Port",
+    "username": "Benutzername",
+    "basePath": "Basisverzeichnis",
+    "luaServerPath": "Pfad zu media/lua/server",
+    "logPath": "Pfad zum Logs-Verzeichnis",
+    "browse": "Durchsuchen",
+    "rconPassword": "RCON-Passwort",
+    "passwordUnchanged": "Unverändert lassen",
+    "uploadBridge": "Bridge hochladen",
+    "bridgeUploaded": "Bridge erfolgreich hochgeladen."
+  },
+  "profile": {
+    "title": "Profil",
+    "language": "Sprache",
+    "passkeys": "Passkeys",
+    "passkeysHint": "Für jedes Gerät kann ein eigener Passkey hinterlegt werden.",
+    "addPasskey": "Passkey hinzufügen",
+    "passkeyName": "Gerätename",
+    "lastUsed": "Zuletzt verwendet",
+    "never": "Noch nie",
+    "linkedAccounts": "Verknüpfte Konten",
+    "twoFactor": "Bestätigung in zwei Schritten"
+  },
+  "errors": {
+    "generic": "Es ist ein Fehler aufgetreten.",
+    "network": "Der Server ist nicht erreichbar.",
+    "forbidden": "Dafür fehlt dir die Berechtigung.",
+    "notFound": "Nicht gefunden."
+  }
+}

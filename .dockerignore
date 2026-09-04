@@ -1,0 +1,10 @@
+**/.git
+**/.idea
+**/node_modules
+**/vendor
+**/var/cache
+**/var/log
+**/.env.local
+**/.env.*.local
+.ddev
+docs

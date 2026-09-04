@@ -1,0 +1,51 @@
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-andreasgerhardt/zomboidcontrol}:${APP_VERSION:-latest}
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET, e.g. openssl rand -hex 16}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?set a 64-char hex key, e.g. openssl rand -hex 32}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-zomboid}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-zomboid}?serverVersion=17&charset=utf8
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+      MAILER_DSN: ${MAILER_DSN:-null://null}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@localhost}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ZomboidControl}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:?set the public https URL}
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      WEBAUTHN_RELYING_PARTY_ID: ${WEBAUTHN_RELYING_PARTY_ID:?set the bare domain, without scheme or port}
+      WEBAUTHN_RELYING_PARTY_NAME: ${WEBAUTHN_RELYING_PARTY_NAME:-ZomboidControl}
+      OAUTH_GOOGLE_ID: ${OAUTH_GOOGLE_ID:-}
+      OAUTH_GOOGLE_SECRET: ${OAUTH_GOOGLE_SECRET:-}
+      STEAM_WEB_API_KEY: ${STEAM_WEB_API_KEY:-}
+      MESSENGER_WORKERS: ${MESSENGER_WORKERS:-1}
+      PHP_FPM_API_MAX_CHILDREN: ${PHP_FPM_API_MAX_CHILDREN:-12}
+      PHP_FPM_SSE_MAX_CHILDREN: ${PHP_FPM_SSE_MAX_CHILDREN:-8}
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zomboid}
+      POSTGRES_USER: ${POSTGRES_USER:-zomboid}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zomboid} -d ${POSTGRES_DB:-zomboid}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  database:

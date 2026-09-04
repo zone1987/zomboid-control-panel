@@ -1,0 +1,24 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]: ZomboidControl
+      - generic [ref=e6]:
+        - combobox "Sprache" [ref=e7]:
+          - option "DE" [selected]
+          - option "EN"
+        - button "Toggle theme" [ref=e8]
+    - main [ref=e9]:
+      - generic [ref=e20]:
+        - heading "API health" [level=1] [ref=e21]
+        - generic [ref=e22]:
+          - generic [ref=e23]: ok
+          - generic [ref=e26]:
+            - term [ref=e27]: Database
+            - definition [ref=e28]: ok
+            - term [ref=e29]: Setup complete
+            - definition [ref=e30]: "no"
+            - term [ref=e31]: Server time
+            - definition [ref=e32]: 2026-09-04T15:54:09+02:00
+        - link "Zurück" [ref=e33] [cursor=pointer]:
+          - /url: /app
+  - region "Notifications alt+T"
