@@ -15,7 +15,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.6.2"
+local BRIDGE_VERSION = "0.6.3"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -334,15 +334,16 @@ end
 --- reachable at all: a hosted server often ships without graphics, and
 --- guessing from the outside is unreliable.
 local function writeProbe()
+    -- Paths need the "media/" prefix: without it nothing opens, with it
+    -- media/inventory/BerettaClip.png reads back its 420 bytes.
     local candidates = {
         "media/texturepacks/UI.pack",
         "media/texturepacks/UI2.pack",
+        "media/texturepacks/ApComUI.pack",
+        "media/ui/Item_Bag_Schoolbag.png",
+        "media/textures/WorldItems/Item_Bag.png",
         "media/inventory/BerettaClip.png",
         "media/items/items.xml",
-        "texturepacks/UI.pack",
-        "inventory/BerettaClip.png",
-        "items/items.xml",
-        "scripts/items.txt",
     }
 
     local parts = {}
@@ -352,36 +353,76 @@ local function writeProbe()
         local ok, stream = pcall(getGameFilesInput, name)
 
         if ok and stream ~= nil then
-            -- available() reports what can be read without blocking,
-            -- which for a local file is its whole length.
             local gotSize, value = pcall(function() return stream:available() end)
-
-            if gotSize and type(value) == "number" then
-                size = value
-            else
-                size = 0
-            end
-
+            size = (gotSize and type(value) == "number") and value or 0
             pcall(function() stream:close() end)
         end
 
         table.insert(parts, string.format("\"%s\":%d", escape(name), size))
     end
 
-    -- Where the game thinks its files are, which is the missing piece
-    -- when a path that exists over FTP cannot be opened from Lua.
-    local cacheDir = "?"
-    local okCache, value = pcall(function() return getCacheDir() end)
+    -- Where the game unpacked itself, which says whether the texture
+    -- packs are simply somewhere else.
+    local roots = {}
 
-    if okCache and value ~= nil then
-        cacheDir = tostring(value)
+    for _, ask in ipairs({
+        { "cacheDir", function() return getCacheDir() end },
+        { "activeMods", function() return #getActivatedMods() end },
+    }) do
+        local got, value = pcall(ask[2])
+        table.insert(roots, string.format(
+            "\"%s\":\"%s\"",
+            ask[1],
+            escape(got and tostring(value) or "?")
+        ))
+    end
+
+    -- Proves the whole path end to end: read a known binary file and
+    -- write it back out where the panel can fetch it. If this arrives
+    -- byte-identical, icons can travel the same way.
+    local copied = -1
+    local okCopy = pcall(function()
+        local input = getGameFilesInput("media/inventory/BerettaClip.png")
+
+        if input == nil then
+            return
+        end
+
+        local output = getFileOutput("ZomboidControl/copy-test.png")
+
+        if output == nil then
+            pcall(function() input:close() end)
+            return
+        end
+
+        local written = 0
+
+        while true do
+            local byte = input:read()
+
+            if byte == nil or byte < 0 then
+                break
+            end
+
+            output:write(byte)
+            written = written + 1
+        end
+
+        input:close()
+        output:close()
+        copied = written
+    end)
+
+    if not okCopy then
+        copied = -2
     end
 
     writeFile(PROBE_FILE, string.format(
-        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"cacheDir\":\"%s\",\"mediaFiles\":{%s}}",
+        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"copyTestBytes\":%d,\"roots\":{%s},\"mediaFiles\":{%s}}",
         BRIDGE_VERSION,
         getTimestamp(),
-        escape(cacheDir),
+        copied,
+        table.concat(roots, ","),
         table.concat(parts, ",")
     ))
 end
