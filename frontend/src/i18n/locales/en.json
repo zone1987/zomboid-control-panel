@@ -640,7 +640,7 @@
       },
       "hordeAtPoint": {
         "title": "Horde at a point",
-        "description": "Puts zombies at a spot on the map, regardless of where anyone stands."
+        "description": "Puts zombies at a spot on the map. The area has to be loaded — a player must be nearby, otherwise the server answers “invalid location”."
       },
       "removeZombies": {
         "title": "Remove zombies",

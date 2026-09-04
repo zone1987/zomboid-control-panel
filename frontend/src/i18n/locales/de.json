@@ -640,7 +640,7 @@
       },
       "hordeAtPoint": {
         "title": "Horde an einem Punkt",
-        "description": "Setzt Zombies an eine Stelle der Karte, unabhängig davon, wo jemand steht."
+        "description": "Setzt Zombies an eine Stelle der Karte. Der Bereich muss geladen sein — also muss ein Spieler in der Nähe sein, sonst antwortet der Server mit „invalid location“."
       },
       "removeZombies": {
         "title": "Zombies entfernen",
