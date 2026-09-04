@@ -24,65 +24,89 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ## Next concrete step
 
-**Everything in `TODO.md` is done.** All six items were built and
-verified on 2026-09-04; `TODO.md` now records what came of each. What
-remains open is listed at the end of this section.
+**The isometric map, one bug from working.** Everything else on the
+task list is done and verified against the live server.
 
-Three assumptions in that list turned out to be wrong, and each
-correction is worth more than the code it changed:
+### Where it stands
 
-**1. Teleport to coordinates works over RCON.** `teleportto` has two
-argument forms; only the first fails.
+The renderer works. `pzmap2dzi` produces exactly what was asked for --
+interiors with furniture, shelves, machinery, the "Welcome to West
+Point" sign. Confirmed by eye on 2026-09-05 and shown in the panel.
 
-- `teleportto x,y,z` — one argument, moves whoever typed it. RCON has
-  nobody, so the server answers a bare `Error`. This is what misled the
-  first attempt.
-- `teleportto "name" x,y,z` — **two arguments, moves a named player.**
-  Verified live: *"admin teleported to 10778,9770,0 please wait two
-  seconds to show the map around you."* Quotes optional, coordinates
-  comma-separated without spaces.
+The panel side is complete: it reads a render's own `map_info.json`,
+lists the floors from the files, serves tiles behind its own
+authentication, and offers a toggle between the two projections that
+appears only when a render exists.
 
-The command class confirms it independently: its capability is named
-`TeleportToCoordinates`.
+### The one thing that does not work
 
-**2. Hordes and zombie removal need no bridge.** `createhorde2` and
-`removezombies` are varargs taking `-count -x -y -z -radius`, so both
-work over RCON at any point in the world. Verified live:
-`removezombies -x 10778 -y 9770 -z 0 -radius 30` answers *"Zombies
-removed."* `createhorde2` with the same flags answers *"invalid
-location"* when no player is nearby — the flag form parses, but the
-chunk has to be loaded. The interface says so.
+`GET /api/map/isometric/layer0_files/22/1332_459.jpg` answers **404 in
+0.0 seconds** when the tile is absent. It should notice, render the
+cells behind it and answer with the result.
 
-**3. The world map needs no renderer and no foreign tiles.** The
-research pointed at two dead ends: rendering the world isometrically
-costs about 404 GB, and pzmap.org's tiles are barred by their own
-`robots.txt` and blocked outright by a `cross-origin-resource-policy`
-header.
+0.0 seconds means the renderer was never invoked. Most likely causes,
+in order:
 
-Neither is needed. **Project Zomboid draws its own in-game map and
-ships the result**: `media/maps/Muldraugh, KY/pyramid.zip` holds 6582
-tiles of 256 pixels in five levels, 51 MB in all. Level 0 is
-19968x16128 — exactly the world in squares — so one pixel is one square
-and one tile is one cell. A player's position needs no projection.
+1. **The paths are host paths, and PHP runs in ddev.**
+   `/private/tmp/...` and the Steam directory do not exist inside the
+   container. This is almost certainly it.
+2. `python3` is not in the web container either.
+3. The env values may not reach the container at all -- check with
+   `ddev exec -d /var/www/html/backend "php bin/console debug:container --env-vars"`.
 
-Only the main map carries a pyramid; the other eleven directories are
-start areas inside it.
+**Point 1 is architectural, not a typo.** Think it through before
+patching: the panel container cannot render, because rendering needs a
+full game installation with the client texture packs. Options are a
+sidecar container with the game files mounted, a small render service
+on the host that the panel calls, or accepting that the deepest level
+is pre-rendered after all.
 
-### What is still open
+### The numbers that decide the design
 
-**Nothing from the task list.** Bridge 0.8.0 was confirmed against the
-live server on 2026-09-05, which was the last unproven piece.
+Measured on a real render of one cell, not estimated:
 
-`getFileReader` does read a file the panel uploaded over FTP into the
-Lua directory -- the assumption the whole queue rested on. A command
-takes 1 to 1.5 seconds from click to answer.
+| Vorrat | Size (whole world) |
+|---|---|
+| everything, full resolution | 438 GB |
+| without level 22 | **102 GB** |
+| without levels 21 and 22 | **26 GB** |
+| up to level 18 only | **2.7 GB** |
 
-Permissions are fully in force since the roles work landed: every
-endpoint guards on one, the navigation shows only what the user can
-reach, and the firewall was loosened to `ROLE_USER` on `/api/servers`,
-`/api/users` and `/api/roles` so a narrow role is not turned away
-before any controller sees it. Legacy role names still grant what they
-always granted, so an existing installation is untouched.
+Level 22 alone is 336 GB -- three quarters. Each level quarters the one
+below. One cell renders in **about one second** on 14 cores. Dropping
+level 22 from the test render took it from 110 MB to 28 MB.
+
+The ceiling is a Coolify server: 26 GB was called too much, which is
+why on-demand rendering matters.
+
+### How to render, for whoever picks this up
+
+    cd <renderer>
+    <venv>/bin/python main.py unpack     # once: extracts the textures
+    <venv>/bin/python main.py render base
+
+`unpack` is the step that is easy to miss -- without it every tile
+comes out `.empty` and the log says "Missing texture". The venv needs
+lupa, pyclipper, kaitaistruct, pillow, pyyaml, requests, flask,
+waitress, ruamel.yaml **and setuptools**, the last because Python 3.12
+removed distutils and `main.py` imports it.
+
+Settings that matter, in `conf/conf.yaml`: `pz_root`, `output_root`,
+`render_cell_range` (a list of `[x, y]` or `[x, y, w, h]`),
+`layer_range`, `omit_levels`.
+
+### Ruled out, with reasons
+
+**projectzomboidmap.com's tiles.** Investigated in full on 2026-09-05.
+Reachable, and the site uses the same tool this panel does -- but CORS
+is allowlisted to their own domain, there is no imprint or contact to
+ask, the operator has no rights from The Indie Stone to grant, and the
+tile path carries a version stamp that would break a shipped panel for
+everyone at once. See brief 08.
+
+**The other panel's approach.** `fpsacha/zomboid-control-panel` proxies
+`tiles.pzmap.org` and caches to disk, with no word anywhere about
+licensing. Its disk-cache idea is worth borrowing; its source is not.
 
 ---
 
@@ -123,15 +147,29 @@ always granted, so an existing installation is untouched.
 | Texture pack upload | **a real pack uploaded through the browser, icons extracted** |
 | Roles and permissions | 17 permissions in five groups, three built-in roles |
 | World map | **the game's own tiles; searching 11800,6900 lands on 11800,6900** |
+| Two-way bridge | **a command answered in 1.5s; setting the hour put it in the world** |
+| Vehicles and factions | bridge 0.10.0 writes them; empty until players load chunks |
+| Live world reading | `readSurroundings` built, not yet exercised with a player online |
+| Map from the server | **51 MB pulled over FTP; the server was 36 builds newer than the local game** |
+| OpenSeadragon map | **deep links, floor control, layer toggles, right-click teleport** |
+| Isometric render | **produces interiors; one cell in ~1s; not yet wired for on demand** |
 | Production image | **builds, starts healthy, serves the whole panel** |
 
-339 backend tests, 45 frontend tests. Both suites green.
+380 backend tests, 78 frontend tests. Both suites green.
 
 ### Not yet built
 
-- The two-way bridge — the last piece of brief 07
-- Moving the access checks from role names onto permissions
-- Assigning roles to users in the interface (the API takes them already)
+- **On-demand tile rendering from inside the container** — see "Next
+  concrete step". The renderer works; reaching it from PHP does not.
+- **Death locations as a map layer** — the fourth layer a design draft
+  asked for. The log has the data; nothing reads it yet.
+- **Automatic map import on server restart** — the bridge already
+  stamps a session id, so a restart is detectable; the import endpoint
+  exists but nothing triggers it.
+- **Zombies as a map layer** — deliberately absent: `getZombieList()`
+  is in the API index but the game never calls it from Lua anywhere, so
+  a layer built on it might silently stay empty. Test it against a live
+  server before building it.
 
 ### Known open risks
 
@@ -652,3 +690,44 @@ One thing worth noting for later: the bridge picked up the command file
 left over from the pre-restart test and processed it on startup, which
 is the queue behaving exactly as intended — a command survives a
 restart rather than being lost.
+
+### 2026-09-05 — Map rebuilt on OpenSeadragon, and the isometric render
+Leaflet gave way to OpenSeadragon because the target format decided it:
+pzmap2dzi writes DZI, which OpenSeadragon reads natively, and swapping
+a floor is `open()` on the running viewer rather than a rebuild.
+
+The map fills its frame with everything floating over it — search top
+left, places bottom right and collapsible, coordinates bottom left,
+players and safehouses right, floor control centred right as plus,
+floor, minus, layer toggles centred left in green.
+
+Three bugs found in a browser rather than reasoned about:
+
+The right click never opened the teleport dialog. OpenSeadragon's
+MouseTracker claims the button before `nonPrimaryPressHandler` sees a
+real click, so the handler hangs off the `contextmenu` event instead.
+
+A deep link landed on the default position twice over — first because
+the route is lazily loaded and `window.location.hash` reads empty by
+then, then because the viewer's own debounced writer had already
+overwritten it. The hash is captured at module load now.
+
+Setting the view on `open` was undone a frame later by OpenSeadragon's
+home animation, so it waits for the first drawn frame.
+
+**The map now comes from the game server**, not a local installation:
+`app:map:import --from-server="<name>"` pulls the 51 MB pyramid over
+FTP. The server was running build 24909836 against the local game's
+24909800 — 36 builds newer, which is exactly why this matters.
+
+**The isometric render works.** `main.py unpack` was the missing step;
+without it every tile is `.empty`. Measured: 438 GB for the whole world
+at full resolution, of which level 22 alone is 336 GB, and one cell
+renders in about a second. On-demand rendering of that level is built
+but cannot reach the renderer from inside the container — see "Next
+concrete step".
+
+`TileGeometry` inverts pzmap2dzi's transform to find the cells behind a
+tile. Its tests caught a factor of two in that inversion, which would
+have rendered every missing tile from the wrong part of the world.
+Commits `8445bab` through `d444519`.
