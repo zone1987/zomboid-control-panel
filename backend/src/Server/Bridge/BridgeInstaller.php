@@ -21,11 +21,84 @@ final readonly class BridgeInstaller
     ) {
     }
 
+    /** The version this panel ships. */
     public function version(): string
     {
-        return preg_match('/BRIDGE_VERSION\s*=\s*"([^"]+)"/', $this->source(), $matches) === 1
+        return self::versionOf($this->source());
+    }
+
+    /**
+     * What is on the server, and whether it matches what is shipped here.
+     *
+     * @return array{
+     *     installed: bool,
+     *     installedVersion: string|null,
+     *     availableVersion: string,
+     *     upToDate: bool,
+     *     path: string|null,
+     *     error: string|null
+     * }
+     */
+    public function status(GameServer $server): array
+    {
+        $available = $this->version();
+        $config = $server->getFtpConfig();
+        $path = $config?->getLuaServerPath();
+
+        if ($config === null || $path === null || trim($path) === '') {
+            return $this->unknown($available, 'servers.bridgeNeedsPath');
+        }
+
+        $target = rtrim($this->relativeTo($config->getBasePath(), $path), '/').'/'.self::FILENAME;
+
+        try {
+            if (!$this->files->fileExists($config, $target)) {
+                return [
+                    'installed' => false,
+                    'installedVersion' => null,
+                    'availableVersion' => $available,
+                    'upToDate' => false,
+                    'path' => $target,
+                    'error' => null,
+                ];
+            }
+
+            // readTail reads from the end, and the version is declared at
+            // the top, so the whole file has to come across -- it is a few
+            // kilobytes, which is cheaper than getting this wrong.
+            $installed = self::versionOf($this->files->readTail($config, $target, 262144));
+        } catch (StorageException $exception) {
+            return $this->unknown($available, $exception->messageKey());
+        }
+
+        return [
+            'installed' => true,
+            'installedVersion' => $installed,
+            'availableVersion' => $available,
+            'upToDate' => $installed === $available,
+            'path' => $target,
+            'error' => null,
+        ];
+    }
+
+    public static function versionOf(string $source): string
+    {
+        return preg_match('/BRIDGE_VERSION\s*=\s*"([^"]+)"/', $source, $matches) === 1
             ? $matches[1]
             : 'unknown';
+    }
+
+    /** @return array<string, mixed> */
+    private function unknown(string $available, string $error): array
+    {
+        return [
+            'installed' => false,
+            'installedVersion' => null,
+            'availableVersion' => $available,
+            'upToDate' => false,
+            'path' => null,
+            'error' => $error,
+        ];
     }
 
     /**

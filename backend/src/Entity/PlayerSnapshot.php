@@ -193,6 +193,7 @@ class PlayerSnapshot
         array $skills,
         array $traits,
         \DateTimeImmutable $seenAt,
+        bool $online = true,
     ): void {
         $this->steamId = $steamId;
         $this->x = $x;
@@ -206,6 +207,6 @@ class PlayerSnapshot
         $this->skills = $skills;
         $this->traits = $traits;
         $this->lastSeenAt = $seenAt;
-        $this->online = true;
+        $this->online = $online;
     }
 }

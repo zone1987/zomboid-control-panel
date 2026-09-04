@@ -23,7 +23,10 @@ interface FileBrowserInterface
     public function verify(FtpConfig $config): array;
 
     /** @throws StorageException */
-    public function exists(FtpConfig $config, string $path): bool;
+    public function directoryExists(FtpConfig $config, string $path): bool;
+
+    /** @throws StorageException */
+    public function fileExists(FtpConfig $config, string $path): bool;
 
     /**
      * Reads at most $maxBytes from the end of a file, so a large log does

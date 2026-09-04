@@ -87,7 +87,8 @@
     "darkTheme": "Dunkles Design",
     "language_de": "Deutsch",
     "language_en": "Englisch",
-    "noServerYet": "Lege zuerst einen Server an"
+    "noServerYet": "Lege zuerst einen Server an",
+    "logs": "Log"
   },
   "servers": {
     "title": "Server",
@@ -110,7 +111,7 @@
     "rconPassword": "RCON-Passwort",
     "passwordUnchanged": "Unverändert lassen",
     "uploadBridge": "Bridge hochladen",
-    "bridgeUploaded": "Bridge erfolgreich hochgeladen.",
+    "bridgeUploaded": "Bridge {{version}} hochgeladen.",
     "noneSelected": "Kein Server ausgewählt",
     "notConfigured": "Noch nicht konfiguriert",
     "manage": "Server verwalten",
@@ -143,7 +144,17 @@
     "bridgeDescription": "Die Lua-Mod schreibt auf dem Server regelmäßig eine Statusdatei, die diese Anwendung ausliest. Ohne sie bleiben Spielerliste und Positionen leer.",
     "bridgeNeedsPath": "Trage zuerst den Pfad zu media/lua/server ein, dann kann die Mod hochgeladen werden.",
     "bridgeRestartHint": "Nach dem Hochladen muss der Zomboid-Server neu gestartet werden, damit die Mod geladen wird.",
-    "bridgeInstalled": "Bridge {{version}} hochgeladen nach {{path}}. Jetzt den Server neu starten."
+    "bridgeInstalled": "Bridge {{version}} hochgeladen nach {{path}}. Jetzt den Server neu starten.",
+    "bridgeInstalledVersion": "Auf dem Server installiert",
+    "bridgeAvailableVersion": "Hier verfügbar",
+    "bridgeNotInstalled": "Nicht installiert",
+    "bridgeUpToDate": "Bridge ist aktuell",
+    "bridgeUpdateAvailable": "Update verfügbar",
+    "updateBridge": "Bridge aktualisieren",
+    "reuploadBridge": "Erneut hochladen",
+    "bridgeUploadFailed": "Die Bridge konnte nicht hochgeladen werden.",
+    "bridgeStatusUnknown": "Der Server ist gerade nicht erreichbar, deshalb lässt sich nicht feststellen, welche Version dort liegt.",
+    "bridgeRestartPending": "Die Datei auf dem Server ist bereits {{installed}}, geladen ist aber noch {{running}}. Starte den Zomboid-Server neu, damit die neue Fassung greift."
   },
   "profile": {
     "title": "Profil",
@@ -458,7 +469,8 @@
       "access_level": "Zugriffsstufe"
     },
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
-    "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu."
+    "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu.",
+    "survivalTime": "Überlebenszeit"
   },
   "console": {
     "title": "RCON-Konsole",
@@ -484,6 +496,36 @@
       "tooFewArguments": "Es fehlt noch etwas: erwartet werden {{expected}} Angaben, eingegeben sind {{given}}. Als Nächstes kommt „{{missing}}“.",
       "tooManyArguments": "Zu viele Angaben: erwartet werden höchstens {{expected}}, eingegeben sind {{given}}.",
       "unbalancedQuote": "Ein Anführungszeichen wurde nicht geschlossen."
+    }
+  },
+  "logs": {
+    "title": "Server-Log",
+    "description": "Mitlesen, was auf dem Server passiert.",
+    "descriptionFor": "Mitlesen, was auf {{server}} passiert.",
+    "filter": "Zeilen filtern",
+    "follow": "Weiterlesen",
+    "pause": "Pausieren",
+    "reading": "lädt…",
+    "waiting": "Noch keine Zeilen",
+    "waitingHint": "Sobald der Server etwas schreibt, erscheint es hier. Es wird alle fünf Sekunden nachgesehen.",
+    "noMatch": "Kein Treffer",
+    "noMatchHint": "Keine der geladenen Zeilen enthält den Suchbegriff.",
+    "noFiles": "Keine Logdateien gefunden",
+    "noFilesHint": "Prüfe den Logpfad in der Serverkonfiguration. Standardmäßig liegen die Dateien im Ordner „Logs“.",
+    "rotated": "Der Server wurde neu gestartet — das Log beginnt von vorn.",
+    "lineCount": "{{count}} Zeilen geladen",
+    "matchCount": "{{shown}} von {{total}} Zeilen",
+    "capped": "älteste Zeilen werden ab {{max}} verworfen",
+    "kind": {
+      "chat": "Chat",
+      "connections": "Verbindungen",
+      "server": "Server (Debug)",
+      "user": "Spieleraktionen",
+      "commands": "Befehle",
+      "pvp": "Kämpfe",
+      "perks": "Fertigkeiten",
+      "map": "Karte",
+      "items": "Gegenstände"
     }
   }
 }

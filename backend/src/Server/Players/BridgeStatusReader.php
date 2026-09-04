@@ -23,6 +23,9 @@ final readonly class BridgeStatusReader
     /** Relative to the transfer base path, matching what the bridge writes. */
     public const STATUS_PATH = 'Lua/ZomboidControl/status.json';
 
+    /** Past this the file is no longer evidence of who is playing. */
+    public const STALE_AFTER_SECONDS = 120;
+
     public function __construct(
         private FileBrowserInterface $files,
         private PlayerSnapshotRepository $snapshots,
@@ -57,6 +60,11 @@ final readonly class BridgeStatusReader
         }
 
         $generatedAt = (new \DateTimeImmutable())->setTimestamp((int) ($payload['generatedAt'] ?? time()));
+
+        // The bridge writes every few seconds; anything older means it
+        // stopped, or the server is down.
+        $stale = time() - $generatedAt->getTimestamp() > self::STALE_AFTER_SECONDS;
+
         $seen = [];
 
         foreach ($payload['players'] as $entry) {
@@ -64,27 +72,26 @@ final readonly class BridgeStatusReader
                 continue;
             }
 
-            $this->store($server, $entry, $generatedAt);
+            $this->store($server, $entry, $generatedAt, online: !$stale);
             $seen[] = $entry['username'];
         }
 
-        $this->snapshots->markEveryoneElseOffline($server, $seen);
+        // A stale file proves nothing about who is playing now, so nobody
+        // is left marked online on the strength of it. Showing someone as
+        // online when the server is down is worse than showing nobody.
+        $this->snapshots->markEveryoneElseOffline($server, $stale ? [] : $seen);
         $this->entityManager->flush();
 
-        $age = time() - $generatedAt->getTimestamp();
-
         return [
-            'playerCount' => \count($seen),
+            'playerCount' => $stale ? 0 : \count($seen),
             'generatedAt' => $generatedAt,
             'bridgeVersion' => (string) ($payload['bridgeVersion'] ?? 'unknown'),
-            // The bridge writes every few seconds; anything older means it
-            // stopped, or the server is down.
-            'stale' => $age > 120,
+            'stale' => $stale,
         ];
     }
 
     /** @param array<string, mixed> $entry */
-    private function store(GameServer $server, array $entry, \DateTimeImmutable $seenAt): void
+    private function store(GameServer $server, array $entry, \DateTimeImmutable $seenAt, bool $online): void
     {
         $username = (string) $entry['username'];
         $snapshot = $this->snapshots->findOneForServer($server, $username);
@@ -107,6 +114,7 @@ final readonly class BridgeStatusReader
             $this->skills($entry['skills'] ?? null),
             $this->traits($entry['traits'] ?? null),
             $seenAt,
+            $online,
         );
     }
 

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Upload, Users } from 'lucide-react'
+import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Users } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -21,11 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { BridgeCard } from './bridge-card'
 import { DirectoryBrowser } from './directory-browser'
 import {
   deleteServer,
   getServer,
-  installBridge,
   testFtp,
   testRcon,
   updateServer,
@@ -138,15 +138,6 @@ export function ServerDetailPage() {
       await invalidate()
       toast.success(t('servers.rconOk', { reply: result.reply.split('\n')[0] }))
     },
-    onError: (error) => toast.error(t(errorKey(error)), { duration: 10_000 }),
-  })
-
-  const uploadBridge = useMutation({
-    mutationFn: () => installBridge(id),
-    onSuccess: (result) =>
-      toast.success(t('servers.bridgeInstalled', { path: result.path, version: result.version }), {
-        duration: 10_000,
-      }),
     onError: (error) => toast.error(t(errorKey(error)), { duration: 10_000 }),
   })
 
@@ -424,29 +415,7 @@ export function ServerDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('servers.bridgeTitle')}</CardTitle>
-          <CardDescription>{t('servers.bridgeDescription')}</CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-3">
-          <Button
-            variant="outline"
-            disabled={uploadBridge.isPending || !server.ftp?.luaServerPath}
-            onClick={() => uploadBridge.mutate()}
-          >
-            <Upload className="size-4" />
-            {uploadBridge.isPending ? t('common.loading') : t('servers.uploadBridge')}
-          </Button>
-
-          {!server.ftp?.luaServerPath && (
-            <p className="text-sm text-muted-foreground">{t('servers.bridgeNeedsPath')}</p>
-          )}
-
-          <p className="text-sm text-muted-foreground">{t('servers.bridgeRestartHint')}</p>
-        </CardContent>
-      </Card>
+      <BridgeCard server={server} />
 
       <div className="flex gap-2">
         <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>

@@ -60,13 +60,16 @@ final class BridgeStatusCommand extends Command
                 continue;
             }
 
-            $shipped = $this->installer->version();
+            $installed = $this->installer->status($server);
+            $shipped = $installed['availableVersion'];
 
             $io->definitionList(
                 ['Players' => (string) $status['playerCount']],
                 ['Written' => $status['generatedAt']->format('Y-m-d H:i:s T')],
-                ['Installed version' => $status['bridgeVersion']],
+                ['Reported by the running bridge' => $status['bridgeVersion']],
+                ['Read from the installed file' => $installed['installedVersion'] ?? 'not installed'],
                 ['Version shipped here' => $shipped],
+                ['Up to date' => $installed['upToDate'] ? 'yes' : 'no'],
                 ['Stale' => $status['stale'] ? 'yes' : 'no'],
             );
 

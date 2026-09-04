@@ -52,7 +52,7 @@ export function PlayerDetail({
                 : t('players.notInfected')}
             </Fact>
 
-            <Fact label={t('players.survived', { hours: '' }).trim()}>
+            <Fact label={t('players.survivalTime')}>
               {player.hoursSurvived === null
                 ? '—'
                 : t('players.hoursValue', { hours: Math.round(player.hoursSurvived) })}

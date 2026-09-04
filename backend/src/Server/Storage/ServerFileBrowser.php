@@ -86,10 +86,19 @@ final readonly class ServerFileBrowser implements FileBrowserInterface
         ];
     }
 
-    public function exists(FtpConfig $config, string $path): bool
+    public function directoryExists(FtpConfig $config, string $path): bool
     {
         try {
             return $this->storage->create($config)->directoryExists($this->normalise($path));
+        } catch (\Throwable $exception) {
+            throw $this->translate($exception);
+        }
+    }
+
+    public function fileExists(FtpConfig $config, string $path): bool
+    {
+        try {
+            return $this->storage->create($config)->fileExists($this->normalise($path));
         } catch (\Throwable $exception) {
             throw $this->translate($exception);
         }

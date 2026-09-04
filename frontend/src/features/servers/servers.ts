@@ -95,6 +95,19 @@ export function browse(id: string, path = ''): Promise<DirectoryListing> {
   return apiFetch<DirectoryListing>(`/servers/${id}/files?path=${encodeURIComponent(path)}`)
 }
 
+export type BridgeStatus = {
+  installed: boolean
+  installedVersion: string | null
+  availableVersion: string
+  upToDate: boolean
+  path: string | null
+  error: string | null
+}
+
+export function getBridgeStatus(id: string): Promise<BridgeStatus> {
+  return apiFetch<BridgeStatus>(`/servers/${id}/bridge`)
+}
+
 export function installBridge(id: string): Promise<{ status: string; path: string; version: string }> {
   return apiFetch(`/servers/${id}/bridge`, { method: 'POST', body: {} })
 }

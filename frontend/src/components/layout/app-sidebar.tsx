@@ -7,6 +7,7 @@ import {
   LogOut,
   Moon,
   Plus,
+  ScrollText,
   Server,
   Settings,
   Sun,
@@ -157,6 +158,26 @@ export function AppSidebar() {
                     <Link to={`/servers/${activeServer.id}/players`}>
                       <Users />
                       <span>{t('nav.players')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <ScrollText />
+                    <span>{t('nav.logs')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/logs`)}
+                    tooltip={t('nav.logs')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/logs`}>
+                      <ScrollText />
+                      <span>{t('nav.logs')}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}

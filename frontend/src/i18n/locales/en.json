@@ -87,7 +87,8 @@
     "darkTheme": "Dark theme",
     "language_de": "German",
     "language_en": "English",
-    "noServerYet": "Add a server first"
+    "noServerYet": "Add a server first",
+    "logs": "Log"
   },
   "servers": {
     "title": "Servers",
@@ -110,7 +111,7 @@
     "rconPassword": "RCON password",
     "passwordUnchanged": "Leave unchanged",
     "uploadBridge": "Upload bridge",
-    "bridgeUploaded": "Bridge uploaded successfully.",
+    "bridgeUploaded": "Bridge {{version}} uploaded.",
     "noneSelected": "No server selected",
     "notConfigured": "Not configured yet",
     "manage": "Manage servers",
@@ -143,7 +144,17 @@
     "bridgeDescription": "The Lua mod writes a status file on the server that this application reads. Without it the player list and positions stay empty.",
     "bridgeNeedsPath": "Set the path to media/lua/server first, then the mod can be uploaded.",
     "bridgeRestartHint": "After uploading, restart the Zomboid server so it loads the mod.",
-    "bridgeInstalled": "Bridge {{version}} uploaded to {{path}}. Restart the server now."
+    "bridgeInstalled": "Bridge {{version}} uploaded to {{path}}. Restart the server now.",
+    "bridgeInstalledVersion": "Installed on the server",
+    "bridgeAvailableVersion": "Available here",
+    "bridgeNotInstalled": "Not installed",
+    "bridgeUpToDate": "Bridge is up to date",
+    "bridgeUpdateAvailable": "Update available",
+    "updateBridge": "Update the bridge",
+    "reuploadBridge": "Upload again",
+    "bridgeUploadFailed": "The bridge could not be uploaded.",
+    "bridgeStatusUnknown": "The server cannot be reached right now, so which version is on it cannot be determined.",
+    "bridgeRestartPending": "The file on the server is already {{installed}}, but {{running}} is still loaded. Restart the Zomboid server for the new version to take effect."
   },
   "profile": {
     "title": "Profile",
@@ -458,7 +469,8 @@
       "access_level": "Access level"
     },
     "bridgeOutdated": "The server is running an older bridge",
-    "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards."
+    "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards.",
+    "survivalTime": "Time survived"
   },
   "console": {
     "title": "RCON console",
@@ -484,6 +496,36 @@
       "tooFewArguments": "Something is still missing: {{expected}} arguments are expected, {{given}} given. Next comes “{{missing}}”.",
       "tooManyArguments": "Too many arguments: at most {{expected}} are expected, {{given}} given.",
       "unbalancedQuote": "A quotation mark was never closed."
+    }
+  },
+  "logs": {
+    "title": "Server log",
+    "description": "Follow what the server is doing.",
+    "descriptionFor": "Follow what {{server}} is doing.",
+    "filter": "Filter lines",
+    "follow": "Follow",
+    "pause": "Pause",
+    "reading": "reading…",
+    "waiting": "No lines yet",
+    "waitingHint": "Anything the server writes appears here. It is checked every five seconds.",
+    "noMatch": "Nothing matches",
+    "noMatchHint": "None of the loaded lines contain that text.",
+    "noFiles": "No log files found",
+    "noFilesHint": "Check the log path in the server configuration. By default the files live in a folder called “Logs”.",
+    "rotated": "The server restarted — the log starts over.",
+    "lineCount": "{{count}} lines loaded",
+    "matchCount": "{{shown}} of {{total}} lines",
+    "capped": "oldest lines dropped beyond {{max}}",
+    "kind": {
+      "chat": "Chat",
+      "connections": "Connections",
+      "server": "Server (debug)",
+      "user": "Player actions",
+      "commands": "Commands",
+      "pvp": "Combat",
+      "perks": "Skills",
+      "map": "Map",
+      "items": "Items"
     }
   }
 }

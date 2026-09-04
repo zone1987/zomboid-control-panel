@@ -113,9 +113,16 @@ final class RecordingFileBrowser implements FileBrowserInterface
         return ['path' => $config->getBasePath(), 'entryCount' => 0, 'looksLikeZomboid' => false];
     }
 
-    public function exists(FtpConfig $config, string $path): bool
+    public bool $fileIsThere = true;
+
+    public function directoryExists(FtpConfig $config, string $path): bool
     {
         return true;
+    }
+
+    public function fileExists(FtpConfig $config, string $path): bool
+    {
+        return $this->fileIsThere;
     }
 
     public function readTail(FtpConfig $config, string $path, int $maxBytes = 65536): string

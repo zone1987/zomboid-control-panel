@@ -11,14 +11,16 @@
     it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.2.0"
+local BRIDGE_VERSION = "0.3.0"
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead,
 -- and its behaviour for a mod without one is not established.
 local STATUS_FILE = "ZomboidControl/status.json"
 
 -- Build 42.20.2 has no EveryTenMinutes event, so OnTick is throttled by hand.
-local TICKS_BETWEEN_WRITES = 600
+-- Roughly five seconds at 60 fps: the panel polls at the same rate, so a
+-- player joining shows up within about ten seconds either way.
+local TICKS_BETWEEN_WRITES = 300
 local ticksSinceWrite = 0
 
 local function escape(text)

@@ -57,9 +57,14 @@ export function PlayerTable({ serverId }: { serverId: string }) {
   const { data, isPending, isFetching, refetch } = useQuery({
     queryKey: ['players', serverId, onlineOnly],
     queryFn: () => listPlayers(serverId, onlineOnly),
-    // The bridge writes every few seconds; refetching keeps the list close
-    // to live without a socket.
-    refetchInterval: 15_000,
+    // The bridge writes every five seconds; polling at the same rate keeps
+    // the list live without a socket. It carries on in a background tab so
+    // a dashboard left open stays current.
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: true,
+    // Showing the previous list while the next arrives avoids a flash of
+    // skeleton every five seconds.
+    placeholderData: (previous) => previous,
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['players', serverId] })
