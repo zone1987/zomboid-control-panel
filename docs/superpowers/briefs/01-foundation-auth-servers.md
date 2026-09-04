@@ -1,6 +1,6 @@
 # Brief 01 — Foundation, authentication, server configuration
 
-**Status:** in progress
+**Status:** complete
 **Spec:** [../specs/2026-09-04-foundation-auth-servers.md](../specs/2026-09-04-foundation-auth-servers.md)
 **Plan:** [../plans/01-foundation-auth-servers.md](../plans/01-foundation-auth-servers.md)
 

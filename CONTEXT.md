@@ -10,95 +10,164 @@ A web interface for administering Project Zomboid dedicated servers. Symfony
 as a JSON API, React as the frontend, deployed as one Docker container plus
 PostgreSQL — locally, on a server, or in Coolify.
 
-The work is split into five sub-projects; see `docs/superpowers/briefs/`.
-Sub-project 01 (foundation, authentication, server configuration) is in
-progress.
+**It will be published for anyone to self-host.** The people running it are
+server operators, not developers. Anything that assumes technical knowledge —
+a DSN, an environment variable, a DNS record — has to be either avoided or
+explained in the interface. This has already shaped several decisions and
+should keep doing so.
+
+Work is split into six sub-projects; see `docs/superpowers/briefs/`.
+Sub-project 01 is complete. Sub-project 02 is in progress.
+
+---
+
+## Next concrete step
+
+**Sub-project 02, remaining work: the player management interface.**
+
+The backend is finished and verified against a live server. What is missing
+is the frontend:
+
+1. A player list page at `/servers/:id/players` — table of who is online,
+   with position, health, infection, access level, skills and traits.
+   Endpoint: `GET /api/servers/{serverId}/players`.
+2. Kick, ban and unban from that list. Ban needs a duration picker: the
+   preset list (1h, 2h, 6h, 12h, 1 day, 2 days, 5 days, 1 week, permanent)
+   plus a free-entry field, sent as `durationMinutes`.
+3. A ban list and moderation history, from `GET .../players/bans` and
+   `GET .../players/history`.
+4. Access level selector per player, from the six values in
+   `PlayerModerator::ACCESS_LEVELS`.
+
+Two smaller items also outstanding:
+
+- The deliverability check has an endpoint
+  (`GET /api/settings/mail/deliverability`) but no button in the interface.
+- ReUI's `data-grid` was removed early on because it needs Base UI variants
+  of dropdown-menu, select and checkbox. The player list is where that
+  decision comes due: either install the Base UI variants, or build the
+  table with plain shadcn parts.
 
 ---
 
 ## Current state — 2026-09-04
 
-### Verified working
+### Verified working, against a real server where possible
 
 | Area | Evidence |
 |---|---|
 | Symfony 7.4.18 on PHP 8.4.24 | running in ddev |
-| PostgreSQL 17.11 | 7 tables migrated |
-| Credential encryption | 13 tests, including proof no plaintext reaches the database |
-| Setup wizard | creates the first admin, then refuses; 6 tests plus browser run |
-| Password login | 7 tests plus browser run; session survives reload |
-| Passkeys | registration, login, management; verified with a virtual authenticator |
-| TOTP two-factor | setup, login, recovery codes; verified with real codes in a browser |
-| Frontend to backend | React reads `/api/health` through the Vite proxy |
+| PostgreSQL 17.11 | migrated |
+| Credential encryption | tests prove no plaintext reaches the database |
+| Setup wizard | creates the first admin, then refuses |
+| Password login | session survives reload |
+| Passkeys | registration, login, management; virtual authenticator |
+| TOTP two-factor | setup, login, recovery codes; real codes in a browser |
+| Google sign-in | **tested by the user against real credentials** |
+| Steam sign-in | **tested by the user; SteamID64 stored** |
+| Invitations, password reset | endpoints and screens |
+| FTP/SFTP to the game server | **works against the user's GTX Gaming server** |
+| RCON to the game server | **works; "Players connected (1): -admin"** |
+| Lua bridge | **uploaded, loaded, writing correct player data** |
+| Player list backend | **verified: position, health, access level all correct** |
+| Moderation backend | kick, ban, unban, access level; timed bans via scheduler |
+| Mail sending | **user received a test message** (in spam, see below) |
 
-45 backend tests green. Frontend builds without errors.
+115 backend tests green. Frontend builds without errors.
 
 ### Not yet built
 
-- Google and Steam sign-in (buttons exist, routes do not)
-- Invitations by mail, password reset
-- Server configuration forms, connection test, directory browser, bridge upload
-- Everything in sub-projects 02 to 05
+- Player management interface (see "Next concrete step")
+- Everything in sub-projects 03 to 06
 
 ### Known open risks
 
-1. **RCON client unproven.** Zomboid speaks Source RCON (verified), and
-   `xpaw/php-source-query-class` implements Source RCON (verified). That the
-   two work together is **not** verified. Spike this before building on it.
-2. **Production image never built.** The compose file is syntactically valid;
-   the image has not been built or run.
-3. **`data-grid` needs Base UI.** ReUI's data grid expects the Base UI variants
-   of `dropdown-menu`, `select` and `checkbox`. Removed for now; the decision
-   comes due when player lists are built.
-4. **Bundle over 500 kB.** No code splitting yet.
+1. **Production image never built.** The compose file is valid; the image has
+   not been built or run. This is the largest untested area.
+2. **`data-grid` needs Base UI.** Decision due with the player list.
+3. **Bundle over 500 kB.** No code splitting yet.
+4. **Mail lands in spam** without DKIM. Not a defect in the application — see
+   the DNS section below — but new operators will hit it.
+
+---
+
+## The user's server, for testing
+
+- Server name in the panel: "GTX Gaming", host `176.57.168.46`
+- FTP/SFTP and RCON both configured and verified
+- Bridge installed and running
+- Base path contains the Zomboid data folders directly: `Logs`, `Saves`,
+  `Server`, `media`, `db` — **not** under a `~/Zomboid` subdirectory
+- Bridge status file: `Lua/ZomboidControl/status.json` relative to the base
+  path
+- Test account: `a.gerhardt1987@gmail.com`, password
+  `ein-ausreichend-langes-passwort`, roles ROLE_ADMIN + ROLE_SERVER_ADMIN,
+  with Google, Steam and one passkey linked
+
+**Credentials rule the user set:** never read or print stored credentials,
+environment values or passwords. Checking whether a value is set is fine;
+printing it is not.
 
 ---
 
 ## Facts established by research
 
-Checked against primary sources. Do not re-litigate these without new evidence.
+Checked against primary sources. Do not re-litigate without new evidence.
 
 ### Symfony 7.4 is forced
 
-`scheb/2fa-bundle` v8.6.1 requires `symfony ^7.4 || ^8.0` on `php ~8.4.0`.
-`DoctrineEncryptBundle` 7.0.x requires `6.4 || 7.4 || 8.0` independently.
-Native SSE classes arrived in 7.3.
+`scheb/2fa-bundle` v8.6.1 requires `symfony ^7.4` on `php ~8.4.0`.
+`DoctrineEncryptBundle` 7.0.x requires the same independently. Native SSE
+classes arrived in 7.3.
 
 ### Sessions, not JWT
 
 `scheb/2fa` documents that the firewall must be stateful. WebAuthn stores its
-challenge in the session by default. `EventSource` cannot send an
-`Authorization` header. Same-origin removes the CORS argument for tokens.
+challenge in the session. `EventSource` cannot send an `Authorization` header.
+Same-origin removes the CORS argument for tokens.
 
 ### `SameSite=Lax`, not `Strict`
 
 `Strict` withholds the cookie on the Steam OpenID cross-site return.
 
-### Zomboid, verified against projectzomboid.jar build 42.20.2
+### Zomboid, verified against projectzomboid.jar build 42.20.2 with javap
 
-- **No server-side chat event.** `OnAddMessage` is used only in
-  `media/lua/client/Chat/ISChat.lua:1176` — it fires in the client. Chat must
-  be read from the engine's `_chat.txt` log and sent via RCON `servermsg`.
-- **No HTTP, no sockets in Lua.** Only `getFileWriter` / `getModFileWriter`,
-  sandboxed to the Zomboid data folder. The file bridge is mandatory.
-- **`EveryTenMinutes` and `EveryHours` do not exist** in this build. Use
-  `OnTick` with a counter.
-- **RCON replies are free text**, not JSON. Status via files, actions via RCON.
-- Player data: `getUsername`, `getSteamID`, `getX/Y/Z`, `getHealth`,
-  `getBodyDamage()`, `getPerkLevel`, `getTraits`, `getHoursSurvived`,
-  `getAccessLevel`.
-- Safehouses: `SafeHouse.getSafehouseList()` with coordinates, owner, members.
-- B42 has a real role system (`Roles`/`Role` with capabilities), but whether it
-  is writable from Lua is **not** established.
+Confirmed present and used by the bridge:
+
+- `getFileWriter(filename, createIfNull, append)` → writes to the Zomboid data
+  folder; **creates missing subdirectories on its own** (verified live)
+- `getOnlinePlayers()` → `ArrayList<IsoPlayer>`, iterate with `size()`/`get(i)`
+- `getUsername()`, `getSteamID()` (**a `long`, not a string**), `getX/Y/Z()`,
+  `getHealth()`, `getHoursSurvived()`, `getAccessLevel()`, `getBodyDamage()`
+- `BodyDamage`: **`isInfected()` lowercase** for the flag,
+  `getApparentInfectionLevel()` for the value. `getInfectionLevel()` does not
+  exist, and `IsInfected()` capitalised is a different method.
+- `getPerkList()` → `PerkInfo` with `.perk:getId()` and `:getLevel()`
+- `getCharacterTraits():getKnownTraits()` → list with `:getName()`
+- `getTimestamp()` exists; `os.time()` is also available
+- `Events.OnTick` fires on a dedicated server. Tick rate could not be
+  established; the bridge counts 600 ticks, which took about a minute in
+  practice, not the ten seconds assumed.
+
+Hard limits:
+
+- **No server-side chat event.** `OnAddMessage` is client-only. Chat must be
+  read from the engine's `_chat.txt` log and sent via RCON `servermsg`.
+- **No HTTP, no sockets in Lua.** The file bridge is mandatory.
+- **`EveryTenMinutes`/`EveryHours` do not exist** in this build.
+- **RCON replies are free text**, not JSON.
+- **No RCON command lists bans** — only `banuser`/`unbanuser`. The panel keeps
+  its own record, which is why `moderation_action` exists.
+- **`banuser` takes no duration.** Timed bans are the panel's own doing: ban
+  permanently, lift later by scheduler.
+- **`mod.info` is not needed** when the Lua file goes straight into the
+  server's own `media/lua/server`. It is only required for mods under `mods/`.
 
 ### Interface libraries
 
-- ReUI's catalogue (1719 entries) is readable without a licence.
-- Its **77 UI components install freely**: `tree`, `data-grid`,
-  `number-field`, `code-block`, `filters`, `kanban`, `gantt`, `event-calendar`.
-- Its **1638 page blocks return HTTP 401** without a licence key.
-- shadcn's `marker` is an ARIA text marker, **not** a map component. The live
-  map needs an external library.
+- ReUI's catalogue is readable without a licence; its **77 UI components
+  install freely**, its **1638 page blocks return 401**.
+- shadcn's `marker` is an ARIA text marker, **not** a map component.
 
 ---
 
@@ -107,86 +176,174 @@ challenge in the session by default. `EventSource` cannot send an
 Things that cost time and would cost it again.
 
 **Doctrine types cannot be constructor-injected.** The cipher reaches
-`EncryptedStringType` through a Doctrine middleware. Kernel and console events
-were tried first and do not fire for migrations or tests.
+`EncryptedStringType` through a Doctrine middleware; kernel and console events
+do not fire for migrations or tests.
 
 **WebAuthn has two handler contracts.** The firewall wants Symfony's
-`AuthenticationSuccessHandlerInterface`; the registration controllers want the
-bundle's own `SuccessHandler`. Not interchangeable.
+`AuthenticationSuccessHandlerInterface`; registration wants the bundle's own
+`SuccessHandler`.
 
-**`CanSaveCredentialRecord` is required.** Without it the bundle validates a
-ceremony and stores nothing, answering 501.
+**`CanSaveCredentialRecord` is required**, or the bundle validates a ceremony
+and stores nothing, answering 501.
 
-**Lazily loaded collections read zero.** The rule protecting the last passkey
-counted through a collection and would have let an account lock itself out. It
-counts in the database now.
+**Lazily loaded collections read zero.** The last-passkey rule counted through
+a collection and would have let an account lock itself out.
 
-**Logout redirected.** The default 302 leaves an SPA hanging; a `LogoutEvent`
-listener answers JSON.
+**Logout redirected.** A `LogoutEvent` listener answers JSON instead.
+
+**`/app` without a trailing slash 404s** on both Vite and Apache. Both OAuth
+authenticators redirect to `/app/`, and a dev-server middleware redirects the
+bare path.
+
+**Vite must build into `backend/public/app`.** It built into `frontend/dist`,
+which Apache never serves, so the `.htaccess` SPA fallback looped until Apache
+gave up with a 500. The production path had never worked.
+
+**RCON needed a hard deadline.** The library's timeout bounds individual
+reads, not the exchange; with `max_execution_time=0` a silent port held a
+worker indefinitely. Now: `default_socket_timeout` during the call, a
+twelve-second deadline, `set_time_limit(20)` as backstop. A silent port raises
+`InvalidPacketException`, which is classified as unreachable, not as a failed
+command.
+
+**The OAuth client bundle cannot see runtime credentials.** Google's client is
+built by a factory at call time. An earlier attempt used a kernel.request
+listener that was never registered and silently did nothing —
+`debug:event-dispatcher` showed it absent.
 
 **scheb needs every token type listed.** `WebauthnToken` had to be added to
-`security_tokens`, or a passkey login skips the second factor entirely.
+`security_tokens`, or a passkey login skips the second factor.
 
 **The TOTP provider is off until configured.** Without a `totp:` section the
 `TotpAuthenticatorInterface` service does not exist and autowiring fails.
 
-**Flex skipped two recipes.** `symfony/apache-pack` and the WebAuthn bundle
-were marked `IGNORING`; `.htaccess` and `bundles.php` entries were written by
-hand.
+**Flex skipped several recipes** (`symfony/apache-pack`, the WebAuthn bundle,
+the OAuth bundle). `.htaccess` and `bundles.php` entries were written by hand.
 
-**`node_modules` are platform-bound.** Installed for Linux in the container.
-Running npm on the host fails with missing native bindings.
+**`node_modules` are platform-bound.** Installed for Linux in the container;
+running npm on the host fails with missing native bindings.
 
 ---
 
-## Next concrete step
+## Mail deliverability
 
-Sub-project 01, step 6, remainder: Google and Steam sign-in, invitations by
-mail, password reset.
+The first real test message reached the user's inbox but landed in spam. The
+cause is DNS on the sending domain, not the application:
 
-Alternatively step 7 (server configuration), which should begin with the RCON
-spike named under open risks.
+- SPF is `v=spf1 a mx ptr ?all` — does not cover Hetzner's relay, and `ptr` is
+  deprecated. Should be `v=spf1 include:_spf.hetzner.com mx ~all`.
+- DMARC has `pct=50`, checking only half the mail.
+- **DKIM is absent entirely** — the heaviest factor. Enabled per domain in
+  Hetzner's konsoleH.
+
+On the application side: mail now carries an HTML part alongside text, names
+the application, and says why it arrived. A checker endpoint reads the three
+records and reports what is missing.
+
+**Hetzner shared hosting note:** the outgoing server is `mail.your-server.de`
+for every mailbox regardless of domain. Entering the own domain fails with a
+certificate mismatch, since the certificate covers `*.your-server.de`.
 
 ---
 
 ## Log
 
 ### 2026-09-04 — Foundation
-Symfony 7.4 skeleton, all auth packages at researched versions, PostgreSQL,
-Apache in ddev, `CredentialCipher` with 11 tests.
-Commit `722b8d8`.
+Symfony 7.4 skeleton, auth packages at researched versions, PostgreSQL,
+Apache in ddev, `CredentialCipher` with 11 tests. Commit `722b8d8`.
 
 ### 2026-09-04 — Data model
-Seven entities and tables. Cipher injection moved to a Doctrine middleware
-after the event-listener approach failed for migrations and tests. Two
-integration tests prove no plaintext reaches the database.
-Commit `d36217b`.
+Seven entities and tables. Cipher injection moved to a Doctrine middleware.
+Integration tests prove no plaintext reaches the database. Commit `d36217b`.
 
 ### 2026-09-04 — Frontend and container
 Vite 8, React 19, Tailwind v4, shadcn plus free ReUI components. Multi-stage
 Dockerfile, compose file, CI workflow. `ddev dev` and `ddev setup`.
-Verified in a browser: React reaches the API and reads PostgreSQL.
 Commit `7506010`.
 
 ### 2026-09-04 — Setup wizard and password login
-Wizard creating the first administrator and refusing every later call.
-`json_login` with enumeration-resistant failures. Route guards. Validation
-messages as translation keys. Two corrections: setup status was cached
-indefinitely so the redirect never fired; Zod messages were untranslated.
+Wizard that locks itself, enumeration-resistant login, route guards.
 Commit `769020a`.
 
-### 2026-09-04 — TOTP two-factor
-Setup with a session-held pending secret, ten single-use recovery codes stored
-hashed, password confirmation for disabling and regenerating. QR code rendered
-in the browser from the otpauth URI. `WebauthnToken` added to scheb's
-security_tokens so a passkey login cannot bypass the second factor.
-Verified in a browser with real TOTP codes: login halts at the second factor,
-both an authenticator code and a recovery code sign in, the used recovery code
-is consumed, a wrong password does not disable.
-Commit `18063ff`.
-
 ### 2026-09-04 — Passkeys
-Registration, login and device management. Four findings recorded above.
-Verified with a virtual authenticator: key stored, login without email or
-password, `lastUsedAt` recorded, signature counter advancing 1 → 2.
+Registration, login, device management. Verified with a virtual authenticator.
 Commit `10a4c59`.
+
+### 2026-09-04 — Documentation
+CLAUDE.md, CONTEXT.md, briefs, spec, plans. Commit `df2adc1`.
+
+### 2026-09-04 — TOTP two-factor
+Session-held pending secret, ten hashed recovery codes, password confirmation
+for disabling. Commit `18063ff`.
+
+### 2026-09-04 — Google and Steam
+OAuth2 for Google, OpenID 2.0 with an own authenticator for Steam. A forged
+Steam callback is rejected. Commit `1759dbd`.
+
+### 2026-09-04 — Settings page
+Steam, Google and SMTP credentials editable in the interface, encrypted, with
+how-to instructions per field. Commit `b8fb562`.
+
+### 2026-09-04 — Google credential fix
+Stored credentials never reached the authorization request; replaced the
+listener with a factory. Commit `24a3a42`.
+
+### 2026-09-04 — Sign-out and production path
+Three faults: sign-out cleared the session query instead of refetching, the
+.htaccess looped into a 500, and Vite built where Apache never looks.
+Commit `a5b22f8`.
+
+### 2026-09-04 — Dark theme
+Dark by default, applied before mount. The apparent theme reset after Google
+sign-in was really the bare `/app` 404. Commit `7947c23`.
+
+### 2026-09-04 — Server configuration
+RCON spike resolved the open risk; seven integration tests against a local
+Source RCON server. Flysystem for FTP/SFTP with a directory browser and path
+traversal refused. Commit `d25c7d2`.
+
+### 2026-09-04 — Sidebar and server UI
+Collapsible icon sidebar with server switcher, server list and detail pages,
+directory browser. `app:user:merge` added. Commit `3cf6e10`.
+
+### 2026-09-04 — Connection tests on save
+Test buttons enable as soon as the fields allow it and explain themselves
+otherwise; saving verifies but never discards input. Commit `15fbcad`.
+
+### 2026-09-04 — Repository hygiene
+Twenty Playwright artefacts removed from version control. Commit `6f999a5`.
+
+### 2026-09-04 — RCON deadline
+A silent port held a worker indefinitely; three layers of timeout added.
+Commit `2fd4e17`.
+
+### 2026-09-04 — Card and badges
+Whole server card clickable, verified connections in green. Commit `9e1b387`.
+
+### 2026-09-04 — Invitations and password reset
+Hashed tokens, enumeration-resistant reset, best-effort delivery.
+Commit `11eba23`.
+
+### 2026-09-04 — Lua bridge
+Written and corrected against the jar: `getApparentInfectionLevel`, lowercase
+`isInfected`, SteamID as a long. Commit `c6b2c47`.
+
+### 2026-09-04 — Invitation and reset screens
+Token screens reachable while signed in; mod.info dropped; bridge switched to
+`getFileWriter`. Commit `ffe0c3d`.
+
+### 2026-09-04 — Bridge confirmed live
+File read endpoint added. **The bridge runs on the user's server and returns
+correct player data.** Commit `99db169`.
+
+### 2026-09-04 — Player list and moderation backend
+Player snapshots, kick/ban/unban/access level, timed bans by scheduler,
+moderation record. Mail configuration moved from DSN to individual fields with
+thirteen provider presets. Commit `53d4b8b`.
+
+### 2026-09-04 — Field alignment
+Paired fields aligned; Hetzner and five more providers added. Commit `9945fe7`.
+
+### 2026-09-04 — Mail deliverability and password visibility
+HTML mail templates, an SPF/DKIM/DMARC checker, and a reveal toggle on every
+password field. Commit `4e24f67`.

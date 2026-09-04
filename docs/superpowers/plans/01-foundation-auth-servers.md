@@ -43,37 +43,39 @@ Setup wizard, `json_login`, session handling, route guards, JSON logout.
 Registration, login, and device management, verified with a virtual
 authenticator. Four findings from this step are recorded in the spec.
 
-## Step 6 — Remaining sign-in methods 🟡 partly done
+## Step 6 — Remaining sign-in methods ✅ done
 
 **TOTP ✅ done.** Setup, login, recovery codes, disabling. Two findings:
 `WebauthnToken` must appear in scheb's `security_tokens` or a passkey login
 skips the second factor; and the TOTP provider service does not exist until a
 `totp:` section is configured.
 
-Still open:
+**Google ✅** — tested by the user against real credentials. The OAuth client
+bundle cannot see credentials entered at runtime, so a factory builds the
+provider at call time.
 
-- Google through `knpuniversity/oauth2-client-bundle`.
-- Steam through `xpaw/steam-openid` and a custom authenticator, with the
-  `check_authentication` round trip that must not be skipped.
-- Invitations by mail, and password reset.
+**Steam ✅** — tested by the user; the SteamID64 is stored. A forged callback
+with an edited claimed_id is rejected by the `check_authentication` round trip.
 
-The login page already shows all four buttons; Google and Steam currently
-point at routes that do not exist.
+**Invitations and password reset ✅** — hashed tokens, enumeration-resistant
+reset, screens for both.
 
-## Step 7 — Server configuration ⬜ open
+## Step 7 — Server configuration ✅ done
 
-Entities exist; forms, connection test, directory browser and bridge upload do
-not.
+Forms, connection tests, directory browser and bridge upload, all verified
+against the user's own Zomboid server.
 
-**Do this first:** verify `xpaw/php-source-query-class` against a real Zomboid
-server. It is established that Zomboid speaks Source RCON and that the library
-implements Source RCON; that they work together is not established. Everything
-else in this step can proceed regardless, but nothing should be built on top of
-the RCON client until it has answered `players` once.
+**The RCON risk is resolved.** `xpaw/php-source-query-class` talks to a real
+Zomboid server: `players` returned "Players connected (1): -admin". Seven
+integration tests against a local Source RCON server keep it checked.
 
-## Open items
+One thing the spike did not catch, found only against the real server: the
+library's timeout bounds individual reads, not the exchange, so a port that
+accepts a connection and never answers held an FPM worker indefinitely. Three
+layers of timeout now bound it.
 
-- Production image never built or run
-- RCON client unproven against a real server
-- `data-grid` needs Base UI variants; deferred until player lists need it
+## Open items carried into sub-project 02
+
+- Production image never built or run — the largest untested area
+- `data-grid` needs Base UI variants; the player list forces the decision
 - Bundle chunk exceeds 500 kB; code splitting not yet applied

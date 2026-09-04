@@ -7,5 +7,5 @@ useful to read later.
 
 | File | Sub-project | Progress |
 |---|---|---|
-| [01-foundation-auth-servers.md](01-foundation-auth-servers.md) | Foundation, authentication, servers | 5.5 of 7 steps |
-| [02-lua-bridge-players.md](02-lua-bridge-players.md) | Lua bridge, player management | Not started |
+| [01-foundation-auth-servers.md](01-foundation-auth-servers.md) | Foundation, authentication, servers | Complete |
+| [02-lua-bridge-players.md](02-lua-bridge-players.md) | Lua bridge, player management | 3 of 5 steps |
