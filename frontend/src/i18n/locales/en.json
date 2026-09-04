@@ -114,7 +114,12 @@
     "fillBeforeTestingRcon": "Fill in host and password, then the connection can be tested.",
     "savedAndVerified": "Saved, and the connection works.",
     "savedButFtpFailed": "Saved, but file access failed: {{reason}}",
-    "savedButRconFailed": "Saved, but RCON failed: {{reason}}"
+    "savedButRconFailed": "Saved, but RCON failed: {{reason}}",
+    "bridgeTitle": "Bridge mod",
+    "bridgeDescription": "The Lua mod writes a status file on the server that this application reads. Without it the player list and positions stay empty.",
+    "bridgeNeedsPath": "Set the path to media/lua/server first, then the mod can be uploaded.",
+    "bridgeRestartHint": "After uploading, restart the Zomboid server so it loads the mod.",
+    "bridgeInstalled": "Bridge {{version}} uploaded to {{path}}. Restart the server now."
   },
   "profile": {
     "title": "Profile",
@@ -217,5 +222,8 @@
     "unreachable": "No server answered at that address.",
     "operationFailed": "The operation failed.",
     "pathTraversal": "That path is not allowed."
+  },
+  "bridge": {
+    "pathMissing": "This server has no media/lua/server path configured."
   }
 }

@@ -114,7 +114,12 @@
     "fillBeforeTestingRcon": "Host und Passwort ausfüllen, dann lässt sich die Verbindung testen.",
     "savedAndVerified": "Gespeichert und Verbindung geprüft.",
     "savedButFtpFailed": "Gespeichert, aber der Dateizugriff schlug fehl: {{reason}}",
-    "savedButRconFailed": "Gespeichert, aber RCON schlug fehl: {{reason}}"
+    "savedButRconFailed": "Gespeichert, aber RCON schlug fehl: {{reason}}",
+    "bridgeTitle": "Bridge-Mod",
+    "bridgeDescription": "Die Lua-Mod schreibt auf dem Server regelmäßig eine Statusdatei, die diese Anwendung ausliest. Ohne sie bleiben Spielerliste und Positionen leer.",
+    "bridgeNeedsPath": "Trage zuerst den Pfad zu media/lua/server ein, dann kann die Mod hochgeladen werden.",
+    "bridgeRestartHint": "Nach dem Hochladen muss der Zomboid-Server neu gestartet werden, damit die Mod geladen wird.",
+    "bridgeInstalled": "Bridge {{version}} hochgeladen nach {{path}}. Jetzt den Server neu starten."
   },
   "profile": {
     "title": "Profil",
@@ -217,5 +222,8 @@
     "unreachable": "Der Server ist unter dieser Adresse nicht erreichbar.",
     "operationFailed": "Der Zugriff ist fehlgeschlagen.",
     "pathTraversal": "Dieser Pfad ist nicht erlaubt."
+  },
+  "bridge": {
+    "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt."
   }
 }

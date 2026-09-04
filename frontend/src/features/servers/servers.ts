@@ -94,3 +94,7 @@ export function testRcon(id: string): Promise<{ status: string; reply: string }>
 export function browse(id: string, path = ''): Promise<DirectoryListing> {
   return apiFetch<DirectoryListing>(`/servers/${id}/files?path=${encodeURIComponent(path)}`)
 }
+
+export function installBridge(id: string): Promise<{ status: string; path: string; version: string }> {
+  return apiFetch(`/servers/${id}/bridge`, { method: 'POST', body: {} })
+}

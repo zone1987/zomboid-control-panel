@@ -16,7 +16,7 @@ use Psr\Log\LoggerInterface;
  * Read-only exploration of a game server's filesystem, so an operator can
  * find media/lua/server rather than having to know its absolute path.
  */
-final readonly class ServerFileBrowser
+final readonly class ServerFileBrowser implements FileBrowserInterface
 {
     private const MAX_ENTRIES = 500;
 

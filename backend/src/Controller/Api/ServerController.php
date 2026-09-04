@@ -8,6 +8,8 @@ use App\Entity\FtpConfig;
 use App\Entity\GameServer;
 use App\Entity\RconConfig;
 use App\Repository\GameServerRepository;
+use App\Server\Bridge\BridgeInstaller;
+use App\Server\Bridge\BridgePathMissing;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
 use App\Server\Storage\ServerFileBrowser;
@@ -180,6 +182,37 @@ final class ServerController extends AbstractController
                 'detail' => $exception->getMessage(),
             ], Response::HTTP_BAD_GATEWAY);
         }
+    }
+
+    #[Route('/{id}/bridge', name: 'api_servers_install_bridge', methods: ['POST'])]
+    public function installBridge(string $id, BridgeInstaller $installer): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $path = $installer->install($server);
+        } catch (BridgePathMissing) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'bridge.pathMissing',
+            ], Response::HTTP_CONFLICT);
+        } catch (StorageException $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse([
+            'status' => 'installed',
+            'path' => $path,
+            'version' => $installer->version(),
+        ]);
     }
 
     #[Route('/{id}/rcon/test', name: 'api_servers_test_rcon', methods: ['POST'])]
