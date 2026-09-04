@@ -88,7 +88,8 @@
     "language_de": "German",
     "language_en": "English",
     "noServerYet": "Add a server first",
-    "logs": "Log"
+    "logs": "Log",
+    "chat": "Chat"
   },
   "servers": {
     "title": "Servers",
@@ -553,5 +554,21 @@
       "winter": "Winter",
       "lateWinter": "Late winter"
     }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Talk to the players on the server.",
+    "descriptionFor": "Talk to the players on {{server}}.",
+    "placeholder": "Message to every player",
+    "send": "Send",
+    "showSystem": "Show system messages too",
+    "empty": "Nothing said yet",
+    "emptyHint": "Messages appear here as soon as anything is written.",
+    "fromServer": "Server message",
+    "broadcastOnly": "Messages always reach every player and appear as a server message — Project Zomboid has no private send over RCON.",
+    "sendFailed": "The message could not be sent. Is RCON answering?",
+    "rotated": "The server restarted — the chat starts over.",
+    "noLog": "No chat log found",
+    "noLogHint": "Sending still works. To follow the chat the server must write a chat log; check the log path in the server configuration."
   }
 }

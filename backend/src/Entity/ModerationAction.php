@@ -28,6 +28,9 @@ class ModerationAction
     /** A command typed into the console rather than driven by a button. */
     public const CONSOLE = 'console';
 
+    /** A message announced to everyone on the server. */
+    public const BROADCAST = 'broadcast';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

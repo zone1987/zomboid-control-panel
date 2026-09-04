@@ -24,6 +24,7 @@ const SUB_PAGES: Record<string, string> = {
   players: 'nav.players',
   console: 'nav.console',
   logs: 'nav.logs',
+  chat: 'nav.chat',
 }
 
 export function Breadcrumbs() {

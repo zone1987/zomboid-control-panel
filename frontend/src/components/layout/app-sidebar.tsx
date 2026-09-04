@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   ChevronsUpDown,
   LayoutDashboard,
+  MessagesSquare,
   LogOut,
   Moon,
   Plus,
@@ -158,6 +159,26 @@ export function AppSidebar() {
                     <Link to={`/servers/${activeServer.id}/players`}>
                       <Users />
                       <span>{t('nav.players')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <MessagesSquare />
+                    <span>{t('nav.chat')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/chat`)}
+                    tooltip={t('nav.chat')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/chat`}>
+                      <MessagesSquare />
+                      <span>{t('nav.chat')}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}
