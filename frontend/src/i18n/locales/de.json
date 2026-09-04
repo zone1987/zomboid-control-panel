@@ -395,7 +395,9 @@
       "ROLE_USER": "Darf sich anmelden und zusehen.",
       "ROLE_SERVER_ADMIN": "Darf Server konfigurieren und Spieler verwalten.",
       "ROLE_ADMIN": "Darf Benutzer und Einstellungen verwalten."
-    }
+    },
+    "rolesTab": "Rollen",
+    "rolesHint": "Rollen bündeln Berechtigungen. Wer eine Rolle bekommt, darf genau das, was darin angehakt ist."
   },
   "players": {
     "title": "Spieler",
@@ -749,5 +751,97 @@
     "uploadFailed": "Der Upload ist fehlgeschlagen.",
     "unreadable": "Die Datei war nicht lesbar.",
     "notAnIconPack": "Darin sind keine Item-Icons — vermutlich ein Kartenpaket."
+  },
+  "roles": {
+    "add": "Rolle anlegen",
+    "newName": "Neue Rolle",
+    "nameTaken": "Eine Rolle mit diesem Namen gibt es schon.",
+    "label": "Name der Rolle",
+    "chooseRole": "Wähle links eine Rolle aus.",
+    "builtIn": "Fest eingebaut",
+    "builtInHint": "Diese Rolle gehört zur Grundausstattung. Die Berechtigungen lassen sich ändern, die Rolle selbst aber nicht löschen — sonst könnte sich eine Installation aus der eigenen Verwaltung aussperren.",
+    "builtInCannotBeDeleted": "Eine fest eingebaute Rolle lässt sich nicht löschen.",
+    "sensitive": "weitreichend",
+    "saved": "Rolle gespeichert.",
+    "deleted": "Rolle gelöscht.",
+    "deleteTitle": "Rolle „{{label}}“ löschen?",
+    "deleteBody": "Benutzer mit dieser Rolle verlieren die darin enthaltenen Berechtigungen.",
+    "groups": {
+      "players": "Spieler",
+      "world": "Welt",
+      "communication": "Kommunikation",
+      "servers": "Server",
+      "administration": "Verwaltung"
+    },
+    "permissions": {
+      "players.view": {
+        "title": "Spieler sehen",
+        "description": "Die Spielerliste mit Zustand und Position einsehen."
+      },
+      "players.kick": {
+        "title": "Spieler kicken",
+        "description": "Einen Spieler vom Server werfen. Er kann sofort wieder beitreten."
+      },
+      "players.ban": {
+        "title": "Spieler bannen",
+        "description": "Einen Spieler dauerhaft oder auf Zeit aussperren und wieder zulassen."
+      },
+      "players.teleport": {
+        "title": "Spieler teleportieren",
+        "description": "Einen Spieler zu einem anderen Spieler oder an Koordinaten versetzen."
+      },
+      "players.accessLevel": {
+        "title": "Zugriffsstufe ändern",
+        "description": "Die Adminstufe eines Spielers im Spiel setzen."
+      },
+      "items.give": {
+        "title": "Items geben",
+        "description": "Gegenstände in das Inventar eines Spielers legen."
+      },
+      "log.view": {
+        "title": "Log lesen",
+        "description": "Die Logdateien des Servers mitlesen und herunterladen."
+      },
+      "chat.read": {
+        "title": "Chat lesen",
+        "description": "Mitlesen, was Spieler im Spiel schreiben."
+      },
+      "chat.send": {
+        "title": "Chat schreiben",
+        "description": "Nachrichten an alle Spieler senden."
+      },
+      "console.use": {
+        "title": "RCON-Konsole",
+        "description": "Beliebige Serverbefehle absetzen — auch solche, die den Server beenden."
+      },
+      "events.trigger": {
+        "title": "Events auslösen",
+        "description": "Wetter, Geräusche, Horden und Fahrzeuge in der Welt auslösen."
+      },
+      "servers.view": {
+        "title": "Server sehen",
+        "description": "Die eingerichteten Server und ihren Zustand einsehen."
+      },
+      "servers.edit": {
+        "title": "Server bearbeiten",
+        "description": "Serverzugänge anlegen und ändern — schließt FTP- und RCON-Zugangsdaten ein."
+      },
+      "servers.bridge": {
+        "title": "Bridge verwalten",
+        "description": "Die Lua-Bridge auf den Server hochladen und aktualisieren."
+      },
+      "users.invite": {
+        "title": "Benutzer einladen",
+        "description": "Einladungen an neue Dashboard-Benutzer verschicken."
+      },
+      "users.manage": {
+        "title": "Benutzer verwalten",
+        "description": "Konten bearbeiten, sperren und löschen sowie Rollen vergeben."
+      },
+      "settings.edit": {
+        "title": "Einstellungen ändern",
+        "description": "Anmeldeverfahren, Mailversand und andere Grundeinstellungen ändern."
+      }
+    }
   }
 }

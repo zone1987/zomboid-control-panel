@@ -395,7 +395,9 @@
       "ROLE_USER": "May sign in and look around.",
       "ROLE_SERVER_ADMIN": "May configure servers and manage players.",
       "ROLE_ADMIN": "May manage users and settings."
-    }
+    },
+    "rolesTab": "Roles",
+    "rolesHint": "Roles bundle permissions. Whoever holds a role may do exactly what is ticked in it."
   },
   "players": {
     "title": "Players",
@@ -749,5 +751,97 @@
     "uploadFailed": "The upload failed.",
     "unreadable": "The file could not be read.",
     "notAnIconPack": "It holds no item icons — most likely a map pack."
+  },
+  "roles": {
+    "add": "Add a role",
+    "newName": "New role",
+    "nameTaken": "A role with that name already exists.",
+    "label": "Name of the role",
+    "chooseRole": "Choose a role on the left.",
+    "builtIn": "Built in",
+    "builtInHint": "This role ships with the panel. Its permissions can be changed, but the role itself cannot be removed — otherwise an installation could lock itself out of its own administration.",
+    "builtInCannotBeDeleted": "A built-in role cannot be deleted.",
+    "sensitive": "far-reaching",
+    "saved": "Role saved.",
+    "deleted": "Role deleted.",
+    "deleteTitle": "Delete the role “{{label}}”?",
+    "deleteBody": "Users holding this role lose the permissions it carries.",
+    "groups": {
+      "players": "Players",
+      "world": "World",
+      "communication": "Communication",
+      "servers": "Servers",
+      "administration": "Administration"
+    },
+    "permissions": {
+      "players.view": {
+        "title": "See players",
+        "description": "View the player list with condition and position."
+      },
+      "players.kick": {
+        "title": "Kick players",
+        "description": "Throw a player off the server. They can rejoin at once."
+      },
+      "players.ban": {
+        "title": "Ban players",
+        "description": "Shut a player out permanently or for a while, and let them back in."
+      },
+      "players.teleport": {
+        "title": "Teleport players",
+        "description": "Move a player to another player or to coordinates."
+      },
+      "players.accessLevel": {
+        "title": "Change access level",
+        "description": "Set a player's admin level in the game."
+      },
+      "items.give": {
+        "title": "Give items",
+        "description": "Put items into a player's inventory."
+      },
+      "log.view": {
+        "title": "Read the log",
+        "description": "Follow and download the server's log files."
+      },
+      "chat.read": {
+        "title": "Read chat",
+        "description": "Follow what players write in game."
+      },
+      "chat.send": {
+        "title": "Write in chat",
+        "description": "Send messages to every player."
+      },
+      "console.use": {
+        "title": "RCON console",
+        "description": "Send any server command — including ones that stop the server."
+      },
+      "events.trigger": {
+        "title": "Trigger events",
+        "description": "Set off weather, sounds, hordes and vehicles in the world."
+      },
+      "servers.view": {
+        "title": "See servers",
+        "description": "View the configured servers and their state."
+      },
+      "servers.edit": {
+        "title": "Edit servers",
+        "description": "Add and change server access — this includes FTP and RCON credentials."
+      },
+      "servers.bridge": {
+        "title": "Manage the bridge",
+        "description": "Upload and update the Lua bridge on the server."
+      },
+      "users.invite": {
+        "title": "Invite users",
+        "description": "Send invitations to new dashboard users."
+      },
+      "users.manage": {
+        "title": "Manage users",
+        "description": "Edit, suspend and remove accounts, and hand out roles."
+      },
+      "settings.edit": {
+        "title": "Change settings",
+        "description": "Change sign-in methods, mail delivery and other basics."
+      }
+    }
   }
 }

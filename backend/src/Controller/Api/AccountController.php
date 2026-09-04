@@ -8,7 +8,11 @@ use App\Account\AccountManager;
 use App\Account\LastAdministrator;
 use App\Account\SelfModification;
 use App\Entity\User;
+use App\Entity\Role;
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
+use App\Security\Permission\Permission;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +32,8 @@ final class AccountController extends AbstractController
         private readonly UserRepository $users,
         private readonly AccountManager $accounts,
         private readonly ValidatorInterface $validator,
+        private readonly RoleRepository $roles,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -40,6 +46,14 @@ final class AccountController extends AbstractController
                 $this->users->findAllForManagement(),
             ),
             'assignableRoles' => AccountManager::ASSIGNABLE_ROLES,
+            'roles' => array_map(
+                static fn (Role $role): array => [
+                    'id' => $role->getId()->toRfc4122(),
+                    'label' => $role->getLabel(),
+                    'builtIn' => $role->isBuiltIn(),
+                ],
+                $this->roles->ordered(),
+            ),
         ]);
     }
 
@@ -74,6 +88,10 @@ final class AccountController extends AbstractController
 
             if (\array_key_exists('roles', $payload) && \is_array($payload['roles'])) {
                 $this->accounts->setRoles($subject, array_values(array_filter($payload['roles'], \is_string(...))), $actor);
+            }
+
+            if (\array_key_exists('assignedRoles', $payload) && \is_array($payload['assignedRoles'])) {
+                $this->assignRoles($subject, $payload['assignedRoles']);
             }
 
             if (\array_key_exists('active', $payload)) {
@@ -134,7 +152,37 @@ final class AccountController extends AbstractController
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'lastLoginAt' => $user->getLastLoginAt()?->format(\DateTimeInterface::ATOM),
             'self' => $user->getId()->equals($actor->getId()),
+            'assignedRoles' => array_values(array_map(
+                static fn (Role $role): string => $role->getId()->toRfc4122(),
+                $user->getAssignedRoles()->toArray(),
+            )),
+            'permissions' => array_map(
+                static fn (Permission $p): string => $p->value,
+                $user->getPermissions(),
+            ),
         ];
+    }
+
+    /**
+     * Replaces the roles assigned to a user.
+     *
+     * @param list<mixed> $ids
+     */
+    private function assignRoles(User $subject, array $ids): void
+    {
+        foreach ($subject->getAssignedRoles()->toArray() as $role) {
+            $subject->unassignRole($role);
+        }
+
+        foreach ($ids as $id) {
+            $role = \is_string($id) ? $this->roles->find($id) : null;
+
+            if ($role instanceof Role) {
+                $subject->assignRole($role);
+            }
+        }
+
+        $this->entityManager->flush();
     }
 
     /**

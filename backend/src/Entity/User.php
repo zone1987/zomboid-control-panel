@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use App\Security\Permission\Permission;
 use App\Security\TwoFactor\BackupCodeGenerator;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -74,6 +75,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     private Collection $webauthnCredentials;
 
     /** @var Collection<int, OAuthIdentity> */
+    /**
+     * Roles carrying permissions, alongside the three legacy role names.
+     *
+     * Both are in force while checks move over one at a time: a legacy
+     * role still grants what it always granted, and an assigned role
+     * adds its permissions on top.
+     *
+     * @var Collection<int, Role>
+     */
+    #[ORM\ManyToMany(targetEntity: Role::class)]
+    #[ORM\JoinTable(name: 'app_user_role')]
+    private Collection $assignedRoles;
+
     #[ORM\OneToMany(targetEntity: OAuthIdentity::class, mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $oauthIdentities;
 
@@ -85,6 +99,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         $this->createdAt = new \DateTimeImmutable();
         $this->webauthnCredentials = new ArrayCollection();
         $this->oauthIdentities = new ArrayCollection();
+        $this->assignedRoles = new ArrayCollection();
     }
 
     public function getId(): Uuid
@@ -127,6 +142,53 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     public function setRoles(array $roles): void
     {
         $this->roles = \array_values(\array_unique($roles));
+    }
+
+    /** @return Collection<int, Role> */
+    public function getAssignedRoles(): Collection
+    {
+        return $this->assignedRoles;
+    }
+
+    public function assignRole(Role $role): void
+    {
+        if (!$this->assignedRoles->contains($role)) {
+            $this->assignedRoles->add($role);
+        }
+    }
+
+    public function unassignRole(Role $role): void
+    {
+        $this->assignedRoles->removeElement($role);
+    }
+
+    /**
+     * Every permission this user holds, from every assigned role.
+     *
+     * @return list<Permission>
+     */
+    public function getPermissions(): array
+    {
+        $held = [];
+
+        foreach ($this->assignedRoles as $role) {
+            foreach ($role->getPermissions() as $permission) {
+                $held[$permission->value] = $permission;
+            }
+        }
+
+        return \array_values($held);
+    }
+
+    public function hasPermission(Permission $permission): bool
+    {
+        foreach ($this->assignedRoles as $role) {
+            if ($role->grants($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getPassword(): ?string

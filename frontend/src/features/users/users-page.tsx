@@ -30,6 +30,7 @@ import {
   type AssignableRole,
 } from './invitations'
 import { AccountList } from './account-list'
+import { RoleList } from './role-list'
 
 export function UsersPage() {
   const { t, i18n } = useTranslation()
@@ -103,6 +104,7 @@ export function UsersPage() {
         <TabsList>
           <TabsTrigger value="accounts">{t('users.accountsTab')}</TabsTrigger>
           <TabsTrigger value="invitations">{t('users.invitationsTab')}</TabsTrigger>
+          <TabsTrigger value="roles">{t('users.rolesTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="space-y-4">
@@ -172,6 +174,11 @@ export function UsersPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t('users.rolesHint')}</p>
+          <RoleList />
         </TabsContent>
       </Tabs>
 

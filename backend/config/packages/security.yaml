@@ -71,6 +71,7 @@ security:
         - { path: ^/api/invitations/accept, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         - { path: ^/api/users, roles: ROLE_ADMIN }
+        - { path: ^/api/roles, roles: ROLE_ADMIN }
         - { path: ^/api/servers, roles: ROLE_SERVER_ADMIN }
         - { path: ^/api, roles: ROLE_USER }
 
