@@ -75,6 +75,7 @@
     "servers": "Server",
     "players": "Spieler",
     "console": "Konsole",
+    "events": "Eventkonsole",
     "users": "Benutzer",
     "settings": "Einstellungen",
     "profile": "Profil",
@@ -519,6 +520,113 @@
       "tooFewArguments": "Es fehlt noch etwas: erwartet werden {{expected}} Angaben, eingegeben sind {{given}}. Als Nächstes kommt „{{missing}}“.",
       "tooManyArguments": "Zu viele Angaben: erwartet werden höchstens {{expected}}, eingegeben sind {{given}}.",
       "unbalancedQuote": "Ein Anführungszeichen wurde nicht geschlossen."
+    }
+  },
+  "events": {
+    "title": "Eventkonsole",
+    "description": "Wetter, Geräusche und Ereignisse auf dem Server auslösen.",
+    "descriptionFor": "Wetter, Geräusche und Ereignisse auf {{server}} auslösen.",
+    "search": "Aktion suchen",
+    "noMatch": "Keine Aktion gefunden.",
+    "chooseAction": "Wähle links eine Aktion aus.",
+    "trigger": "Auslösen",
+    "triggered": "Aktion ausgelöst.",
+    "refused": "Der Server hat die Aktion abgelehnt.",
+    "rconFailed": "Der Server war über RCON nicht erreichbar.",
+    "recent": "Zuletzt ausgelöst",
+    "noneYet": "Auf diesem Server wurde noch kein Event ausgelöst.",
+    "optional": "(optional)",
+    "range": "{{min}} bis {{max}}",
+    "choosePlayer": "Spieler wählen",
+    "noPlayers": "Niemand online",
+    "pickFromList": "Aus der Liste wählen",
+    "onlineCount_one": "{{count}} Spieler online",
+    "onlineCount_other": "{{count}} Spieler online",
+    "destructive": "Eingriff",
+    "unavailable": "Dieser Server bietet die Aktion nicht an",
+    "unavailableHint": "Dem Konto fehlen die Befehle: {{commands}}. Ein Konto mit Adminrechten kann sie ausführen.",
+    "commandsUnknown": "Befehlsliste nicht lesbar",
+    "commandsUnknownHint": "Der Server hat seine Befehlsliste nicht geliefert. Alle Aktionen werden angeboten; ob sie ankommen, zeigt erst die Antwort.",
+    "confirmTitle": "„{{action}}“ wirklich auslösen?",
+    "confirmBody": "Das verändert die Welt für alle Spieler und lässt sich nicht rückgängig machen.",
+    "channel": {
+      "rcon": "RCON",
+      "bridge": "Bridge"
+    },
+    "groups": {
+      "weather": "Wetter",
+      "sounds": "Geräusche",
+      "players": "Spieler und Welt",
+      "world": "Welt"
+    },
+    "fields": {
+      "intensity": "Stärke",
+      "duration": "Dauer in Stunden",
+      "player": "Spieler",
+      "message": "Nachricht",
+      "script": "Fahrzeug",
+      "count": "Anzahl",
+      "x": "X",
+      "y": "Y",
+      "radius": "Radius"
+    },
+    "actions": {
+      "startRain": {
+        "title": "Regen starten",
+        "description": "Lässt es regnen. Die Stärke reicht von leichtem Nieselregen bis zum Wolkenbruch."
+      },
+      "stopRain": {
+        "title": "Regen beenden",
+        "description": "Beendet den Regen, lässt ein laufendes Gewitter aber weiterlaufen."
+      },
+      "startStorm": {
+        "title": "Gewitter starten",
+        "description": "Zieht ein Gewitter auf, das die angegebene Zahl an Spielstunden anhält."
+      },
+      "stopWeather": {
+        "title": "Wetter beenden",
+        "description": "Beendet jedes laufende Wetterereignis und klart den Himmel auf."
+      },
+      "thunder": {
+        "title": "Donner",
+        "description": "Ein Donnerschlag über einem Spieler. Ohne Angabe trifft es einen zufälligen Spieler."
+      },
+      "lightning": {
+        "title": "Blitz",
+        "description": "Ein Blitzeinschlag über einem Spieler. Ohne Angabe trifft es einen zufälligen Spieler."
+      },
+      "chopper": {
+        "title": "Hubschrauber",
+        "description": "Startet das Hubschrauberereignis. Es zieht Zombies über die halbe Karte an."
+      },
+      "gunshot": {
+        "title": "Schuss",
+        "description": "Ein Schuss in der Nähe eines zufälligen Spielers. Zombies hören ihn weit."
+      },
+      "alarm": {
+        "title": "Alarmanlage",
+        "description": "Löst eine Alarmanlage in dem Gebäude aus, in dem ein Admin gerade steht. Ohne Admin im Spiel passiert nichts."
+      },
+      "broadcast": {
+        "title": "Durchsage",
+        "description": "Eine Nachricht an alle. Sie erscheint als Servernachricht, nicht unter einem Namen."
+      },
+      "spawnVehicle": {
+        "title": "Fahrzeug spawnen",
+        "description": "Setzt ein Fahrzeug neben einen Spieler. Auch Fahrzeuge aus Mods lassen sich eintragen."
+      },
+      "hordeNearPlayer": {
+        "title": "Horde bei einem Spieler",
+        "description": "Setzt Zombies rund um einen Spieler. Sie merken ihn sofort."
+      },
+      "hordeAtPoint": {
+        "title": "Horde an einem Punkt",
+        "description": "Setzt Zombies an eine Stelle der Karte, unabhängig davon, wo jemand steht."
+      },
+      "removeZombies": {
+        "title": "Zombies entfernen",
+        "description": "Entfernt alle geladenen Zombies im Umkreis eines Punktes."
+      }
     }
   },
   "logs": {

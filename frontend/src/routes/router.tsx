@@ -101,6 +101,12 @@ export const router = createBrowserRouter(
                       }),
                     },
                     {
+                      path: 'servers/:id/events',
+                      lazy: async () => ({
+                        Component: (await import('@/features/events/events-page')).EventsPage,
+                      }),
+                    },
+                    {
                       path: 'servers/:id/console',
                       lazy: async () => ({
                         Component: (await import('@/features/console/console-page')).ConsolePage,

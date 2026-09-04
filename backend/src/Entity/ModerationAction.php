@@ -37,6 +37,9 @@ class ModerationAction
     /** A player moved somewhere else. */
     public const TELEPORT = 'teleport';
 
+    /** Something done to the world from the event console. */
+    public const EVENT = 'event';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

@@ -12,6 +12,7 @@ import {
   ScrollText,
   Server,
   Settings,
+  Sparkles,
   Sun,
   Terminal,
   User,
@@ -220,6 +221,26 @@ export function AppSidebar() {
                     <Link to={`/servers/${activeServer.id}/logs`}>
                       <ScrollText />
                       <span>{t('nav.logs')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <Sparkles />
+                    <span>{t('nav.events')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/events`)}
+                    tooltip={t('nav.events')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/events`}>
+                      <Sparkles />
+                      <span>{t('nav.events')}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}

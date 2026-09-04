@@ -75,6 +75,7 @@
     "servers": "Servers",
     "players": "Players",
     "console": "Console",
+    "events": "Event console",
     "users": "Users",
     "settings": "Settings",
     "profile": "Profile",
@@ -519,6 +520,113 @@
       "tooFewArguments": "Something is still missing: {{expected}} arguments are expected, {{given}} given. Next comes “{{missing}}”.",
       "tooManyArguments": "Too many arguments: at most {{expected}} are expected, {{given}} given.",
       "unbalancedQuote": "A quotation mark was never closed."
+    }
+  },
+  "events": {
+    "title": "Event console",
+    "description": "Trigger weather, sounds and events on the server.",
+    "descriptionFor": "Trigger weather, sounds and events on {{server}}.",
+    "search": "Search actions",
+    "noMatch": "No action found.",
+    "chooseAction": "Choose an action on the left.",
+    "trigger": "Trigger",
+    "triggered": "Action triggered.",
+    "refused": "The server refused the action.",
+    "rconFailed": "The server could not be reached over RCON.",
+    "recent": "Recently triggered",
+    "noneYet": "Nothing has been triggered on this server yet.",
+    "optional": "(optional)",
+    "range": "{{min}} to {{max}}",
+    "choosePlayer": "Choose a player",
+    "noPlayers": "Nobody online",
+    "pickFromList": "Pick from the list",
+    "onlineCount_one": "{{count}} player online",
+    "onlineCount_other": "{{count}} players online",
+    "destructive": "Intervention",
+    "unavailable": "This server does not offer the action",
+    "unavailableHint": "The account is missing these commands: {{commands}}. An account with admin rights can run them.",
+    "commandsUnknown": "Command list unreadable",
+    "commandsUnknownHint": "The server did not report its command list. Every action is offered; only the reply will show whether it landed.",
+    "confirmTitle": "Really trigger “{{action}}”?",
+    "confirmBody": "This changes the world for every player and cannot be undone.",
+    "channel": {
+      "rcon": "RCON",
+      "bridge": "Bridge"
+    },
+    "groups": {
+      "weather": "Weather",
+      "sounds": "Sounds",
+      "players": "Players and world",
+      "world": "World"
+    },
+    "fields": {
+      "intensity": "Intensity",
+      "duration": "Duration in hours",
+      "player": "Player",
+      "message": "Message",
+      "script": "Vehicle",
+      "count": "Count",
+      "x": "X",
+      "y": "Y",
+      "radius": "Radius"
+    },
+    "actions": {
+      "startRain": {
+        "title": "Start rain",
+        "description": "Makes it rain. The intensity runs from a drizzle to a downpour."
+      },
+      "stopRain": {
+        "title": "Stop rain",
+        "description": "Stops the rain, leaving a running thunderstorm alone."
+      },
+      "startStorm": {
+        "title": "Start thunderstorm",
+        "description": "Brings in a storm that lasts the given number of game hours."
+      },
+      "stopWeather": {
+        "title": "Clear the weather",
+        "description": "Ends any running weather event and clears the sky."
+      },
+      "thunder": {
+        "title": "Thunder",
+        "description": "A thunderclap over a player. Left empty it picks a random one."
+      },
+      "lightning": {
+        "title": "Lightning",
+        "description": "A lightning strike over a player. Left empty it picks a random one."
+      },
+      "chopper": {
+        "title": "Helicopter",
+        "description": "Starts the helicopter event. It pulls zombies from half the map."
+      },
+      "gunshot": {
+        "title": "Gunshot",
+        "description": "A shot near a random player. Zombies hear it from a long way off."
+      },
+      "alarm": {
+        "title": "Building alarm",
+        "description": "Sets off an alarm in the building an admin is standing in. With no admin in game, nothing happens."
+      },
+      "broadcast": {
+        "title": "Broadcast",
+        "description": "A message to everyone. It appears as a server message, not under a name."
+      },
+      "spawnVehicle": {
+        "title": "Spawn vehicle",
+        "description": "Puts a vehicle beside a player. Modded vehicles can be typed in as well."
+      },
+      "hordeNearPlayer": {
+        "title": "Horde near a player",
+        "description": "Puts zombies around a player. They notice them at once."
+      },
+      "hordeAtPoint": {
+        "title": "Horde at a point",
+        "description": "Puts zombies at a spot on the map, regardless of where anyone stands."
+      },
+      "removeZombies": {
+        "title": "Remove zombies",
+        "description": "Removes every loaded zombie within a radius of a point."
+      }
     }
   },
   "logs": {
