@@ -43,11 +43,15 @@ Setup wizard, `json_login`, session handling, route guards, JSON logout.
 Registration, login, and device management, verified with a virtual
 authenticator. Four findings from this step are recorded in the spec.
 
-## Step 6 — Remaining sign-in methods ⬜ open
+## Step 6 — Remaining sign-in methods 🟡 partly done
 
-- TOTP with recovery codes. The four handlers already exist and the login
-  success handler already distinguishes the half-authenticated state, so this
-  is mostly frontend work plus a QR code.
+**TOTP ✅ done.** Setup, login, recovery codes, disabling. Two findings:
+`WebauthnToken` must appear in scheb's `security_tokens` or a passkey login
+skips the second factor; and the TOTP provider service does not exist until a
+`totp:` section is configured.
+
+Still open:
+
 - Google through `knpuniversity/oauth2-client-bundle`.
 - Steam through `xpaw/steam-openid` and a custom authenticator, with the
   `check_authentication` round trip that must not be skipped.

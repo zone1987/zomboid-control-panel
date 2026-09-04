@@ -28,13 +28,13 @@ progress.
 | Setup wizard | creates the first admin, then refuses; 6 tests plus browser run |
 | Password login | 7 tests plus browser run; session survives reload |
 | Passkeys | registration, login, management; verified with a virtual authenticator |
+| TOTP two-factor | setup, login, recovery codes; verified with real codes in a browser |
 | Frontend to backend | React reads `/api/health` through the Vite proxy |
 
-33 backend tests green. Frontend builds without errors.
+45 backend tests green. Frontend builds without errors.
 
 ### Not yet built
 
-- TOTP (handlers exist, interface and QR code do not)
 - Google and Steam sign-in (buttons exist, routes do not)
 - Invitations by mail, password reset
 - Server configuration forms, connection test, directory browser, bridge upload
@@ -124,6 +124,12 @@ counts in the database now.
 **Logout redirected.** The default 302 leaves an SPA hanging; a `LogoutEvent`
 listener answers JSON.
 
+**scheb needs every token type listed.** `WebauthnToken` had to be added to
+`security_tokens`, or a passkey login skips the second factor entirely.
+
+**The TOTP provider is off until configured.** Without a `totp:` section the
+`TotpAuthenticatorInterface` service does not exist and autowiring fails.
+
 **Flex skipped two recipes.** `symfony/apache-pack` and the WebAuthn bundle
 were marked `IGNORING`; `.htaccess` and `bundles.php` entries were written by
 hand.
@@ -135,9 +141,8 @@ Running npm on the host fails with missing native bindings.
 
 ## Next concrete step
 
-Sub-project 01, step 6: TOTP. The four handlers and the half-authenticated
-state already work — what is missing is the setup interface with a QR code,
-recovery code generation, and the enable/disable endpoints.
+Sub-project 01, step 6, remainder: Google and Steam sign-in, invitations by
+mail, password reset.
 
 Alternatively step 7 (server configuration), which should begin with the RCON
 spike named under open risks.
@@ -169,6 +174,16 @@ Wizard creating the first administrator and refusing every later call.
 messages as translation keys. Two corrections: setup status was cached
 indefinitely so the redirect never fired; Zod messages were untranslated.
 Commit `769020a`.
+
+### 2026-09-04 — TOTP two-factor
+Setup with a session-held pending secret, ten single-use recovery codes stored
+hashed, password confirmation for disabling and regenerating. QR code rendered
+in the browser from the otpauth URI. `WebauthnToken` added to scheb's
+security_tokens so a passkey login cannot bypass the second factor.
+Verified in a browser with real TOTP codes: login halts at the second factor,
+both an authenticator code and a recovery code sign in, the used recovery code
+is consumed, a wrong password does not disable.
+Commit `18063ff`.
 
 ### 2026-09-04 — Passkeys
 Registration, login and device management. Four findings recorded above.
