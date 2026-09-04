@@ -91,7 +91,8 @@
     "noServerYet": "Add a server first",
     "logs": "Log",
     "chat": "Chat",
-    "items": "Items"
+    "items": "Items",
+    "map": "Map"
   },
   "servers": {
     "title": "Servers",
@@ -649,6 +650,29 @@
         "description": "Removes every loaded zombie within a radius of a point."
       }
     }
+  },
+  "map": {
+    "title": "World map",
+    "description": "The map of the game world with the players on it.",
+    "descriptionFor": "The map of {{server}} with the players on it.",
+    "search": "Player or coordinates (e.g. 10778,9770)",
+    "goTo": "Go",
+    "notFound": "Nothing found for that.",
+    "players": "Players",
+    "noPlayers": "Nobody is online right now.",
+    "safehouses": "Safehouses",
+    "noSafehouses": "No safehouses are claimed.",
+    "membersCount_one": "{{count}} member",
+    "membersCount_other": "{{count}} members",
+    "places": "Places",
+    "rightClickHint": "Right-click the map to teleport a player there.",
+    "teleportTitle": "Teleport a player here",
+    "teleportBody": "The chosen player is moved to {{x}}, {{y}}.",
+    "choosePlayer": "Choose a player",
+    "noPlayersToMove": "Nobody is online to move.",
+    "rconFailed": "The server could not be reached over RCON.",
+    "noTiles": "The map is not set up yet",
+    "noTilesHint": "Project Zomboid ships its own world map — as finished tiles in media/maps. They have to be taken over once. The path points either at a game installation or at the server's own files:"
   },
   "logs": {
     "title": "Server log",

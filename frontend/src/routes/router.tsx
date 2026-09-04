@@ -101,6 +101,12 @@ export const router = createBrowserRouter(
                       }),
                     },
                     {
+                      path: 'servers/:id/map',
+                      lazy: async () => ({
+                        Component: (await import('@/features/map/map-page')).MapPage,
+                      }),
+                    },
+                    {
                       path: 'servers/:id/events',
                       lazy: async () => ({
                         Component: (await import('@/features/events/events-page')).EventsPage,

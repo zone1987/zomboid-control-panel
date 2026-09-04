@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'leaflet/dist/leaflet.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -155,4 +156,10 @@
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
   }
+}
+
+/* The map's own ground, so tiles that have not arrived are not white. */
+.leaflet-container {
+  background: var(--muted);
+  font-family: inherit;
 }

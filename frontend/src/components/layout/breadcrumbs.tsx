@@ -27,6 +27,7 @@ const SUB_PAGES: Record<string, string> = {
   chat: 'nav.chat',
   items: 'nav.items',
   events: 'nav.events',
+  map: 'nav.map',
 }
 
 export function Breadcrumbs() {

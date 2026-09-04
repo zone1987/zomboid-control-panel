@@ -11,6 +11,7 @@ import {
   Plus,
   ScrollText,
   Server,
+  Map,
   Settings,
   Sparkles,
   Sun,
@@ -221,6 +222,26 @@ export function AppSidebar() {
                     <Link to={`/servers/${activeServer.id}/logs`}>
                       <ScrollText />
                       <span>{t('nav.logs')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <Map />
+                    <span>{t('nav.map')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/map`)}
+                    tooltip={t('nav.map')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/map`}>
+                      <Map />
+                      <span>{t('nav.map')}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}

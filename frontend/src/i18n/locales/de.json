@@ -91,7 +91,8 @@
     "noServerYet": "Lege zuerst einen Server an",
     "logs": "Log",
     "chat": "Chat",
-    "items": "Items"
+    "items": "Items",
+    "map": "Karte"
   },
   "servers": {
     "title": "Server",
@@ -649,6 +650,29 @@
         "description": "Entfernt alle geladenen Zombies im Umkreis eines Punktes."
       }
     }
+  },
+  "map": {
+    "title": "Weltkarte",
+    "description": "Die Karte der Spielwelt mit den Spielern darauf.",
+    "descriptionFor": "Die Karte von {{server}} mit den Spielern darauf.",
+    "search": "Spieler oder Koordinaten (z. B. 10778,9770)",
+    "goTo": "Hin",
+    "notFound": "Dazu wurde nichts gefunden.",
+    "players": "Spieler",
+    "noPlayers": "Gerade ist niemand online.",
+    "safehouses": "Safehouses",
+    "noSafehouses": "Es sind keine Safehouses beansprucht.",
+    "membersCount_one": "{{count}} Mitglied",
+    "membersCount_other": "{{count}} Mitglieder",
+    "places": "Orte",
+    "rightClickHint": "Rechtsklick auf die Karte, um einen Spieler dorthin zu teleportieren.",
+    "teleportTitle": "Spieler hierher teleportieren",
+    "teleportBody": "Der gewählte Spieler wird nach {{x}}, {{y}} versetzt.",
+    "choosePlayer": "Spieler wählen",
+    "noPlayersToMove": "Es ist niemand online, der versetzt werden könnte.",
+    "rconFailed": "Der Server war über RCON nicht erreichbar.",
+    "noTiles": "Die Karte ist noch nicht eingerichtet",
+    "noTilesHint": "Project Zomboid bringt seine Weltkarte selbst mit — als fertige Kacheln in media/maps. Sie müssen einmalig übernommen werden. Der Pfad zeigt entweder auf eine Spielinstallation oder auf die Dateien des Servers:"
   },
   "logs": {
     "title": "Server-Log",
