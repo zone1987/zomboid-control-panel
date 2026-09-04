@@ -50,7 +50,7 @@ final class LogTailer
         $chunk = $reader->read($absolute, $start, $size - $start);
 
         return [
-            'lines' => self::splitLines($chunk, $start > 0),
+            'lines' => self::splitLines($chunk, self::startsMidLine($start, $fromOffset)),
             'offset' => $size,
             'truncated' => $truncated,
             'rotated' => $rotated,
@@ -81,6 +81,16 @@ final class LogTailer
         foreach ($this->readers as $reader) {
             $reader->close();
         }
+    }
+
+    /**
+     * A remembered offset sits exactly where the last read stopped, which
+     * is a line boundary; discarding there would eat a whole line. Only a
+     * window chosen by byte count can land mid-line.
+     */
+    public static function startsMidLine(int $start, ?int $fromOffset): bool
+    {
+        return $start > 0 && $start !== $fromOffset;
     }
 
     /**

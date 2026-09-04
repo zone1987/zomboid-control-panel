@@ -65,6 +65,42 @@ final class LogTailerTest extends TestCase
         self::assertSame(5000, LogTailer::windowFor(5000, 5000)['start']);
     }
 
+    /**
+     * A remembered offset sits exactly where the previous read stopped,
+     * which is a line boundary. Discarding up to the first newline there
+     * would silently drop a whole line on every poll -- the fault that
+     * hid a chat message written between two reads.
+     */
+    public function testKeepsTheFirstLineWhenContinuingFromARememberedOffset(): void
+    {
+        $window = LogTailer::windowFor(5000, 4000);
+
+        self::assertSame(4000, $window['start']);
+        self::assertFalse(
+            LogTailer::startsMidLine($window['start'], 4000),
+            'a remembered offset is a line boundary',
+        );
+    }
+
+    public function testDiscardsThePartialLineWhenTheWindowWasChosenByByteCount(): void
+    {
+        // No offset at all: the read starts a window back from the end,
+        // which lands wherever the byte count happens to fall.
+        $window = LogTailer::windowFor(1_000_000, null);
+
+        self::assertTrue(LogTailer::startsMidLine($window['start'], null));
+    }
+
+    public function testDiscardsThePartialLineWhenAnOversizedGapWasCappedBack(): void
+    {
+        // The caller asked to continue from 0, but the cap moved the
+        // start forward, so it no longer sits on a line boundary.
+        $window = LogTailer::windowFor(10_000_000, 0);
+
+        self::assertTrue($window['truncated']);
+        self::assertTrue(LogTailer::startsMidLine($window['start'], 0));
+    }
+
     public function testSplitsAChunkIntoLines(): void
     {
         self::assertSame(
