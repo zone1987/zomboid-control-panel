@@ -164,57 +164,59 @@ export function ItemsPage() {
           <AlertDescription>{t('items.noCatalogueHint')}</AlertDescription>
         </Alert>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative h-9 min-w-56 flex-1">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  autoFocus
-                  value={needle}
-                  className="pl-8 pr-8"
-                  placeholder={t('items.search')}
-                  onChange={(event) => setNeedle(event.target.value)}
-                />
-                {needle !== '' && (
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={t('common.cancel')}
-                    onClick={() => setNeedle('')}
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex rounded-md border">
-                <Button
-                  variant={view === 'grid' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="size-9 rounded-r-none"
-                  aria-label={t('items.gridView')}
-                  onClick={() => setView('grid')}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative h-9 min-w-56 flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={needle}
+                className="pl-8 pr-8"
+                placeholder={t('items.search')}
+                onChange={(event) => setNeedle(event.target.value)}
+              />
+              {needle !== '' && (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={t('common.cancel')}
+                  onClick={() => setNeedle('')}
                 >
-                  <LayoutGrid className="size-4" />
-                </Button>
-                <Button
-                  variant={view === 'list' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="size-9 rounded-l-none"
-                  aria-label={t('items.listView')}
-                  onClick={() => setView('list')}
-                >
-                  <List className="size-4" />
-                </Button>
-              </div>
-
-              <span className="text-xs text-muted-foreground">
-                {terms.length === 0
-                  ? t('items.count', { count: matches.length })
-                  : t('items.matchCount', { shown: matches.length, total: catalogue.items.length })}
-              </span>
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
+
+            <div className="flex rounded-md border">
+              <Button
+                variant={view === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="size-9 rounded-r-none"
+                aria-label={t('items.gridView')}
+                onClick={() => setView('grid')}
+              >
+                <LayoutGrid className="size-4" />
+              </Button>
+              <Button
+                variant={view === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="size-9 rounded-l-none"
+                aria-label={t('items.listView')}
+                onClick={() => setView('list')}
+              >
+                <List className="size-4" />
+              </Button>
+            </div>
+
+            <span className="text-xs text-muted-foreground">
+              {terms.length === 0
+                ? t('items.count', { count: matches.length })
+                : t('items.matchCount', { shown: matches.length, total: catalogue.items.length })}
+            </span>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+            <div>
 
             {matches.length === 0 ? (
               <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -225,7 +227,10 @@ export function ItemsPage() {
                 <div
                   className={
                     view === 'grid'
-                      ? 'grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10'
+                      // A floor, then share out what is left: the row
+                      // fills the width, and a wider screen gets more
+                      // tiles rather than fatter ones.
+                      ? 'grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2'
                       : 'space-y-1.5'
                   }
                 >
@@ -342,6 +347,7 @@ export function ItemsPage() {
                 </Button>
               </div>
             </section>
+          </div>
           </div>
         </div>
       )}

@@ -83,6 +83,8 @@ export function displayName(item: Item): string {
 
   const withoutModule = item.type.includes('.') ? item.type.split('.').slice(1).join('.') : item.type
 
-  // "WildGarlicCataplasm" reads better as "Wild Garlic Cataplasm".
-  return withoutModule.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  // "WildGarlicCataplasm" reads better as "Wild Garlic Cataplasm", and
+  // an underscore is a word break the display should honour — without
+  // one, a name like "Wound_LHand_Laceration_Female" has nowhere to wrap.
+  return withoutModule.replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2')
 }

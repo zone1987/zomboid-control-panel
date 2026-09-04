@@ -64,6 +64,13 @@ describe('displayName', () => {
     expect(displayName(item({ type: 'Base.WildGarlicCataplasm' }))).toBe('Wild Garlic Cataplasm')
   })
 
+  /** Such a name has nowhere to wrap, and used to run out of the tile. */
+  it('turns underscores into word breaks', () => {
+    expect(displayName(item({ type: 'Base.Wound_LHand_Laceration_Female' }))).toBe(
+      'Wound LHand Laceration Female',
+    )
+  })
+
   it('handles a type with no module at all', () => {
     expect(displayName(item({ type: 'Axe' }))).toBe('Axe')
   })
