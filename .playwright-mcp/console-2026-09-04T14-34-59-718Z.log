@@ -41,3 +41,39 @@ Sie sollten keinen Code eingeben oder einfügen, den Sie nicht verstehen. @ http
 [ 3047357ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://zomboidcontrol.ddev.site:5173/app/settings:0
 [ 3152916ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
 [ 3153074ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://zomboidcontrol.ddev.site:5173/app/settings:0
+[ 3199605ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://zomboidcontrol.ddev.site:5173/app/settings:0
+[ 3246271ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3246280ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3247054ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3247055ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3250239ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3250246ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3251173ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3251173ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3251883ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3251884ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3252633ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3252635ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3256506ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/logout:0
+[ 3256506ms] ApiError: auth.required
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[ 3295011ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 3313768ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://zomboidcontrol.ddev.site:5173/app:0
+[ 3356704ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://zomboidcontrol.ddev.site:5173/app:0
+[ 3460440ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 3486334ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 3532962ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 3541500ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335

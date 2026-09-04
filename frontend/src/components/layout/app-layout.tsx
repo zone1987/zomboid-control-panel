@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router'
+import { Link, Outlet, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { LogOut, Moon, Settings, Sun, User } from 'lucide-react'
 
@@ -11,6 +11,12 @@ export function AppLayout() {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useTheme()
   const { user, signOut, hasRole } = useAuth()
+  const navigate = useNavigate()
+
+  const handleSignOut = async () => {
+    await signOut()
+    void navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-svh bg-background">
@@ -57,7 +63,7 @@ export function AppLayout() {
           </Button>
 
           {user && (
-            <Button variant="ghost" size="icon" aria-label={t('auth.signOut')} onClick={() => void signOut()}>
+            <Button variant="ghost" size="icon" aria-label={t('auth.signOut')} onClick={() => void handleSignOut()}>
               <LogOut className="size-4" />
             </Button>
           )}

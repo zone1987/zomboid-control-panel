@@ -10,7 +10,8 @@ COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 
 COPY frontend/ ./
-RUN npm run build
+# The build writes outside its own directory, so the target must exist.
+RUN mkdir -p /backend/public && npm run build
 
 # --- Stage 2: resolve PHP dependencies --------------------------------
 
@@ -69,7 +70,7 @@ RUN a2ensite app \
 WORKDIR /app
 
 COPY --from=vendor --chown=www-data:www-data /app /app
-COPY --from=frontend --chown=www-data:www-data /build/dist /app/public/app
+COPY --from=frontend --chown=www-data:www-data /backend/public/app /app/public/app
 
 RUN mkdir -p /app/var/cache /app/var/log \
     && chown -R www-data:www-data /app/var

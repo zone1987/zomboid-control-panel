@@ -61,8 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: async () => {
         await apiFetch<unknown>('/logout', { method: 'POST' })
-        queryClient.clear()
-        await refresh()
+
+        // Clearing before refetching would drop the session query itself,
+        // leaving the interface showing a user who is no longer signed in.
+        queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'session' })
+        await queryClient.refetchQueries({ queryKey: ['session'] })
       },
     }
   }, [data, isPending, queryClient, refresh])

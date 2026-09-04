@@ -12,7 +12,9 @@ export default defineConfig({
   // Served under /app/ so Apache keeps /api for the backend.
   base: '/app/',
   build: {
-    outDir: 'dist',
+    // Written straight into the Symfony document root so Apache serves the
+    // same bundle locally that the container image ships.
+    outDir: '../backend/public/app',
     emptyOutDir: true,
   },
   server: {

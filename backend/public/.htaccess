@@ -7,13 +7,21 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Serve the built SPA and its assets straight from disk.
+    # Existing files are served as they are: the SPA bundle, its assets,
+    # and anything else on disk.
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
 
-    # Client-side routes fall back to the SPA entry point.
+    # /app without a trailing slash would otherwise fall through to the
+    # API front controller, which has no route for it.
+    RewriteRule ^app$ /app/ [R=301,L]
+
+    # Client-side routes resolve to the SPA entry point. Guarding against
+    # index.html itself stops the rewrite from matching its own target,
+    # which loops until Apache gives up with a 500.
     RewriteCond %{REQUEST_URI} ^/app/
-    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} !^/app/index\.html$
+    RewriteCond %{DOCUMENT_ROOT}/app/index.html -f
     RewriteRule ^ /app/index.html [L]
 
     RewriteCond %{REQUEST_URI}::$0 ^(/.+)/(.*)::\2$
