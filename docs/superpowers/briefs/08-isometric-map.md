@@ -79,7 +79,30 @@ Measured on a Ryzen 7 5700G, 16 threads:
 The jpg trick for floor 0 saves a quarter of the time and is the
 setting to use.
 
-Four ways to make it smaller, in the order they are worth trying:
+**Sparse rendering is not the lever.** The reference site's own
+`map_info.json` says 4065 of 4914 cells are occupied -- 83 percent. Not
+rendering the empty sixth saves almost nothing.
+
+**The two that do work**, measured against that 347 GB:
+
+| Setting | Size | Still shows |
+|---|---|---|
+| everything, 48 floors | 347 GB | -- |
+| floors -1 to 2 | 28.9 GB | every interior a map actually uses |
+| ... plus `omit_levels: 1` | 7.2 GB | one zoom step less than 1:1 |
+| ... plus `omit_levels: 2` | **1.8 GB** | interiors, furniture, shelves |
+| one region, 12x12 cells | 262 MB | that region only |
+
+**1.8 GB is the number to plan around.** The whole world, the floors a
+map uses, one zoom level short of pixel-perfect -- and interiors are
+still there, because `omit_levels` drops the deepest levels rather than
+the detail in the tiles themselves.
+
+That fits on a rented server. 347 GB does not, and shipping it inside a
+container image would be worse still: tiles belong on a volume or an
+object store, never in the image.
+
+Four settings, in the order they are worth trying:
 
 - **`omit_levels`** drops the deepest pyramid levels. Each one quarters
   the output: 1 gives a quarter, 2 a sixteenth, 3 a sixty-fourth. The
