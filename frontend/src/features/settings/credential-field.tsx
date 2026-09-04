@@ -29,18 +29,24 @@ export function CredentialField({
   const [showInstructions, setShowInstructions] = useState(false)
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Label htmlFor={id}>{label}</Label>
+    <div className="flex h-full flex-col space-y-2">
+      {/* One line, never wrapping: a second row of badges would push this
+          field's input below its neighbour's in a two-column row. */}
+      <div className="flex min-h-6 items-center gap-2 overflow-hidden">
+        <Label htmlFor={id} className="shrink-0">
+          {label}
+        </Label>
 
-        {state?.configured && (
-          <Badge variant="secondary" className="text-xs">
+        {state?.configured && !state.fromEnvironment && (
+          <Badge variant="secondary" className="shrink-0 text-xs">
             {t('settings.configured')}
           </Badge>
         )}
 
+        {/* "From the environment" already implies it is set, so showing
+            both only crowds the line. */}
         {state?.fromEnvironment && (
-          <Badge variant="outline" className="gap-1 text-xs">
+          <Badge variant="outline" className="shrink-0 gap-1 text-xs" title={t('settings.environmentHint')}>
             <Lock className="size-3" />
             {t('settings.fromEnvironment')}
           </Badge>
@@ -73,7 +79,7 @@ export function CredentialField({
         onChange={(event) => onChange(event.target.value)}
       />
 
-      {state?.fromEnvironment && (
+      {state?.fromEnvironment && !showInstructions && (
         <p className="text-xs text-muted-foreground">{t('settings.environmentHint')}</p>
       )}
 

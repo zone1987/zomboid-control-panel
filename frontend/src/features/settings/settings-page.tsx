@@ -210,7 +210,7 @@ export function SettingsPage() {
                 <p className="text-xs text-muted-foreground">{t('settings.mailProviderHint')}</p>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
+              <div className="grid items-start gap-4 sm:grid-cols-[1fr_8rem]">
                 <CredentialField
                   id="mail-host"
                   label={t('settings.mailHost')}
@@ -266,7 +266,7 @@ export function SettingsPage() {
                 {...field(SETTING_KEYS.mailPassword)}
               />
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-4 sm:grid-cols-2">
                 <CredentialField
                   id="mail-from-address"
                   label={t('settings.mailFromAddress')}
