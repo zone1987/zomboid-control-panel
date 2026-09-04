@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Entity\GameServer;
 use App\Repository\GameServerRepository;
+use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/servers/{id}')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::ViewServers->value)]
 final class ServerInfoEndpoint extends AbstractController
 {
     public function __construct(

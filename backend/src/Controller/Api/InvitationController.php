@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Invitation\AccountAlreadyExists;
 use App\Invitation\InvitationService;
 use App\Repository\InvitationRepository;
+use App\Security\Permission\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,7 +34,7 @@ final class InvitationController extends AbstractController
     }
 
     #[Route('', name: 'api_invitations_list', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(Permission::InviteUsers->value)]
     public function list(): JsonResponse
     {
         $items = array_map(
@@ -54,7 +55,7 @@ final class InvitationController extends AbstractController
     }
 
     #[Route('', name: 'api_invitations_create', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(Permission::InviteUsers->value)]
     public function create(Request $request, #[CurrentUser] User $invitedBy): JsonResponse
     {
         $payload = $request->toArray();
@@ -94,7 +95,7 @@ final class InvitationController extends AbstractController
     }
 
     #[Route('/{id}', name: 'api_invitations_revoke', methods: ['DELETE'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted(Permission::InviteUsers->value)]
     public function revoke(string $id): JsonResponse
     {
         $invitation = $this->repository->find($id);

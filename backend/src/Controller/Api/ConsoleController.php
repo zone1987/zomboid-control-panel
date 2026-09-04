@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
+use App\Security\Permission\Permission;
 use App\Server\Rcon\CommandCatalogueProvider;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
@@ -21,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/servers/{serverId}/console')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::UseConsole->value)]
 final class ConsoleController extends AbstractController
 {
     /**

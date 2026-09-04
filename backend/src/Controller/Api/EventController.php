@@ -9,6 +9,7 @@ use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Repository\ModerationActionRepository;
+use App\Security\Permission\Permission;
 use App\Server\Events\EventAction;
 use App\Server\Events\EventCatalogue;
 use App\Server\Events\EventDispatcher;
@@ -25,7 +26,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/servers/{serverId}/events')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::TriggerEvents->value)]
 final class EventController extends AbstractController
 {
     public function __construct(

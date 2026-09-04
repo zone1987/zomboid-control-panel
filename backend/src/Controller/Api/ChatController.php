@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
+use App\Security\Permission\Permission;
 use App\Server\Chat\ChatBroadcaster;
 use App\Server\Chat\ChatLine;
 use App\Server\Logs\LogFileFinder;
@@ -24,7 +25,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/servers/{serverId}/chat')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::ReadChat->value)]
 final class ChatController extends AbstractController
 {
     public function __construct(
@@ -101,6 +102,7 @@ final class ChatController extends AbstractController
     }
 
     #[Route('', name: 'api_chat_send', methods: ['POST'])]
+    #[IsGranted(Permission::SendChat->value)]
     public function send(string $serverId, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
         $server = $this->servers->find($serverId);

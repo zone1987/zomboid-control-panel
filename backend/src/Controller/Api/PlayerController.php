@@ -14,6 +14,7 @@ use App\Repository\PlayerSnapshotRepository;
 use App\Server\Bridge\BridgeInstaller;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
+use App\Security\Permission\Permission;
 use App\Server\Players\PlayerModerator;
 use App\Server\Rcon\RconException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/servers/{serverId}/players')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::ViewPlayers->value)]
 final class PlayerController extends AbstractController
 {
     public function __construct(
@@ -80,6 +81,7 @@ final class PlayerController extends AbstractController
     }
 
     #[Route('/{username}/kick', name: 'api_players_kick', methods: ['POST'])]
+    #[IsGranted(Permission::KickPlayers->value)]
     public function kick(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
         $reason = $this->reasonFrom($request);
@@ -95,6 +97,7 @@ final class PlayerController extends AbstractController
     }
 
     #[Route('/{username}/ban', name: 'api_players_ban', methods: ['POST'])]
+    #[IsGranted(Permission::BanPlayers->value)]
     public function ban(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
         $payload = $this->payloadOf($request);
@@ -157,6 +160,7 @@ final class PlayerController extends AbstractController
     }
 
     #[Route('/{username}/unban', name: 'api_players_unban', methods: ['POST'])]
+    #[IsGranted(Permission::BanPlayers->value)]
     public function unban(string $serverId, string $username, #[CurrentUser] User $actor): JsonResponse
     {
         return $this->moderate(
@@ -221,6 +225,7 @@ final class PlayerController extends AbstractController
     }
 
     #[Route('/{username}/teleport', name: 'api_players_teleport', methods: ['POST'])]
+    #[IsGranted(Permission::TeleportPlayers->value)]
     public function teleport(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
         $payload = $this->payloadOf($request);
@@ -266,6 +271,7 @@ final class PlayerController extends AbstractController
     }
 
     #[Route('/{username}/access-level', name: 'api_players_access_level', methods: ['POST'])]
+    #[IsGranted(Permission::SetAccessLevel->value)]
     public function setAccessLevel(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
         $level = $this->payloadOf($request)['level'] ?? null;

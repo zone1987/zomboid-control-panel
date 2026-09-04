@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\AppSetting;
+use App\Security\Permission\Permission;
 use App\Settings\SettingsProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,7 +16,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/settings')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(Permission::EditSettings->value)]
 final class SettingsController extends AbstractController
 {
     private const EDITABLE = [

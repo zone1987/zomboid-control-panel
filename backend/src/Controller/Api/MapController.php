@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Entity\PlayerSnapshot;
 use App\Repository\GameServerRepository;
 use App\Repository\PlayerSnapshotRepository;
+use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
 use App\Server\Map\MapTileStore;
 use App\Server\Players\BridgeStatusReader;
@@ -71,7 +72,7 @@ final class MapController extends AbstractController
      * from players.json, which the bridge refreshes every three seconds.
      */
     #[Route('/{serverId}/overlay', name: 'api_map_overlay', methods: ['GET'])]
-    #[IsGranted('ROLE_SERVER_ADMIN')]
+    #[IsGranted(Permission::ViewPlayers->value)]
     public function overlay(string $serverId): JsonResponse
     {
         $server = $this->servers->find($serverId);

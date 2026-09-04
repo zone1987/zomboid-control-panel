@@ -8,6 +8,7 @@ use App\Entity\FtpConfig;
 use App\Entity\GameServer;
 use App\Entity\RconConfig;
 use App\Repository\GameServerRepository;
+use App\Security\Permission\Permission;
 use App\Server\Bridge\BridgeInstaller;
 use App\Server\Bridge\BridgePathMissing;
 use App\Server\Rcon\RconClientInterface;
@@ -24,7 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/servers')]
-#[IsGranted('ROLE_SERVER_ADMIN')]
+#[IsGranted(Permission::ViewServers->value)]
 final class ServerController extends AbstractController
 {
     public function __construct(
@@ -58,6 +59,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('', name: 'api_servers_create', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function create(Request $request): JsonResponse
     {
         $payload = $request->toArray();
@@ -79,6 +81,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}', name: 'api_servers_update', methods: ['PATCH'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function update(string $id, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -123,6 +126,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}', name: 'api_servers_delete', methods: ['DELETE'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function delete(string $id): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -138,6 +142,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}/ftp/test', name: 'api_servers_test_ftp', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function testFtp(string $id): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -163,6 +168,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}/files', name: 'api_servers_browse', methods: ['GET'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function browse(string $id, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -185,6 +191,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}/files/read', name: 'api_servers_read_file', methods: ['GET'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function readFile(string $id, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -213,6 +220,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}/bridge', name: 'api_servers_install_bridge', methods: ['POST'])]
+    #[IsGranted(Permission::ManageBridge->value)]
     public function installBridge(string $id, BridgeInstaller $installer): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -244,6 +252,7 @@ final class ServerController extends AbstractController
     }
 
     #[Route('/{id}/rcon/test', name: 'api_servers_test_rcon', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
     public function testRcon(string $id): JsonResponse
     {
         $server = $this->servers->find($id);

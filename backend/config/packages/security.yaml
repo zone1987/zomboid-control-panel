@@ -70,9 +70,14 @@ security:
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS }
         - { path: ^/api/invitations/accept, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
-        - { path: ^/api/users, roles: ROLE_ADMIN }
-        - { path: ^/api/roles, roles: ROLE_ADMIN }
-        - { path: ^/api/servers, roles: ROLE_SERVER_ADMIN }
+        # As with /api/servers: signing in is the bar here, and the
+        # permission on each endpoint decides the rest.
+        - { path: ^/api/users, roles: ROLE_USER }
+        - { path: ^/api/roles, roles: ROLE_USER }
+        # Signing in is the only bar here; what someone may actually do
+        # is decided per endpoint by a permission, so a role granting
+        # only "kick" is not stopped at the firewall.
+        - { path: ^/api/servers, roles: ROLE_USER }
         - { path: ^/api, roles: ROLE_USER }
 
 when@test:

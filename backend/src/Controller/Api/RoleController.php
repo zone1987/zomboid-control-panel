@@ -17,7 +17,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/roles')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(Permission::ManageUsers->value)]
 final class RoleController extends AbstractController
 {
     public function __construct(

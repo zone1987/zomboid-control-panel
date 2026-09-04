@@ -25,7 +25,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/accounts')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(Permission::ManageUsers->value)]
 final class AccountController extends AbstractController
 {
     public function __construct(

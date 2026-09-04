@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Security\Permission\Permission;
 use App\Server\Items\Icons\IconExtractor;
 use App\Server\Items\Icons\IconStore;
 use App\Server\Items\Icons\MalformedPack;
@@ -49,7 +50,7 @@ final class IconController extends AbstractController
      * other way to get item artwork in.
      */
     #[Route('/upload', name: 'api_icons_upload', methods: ['POST'])]
-    #[IsGranted('ROLE_SERVER_ADMIN')]
+    #[IsGranted(Permission::EditServers->value)]
     public function upload(Request $request): JsonResponse
     {
         $files = $request->files->all()['packs'] ?? [];
