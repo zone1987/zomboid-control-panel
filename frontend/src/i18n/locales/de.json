@@ -750,7 +750,9 @@
     "showPanel": "Spielerliste einblenden",
     "hidePanel": "Spielerliste ausblenden",
     "isometricMissing": "Isometrische Ansicht nicht eingerichtet",
-    "isometricMissingHint": "Die schräge 2,5D-Ansicht braucht eigens gerenderte Kacheln, die das Spiel nicht mitliefert. Bis dahin zeigt die Karte die Ingame-Ansicht von oben."
+    "isometricMissingHint": "Die schräge 2,5D-Ansicht braucht eigens gerenderte Kacheln, die das Spiel nicht mitliefert. Bis dahin zeigt die Karte die Ingame-Ansicht von oben.",
+    "isometricView": "Isometrisch",
+    "topDownView": "Von oben"
   },
   "logs": {
     "title": "Server-Log",

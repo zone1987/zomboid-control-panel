@@ -144,3 +144,28 @@ export const QUICK_TARGETS = [
 
 /** The world's own bounds, which no view may leave. */
 export const WORLD_BOUNDS = { minX: 0, maxX: 20000, minY: 0, maxY: 20000 } as const
+
+/**
+ * Builds the source for an isometric render the panel actually holds.
+ *
+ * Everything comes from the render's own map_info.json -- the origin,
+ * the square size, the scale a trimmed pyramid declares -- because
+ * those change with the options the operator rendered with. Only the
+ * floor height is derived, and only because pzmap2dzi derives it the
+ * same way: 1.5 squares.
+ */
+export function isometricSourceFrom(
+  levels: number[],
+  geometry: MapGeometry | null,
+): MapSource | null {
+  if (geometry === null || levels.length === 0) {
+    return null
+  }
+
+  return {
+    projection: 'isometric',
+    root: '/api/map/isometric',
+    geometry,
+    layers: levels.map((level) => ({ level, dzi: `layer${level}.dzi` })),
+  }
+}

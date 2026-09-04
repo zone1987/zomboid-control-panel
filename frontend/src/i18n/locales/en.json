@@ -750,7 +750,9 @@
     "showPanel": "Show the player list",
     "hidePanel": "Hide the player list",
     "isometricMissing": "Isometric view not set up",
-    "isometricMissingHint": "The angled 2.5D view needs tiles rendered for it, which the game does not ship. Until then the map shows the in-game view from above."
+    "isometricMissingHint": "The angled 2.5D view needs tiles rendered for it, which the game does not ship. Until then the map shows the in-game view from above.",
+    "isometricView": "Isometric",
+    "topDownView": "Top-down"
   },
   "logs": {
     "title": "Server log",

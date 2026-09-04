@@ -26,12 +26,13 @@ import {
 } from '@/components/ui/select'
 import { teleportPlayer } from '@/features/players/players'
 import type { WorldPoint } from './coordinates'
-import { GAME_MAP_SOURCE, type MapSource } from './map-config'
+import { GAME_MAP_SOURCE, isometricSourceFrom, type MapSource } from './map-config'
 import { viewStateOnArrival } from './map-url-state'
 import { mapOverlay, mapStatus, type MapPlayer } from './map'
 import { WorldMap } from './world-map'
 import { MapSearch } from './map-search'
 import { MapSidebar } from './map-sidebar'
+import { ProjectionToggle } from './projection-toggle'
 
 export function MapPage() {
   const { t } = useTranslation()
@@ -65,7 +66,19 @@ export function MapPage() {
   // its own position into the hash.
   const initial = useMemo(() => viewStateOnArrival(), [])
 
-  const source: MapSource = GAME_MAP_SOURCE
+  // An isometric render when the operator has one, the game's own map
+  // otherwise. Switching rebuilds the viewer, which is right: they are
+  // different images, not two views of one.
+  const isometric = useMemo(
+    () =>
+      status?.isometric.available === true
+        ? isometricSourceFrom(status.isometric.levels, status.isometric.geometry)
+        : null,
+    [status],
+  )
+
+  const [preferIsometric, setPreferIsometric] = useState(true)
+  const source: MapSource = preferIsometric && isometric !== null ? isometric : GAME_MAP_SOURCE
 
   const teleport = useMutation({
     mutationFn: () =>
@@ -130,6 +143,13 @@ export function MapPage() {
         onGoTo={move}
         onNotFound={() => toast.error(t('map.notFound'))}
       />
+
+      {isometric !== null && (
+        <ProjectionToggle
+          isometric={preferIsometric}
+          onChange={setPreferIsometric}
+        />
+      )}
 
       <MapSidebar
         players={players}

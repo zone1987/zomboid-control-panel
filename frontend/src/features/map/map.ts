@@ -6,6 +6,7 @@ export type MapStatus = {
   maxLevel: number
   world: { width: number; height: number }
   levels: { level: number; columns: number; rows: number }[]
+  isometric: IsometricSource
 }
 
 export type MapPlayer = {
@@ -42,17 +43,16 @@ export function mapOverlay(serverId: string): Promise<MapOverlay> {
   return apiFetch(`/map/${serverId}/overlay`)
 }
 
-/** Which tiles the panel has, and what shape they are. */
-export type MapSources = {
-  /** The game's own top-down map, from pyramid.zip. */
-  gameMap: { available: boolean; tileSize: number; maxLevel: number }
-  /** An isometric render, when the operator has generated one. */
-  isometric: IsometricSource | null
-}
-
+/**
+ * An isometric render, when the operator has made one.
+ *
+ * The geometry is read from the render's own map_info.json rather than
+ * assumed: it changes with the cell range and the pyramid levels the
+ * operator chose, and guessing puts every marker somewhere else.
+ */
 export type IsometricSource = {
   available: boolean
-  /** Floors the render covers. */
+  /** Floors the render actually covers, from the files it contains. */
   levels: number[]
   geometry: {
     originX: number
@@ -63,11 +63,7 @@ export type IsometricSource = {
     width: number
     height: number
     cellSize: number
-  }
-}
-
-export function mapSources(): Promise<MapSources> {
-  return apiFetch('/map/sources')
+  } | null
 }
 
 export function parseCoordinates(needle: string): { x: number; y: number } | null {
