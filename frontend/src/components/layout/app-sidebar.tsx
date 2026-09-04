@@ -173,9 +173,11 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton disabled tooltip={t('nav.comingSoon')}>
-                  <Users />
-                  <span>{t('nav.users')}</span>
+                <SidebarMenuButton asChild isActive={isActive('/users')} tooltip={t('nav.users')}>
+                  <Link to="/users">
+                    <Users />
+                    <span>{t('nav.users')}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

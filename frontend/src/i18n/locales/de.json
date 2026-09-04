@@ -38,7 +38,19 @@
     "identityTaken": "Dieses Konto ist bereits mit einem anderen Zugang verknüpft.",
     "providerFailed": "Die Anmeldung ist fehlgeschlagen.",
     "steamRejected": "Steam hat diese Anmeldung nicht bestätigt.",
-    "googleNotConfigured": "Die Google-Anmeldung ist noch nicht eingerichtet. Ein Administrator muss Client-ID und Secret in den Einstellungen hinterlegen."
+    "googleNotConfigured": "Die Google-Anmeldung ist noch nicht eingerichtet. Ein Administrator muss Client-ID und Secret in den Einstellungen hinterlegen.",
+    "forgotPasswordTitle": "Passwort zurücksetzen",
+    "forgotPasswordHint": "Gib deine E-Mail-Adresse ein. Falls ein Konto dazu existiert, schicken wir dir einen Link.",
+    "sendResetLink": "Link anfordern",
+    "resetRequested": "Falls ein Konto zu dieser Adresse existiert, ist der Link unterwegs.",
+    "resetRequestedHint": "Sieh in deinem Postfach nach.",
+    "chooseNewPassword": "Neues Passwort wählen",
+    "chooseNewPasswordHint": "Mindestens 12 Zeichen.",
+    "newPassword": "Neues Passwort",
+    "passwordChanged": "Passwort geändert. Du kannst dich jetzt anmelden.",
+    "resetLinkInvalid": "Dieser Link ist ungültig oder abgelaufen.",
+    "resetLinkInvalidHint": "Links sind eine Stunde gültig und funktionieren nur einmal.",
+    "requestNewLink": "Neuen Link anfordern"
   },
   "setup": {
     "title": "Ersteinrichtung",
@@ -225,5 +237,30 @@
   },
   "bridge": {
     "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt."
+  },
+  "users": {
+    "description": "Wer Zugang zu dieser Anwendung hat.",
+    "invite": "Einladen",
+    "inviteHint": "Die eingeladene Person erhält einen Link, mit dem sie ihr Konto anlegt.",
+    "sendInvitation": "Einladung senden",
+    "invitations": "Einladungen",
+    "invitationsHint": "Zugang gibt es nur auf Einladung. Links sind sieben Tage gültig.",
+    "noInvitations": "Noch keine Einladungen verschickt.",
+    "invitationSent": "Einladung an {{email}} verschickt.",
+    "accountExists": "Für diese Adresse existiert bereits ein Konto.",
+    "roles": "Rollen",
+    "role_ROLE_USER": "Benutzer — darf sich anmelden und zusehen",
+    "role_ROLE_SERVER_ADMIN": "Server-Administrator — darf Server konfigurieren",
+    "role_ROLE_ADMIN": "Administrator — darf Benutzer und Einstellungen verwalten",
+    "revoke": "Einladung zurückziehen",
+    "expiresOn": "Läuft ab am {{date}}",
+    "acceptedOn": "Angenommen am {{date}}",
+    "expired": "Abgelaufen",
+    "acceptTitle": "Konto anlegen",
+    "acceptHint": "Du wurdest als {{email}} eingeladen. Wähle einen Namen und ein Passwort.",
+    "createAccount": "Konto anlegen",
+    "accountCreated": "Konto angelegt. Du kannst dich jetzt anmelden.",
+    "linkInvalid": "Diese Einladung ist ungültig oder abgelaufen.",
+    "linkInvalidHint": "Bitte deinen Administrator um eine neue Einladung."
   }
 }

@@ -41,6 +41,9 @@ final readonly class BridgeInstaller
             throw new BridgePathMissing();
         }
 
+        // Dropped straight into the server's own media/lua/server, which
+        // loads on start without a mod.info — that is only needed by mods
+        // installed under mods/.
         $target = rtrim($this->relativeTo($config->getBasePath(), $path), '/').'/'.self::FILENAME;
 
         $this->files->upload($config, $target, $this->source());

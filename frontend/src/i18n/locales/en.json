@@ -38,7 +38,19 @@
     "identityTaken": "That account is already linked to someone else.",
     "providerFailed": "Signing in failed.",
     "steamRejected": "Steam did not confirm this sign-in.",
-    "googleNotConfigured": "Google sign-in is not set up yet. An administrator needs to enter the client ID and secret in the settings."
+    "googleNotConfigured": "Google sign-in is not set up yet. An administrator needs to enter the client ID and secret in the settings.",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordHint": "Enter your email address. If an account exists, we will send a link.",
+    "sendResetLink": "Send a link",
+    "resetRequested": "If an account exists for that address, the link is on its way.",
+    "resetRequestedHint": "Check your inbox.",
+    "chooseNewPassword": "Choose a new password",
+    "chooseNewPasswordHint": "At least 12 characters.",
+    "newPassword": "New password",
+    "passwordChanged": "Password changed. You can sign in now.",
+    "resetLinkInvalid": "This link is invalid or has expired.",
+    "resetLinkInvalidHint": "Links last one hour and work only once.",
+    "requestNewLink": "Request a new link"
   },
   "setup": {
     "title": "First-run setup",
@@ -225,5 +237,30 @@
   },
   "bridge": {
     "pathMissing": "This server has no media/lua/server path configured."
+  },
+  "users": {
+    "description": "Who has access to this application.",
+    "invite": "Invite",
+    "inviteHint": "The person receives a link to create their account.",
+    "sendInvitation": "Send invitation",
+    "invitations": "Invitations",
+    "invitationsHint": "Access is by invitation only. Links last seven days.",
+    "noInvitations": "No invitations sent yet.",
+    "invitationSent": "Invitation sent to {{email}}.",
+    "accountExists": "An account already exists for that address.",
+    "roles": "Roles",
+    "role_ROLE_USER": "User — may sign in and look around",
+    "role_ROLE_SERVER_ADMIN": "Server administrator — may configure servers",
+    "role_ROLE_ADMIN": "Administrator — may manage users and settings",
+    "revoke": "Revoke invitation",
+    "expiresOn": "Expires on {{date}}",
+    "acceptedOn": "Accepted on {{date}}",
+    "expired": "Expired",
+    "acceptTitle": "Create your account",
+    "acceptHint": "You were invited as {{email}}. Choose a name and a password.",
+    "createAccount": "Create account",
+    "accountCreated": "Account created. You can sign in now.",
+    "linkInvalid": "This invitation is invalid or has expired.",
+    "linkInvalidHint": "Ask your administrator for a new invitation."
   }
 }

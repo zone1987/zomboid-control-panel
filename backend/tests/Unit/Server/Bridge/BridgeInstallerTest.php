@@ -66,8 +66,8 @@ final class BridgeInstallerTest extends TestCase
 
         $this->installer($browser)->install($this->server('/', 'media/lua/server'));
 
-        self::assertStringContainsString('ZomboidControlBridge', $browser->contents);
-        self::assertStringContainsString('getModFileWriter', $browser->contents);
+        self::assertStringContainsString('ZomboidControl', $browser->contents);
+        self::assertStringContainsString('Events.OnTick.Add', $browser->contents);
     }
 
     public function testReadsTheVersionFromTheSource(): void
@@ -100,6 +100,9 @@ final class RecordingFileBrowser implements FileBrowserInterface
     public ?string $path = null;
     public ?string $contents = null;
 
+    /** @var array<string, string> */
+    public array $uploads = [];
+
     public function listDirectory(FtpConfig $config, string $path = ''): array
     {
         return ['path' => $path, 'entries' => []];
@@ -117,7 +120,11 @@ final class RecordingFileBrowser implements FileBrowserInterface
 
     public function upload(FtpConfig $config, string $path, string $contents): void
     {
-        $this->path = $path;
-        $this->contents = $contents;
+        $this->uploads[$path] = $contents;
+
+        if (str_ends_with($path, '.lua')) {
+            $this->path = $path;
+            $this->contents = $contents;
+        }
     }
 }

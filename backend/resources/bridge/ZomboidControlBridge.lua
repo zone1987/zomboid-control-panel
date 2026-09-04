@@ -5,13 +5,17 @@
     reads over SFTP. Lua on the server has no HTTP client and no sockets, so
     files are the only way out.
 
+    Output lands in the Zomboid data folder: ~/Zomboid/Lua/ZomboidControl/status.json
+
     Install: upload to media/lua/server on the dedicated server, then restart
     it. The panel uploads this file for you.
 ]]
 
 local BRIDGE_VERSION = "0.1.0"
-local MOD_ID = "ZomboidControlBridge"
-local STATUS_FILE = "status.json"
+-- getFileWriter writes into ~/Zomboid/Lua, which is documented.
+-- getModFileWriter targets the mod's own common/ directory instead,
+-- and its behaviour for a mod without one is not established.
+local STATUS_FILE = "ZomboidControl/status.json"
 
 -- Build 42.20.2 has no EveryTenMinutes event, so OnTick is throttled by hand.
 local TICKS_BETWEEN_WRITES = 600
@@ -47,9 +51,9 @@ local function describePlayer(player)
     }
 
     if body ~= nil then
-        -- Verified against build 42: IsInfected is capitalised, and the
-        -- level getter is getApparentInfectionLevel.
-        table.insert(parts, string.format("\"infected\":%s", tostring(body:IsInfected())))
+        -- Both isInfected() and IsInfected() exist and differ. The
+        -- lowercase one is the plain "is this character infected" flag.
+        table.insert(parts, string.format("\"infected\":%s", tostring(body:isInfected())))
         table.insert(parts, string.format("\"infectionLevel\":%.3f", body:getApparentInfectionLevel()))
     end
 
@@ -57,7 +61,7 @@ local function describePlayer(player)
 end
 
 local function writeStatus()
-    local writer = getModFileWriter(MOD_ID, STATUS_FILE, true, false)
+    local writer = getFileWriter(STATUS_FILE, true, false)
 
     if writer == nil then
         print("[ZomboidControl] Could not open " .. STATUS_FILE .. " for writing.")

@@ -2,6 +2,10 @@ import { createBrowserRouter } from 'react-router'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginPage } from '@/features/auth/login-page'
+import { ForgotPasswordPage } from '@/features/auth/forgot-password-page'
+import { ResetPasswordPage } from '@/features/auth/reset-password-page'
+import { AcceptInvitationPage } from '@/features/users/accept-invitation-page'
+import { UsersPage } from '@/features/users/users-page'
 import { SetupPage } from '@/features/setup/setup-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { ProfilePage } from '@/features/profile/profile-page'
@@ -19,8 +23,15 @@ export const router = createBrowserRouter(
         { path: 'setup', element: <SetupPage /> },
         {
           element: <RequireAnonymous />,
-          children: [{ path: 'login', element: <LoginPage /> }],
+          children: [
+            { path: 'login', element: <LoginPage /> },
+            { path: 'forgot-password', element: <ForgotPasswordPage /> },
+          ],
         },
+        // Reachable while signed in too: a link from a mail should work
+        // regardless of who happens to be logged in on that browser.
+        { path: 'reset-password/:token', element: <ResetPasswordPage /> },
+        { path: 'invitation/:token', element: <AcceptInvitationPage /> },
         {
           element: <RequireAuth />,
           children: [
@@ -39,7 +50,10 @@ export const router = createBrowserRouter(
                 },
                 {
                   element: <RequireRole role="ROLE_ADMIN" />,
-                  children: [{ path: 'settings', element: <SettingsPage /> }],
+                  children: [
+                    { path: 'settings', element: <SettingsPage /> },
+                    { path: 'users', element: <UsersPage /> },
+                  ],
                 },
                 { path: 'health', element: <HealthProbePage /> },
               ],
