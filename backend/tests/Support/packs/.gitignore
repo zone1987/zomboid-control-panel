@@ -1,0 +1,4 @@
+# Texture packs are game content and belong to The Indie Stone, not here.
+# The upload test skips itself when they are absent; copy them from a
+# local installation's media/texturepacks to run it.
+*.pack

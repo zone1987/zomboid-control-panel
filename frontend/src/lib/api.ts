@@ -36,7 +36,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const finalHeaders = new Headers(headers)
   finalHeaders.set('Accept', 'application/json')
 
-  if (body !== undefined) {
+  // FormData sets its own content type, including the multipart
+  // boundary; overriding it makes the upload unparseable.
+  if (body !== undefined && !(body instanceof FormData)) {
     finalHeaders.set('Content-Type', 'application/json')
   }
 
@@ -53,7 +55,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     headers: finalHeaders,
     // Same-origin cookies carry the session; see the auth design notes.
     credentials: 'same-origin',
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   })
 
   const text = await response.text()

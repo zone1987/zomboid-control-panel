@@ -67,8 +67,38 @@ export function hasIcon(item: Item): boolean {
   return item.icon !== undefined && !NO_ICON.has(item.icon.trim().toLowerCase())
 }
 
-export function iconStatus(): Promise<{ count: number; available: boolean }> {
+export type IconStatus = { count: number; available: boolean; wanted: string[] }
+
+export type IconUploadResult = {
+  status: string
+  count: number
+  results: {
+    name: string
+    failed: boolean
+    error?: string
+    detail?: string
+    extracted?: number
+    pages?: number
+    skipped?: number
+  }[]
+}
+
+export function iconStatus(): Promise<IconStatus> {
   return apiFetch('/icons')
+}
+
+export function uploadIconPacks(files: File[], clear: boolean): Promise<IconUploadResult> {
+  const form = new FormData()
+
+  for (const file of files) {
+    form.append('packs[]', file)
+  }
+
+  if (clear) {
+    form.append('clear', '1')
+  }
+
+  return apiFetch('/icons/upload', { method: 'POST', body: form })
 }
 
 /**

@@ -222,6 +222,7 @@
     "saved": "Settings saved.",
     "testKey": "Test the key",
     "mailTab": "Email",
+    "iconsTab": "Item icons",
     "steamTitle": "Steam Web API",
     "steamDescription": "Optional. Steam sign-in works without a key, but linked accounts then show a SteamID instead of a player name.",
     "steamApiKey": "API key",
@@ -298,6 +299,24 @@
       "dmarcMissing": "There is no DMARC record. Recipients do not know how to treat forged mail sent in your name.",
       "dmarcMonitorOnly": "The record only monitors (“p=none”). That is the right starting point; tighten it to “quarantine” later.",
       "dmarcPartialPercentage": "Because of “pct” the record applies to only part of your mail. Remove “pct” so the rule covers all of it."
+    },
+    "icons": {
+      "title": "Item icons from the game",
+      "description": "The original item artwork sits in the game's texture packs. A rented server does not ship them — they have to be uploaded from a game installation.",
+      "have_one": "{{count}} icon held",
+      "have_other": "{{count}} icons held",
+      "haveNone": "No icons held yet",
+      "where": "The files sit in the game installation under media/texturepacks. These are needed:",
+      "clearFirst": "Remove the existing icons first",
+      "choose": "Choose texture packs",
+      "working": "Working …",
+      "patience": "Large packs take a while. Please leave this open.",
+      "done_one": "Done. The store now holds {{count}} icon.",
+      "done_other": "Done. The store now holds {{count}} icons.",
+      "noneWorked": "No icons could be taken from any of the files.",
+      "tooLarge": "Together the files are too large. Please upload them one at a time.",
+      "extracted_one": "{{count}} icon from {{pages}} pages",
+      "extracted_other": "{{count}} icons from {{pages}} pages"
     }
   },
   "rcon": {
@@ -725,5 +744,10 @@
     "rconFailed": "The server could not be reached. Is RCON answering?",
     "noCatalogue": "No item list yet",
     "noCatalogueHint": "The bridge writes the list when the server starts. Restart the Zomboid server and it will appear here."
+  },
+  "icons": {
+    "uploadFailed": "The upload failed.",
+    "unreadable": "The file could not be read.",
+    "notAnIconPack": "It holds no item icons — most likely a map pack."
   }
 }

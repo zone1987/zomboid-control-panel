@@ -222,6 +222,7 @@
     "saved": "Einstellungen gespeichert.",
     "testKey": "Schlüssel prüfen",
     "mailTab": "E-Mail",
+    "iconsTab": "Item-Icons",
     "steamTitle": "Steam Web API",
     "steamDescription": "Optional. Ohne Schlüssel funktioniert die Steam-Anmeldung, verknüpfte Konten zeigen dann aber nur ihre SteamID statt des Spielernamens.",
     "steamApiKey": "API-Schlüssel",
@@ -298,6 +299,24 @@
       "dmarcMissing": "Es gibt keinen DMARC-Eintrag. Empfänger wissen nicht, wie sie mit gefälschten Mails in deinem Namen umgehen sollen.",
       "dmarcMonitorOnly": "Der Eintrag beobachtet nur („p=none“). Das ist als Einstieg richtig; verschärfe ihn später auf „quarantine“.",
       "dmarcPartialPercentage": "Der Eintrag gilt wegen „pct“ nur für einen Teil deiner Mails. Entferne „pct“, damit die Regel für alle gilt."
+    },
+    "icons": {
+      "title": "Item-Icons aus dem Spiel",
+      "description": "Die Originalbilder der Gegenstände stecken in den Texturpaketen des Spiels. Ein gemieteter Server liefert sie nicht mit — sie müssen aus einer Spielinstallation hochgeladen werden.",
+      "have_one": "{{count}} Icon vorhanden",
+      "have_other": "{{count}} Icons vorhanden",
+      "haveNone": "Noch keine Icons vorhanden",
+      "where": "Die Dateien liegen in der Spielinstallation unter media/texturepacks. Gebraucht werden:",
+      "clearFirst": "Vorhandene Icons vorher löschen",
+      "choose": "Texturpakete auswählen",
+      "working": "Wird verarbeitet …",
+      "patience": "Große Pakete brauchen eine Weile. Das Fenster bitte offen lassen.",
+      "done_one": "Fertig. Der Bestand umfasst nun {{count}} Icon.",
+      "done_other": "Fertig. Der Bestand umfasst nun {{count}} Icons.",
+      "noneWorked": "Aus keiner der Dateien ließen sich Icons gewinnen.",
+      "tooLarge": "Die Dateien sind zusammen zu groß. Bitte einzeln hochladen.",
+      "extracted_one": "{{count}} Icon aus {{pages}} Seiten",
+      "extracted_other": "{{count}} Icons aus {{pages}} Seiten"
     }
   },
   "rcon": {
@@ -725,5 +744,10 @@
     "rconFailed": "Der Server war nicht erreichbar. Antwortet RCON?",
     "noCatalogue": "Noch keine Itemliste vorhanden",
     "noCatalogueHint": "Die Bridge schreibt die Liste beim Serverstart. Starte den Zomboid-Server neu, dann erscheint sie hier."
+  },
+  "icons": {
+    "uploadFailed": "Der Upload ist fehlgeschlagen.",
+    "unreadable": "Die Datei war nicht lesbar.",
+    "notAnIconPack": "Darin sind keine Item-Icons — vermutlich ein Kartenpaket."
   }
 }

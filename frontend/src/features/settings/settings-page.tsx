@@ -19,6 +19,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
+import { IconPacksCard } from './icon-packs-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -122,6 +123,7 @@ export function SettingsPage() {
           <TabsTrigger value="steam">Steam</TabsTrigger>
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
+          <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steam">
@@ -298,6 +300,9 @@ export function SettingsPage() {
           <DeliverabilityCard />
         </TabsContent>
 
+        <TabsContent value="icons">
+          <IconPacksCard />
+        </TabsContent>
       </Tabs>
 
       <div className="flex gap-2">
