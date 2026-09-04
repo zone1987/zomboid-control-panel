@@ -89,7 +89,8 @@
     "language_en": "Englisch",
     "noServerYet": "Lege zuerst einen Server an",
     "logs": "Log",
-    "chat": "Chat"
+    "chat": "Chat",
+    "items": "Items"
   },
   "servers": {
     "title": "Server",
@@ -571,5 +572,29 @@
     "noLog": "Keine Chat-Logdatei gefunden",
     "noLogHint": "Senden funktioniert trotzdem. Zum Mitlesen muss der Server eine Chat-Logdatei schreiben; prüfe den Logpfad in der Serverkonfiguration.",
     "emptyHintNoPlayers": "Sobald jemand im Spiel etwas schreibt, erscheint es hier — genauso wie das, was du von hier aus sendest."
+  },
+  "items": {
+    "title": "Items",
+    "description": "Items an Spieler geben.",
+    "descriptionFor": "Items an Spieler auf {{server}} geben.",
+    "search": "Item suchen — Name oder Typ",
+    "gridView": "Kachelansicht",
+    "listView": "Listenansicht",
+    "count": "{{count}} Items",
+    "matchCount": "{{shown}} von {{total}}",
+    "noMatch": "Kein Item passt zur Suche.",
+    "players": "Spieler",
+    "noPlayers": "Gerade ist niemand online.",
+    "selected": "Ausgewählt",
+    "noneSelected": "Noch nichts ausgewählt.",
+    "clear": "Auswahl leeren",
+    "remove": "Entfernen",
+    "choosePlayer": "Erst einen Spieler wählen",
+    "giveTo": "An {{player}} geben",
+    "given": "{{count}} Item(s) an {{player}} gegeben.",
+    "someFailed": "{{count}} Item(s) hat der Server abgelehnt.",
+    "rconFailed": "Der Server war nicht erreichbar. Antwortet RCON?",
+    "noCatalogue": "Noch keine Itemliste vorhanden",
+    "noCatalogueHint": "Die Bridge schreibt die Liste beim Serverstart. Starte den Zomboid-Server neu, dann erscheint sie hier."
   }
 }

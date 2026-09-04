@@ -89,7 +89,8 @@
     "language_en": "English",
     "noServerYet": "Add a server first",
     "logs": "Log",
-    "chat": "Chat"
+    "chat": "Chat",
+    "items": "Items"
   },
   "servers": {
     "title": "Servers",
@@ -571,5 +572,29 @@
     "noLog": "No chat log found",
     "noLogHint": "Sending still works. To follow the chat the server must write a chat log; check the log path in the server configuration.",
     "emptyHintNoPlayers": "Anything said in game appears here, alongside whatever you send from this page."
+  },
+  "items": {
+    "title": "Items",
+    "description": "Give items to players.",
+    "descriptionFor": "Give items to players on {{server}}.",
+    "search": "Search items — name or type",
+    "gridView": "Grid view",
+    "listView": "List view",
+    "count": "{{count}} items",
+    "matchCount": "{{shown}} of {{total}}",
+    "noMatch": "No item matches that search.",
+    "players": "Players",
+    "noPlayers": "Nobody is online right now.",
+    "selected": "Selected",
+    "noneSelected": "Nothing selected yet.",
+    "clear": "Clear the selection",
+    "remove": "Remove",
+    "choosePlayer": "Choose a player first",
+    "giveTo": "Give to {{player}}",
+    "given": "Gave {{count}} item(s) to {{player}}.",
+    "someFailed": "The server refused {{count}} item(s).",
+    "rconFailed": "The server could not be reached. Is RCON answering?",
+    "noCatalogue": "No item list yet",
+    "noCatalogueHint": "The bridge writes the list when the server starts. Restart the Zomboid server and it will appear here."
   }
 }

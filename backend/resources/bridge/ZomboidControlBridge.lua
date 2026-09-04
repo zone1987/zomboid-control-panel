@@ -15,7 +15,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.6.3"
+local BRIDGE_VERSION = "0.7.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -53,6 +53,12 @@ local SECONDS_BETWEEN_SLOW_WRITES = 60
 local lastPlayerWrite = 0
 local lastSlowWrite = 0
 local lastRoster = ""
+
+-- Identifies this run of the server. Written into every file, so the
+-- panel can tell a restart from a routine update without comparing
+-- timestamps or file sizes: a different id means everything the server
+-- loaded was loaded afresh, mods included.
+local SESSION_ID = tostring(getTimestampMs())
 
 local function escape(text)
     if text == nil then return "" end
@@ -194,8 +200,9 @@ local function writePlayers(players)
     end
 
     writeFile(PLAYERS_FILE, string.format(
-        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"playerCount\":%d,\"players\":[%s]}",
+        "{\"bridgeVersion\":\"%s\",\"sessionId\":\"%s\",\"generatedAt\":%d,\"playerCount\":%d,\"players\":[%s]}",
         BRIDGE_VERSION,
+        SESSION_ID,
         getTimestamp(),
         #entries,
         table.concat(entries, ",")
@@ -233,6 +240,7 @@ local function writeServerInfo()
 
     local parts = {
         string.format("\"bridgeVersion\":\"%s\"", BRIDGE_VERSION),
+        string.format("\"sessionId\":\"%s\"", SESSION_ID),
         string.format("\"generatedAt\":%d", getTimestamp()),
     }
 
@@ -321,8 +329,9 @@ local function writeSafehouses()
     end
 
     writeFile(SAFEHOUSES_FILE, string.format(
-        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"safehouses\":[%s]}",
+        "{\"bridgeVersion\":\"%s\",\"sessionId\":\"%s\",\"generatedAt\":%d,\"safehouses\":[%s]}",
         BRIDGE_VERSION,
+        SESSION_ID,
         getTimestamp(),
         table.concat(entries, ",")
     ))
@@ -491,8 +500,9 @@ local function writeItems()
     end
 
     writer:write(string.format(
-        "{\"bridgeVersion\":\"%s\",\"generatedAt\":%d,\"items\":[",
+        "{\"bridgeVersion\":\"%s\",\"sessionId\":\"%s\",\"generatedAt\":%d,\"items\":[",
         BRIDGE_VERSION,
+        SESSION_ID,
         getTimestamp()
     ))
 

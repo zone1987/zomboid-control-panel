@@ -57,7 +57,7 @@ RUN apt-get update \
 COPY --from=vendor /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=vendor /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
-RUN a2enmod proxy proxy_fcgi rewrite headers setenvif \
+RUN a2enmod proxy proxy_fcgi rewrite headers setenvif deflate \
     && a2dismod mpm_event \
     && a2enmod mpm_prefork \
     && rm -f /etc/apache2/sites-enabled/000-default.conf

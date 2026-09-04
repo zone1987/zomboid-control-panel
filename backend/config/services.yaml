@@ -52,6 +52,12 @@ services:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
 
+    App\Settings\SupportedLanguages:
+        arguments:
+            # Derived from the interface's own translation files, so a new
+            # language is one file rather than a list in two places.
+            $localeDirectory: '%kernel.project_dir%/../frontend/src/i18n/locales'
+
     App\Server\Bridge\BridgeInstaller:
         arguments:
             $bridgeSourcePath: '%kernel.project_dir%/resources/bridge/ZomboidControlBridge.lua'

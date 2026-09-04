@@ -22,6 +22,9 @@ final class BridgeFiles
     public const SERVER = self::DIRECTORY.'/server.json';
     public const SAFEHOUSES = self::DIRECTORY.'/safehouses.json';
 
+    /** Written once per start; the catalogue only changes when mods do. */
+    public const ITEMS = self::DIRECTORY.'/items.json';
+
     /** Everything before 0.4.0 lived in one file. */
     public const LEGACY = self::DIRECTORY.'/status.json';
 }

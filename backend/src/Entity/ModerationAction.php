@@ -31,6 +31,9 @@ class ModerationAction
     /** A message announced to everyone on the server. */
     public const BROADCAST = 'broadcast';
 
+    /** Items placed into a player's inventory. */
+    public const ITEMS = 'items';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

@@ -5,6 +5,7 @@ import {
   ChevronsUpDown,
   LayoutDashboard,
   MessagesSquare,
+  Package,
   LogOut,
   Moon,
   Plus,
@@ -159,6 +160,26 @@ export function AppSidebar() {
                     <Link to={`/servers/${activeServer.id}/players`}>
                       <Users />
                       <span>{t('nav.players')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <Package />
+                    <span>{t('nav.items')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/items`)}
+                    tooltip={t('nav.items')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/items`}>
+                      <Package />
+                      <span>{t('nav.items')}</span>
                     </Link>
                   </SidebarMenuButton>
                 )}
