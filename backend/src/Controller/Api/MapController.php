@@ -125,13 +125,20 @@ final class MapController extends AbstractController
             return new JsonResponse([
                 'players' => [],
                 'safehouses' => [],
+                'vehicles' => [],
+                'factions' => [],
                 'error' => $exception->messageKey(),
             ]);
         }
 
+        // Every layer the panel can draw. The interface decides which
+        // ones to show; the answer carries them all, because they come
+        // from files the bridge has already written.
         return new JsonResponse([
             'players' => $this->playersOf($server),
             'safehouses' => $this->info->safehouses($server) ?? [],
+            'vehicles' => $this->info->vehicles($server) ?? [],
+            'factions' => $this->info->factions($server) ?? [],
             'error' => null,
         ]);
     }

@@ -10,6 +10,8 @@
         players.json    who is connected, with position and condition
         server.json     time, weather and how long the server has been up
         safehouses.json claimed safehouses and their members
+        vehicles.json   where the loaded vehicles are, and their state
+        factions.json   factions and who belongs to them
 
     Since 0.8.0 it also reads. The panel writes numbered command files
     into the same directory and the bridge answers each with a result
@@ -20,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.9.0"
+local BRIDGE_VERSION = "0.10.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -28,6 +30,8 @@ local BRIDGE_VERSION = "0.9.0"
 local PLAYERS_FILE = "ZomboidControl/players.json"
 local SERVER_FILE = "ZomboidControl/server.json"
 local SAFEHOUSES_FILE = "ZomboidControl/safehouses.json"
+local VEHICLES_FILE = "ZomboidControl/vehicles.json"
+local FACTIONS_FILE = "ZomboidControl/factions.json"
 -- Written once per server start: the catalogue only changes when mods do,
 -- and it is several thousand entries.
 local ITEMS_FILE = "ZomboidControl/items.json"
@@ -674,6 +678,107 @@ local function writeItems()
 end
 
 --- Wraps a write so a fault in one file cannot stop the others.
+
+--- Every vehicle the server currently has loaded.
+---
+--- Position comes from getSquare() rather than getX(): the square is
+--- what the game's own server code reads (Vehicles.lua does exactly
+--- that), and a vehicle without one is not in the world right now.
+---
+--- Written on the slow interval with the rest of the world state:
+--- vehicles move, but not so fast that three seconds would show
+--- anything the panel could not read a minute later.
+local function writeVehicles()
+    local cell = getCell()
+    local entries = {}
+
+    if cell ~= nil then
+        local vehicles = cell:getVehicles()
+
+        for i = 0, vehicles:size() - 1 do
+            local vehicle = vehicles:get(i)
+            local square = vehicle:getSquare()
+
+            if square ~= nil then
+                -- Read back rather than assumed: a script name is not
+                -- guaranteed, and neither is a readable fuel level.
+                local script = vehicle:getScriptName()
+                local fuel = nil
+                local ok, value = pcall(vehicle.getRemainingFuelPercentage, vehicle)
+
+                if ok and type(value) == "number" then
+                    fuel = value
+                end
+
+                local running = false
+                local engineOk, engineValue = pcall(vehicle.isEngineRunning, vehicle)
+
+                if engineOk then
+                    running = engineValue == true
+                end
+
+                entries[#entries + 1] = string.format(
+                    '{"id":%d,"script":"%s","x":%d,"y":%d,"z":%d,'
+                    .. '"fuel":%s,"engineRunning":%s}',
+                    vehicle:getId() or 0,
+                    escape(script or "unknown"),
+                    square:getX(),
+                    square:getY(),
+                    square:getZ(),
+                    fuel ~= nil and string.format("%.1f", fuel) or "null",
+                    running and "true" or "false"
+                )
+            end
+        end
+    end
+
+    writeFile(VEHICLES_FILE, string.format(
+        '{"bridgeVersion":"%s","sessionId":"%s","generatedAt":%d,"vehicles":[%s]}',
+        BRIDGE_VERSION,
+        SESSION_ID,
+        getTimestamp(),
+        table.concat(entries, ",")
+    ))
+end
+
+
+--- The factions and who is in them.
+---
+--- Not a map layer of its own -- a faction has no position -- but the
+--- panel shows it beside the safehouses, and both come from the same
+--- slow write.
+local function writeFactions()
+    local entries = {}
+    local factions = Faction.getFactions()
+
+    if factions ~= nil then
+        for i = 0, factions:size() - 1 do
+            local faction = factions:get(i)
+            local members = {}
+            local players = faction:getPlayers()
+
+            if players ~= nil then
+                for m = 0, players:size() - 1 do
+                    members[#members + 1] = '"' .. escape(players:get(m)) .. '"'
+                end
+            end
+
+            entries[#entries + 1] = string.format(
+                '{"name":"%s","owner":"%s","tag":"%s","members":[%s]}',
+                escape(faction:getName() or ""),
+                escape(faction:getOwner() or ""),
+                escape(faction:getTag() or ""),
+                table.concat(members, ",")
+            )
+        end
+    end
+
+    writeFile(FACTIONS_FILE, string.format(
+        '{"bridgeVersion":"%s","sessionId":"%s","generatedAt":%d,"factions":[%s]}',
+        BRIDGE_VERSION, SESSION_ID, getTimestamp(), table.concat(entries, ",")
+    ))
+end
+
 local function attempt(what, write, ...)
     local ok, err = pcall(write, ...)
 
@@ -777,8 +882,9 @@ local function encodeContainers(containers)
 
     for _, entry in ipairs(containers) do
         parts[#parts + 1] = string.format(
-            '{"x":%d,"y":%d,"type":"%s","count":%d}',
-            entry.x, entry.y, escape(entry.type), entry.count
+            '{"x":%d,"y":%d,"type":"%s","count":%d,"contents":[%s]}',
+            entry.x, entry.y, escape(entry.type), entry.count,
+            table.concat(entry.contents or {}, ",")
         )
     end
 
@@ -988,6 +1094,10 @@ handlers.readSurroundings = function(command)
         return false, "radius must be between 1 and 20"
     end
 
+    -- How much of each container to list. Twelve is enough to see what
+    -- a crate is for; everything is what a stocktake needs.
+    local perContainer = command.fullContents == true and 1000 or 12
+
     local centreX, centreY, centreZ
 
     if command.x ~= nil and command.y ~= nil then
@@ -1072,12 +1182,36 @@ handlers.readSurroundings = function(command)
 
                     if container ~= nil then
                         local held = container:getItems()
+                        local contents = {}
+                        local total = 0
+
+                        if held ~= nil then
+                            total = held:size()
+
+                            -- Capped per container unless the caller
+                            -- asks for everything: a scan of many full
+                            -- crates answers with more JSON than a
+                            -- glance needs, but something reading the
+                            -- world for real wants all of it.
+                            for h = 0, math.min(total, perContainer) - 1 do
+                                local item = held:get(h)
+
+                                if item ~= nil then
+                                    contents[#contents + 1] = string.format(
+                                        '{"type":"%s","name":"%s"}',
+                                        escape(item:getFullType() or ""),
+                                        escape(item:getDisplayName() or "")
+                                    )
+                                end
+                            end
+                        end
 
                         containers[#containers + 1] = {
                             x = x,
                             y = y,
                             type = container:getType() or "container",
-                            count = held ~= nil and held:size() or 0,
+                            count = total,
+                            contents = contents,
                         }
                     end
                 end
@@ -1227,6 +1361,8 @@ local function onTick()
         lastSlowWrite = now
         attempt("server info", writeServerInfo)
         attempt("safehouses", writeSafehouses)
+        attempt("vehicles", writeVehicles)
+        attempt("factions", writeFactions)
     end
 end
 
@@ -1241,6 +1377,8 @@ Events.OnServerStarted.Add(function()
     attempt("players", writePlayers, getOnlinePlayers())
     attempt("server info", writeServerInfo)
     attempt("safehouses", writeSafehouses)
+    attempt("vehicles", writeVehicles)
+    attempt("factions", writeFactions)
     -- Once per start: mods are loaded by now, so the catalogue includes
     -- whatever they added.
     attempt("items", writeItems)

@@ -3,7 +3,8 @@ import OpenSeadragon from 'openseadragon'
 
 import { worldToViewport } from './coordinates'
 import type { MapSource } from './map-config'
-import type { MapPlayer, MapSafehouse } from './map'
+import type { MapPlayer, MapSafehouse, MapVehicle } from './map'
+import type { LayerVisibility } from './layer-toggles'
 
 type Options = {
   viewer: OpenSeadragon.Viewer | null
@@ -12,6 +13,8 @@ type Options = {
   floor: number
   players: MapPlayer[]
   safehouses: MapSafehouse[]
+  vehicles: MapVehicle[]
+  visible: LayerVisibility
   onPlayerClick: (player: MapPlayer) => void
 }
 
@@ -33,6 +36,8 @@ export function useMapMarkers({
   floor,
   players,
   safehouses,
+  vehicles,
+  visible,
   onPlayerClick,
 }: Options): void {
   useEffect(() => {
@@ -42,32 +47,34 @@ export function useMapMarkers({
 
     const added: HTMLElement[] = []
 
-    for (const house of safehouses) {
-      const element = document.createElement('div')
-      element.className = 'pz-safehouse'
-      element.title = house.title === '' ? house.owner : house.title
+    if (visible.safehouses) {
+      for (const house of safehouses) {
+        const element = document.createElement('div')
+        element.className = 'pz-safehouse'
+        element.title = house.title === '' ? house.owner : house.title
 
-      const corner = worldToViewport({ x: house.x, y: house.y }, floor, source)
-      const opposite = worldToViewport(
-        { x: house.x + house.w, y: house.y + house.h },
-        floor,
-        source,
-      )
+        const corner = worldToViewport({ x: house.x, y: house.y }, floor, source)
+        const opposite = worldToViewport(
+          { x: house.x + house.w, y: house.y + house.h },
+          floor,
+          source,
+        )
 
-      viewer.addOverlay({
-        element,
-        location: new OpenSeadragon.Rect(
-          Math.min(corner.x, opposite.x),
-          Math.min(corner.y, opposite.y),
-          Math.abs(opposite.x - corner.x),
-          Math.abs(opposite.y - corner.y),
-        ),
-      })
+        viewer.addOverlay({
+          element,
+          location: new OpenSeadragon.Rect(
+            Math.min(corner.x, opposite.x),
+            Math.min(corner.y, opposite.y),
+            Math.abs(opposite.x - corner.x),
+            Math.abs(opposite.y - corner.y),
+          ),
+        })
 
-      added.push(element)
+        added.push(element)
+      }
     }
 
-    for (const player of players) {
+    for (const player of visible.players ? players : []) {
       const element = document.createElement('button')
       element.type = 'button'
       element.className = player.infected ? 'pz-player pz-player--infected' : 'pz-player'
@@ -93,10 +100,27 @@ export function useMapMarkers({
       added.push(element)
     }
 
+    for (const vehicle of visible.vehicles ? vehicles : []) {
+      const element = document.createElement('div')
+      element.className = vehicle.engineRunning ? 'pz-vehicle pz-vehicle--running' : 'pz-vehicle'
+      element.title = `${vehicle.script}${vehicle.fuel === null ? '' : ` · ${Math.round(vehicle.fuel)}%`}`
+
+      const point = worldToViewport({ x: vehicle.x, y: vehicle.y }, floor, source)
+
+      viewer.addOverlay({
+        element,
+        location: new OpenSeadragon.Point(point.x, point.y),
+        placement: OpenSeadragon.Placement.CENTER,
+        checkResize: false,
+      })
+
+      added.push(element)
+    }
+
     return () => {
       for (const element of added) {
         viewer.removeOverlay(element)
       }
     }
-  }, [viewer, ready, source, floor, players, safehouses, onPlayerClick])
+  }, [viewer, ready, source, floor, players, safehouses, vehicles, visible, onPlayerClick])
 }

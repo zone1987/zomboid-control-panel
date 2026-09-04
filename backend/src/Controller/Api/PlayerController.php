@@ -295,6 +295,7 @@ final class PlayerController extends AbstractController
             $result = $this->commands->send($server, BridgeCommand::ReadSurroundings, [
                 'player' => $username,
                 'radius' => $request->query->getInt('radius', 8),
+                'fullContents' => $request->query->getBoolean('full'),
             ]);
         } catch (InvalidBridgeCommand $exception) {
             return new JsonResponse([

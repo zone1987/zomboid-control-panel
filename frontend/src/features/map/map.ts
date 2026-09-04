@@ -29,9 +29,29 @@ export type MapSafehouse = {
   members: string[]
 }
 
+export type MapVehicle = {
+  id: number
+  script: string
+  x: number
+  y: number
+  z: number
+  fuel: number | null
+  engineRunning: boolean
+}
+
+export type MapFaction = {
+  name: string
+  owner: string
+  tag: string
+  members: string[]
+}
+
 export type MapOverlay = {
   players: MapPlayer[]
   safehouses: MapSafehouse[]
+  /** Only the loaded ones: a vehicle in an unloaded chunk is not there. */
+  vehicles: MapVehicle[]
+  factions: MapFaction[]
   error: string | null
 }
 

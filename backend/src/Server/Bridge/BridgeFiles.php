@@ -25,6 +25,12 @@ final class BridgeFiles
     /** Written once per start; the catalogue only changes when mods do. */
     public const ITEMS = self::DIRECTORY.'/items.json';
 
+    /** Where the loaded vehicles are, from bridge 0.10.0. */
+    public const VEHICLES = self::DIRECTORY.'/vehicles.json';
+
+    /** Factions and their members, from bridge 0.10.0. */
+    public const FACTIONS = self::DIRECTORY.'/factions.json';
+
     /** Everything before 0.4.0 lived in one file. */
     public const LEGACY = self::DIRECTORY.'/status.json';
 

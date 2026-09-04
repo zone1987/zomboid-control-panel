@@ -102,7 +102,12 @@ enum BridgeCommand: string
      */
     private static function surroundings(array $arguments): array
     {
-        $radius = ['radius' => self::number($arguments, 'radius', 1, self::MAX_RADIUS)];
+        $radius = [
+            'radius' => self::number($arguments, 'radius', 1, self::MAX_RADIUS),
+            // Off by default: a glance wants a summary, a stocktake
+            // wants every item in every crate.
+            'fullContents' => ($arguments['fullContents'] ?? false) === true,
+        ];
 
         // Around a player, or around a point on the map.
         if (isset($arguments['x'], $arguments['y'])) {

@@ -44,6 +44,78 @@ final readonly class ServerInfoReader
     }
 
     /**
+     * Vehicles the server currently has loaded.
+     *
+     * Only loaded ones: a vehicle in an unloaded chunk is not in the
+     * cell, so an empty list means nobody is near one rather than that
+     * the world has none.
+     *
+     * @return list<array{id: int, script: string, x: int, y: int, z: int, fuel: float|null, engineRunning: bool}>|null
+     */
+    public function vehicles(GameServer $server): ?array
+    {
+        $payload = $this->read($server, BridgeFiles::VEHICLES);
+
+        if ($payload === null || !\is_array($payload['vehicles'] ?? null)) {
+            return null;
+        }
+
+        $vehicles = [];
+
+        foreach ($payload['vehicles'] as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $vehicles[] = [
+                'id' => (int) ($entry['id'] ?? 0),
+                'script' => (string) ($entry['script'] ?? ''),
+                'x' => (int) ($entry['x'] ?? 0),
+                'y' => (int) ($entry['y'] ?? 0),
+                'z' => (int) ($entry['z'] ?? 0),
+                'fuel' => isset($entry['fuel']) && is_numeric($entry['fuel'])
+                    ? (float) $entry['fuel']
+                    : null,
+                'engineRunning' => ($entry['engineRunning'] ?? false) === true,
+            ];
+        }
+
+        return $vehicles;
+    }
+
+    /**
+     * @return list<array{name: string, owner: string, tag: string, members: list<string>}>|null
+     */
+    public function factions(GameServer $server): ?array
+    {
+        $payload = $this->read($server, BridgeFiles::FACTIONS);
+
+        if ($payload === null || !\is_array($payload['factions'] ?? null)) {
+            return null;
+        }
+
+        $factions = [];
+
+        foreach ($payload['factions'] as $entry) {
+            if (!\is_array($entry)) {
+                continue;
+            }
+
+            $factions[] = [
+                'name' => (string) ($entry['name'] ?? ''),
+                'owner' => (string) ($entry['owner'] ?? ''),
+                'tag' => (string) ($entry['tag'] ?? ''),
+                'members' => array_values(array_filter(
+                    (array) ($entry['members'] ?? []),
+                    \is_string(...),
+                )),
+            ];
+        }
+
+        return $factions;
+    }
+
+    /**
      * @return list<array{title: string, owner: string, x: int, y: int, w: int, h: int, members: list<string>}>|null
      */
     public function safehouses(GameServer $server): ?array

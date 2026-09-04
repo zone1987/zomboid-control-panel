@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { WorldPoint } from './coordinates'
 import type { MapSource } from './map-config'
-import type { MapPlayer, MapSafehouse } from './map'
+import type { MapPlayer, MapSafehouse, MapVehicle } from './map'
+import { LayerToggles, type LayerVisibility, type MapLayerId } from './layer-toggles'
 import { encodeViewState, isSameView, type MapViewState } from './map-url-state'
 import { useMapViewer } from './use-map-viewer'
 import { useMapMarkers } from './use-map-markers'
@@ -13,6 +14,9 @@ type Props = {
   source: MapSource
   players: MapPlayer[]
   safehouses: MapSafehouse[]
+  vehicles: MapVehicle[]
+  visible: LayerVisibility
+  onLayerChange: (layer: MapLayerId, shown: boolean) => void
   initial: MapViewState | null
   onContextMenu: (point: WorldPoint) => void
   onPlayerClick: (player: MapPlayer) => void
@@ -27,6 +31,9 @@ export function WorldMap({
   source,
   players,
   safehouses,
+  vehicles,
+  visible,
+  onLayerChange,
   initial,
   onContextMenu,
   onPlayerClick,
@@ -66,6 +73,8 @@ export function WorldMap({
     floor: viewer.floor,
     players,
     safehouses,
+    vehicles,
+    visible,
     onPlayerClick,
   })
 
@@ -134,6 +143,16 @@ export function WorldMap({
         onReset={viewer.reset}
         onToggleFullscreen={toggleFullscreen}
         onCopyLink={copyLink}
+      />
+
+      <LayerToggles
+        visible={visible}
+        counts={{
+          players: players.length,
+          safehouses: safehouses.length,
+          vehicles: vehicles.length,
+        }}
+        onChange={onLayerChange}
       />
 
       <FloorControl

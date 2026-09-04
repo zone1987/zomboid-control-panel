@@ -29,6 +29,7 @@ import type { WorldPoint } from './coordinates'
 import { GAME_MAP_SOURCE, isometricSourceFrom, type MapSource } from './map-config'
 import { viewStateOnArrival } from './map-url-state'
 import { mapOverlay, mapStatus, type MapPlayer } from './map'
+import { ALL_LAYERS_ON, type LayerVisibility } from './layer-toggles'
 import { WorldMap } from './world-map'
 import { MapSearch } from './map-search'
 import { MapSidebar } from './map-sidebar'
@@ -38,6 +39,7 @@ export function MapPage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
   const [target, setTarget] = useState<WorldPoint | null>(null)
+  const [visible, setVisible] = useState<LayerVisibility>(ALL_LAYERS_ON)
   const [who, setWho] = useState<string | null>(null)
 
   // Set once the viewer is up, so search and the place buttons can move
@@ -132,6 +134,11 @@ export function MapPage() {
         source={source}
         players={players}
         safehouses={overlay?.safehouses ?? []}
+        vehicles={overlay?.vehicles ?? []}
+        visible={visible}
+        onLayerChange={(layer, shown) =>
+          setVisible((previous) => ({ ...previous, [layer]: shown }))
+        }
         initial={initial}
         onContextMenu={setTarget}
         onPlayerClick={onPlayerClick}

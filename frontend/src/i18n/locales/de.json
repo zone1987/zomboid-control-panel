@@ -752,7 +752,13 @@
     "isometricMissing": "Isometrische Ansicht nicht eingerichtet",
     "isometricMissingHint": "Die schräge 2,5D-Ansicht braucht eigens gerenderte Kacheln, die das Spiel nicht mitliefert. Bis dahin zeigt die Karte die Ingame-Ansicht von oben.",
     "isometricView": "Isometrisch",
-    "topDownView": "Von oben"
+    "topDownView": "Von oben",
+    "layers": "Ebenen",
+    "layer": {
+      "players": "Spieler",
+      "safehouses": "Safehouses",
+      "vehicles": "Fahrzeuge"
+    }
   },
   "logs": {
     "title": "Server-Log",
