@@ -43,3 +43,15 @@ services:
     App\Security\OAuth\GoogleClientFactory:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
+
+    App\Invitation\InvitationService:
+        arguments:
+            $publicUrl: '%env(APP_PUBLIC_URL)%'
+
+    App\Security\PasswordReset\PasswordResetService:
+        arguments:
+            $publicUrl: '%env(APP_PUBLIC_URL)%'
+
+    App\Server\Bridge\BridgeInstaller:
+        arguments:
+            $bridgeSourcePath: '%kernel.project_dir%/resources/bridge/ZomboidControlBridge.lua'
