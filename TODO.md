@@ -27,26 +27,22 @@ One thing to settle first, cheaply: whether `getFileReader` in this
 project's bridge can read a file the panel uploads over FTP into the
 Lua directory. Everything else depends on that answer.
 
-### 2. Move the access checks onto permissions
-
-Roles carrying permissions exist and are editable, but every controller
-still guards with `ROLE_SERVER_ADMIN` or `ROLE_ADMIN`. `PermissionVoter`
-grants from an assigned role *or* from a legacy role name, so both are
-in force and a controller can move over one at a time without breaking
-anything.
-
-Until they do, a custom role restricts nothing. Worth doing per
-controller with its test alongside, rather than in one sweep.
-
-### 3. Assigning roles in the account dialog
-
-`PATCH /api/accounts/{id}` already takes `assignedRoles` and reports the
-permissions a user holds; `GET /api/accounts` lists the roles to choose
-from. The dialog does not offer them yet.
-
 ---
 
 ## Done, and what came of it
+
+### Permissions, all the way through
+
+Every endpoint guards on a permission; the navigation shows only what
+the user can reach; roles are assignable in the account dialog. A
+moderator can kick without being able to ban, and without the FTP and
+RCON credentials that come with editing a server — which is what brief
+06 asked for.
+
+The firewall had to loosen for it: `^/api/servers` demanded
+ROLE_SERVER_ADMIN before any controller was reached, so a narrow role
+was turned away at the door. Signing in is now the bar there and on
+`/api/users` and `/api/roles`. A test caught that, not a browser.
 
 ### Teleport to coordinates — the assumption was wrong
 

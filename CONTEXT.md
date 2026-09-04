@@ -70,25 +70,20 @@ start areas inside it.
 
 ### What is still open
 
-- **The two-way bridge.** Everything in brief 07 marked "bridge" —
-  snow, fog, wind, temperature, the in-game clock, time speed,
-  electricity and water, placed sounds, safehouse and faction
-  management — still needs the panel to ask the server to do something
-  rather than only read what it wrote. The reference panel's approach
-  is analysed in detail below under "The reference panel's two-way
-  bridge"; that analysis is the starting point.
+**Only the two-way bridge.** Everything in brief 07 marked "bridge" —
+snow, fog, wind, temperature, the in-game clock, time speed,
+electricity and water, placed sounds, safehouse and faction management
+— still needs the panel to ask the server to do something rather than
+only read what it wrote. The reference panel's approach is analysed
+below under "The reference panel's two-way bridge"; that analysis is
+the starting point.
 
-- **Moving the access checks onto permissions.** Roles carrying
-  permissions exist and are editable, but every controller still guards
-  with `ROLE_SERVER_ADMIN` or `ROLE_ADMIN`. The voter grants a
-  permission from an assigned role *or* from a legacy role name, so
-  both are in force and checks can move one at a time. Nothing is
-  broken until they do; a custom role simply does not restrict anything
-  yet.
-
-- **Assigning roles in the interface.** The API takes `assignedRoles`
-  on a user and reports the permissions they hold, but the account
-  dialog does not offer them yet.
+Permissions are fully in force since the roles work landed: every
+endpoint guards on one, the navigation shows only what the user can
+reach, and the firewall was loosened to `ROLE_USER` on `/api/servers`,
+`/api/users` and `/api/roles` so a narrow role is not turned away
+before any controller sees it. Legacy role names still grant what they
+always granted, so an existing installation is untouched.
 
 ---
 
@@ -597,3 +592,18 @@ the pyramid's finest level is the *highest* zoom, and Simple's y axis runs
 upward while tile rows run downward — which left every requested row
 negative. Verified by measuring what sits under the viewport centre:
 searching 11800,6900 lands on 11800,6900. Commit `d7b9db0`.
+
+### 2026-09-04 — Permissions enforced everywhere
+Every endpoint now guards on a permission rather than a role name, the
+session reports the permissions a user effectively holds, and the
+navigation shows only what they can reach. Roles are assignable in the
+account dialog.
+
+`access_control` had to loosen: it runs before any controller, so
+`^/api/servers` demanding ROLE_SERVER_ADMIN turned a narrow role away
+before the endpoint's own permission was consulted. Those three entries
+are `ROLE_USER` now. A functional test caught that, not the browser.
+
+The seven server pages in the sidebar collapsed into a table on the way
+through — they were seven copies of the same twenty lines and each
+needed its permission added. Commits `d46519c`, `6e9b9d4`, `70c6313`.
