@@ -184,6 +184,34 @@ final class ServerController extends AbstractController
         }
     }
 
+    #[Route('/{id}/files/read', name: 'api_servers_read_file', methods: ['GET'])]
+    public function readFile(string $id, Request $request): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer || $server->getFtpConfig() === null) {
+            return $this->notFound();
+        }
+
+        $path = (string) $request->query->get('path', '');
+
+        if ($path === '') {
+            return new JsonResponse(['status' => 'failed', 'error' => 'errors.notFound'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $contents = $this->files->readTail($server->getFtpConfig(), $path);
+        } catch (StorageException $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['path' => $path, 'contents' => $contents]);
+    }
+
     #[Route('/{id}/bridge', name: 'api_servers_install_bridge', methods: ['POST'])]
     public function installBridge(string $id, BridgeInstaller $installer): JsonResponse
     {

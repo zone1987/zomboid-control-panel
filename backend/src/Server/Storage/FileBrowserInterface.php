@@ -25,6 +25,14 @@ interface FileBrowserInterface
     /** @throws StorageException */
     public function exists(FtpConfig $config, string $path): bool;
 
+    /**
+     * Reads at most $maxBytes from the end of a file, so a large log does
+     * not have to travel in full.
+     *
+     * @throws StorageException
+     */
+    public function readTail(FtpConfig $config, string $path, int $maxBytes = 65536): string;
+
     /** @throws StorageException */
     public function upload(FtpConfig $config, string $path, string $contents): void;
 }

@@ -118,6 +118,11 @@ final class RecordingFileBrowser implements FileBrowserInterface
         return true;
     }
 
+    public function readTail(FtpConfig $config, string $path, int $maxBytes = 65536): string
+    {
+        return '';
+    }
+
     public function upload(FtpConfig $config, string $path, string $contents): void
     {
         $this->uploads[$path] = $contents;

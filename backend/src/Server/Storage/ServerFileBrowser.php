@@ -95,6 +95,32 @@ final readonly class ServerFileBrowser implements FileBrowserInterface
         }
     }
 
+    public function readTail(FtpConfig $config, string $path, int $maxBytes = 65536): string
+    {
+        $path = $this->normalise($path);
+
+        try {
+            $filesystem = $this->storage->create($config);
+            $size = $filesystem->fileSize($path);
+
+            if ($size <= $maxBytes) {
+                return $filesystem->read($path);
+            }
+
+            $stream = $filesystem->readStream($path);
+            // Flysystem cannot start at an offset, so the head is skipped
+            // rather than requested — enough for a status file, and the
+            // log tailer will use phpseclib directly.
+            fseek($stream, $size - $maxBytes);
+            $contents = stream_get_contents($stream);
+            fclose($stream);
+
+            return $contents === false ? '' : $contents;
+        } catch (\Throwable $exception) {
+            throw $this->translate($exception);
+        }
+    }
+
     public function upload(FtpConfig $config, string $path, string $contents): void
     {
         try {
