@@ -72,7 +72,7 @@ final class SteamAuthenticator extends AbstractAuthenticator
             $this->entityManager->flush();
         }
 
-        return new RedirectResponse('/app');
+        return new RedirectResponse('/app/');
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response

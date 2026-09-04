@@ -9,6 +9,9 @@ type ThemeContextValue = {
 
 const STORAGE_KEY = 'zomboidcontrol.theme'
 
+/** A server admin panel is read in the dark more often than not. */
+const DEFAULT_THEME: Theme = 'dark'
+
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function readStoredTheme(): Theme {
@@ -22,7 +25,7 @@ function readStoredTheme(): Theme {
     // Private browsing and blocked site data both throw here.
   }
 
-  return 'system'
+  return DEFAULT_THEME
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

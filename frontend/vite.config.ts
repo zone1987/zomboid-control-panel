@@ -2,8 +2,27 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+/** Vite's dev server 404s on the base path without its trailing slash. */
+function redirectBareBasePath() {
+  return {
+    name: 'redirect-bare-base-path',
+    configureServer(server: { middlewares: { use: (fn: unknown) => void } }) {
+      server.middlewares.use((req: { url?: string }, res: { writeHead: (c: number, h: object) => void; end: () => void }, next: () => void) => {
+        if (req.url === '/app') {
+          res.writeHead(301, { Location: '/app/' })
+          res.end()
+
+          return
+        }
+
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), redirectBareBasePath()],
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,

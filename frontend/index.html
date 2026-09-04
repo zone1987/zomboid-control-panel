@@ -1,10 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="de" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="color-scheme" content="dark light" />
+    <title>ZomboidControl</title>
+    <script>
+      // Applied before the app mounts, otherwise a light frame flashes
+      // between first paint and React setting the class.
+      (function () {
+        try {
+          var stored = localStorage.getItem('zomboidcontrol.theme')
+          var dark =
+            stored === 'dark' ||
+            (stored === null && true) ||
+            (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('dark', dark)
+        } catch (error) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
