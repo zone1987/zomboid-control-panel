@@ -149,7 +149,7 @@ final class SettingsController extends AbstractController
     #[Route('/mail/deliverability', name: 'api_settings_deliverability', methods: ['GET'])]
     public function deliverability(\App\Mail\DeliverabilityChecker $checker): JsonResponse
     {
-        return new JsonResponse($checker->check());
+        return new JsonResponse($checker->check($this->settings));
     }
 
     #[Route('/steam/test', name: 'api_settings_test_steam', methods: ['POST'])]

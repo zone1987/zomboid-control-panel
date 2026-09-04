@@ -35,6 +35,9 @@ export default defineConfig({
     // same bundle locally that the container image ships.
     outDir: '../backend/public/app',
     emptyOutDir: true,
+    // Pages are split per route; what remains is React, the router and
+    // i18n, which every screen needs anyway.
+    chunkSizeWarningLimit: 600,
   },
   server: {
     host: '0.0.0.0',

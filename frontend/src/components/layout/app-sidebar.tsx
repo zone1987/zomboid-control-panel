@@ -143,10 +143,23 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton disabled tooltip={t('nav.comingSoon')}>
-                  <Users />
-                  <span>{t('nav.players')}</span>
-                </SidebarMenuButton>
+                {activeServer === undefined ? (
+                  <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                    <Users />
+                    <span>{t('nav.players')}</span>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(`/servers/${activeServer.id}/players`)}
+                    tooltip={t('nav.players')}
+                  >
+                    <Link to={`/servers/${activeServer.id}/players`}>
+                      <Users />
+                      <span>{t('nav.players')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
 
               <SidebarMenuItem>

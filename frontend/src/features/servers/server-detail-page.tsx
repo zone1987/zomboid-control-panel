@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Upload } from 'lucide-react'
+import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Upload, Users } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -195,6 +195,14 @@ export function ServerDetailPage() {
           {server.description && <p className="text-muted-foreground">{server.description}</p>}
         </div>
 
+        <div className="flex shrink-0 items-center gap-2">
+        <Button variant="outline" size="sm" asChild>
+          <Link to={`/servers/${id}/players`}>
+            <Users className="size-4" />
+            {t('nav.players')}
+          </Link>
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -208,6 +216,7 @@ export function ServerDetailPage() {
         >
           <Trash2 className="size-4" />
         </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="ftp">

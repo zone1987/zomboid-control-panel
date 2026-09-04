@@ -42,6 +42,29 @@ export function testSteamKey(): Promise<{ status: string; sample?: string }> {
   })
 }
 
+export type DeliverabilityStatus = 'ok' | 'warning' | 'missing'
+
+export type DeliverabilityCheck = {
+  id: 'spf' | 'dkim' | 'dmarc'
+  status: DeliverabilityStatus
+  reason: string
+  found: string | null
+  recordName: string | null
+  suggestedValue: string | null
+}
+
+export type DeliverabilityReport = {
+  domain: string | null
+  senderAddress: string | null
+  mailHost: string | null
+  verdict: 'good' | 'partial' | 'atRisk' | 'noSender'
+  checks: DeliverabilityCheck[]
+}
+
+export function checkDeliverability(): Promise<DeliverabilityReport> {
+  return apiFetch<DeliverabilityReport>('/settings/mail/deliverability')
+}
+
 export function testMail(recipient?: string): Promise<{ status: string; recipient: string }> {
   return apiFetch('/settings/mail/test', { method: 'POST', body: { recipient } })
 }

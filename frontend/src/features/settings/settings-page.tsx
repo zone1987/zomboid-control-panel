@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { CredentialField } from './credential-field'
+import { DeliverabilityCard } from './deliverability-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -293,6 +294,8 @@ export function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+
+          <DeliverabilityCard />
         </TabsContent>
 
       </Tabs>

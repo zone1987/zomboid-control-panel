@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
   revokeInvitation,
   type AssignableRole,
 } from './invitations'
+import { AccountList } from './account-list'
 
 export function UsersPage() {
   const { t, i18n } = useTranslation()
@@ -84,7 +86,7 @@ export function UsersPage() {
     )
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{t('nav.users')}</h1>
@@ -97,6 +99,18 @@ export function UsersPage() {
         </Button>
       </div>
 
+      <Tabs defaultValue="accounts">
+        <TabsList>
+          <TabsTrigger value="accounts">{t('users.accountsTab')}</TabsTrigger>
+          <TabsTrigger value="invitations">{t('users.invitationsTab')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="accounts" className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t('users.accountsHint')}</p>
+          <AccountList />
+        </TabsContent>
+
+        <TabsContent value="invitations">
       <Card>
         <CardHeader>
           <CardTitle>{t('users.invitations')}</CardTitle>
@@ -158,6 +172,8 @@ export function UsersPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={inviting} onOpenChange={(open) => !open && setInviting(false)}>
         <DialogContent>
@@ -187,7 +203,7 @@ export function UsersPage() {
                     checked={roles.includes(role)}
                     onCheckedChange={() => toggleRole(role)}
                   />
-                  <span>{t(`users.role_${role}`)}</span>
+                  <span>{t(`users.role.${role}`)}</span>
                 </label>
               ))}
             </fieldset>

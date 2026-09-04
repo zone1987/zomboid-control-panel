@@ -2,36 +2,45 @@ import { createBrowserRouter } from 'react-router'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginPage } from '@/features/auth/login-page'
-import { ForgotPasswordPage } from '@/features/auth/forgot-password-page'
-import { ResetPasswordPage } from '@/features/auth/reset-password-page'
-import { AcceptInvitationPage } from '@/features/users/accept-invitation-page'
-import { UsersPage } from '@/features/users/users-page'
-import { SetupPage } from '@/features/setup/setup-page'
-import { DashboardPage } from '@/features/dashboard/dashboard-page'
-import { ProfilePage } from '@/features/profile/profile-page'
-import { SettingsPage } from '@/features/settings/settings-page'
-import { ServerListPage } from '@/features/servers/server-list-page'
-import { ServerDetailPage } from '@/features/servers/server-detail-page'
-import { HealthProbePage } from '@/features/dashboard/health-probe-page'
 import { RequireAnonymous, RequireAuth, RequireRole, SetupGate } from './guards'
 
+// Only the sign-in screen ships in the first bundle; everything behind it
+// is fetched when the route is first visited.
 export const router = createBrowserRouter(
   [
     {
       element: <SetupGate />,
       children: [
-        { path: 'setup', element: <SetupPage /> },
+        {
+          path: 'setup',
+          lazy: async () => ({ Component: (await import('@/features/setup/setup-page')).SetupPage }),
+        },
         {
           element: <RequireAnonymous />,
           children: [
             { path: 'login', element: <LoginPage /> },
-            { path: 'forgot-password', element: <ForgotPasswordPage /> },
+            {
+              path: 'forgot-password',
+              lazy: async () => ({
+                Component: (await import('@/features/auth/forgot-password-page')).ForgotPasswordPage,
+              }),
+            },
           ],
         },
         // Reachable while signed in too: a link from a mail should work
         // regardless of who happens to be logged in on that browser.
-        { path: 'reset-password/:token', element: <ResetPasswordPage /> },
-        { path: 'invitation/:token', element: <AcceptInvitationPage /> },
+        {
+          path: 'reset-password/:token',
+          lazy: async () => ({
+            Component: (await import('@/features/auth/reset-password-page')).ResetPasswordPage,
+          }),
+        },
+        {
+          path: 'invitation/:token',
+          lazy: async () => ({
+            Component: (await import('@/features/users/accept-invitation-page')).AcceptInvitationPage,
+          }),
+        },
         {
           element: <RequireAuth />,
           children: [
@@ -39,23 +48,65 @@ export const router = createBrowserRouter(
               path: '/',
               element: <AppLayout />,
               children: [
-                { index: true, element: <DashboardPage /> },
-                { path: 'profile', element: <ProfilePage /> },
+                {
+                  index: true,
+                  lazy: async () => ({
+                    Component: (await import('@/features/dashboard/dashboard-page')).DashboardPage,
+                  }),
+                },
+                {
+                  path: 'profile',
+                  lazy: async () => ({
+                    Component: (await import('@/features/profile/profile-page')).ProfilePage,
+                  }),
+                },
                 {
                   element: <RequireRole role="ROLE_SERVER_ADMIN" />,
                   children: [
-                    { path: 'servers', element: <ServerListPage /> },
-                    { path: 'servers/:id', element: <ServerDetailPage /> },
+                    {
+                      path: 'servers',
+                      lazy: async () => ({
+                        Component: (await import('@/features/servers/server-list-page')).ServerListPage,
+                      }),
+                    },
+                    {
+                      path: 'servers/:id',
+                      lazy: async () => ({
+                        Component: (await import('@/features/servers/server-detail-page'))
+                          .ServerDetailPage,
+                      }),
+                    },
+                    {
+                      path: 'servers/:id/players',
+                      lazy: async () => ({
+                        Component: (await import('@/features/players/players-page')).PlayersPage,
+                      }),
+                    },
                   ],
                 },
                 {
                   element: <RequireRole role="ROLE_ADMIN" />,
                   children: [
-                    { path: 'settings', element: <SettingsPage /> },
-                    { path: 'users', element: <UsersPage /> },
+                    {
+                      path: 'settings',
+                      lazy: async () => ({
+                        Component: (await import('@/features/settings/settings-page')).SettingsPage,
+                      }),
+                    },
+                    {
+                      path: 'users',
+                      lazy: async () => ({
+                        Component: (await import('@/features/users/users-page')).UsersPage,
+                      }),
+                    },
                   ],
                 },
-                { path: 'health', element: <HealthProbePage /> },
+                {
+                  path: 'health',
+                  lazy: async () => ({
+                    Component: (await import('@/features/dashboard/health-probe-page')).HealthProbePage,
+                  }),
+                },
               ],
             },
           ],
