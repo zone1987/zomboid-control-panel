@@ -30,10 +30,17 @@ local SAFEHOUSES_FILE = "ZomboidControl/safehouses.json"
 -- checked on every tick -- reading a size and a name per player is
 -- cheap -- and the file is written the moment it differs.
 --
--- Intervals are counted in real seconds rather than ticks. A dedicated
--- server's tick rate follows its own frame rate, so it varies with load
--- and hardware: the same counter measured 10 ticks per second on an
--- empty server and 5 with a player on it. Seconds do not drift.
+-- Intervals are counted in real seconds rather than ticks. GameServer
+-- compiles in FPS = 10 and holds it with a 100 ms limiter, but that is a
+-- ceiling rather than a rate: under load a cycle takes longer and OnTick
+-- fires less often. Measured on a live server, 10 per second while empty
+-- and 5 with a player on it.
+--
+-- getTimestamp wraps System.currentTimeMillis, so it is wall-clock time,
+-- unaffected by tick rate, pause or the sandbox day length. Note that
+-- getGametimeTimestamp is in-game time despite the similar name, and the
+-- Every* events hang off the same in-game clock -- neither is usable for
+-- a real-time interval.
 local SECONDS_BETWEEN_FULL_WRITES = 3
 local SECONDS_BETWEEN_SLOW_WRITES = 60
 

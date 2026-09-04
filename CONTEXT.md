@@ -144,17 +144,35 @@ Confirmed present and used by the bridge:
   exist, and `IsInfected()` capitalised is a different method.
 - `getPerkList()` → `PerkInfo` with `.perk:getId()` and `:getLevel()`
 - `getCharacterTraits():getKnownTraits()` → list with `:getName()`
-- `getTimestamp()` exists; `os.time()` is also available
-- `Events.OnTick` fires on a dedicated server. Tick rate could not be
-  established; the bridge counts 600 ticks, which took about a minute in
-  practice, not the ten seconds assumed.
+- `getTimestamp()` wraps `System.currentTimeMillis() / 1000` — real wall-clock
+  seconds. `getTimestampMs()` and `getTimeInMillis()` are the same thing in
+  milliseconds. **`getGametimeTimestamp()` is in-game time despite the name.**
+- `Events.OnTick` fires on a dedicated server, but **not at a fixed rate**.
+  `GameServer` compiles in `FPS = 10` and holds it with a 100 ms
+  `UpdateLimit`, which is a ceiling: under load a cycle takes longer and the
+  event fires less often. Measured live: 10/s on an empty server, 5/s with one
+  player. There is no server option for it — `ServerFramerate`, `UPS` and
+  `MaxFramerate` do not exist in `ServerOptions`.
+  **Never count ticks for a real-time interval; compare `getTimestamp()`.**
 
 Hard limits:
 
 - **No server-side chat event.** `OnAddMessage` is client-only. Chat must be
   read from the engine's `_chat.txt` log and sent via RCON `servermsg`.
 - **No HTTP, no sockets in Lua.** The file bridge is mandatory.
-- **`EveryTenMinutes`/`EveryHours` do not exist** in this build.
+- **The `Every*` events run on in-game time, not real time.** `EveryOneMinute`
+  fires when a game minute passes, which depends on the sandbox day length and
+  stops entirely while the server is paused. `EveryTenMinutes`, `EveryHours`
+  and `EveryDays` do exist and do fire server-side (`GameTime.update()`), but
+  none of them is usable as a real-time timer.
+- **No server-side join or leave event.** `OnPlayerConnect` and
+  `OnPlayerDisconnect` do not exist; `OnConnected` and `OnDisconnect` are
+  client-only. The bridge compares the roster on every tick instead and writes
+  the moment it differs.
+- **`getMaxPlayers()` needs an argument on a server.** Its documented
+  zero-argument form is client-side, and calling it bare throws "Not enough
+  arguments", which took the whole file down with it. Read `getServerOptions()`
+  instead.
 - **RCON replies are free text**, not JSON.
 - **No RCON command lists bans** — only `banuser`/`unbanuser`. The panel keeps
   its own record, which is why `moderation_action` exists.
