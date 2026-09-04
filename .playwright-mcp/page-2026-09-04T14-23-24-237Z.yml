@@ -1,0 +1,18 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e7]:
+    - generic [ref=f2e8]:
+      - generic [ref=f2e9]: Ersteinrichtung
+      - generic [ref=f2e10]: Lege das erste Administratorkonto an. Danach ist dieser Assistent gesperrt.
+    - generic [ref=f2e12]:
+      - generic [ref=f2e13]:
+        - generic [ref=f2e14]: Anzeigename
+        - textbox "Anzeigename" [ref=f2e15]: Andreas
+      - generic [ref=f2e16]:
+        - generic [ref=f2e17]: E-Mail-Adresse
+        - textbox "E-Mail-Adresse" [ref=f2e18]: a.gerhardt@forty-four.de
+      - generic [ref=f2e19]:
+        - generic [ref=f2e20]: Passwort
+        - textbox "Passwort" [active] [invalid] [ref=f2e21]: kurz
+        - paragraph [ref=f2e23]: Das Passwort muss mindestens 12 Zeichen lang sein.
+      - button "Konto anlegen" [ref=f2e22]
+  - region "Notifications alt+T"

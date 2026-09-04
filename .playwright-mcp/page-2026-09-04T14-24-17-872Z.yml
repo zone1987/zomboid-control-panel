@@ -1,0 +1,21 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e66]:
+    - banner [ref=f2e67]:
+      - generic [ref=f2e68]: ZomboidControl
+      - generic [ref=f2e69]:
+        - combobox "Sprache" [ref=f2e70]:
+          - option "DE" [selected]
+          - option "EN"
+        - button "Toggle theme" [ref=f2e71]
+    - main [ref=f2e72]:
+      - generic [ref=f2e73]:
+        - generic [ref=f2e74]:
+          - heading "Übersicht" [level=1] [ref=f2e75]
+          - paragraph [ref=f2e76]: Noch kein Server eingerichtet.
+        - generic [ref=f2e77]:
+          - generic [ref=f2e78]:
+            - generic [ref=f2e79]: Backend connectivity
+            - generic [ref=f2e80]: Confirms the SPA reaches the Symfony API through the dev proxy.
+          - link "Check API" [ref=f2e82] [cursor=pointer]:
+            - /url: /app/health
+  - region "Notifications alt+T"

@@ -85,5 +85,12 @@
     "network": "Der Server ist nicht erreichbar.",
     "forbidden": "Dafür fehlt dir die Berechtigung.",
     "notFound": "Nicht gefunden."
+  },
+  "validation": {
+    "displayNameTooShort": "Bitte gib mindestens 2 Zeichen ein.",
+    "displayNameTooLong": "Höchstens 100 Zeichen.",
+    "emailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "passwordTooShort": "Das Passwort muss mindestens 12 Zeichen lang sein.",
+    "passwordRequired": "Bitte gib dein Passwort ein."
   }
 }

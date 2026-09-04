@@ -1,0 +1,21 @@
+- generic [ref=e2]:
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: Ersteinrichtung
+      - generic [ref=e28]: Lege das erste Administratorkonto an. Danach ist dieser Assistent gesperrt.
+    - generic [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]: Anzeigename
+        - textbox "Anzeigename" [active] [ref=e33]
+      - generic [ref=e34]:
+        - generic [ref=e35]: E-Mail-Adresse
+        - textbox "E-Mail-Adresse" [ref=e36]
+      - generic [ref=e37]:
+        - generic [ref=e38]: Passwort
+        - textbox "Passwort" [ref=e39]
+      - button "Konto anlegen" [ref=e40]
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e41]:
+        - button "Close toast" [ref=e42] [cursor=pointer]
+        - generic [ref=e50]: Konto anlegen

@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router/dom'
 
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/features/auth/auth-context'
 import { router } from '@/routes/router'
 
 const queryClient = new QueryClient({
@@ -25,8 +26,10 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <RouterProvider router={router} />
-        <Toaster richColors closeButton />
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster richColors closeButton />
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )
