@@ -30,7 +30,14 @@
     "twoFactorHint": "Enter the six-digit code from your authenticator app.",
     "useBackupCode": "Use a recovery code",
     "invalidCode": "That code is invalid or has expired.",
-    "passkeyFailed": "Signing in with a passkey failed."
+    "passkeyFailed": "Signing in with a passkey failed.",
+    "steamNotLinked": "This Steam account is not linked to anyone. Sign in another way first, then link it in your profile.",
+    "googleNotLinked": "This Google account is not linked to anyone. Sign in another way first, then link it in your profile.",
+    "steamUnreachable": "Steam was unreachable. Please try again in a few minutes.",
+    "steamInvalidResponse": "The response from Steam was not valid.",
+    "identityTaken": "That account is already linked to someone else.",
+    "providerFailed": "Signing in failed.",
+    "steamRejected": "Steam did not confirm this sign-in."
   },
   "setup": {
     "title": "First-run setup",
@@ -102,7 +109,14 @@
     "backupCodesWarning": "Keep them somewhere safe. They cannot be retrieved later, only replaced.",
     "backupCodesRemaining": "{{count}} recovery codes left.",
     "regenerateBackupCodes": "Generate new codes",
-    "confirmWithPassword": "Please confirm with your password."
+    "confirmWithPassword": "Please confirm with your password.",
+    "linkedAccountsHint": "Sign in through these services as well.",
+    "notLinked": "Not linked",
+    "linkedSince": "Linked",
+    "link": "Link",
+    "unlink": "Unlink",
+    "linkedSuccessfully": "Account linked.",
+    "lastSignInMethod": "That is your only way to sign in. Add a password or a passkey first."
   },
   "errors": {
     "generic": "Something went wrong.",

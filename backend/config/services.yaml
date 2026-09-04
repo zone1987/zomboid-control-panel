@@ -29,3 +29,7 @@ services:
     App\Security\Encryption\EncryptedTypeConfigurator:
         tags:
             - { name: doctrine.middleware }
+
+    App\Security\OAuth\SteamProfileFetcher:
+        arguments:
+            $apiKey: '%env(STEAM_WEB_API_KEY)%'

@@ -5,10 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/features/auth/auth-context'
 import { PasskeyManager } from './passkey-manager'
 import { TwoFactorCard } from './two-factor-card'
+import { LinkedAccountsCard } from './linked-accounts-card'
+import { useRedirectNotice } from '@/features/auth/use-redirect-notice'
 
 export function ProfilePage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+
+  useRedirectNotice()
 
   if (!user) {
     return null
@@ -35,6 +39,8 @@ export function ProfilePage() {
       <TwoFactorCard />
 
       <PasskeyManager />
+
+      <LinkedAccountsCard />
     </div>
   )
 }

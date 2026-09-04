@@ -30,7 +30,14 @@
     "twoFactorHint": "Gib den sechsstelligen Code aus deiner Authenticator-App ein.",
     "useBackupCode": "Wiederherstellungscode verwenden",
     "invalidCode": "Der Code ist ungültig oder abgelaufen.",
-    "passkeyFailed": "Die Anmeldung mit Passkey ist fehlgeschlagen."
+    "passkeyFailed": "Die Anmeldung mit Passkey ist fehlgeschlagen.",
+    "steamNotLinked": "Dieses Steam-Konto ist mit keinem Zugang verknüpft. Melde dich zuerst anders an und verknüpfe es in deinem Profil.",
+    "googleNotLinked": "Dieses Google-Konto ist mit keinem Zugang verknüpft. Melde dich zuerst anders an und verknüpfe es in deinem Profil.",
+    "steamUnreachable": "Steam war gerade nicht erreichbar. Bitte versuche es in ein paar Minuten erneut.",
+    "steamInvalidResponse": "Die Antwort von Steam war ungültig.",
+    "identityTaken": "Dieses Konto ist bereits mit einem anderen Zugang verknüpft.",
+    "providerFailed": "Die Anmeldung ist fehlgeschlagen.",
+    "steamRejected": "Steam hat diese Anmeldung nicht bestätigt."
   },
   "setup": {
     "title": "Ersteinrichtung",
@@ -102,7 +109,14 @@
     "backupCodesWarning": "Bewahre sie an einem sicheren Ort auf. Später sind sie nicht mehr abrufbar — nur ersetzbar.",
     "backupCodesRemaining": "Noch {{count}} Wiederherstellungscodes übrig.",
     "regenerateBackupCodes": "Neue Codes erzeugen",
-    "confirmWithPassword": "Bitte bestätige mit deinem Passwort."
+    "confirmWithPassword": "Bitte bestätige mit deinem Passwort.",
+    "linkedAccountsHint": "Melde dich künftig auch über diese Dienste an.",
+    "notLinked": "Nicht verknüpft",
+    "linkedSince": "Verknüpft",
+    "link": "Verknüpfen",
+    "unlink": "Trennen",
+    "linkedSuccessfully": "Konto erfolgreich verknüpft.",
+    "lastSignInMethod": "Das ist deine einzige Anmeldemöglichkeit. Lege zuerst ein Passwort oder einen Passkey an."
   },
   "errors": {
     "generic": "Es ist ein Fehler aufgetreten.",

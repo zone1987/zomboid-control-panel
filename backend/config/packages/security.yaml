@@ -50,6 +50,10 @@ security:
                 registration:
                     enabled: false
 
+            custom_authenticators:
+                - App\Security\OAuth\GoogleAuthenticator
+                - App\Security\OAuth\SteamAuthenticator
+
             entry_point: App\Security\Http\ApiEntryPoint
 
             logout:
@@ -61,6 +65,8 @@ security:
         - { path: ^/api/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/session$, roles: PUBLIC_ACCESS }
         - { path: ^/api/passkeys/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/connect/(google|steam)$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/connect/(google|steam)/check$, roles: PUBLIC_ACCESS }
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS }
         - { path: ^/api/invitations/accept, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }

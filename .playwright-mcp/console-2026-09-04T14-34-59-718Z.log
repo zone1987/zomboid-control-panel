@@ -15,3 +15,10 @@
 [  900906ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
 [  902962ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://zomboidcontrol.ddev.site:5173/app/profile:0
 [  904586ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://zomboidcontrol.ddev.site:5173/api/two-factor:0
+[ 1076128ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://zomboidcontrol.ddev.site:5173/api/session:0
+[ 1388257ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 1464742ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 1479277ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 1492956ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 1535909ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335
+[ 1546773ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=de5b8c8a:14335

@@ -73,6 +73,11 @@ class OAuthIdentity
         return $this->providerLabel;
     }
 
+    public function setProviderLabel(?string $providerLabel): void
+    {
+        $this->providerLabel = $providerLabel;
+    }
+
     public function getLinkedAt(): \DateTimeImmutable
     {
         return $this->linkedAt;

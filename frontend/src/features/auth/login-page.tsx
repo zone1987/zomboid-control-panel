@@ -25,6 +25,7 @@ import { useAuth } from './auth-context'
 import { browserSupportsWebAuthn, isUserCancellation, signInWithPasskey } from './passkeys'
 import { TwoFactorPrompt } from './two-factor-prompt'
 import { GoogleIcon, SteamIcon } from './provider-icons'
+import { useRedirectNotice } from './use-redirect-notice'
 
 const schema = z.object({
   email: z.string().email('validation.emailInvalid'),
@@ -43,6 +44,8 @@ export function LoginPage() {
   useEffect(() => {
     setPasskeysSupported(browserSupportsWebAuthn())
   }, [])
+
+  useRedirectNotice()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
