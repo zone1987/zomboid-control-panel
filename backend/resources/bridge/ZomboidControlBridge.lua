@@ -15,7 +15,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.4.0"
+local BRIDGE_VERSION = "0.5.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -29,11 +29,16 @@ local SAFEHOUSES_FILE = "ZomboidControl/safehouses.json"
 -- and OnDisconnect fire in the client only. The roster is therefore
 -- checked on every tick -- reading a size and a name per player is
 -- cheap -- and the file is written the moment it differs.
-local TICKS_BETWEEN_FULL_WRITES = 180
-local TICKS_BETWEEN_SLOW_WRITES = 3600
+--
+-- Intervals are counted in real seconds rather than ticks. A dedicated
+-- server's tick rate follows its own frame rate, so it varies with load
+-- and hardware: the same counter measured 10 ticks per second on an
+-- empty server and 5 with a player on it. Seconds do not drift.
+local SECONDS_BETWEEN_FULL_WRITES = 3
+local SECONDS_BETWEEN_SLOW_WRITES = 60
 
-local ticksSincePlayers = 0
-local ticksSinceSlow = 0
+local lastPlayerWrite = 0
+local lastSlowWrite = 0
 local lastRoster = ""
 
 local function escape(text)
@@ -184,6 +189,31 @@ local function writePlayers(players)
     ))
 end
 
+--- Every way of asking, in order, stopping at the first that answers.
+local function readMaxPlayers()
+    local options = getServerOptions()
+
+    if options == nil then
+        return nil
+    end
+
+    local attempts = {
+        function() return options:getInteger("MaxPlayers") end,
+        function() return tonumber(options:getOption("MaxPlayers")) end,
+        function() return options:getMaxPlayers() end,
+    }
+
+    for _, ask in ipairs(attempts) do
+        local ok, value = pcall(ask)
+
+        if ok and type(value) == "number" then
+            return value
+        end
+    end
+
+    return nil
+end
+
 local function writeServerInfo()
     local time = getGameTime()
     local climate = getClimateManager()
@@ -193,30 +223,42 @@ local function writeServerInfo()
         string.format("\"generatedAt\":%d", getTimestamp()),
     }
 
+    -- Each block is attempted on its own: one method that turns out to
+    -- need an argument on the server should cost its own field, not the
+    -- whole file.
     if time ~= nil then
-        table.insert(parts, string.format(
-            "\"gameTime\":{\"year\":%d,\"month\":%d,\"day\":%d,\"hour\":%d,\"minute\":%d,\"daysSurvived\":%d}",
-            time:getYear(), time:getMonth(), time:getDay(),
-            time:getHour(), time:getMinutes(), time:getDaysSurvived()
-        ))
+        local ok, value = pcall(function()
+            return string.format(
+                "\"gameTime\":{\"year\":%d,\"month\":%d,\"day\":%d,\"hour\":%d,\"minute\":%d,\"daysSurvived\":%d}",
+                time:getYear(), time:getMonth(), time:getDay(),
+                time:getHour(), time:getMinutes(), time:getDaysSurvived()
+            )
+        end)
+
+        if ok then table.insert(parts, value) end
     end
 
     if climate ~= nil then
-        table.insert(parts, string.format(
-            "\"weather\":{\"temperature\":%.1f,\"raining\":%s,\"snowing\":%s,\"windSpeed\":%.1f,\"season\":\"%s\"}",
-            climate:getTemperature(),
-            tostring(climate:isRaining()),
-            tostring(climate:isSnowing()),
-            climate:getWindspeedKph(),
-            escape(climate:getSeasonName())
-        ))
+        local ok, value = pcall(function()
+            return string.format(
+                "\"weather\":{\"temperature\":%.1f,\"raining\":%s,\"snowing\":%s,\"windSpeed\":%.1f,\"season\":\"%s\"}",
+                climate:getTemperature(),
+                tostring(climate:isRaining()),
+                tostring(climate:isSnowing()),
+                climate:getWindspeedKph(),
+                escape(climate:getSeasonName())
+            )
+        end)
+
+        if ok then table.insert(parts, value) end
     end
 
-    -- getMaxPlayers is a bare global; ServerOptions:getMaxPlayers() is
-    -- listed in the API but has no callsite anywhere in the game's own
-    -- Lua, so the documented form is the safer one. The game itself
-    -- wraps it in tonumber, which suggests it is not always a number.
-    local maxPlayers = tonumber(getMaxPlayers())
+    -- The bare global getMaxPlayers() takes an argument on the server and
+    -- throws "Not enough arguments" without one -- its documented
+    -- zero-argument form is client-side. The options table is read
+    -- instead, and each candidate is tried separately so a failure costs
+    -- one field rather than the whole file.
+    local maxPlayers = readMaxPlayers()
 
     if maxPlayers ~= nil then
         table.insert(parts, string.format("\"maxPlayers\":%d", maxPlayers))
@@ -257,7 +299,10 @@ local function writeSafehouses()
             local house = list:get(i)
 
             if house ~= nil then
-                table.insert(entries, describeSafehouse(house))
+                -- One malformed safehouse should not cost the whole list.
+                local ok, entry = pcall(describeSafehouse, house)
+
+                if ok then table.insert(entries, entry) end
             end
         end
     end
@@ -280,9 +325,7 @@ local function attempt(what, write, ...)
 end
 
 local function onTick()
-    ticksSincePlayers = ticksSincePlayers + 1
-    ticksSinceSlow = ticksSinceSlow + 1
-
+    local now = getTimestamp()
     local players = getOnlinePlayers()
     local roster = rosterOf(players)
 
@@ -290,17 +333,17 @@ local function onTick()
     -- interval, which is the whole point of checking every tick.
     if roster ~= lastRoster then
         lastRoster = roster
-        ticksSincePlayers = 0
+        lastPlayerWrite = now
         attempt("players", writePlayers, players)
-    elseif ticksSincePlayers >= TICKS_BETWEEN_FULL_WRITES then
-        ticksSincePlayers = 0
+    elseif now - lastPlayerWrite >= SECONDS_BETWEEN_FULL_WRITES then
+        lastPlayerWrite = now
         attempt("players", writePlayers, players)
     end
 
     -- Time, weather and safehouses move slowly, and reading them is more
     -- expensive than reading the roster.
-    if ticksSinceSlow >= TICKS_BETWEEN_SLOW_WRITES then
-        ticksSinceSlow = 0
+    if now - lastSlowWrite >= SECONDS_BETWEEN_SLOW_WRITES then
+        lastSlowWrite = now
         attempt("server info", writeServerInfo)
         attempt("safehouses", writeSafehouses)
     end

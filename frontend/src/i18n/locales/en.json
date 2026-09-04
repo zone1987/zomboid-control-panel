@@ -527,5 +527,31 @@
       "map": "Map",
       "items": "Items"
     }
+  },
+  "world": {
+    "date": "Date",
+    "time": "Time",
+    "daysSurvived": "Days survived",
+    "temperature": "Temperature",
+    "conditions": "Conditions",
+    "wind": "Wind",
+    "season": "Season",
+    "raining": "Rain",
+    "snowing": "Snow",
+    "clear": "Clear",
+    "seasonName": {
+      "earlySpring": "Early spring",
+      "spring": "Spring",
+      "lateSpring": "Late spring",
+      "earlySummer": "Early summer",
+      "summer": "Summer",
+      "lateSummer": "Late summer",
+      "earlyAutumn": "Early autumn",
+      "autumn": "Autumn",
+      "lateAutumn": "Late autumn",
+      "earlyWinter": "Early winter",
+      "winter": "Winter",
+      "lateWinter": "Late winter"
+    }
   }
 }

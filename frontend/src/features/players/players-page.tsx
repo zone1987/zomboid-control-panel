@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getServer } from '@/features/servers/servers'
+import { WorldStrip } from '@/features/servers/world-strip'
 import { PlayerTable } from './player-table'
 import { BanList } from './ban-list'
 import { ModerationHistory } from './moderation-history'
@@ -38,7 +39,8 @@ export function PlayersPage() {
           <TabsTrigger value="history">{t('players.historyTab')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="players">
+        <TabsContent value="players" className="space-y-4">
+          <WorldStrip serverId={id} />
           <PlayerTable serverId={id} />
         </TabsContent>
 
