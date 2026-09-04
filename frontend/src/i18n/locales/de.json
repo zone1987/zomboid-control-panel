@@ -27,7 +27,8 @@
     "twoFactorTitle": "Bestätigung in zwei Schritten",
     "twoFactorHint": "Gib den sechsstelligen Code aus deiner Authenticator-App ein.",
     "useBackupCode": "Wiederherstellungscode verwenden",
-    "invalidCode": "Der Code ist ungültig oder abgelaufen."
+    "invalidCode": "Der Code ist ungültig oder abgelaufen.",
+    "passkeyFailed": "Die Anmeldung mit Passkey ist fehlgeschlagen."
   },
   "setup": {
     "title": "Ersteinrichtung",
@@ -78,7 +79,11 @@
     "lastUsed": "Zuletzt verwendet",
     "never": "Noch nie",
     "linkedAccounts": "Verknüpfte Konten",
-    "twoFactor": "Bestätigung in zwei Schritten"
+    "twoFactor": "Bestätigung in zwei Schritten",
+    "noPasskeys": "Noch kein Passkey hinterlegt.",
+    "passkeysUnsupported": "Dieser Browser unterstützt keine Passkeys.",
+    "passkeyRegistrationFailed": "Der Passkey konnte nicht angelegt werden.",
+    "passkeyLastOne": "Das ist dein einziger Zugang. Lege zuerst ein Passwort oder einen weiteren Passkey an."
   },
   "errors": {
     "generic": "Es ist ein Fehler aufgetreten.",

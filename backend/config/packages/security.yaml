@@ -38,17 +38,29 @@ security:
                 failure_handler: App\Security\Http\TwoFactorFailureHandler
                 authentication_required_handler: App\Security\Http\TwoFactorRequiredHandler
 
+            webauthn:
+                user_provider: security.user.provider.concrete.app_users
+                success_handler: App\Security\Webauthn\AuthenticationSuccessHandler
+                failure_handler: App\Security\Webauthn\LoginFailureHandler
+                authentication:
+                    enabled: true
+                    routes:
+                        options_path: /api/passkeys/login/options
+                        result_path: /api/passkeys/login
+                registration:
+                    enabled: false
+
             entry_point: App\Security\Http\ApiEntryPoint
 
             logout:
                 path: api_logout
-                target: /
 
     access_control:
         - { path: ^/api/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/setup, roles: PUBLIC_ACCESS }
         - { path: ^/api/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/session$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/passkeys/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS }
         - { path: ^/api/invitations/accept, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }

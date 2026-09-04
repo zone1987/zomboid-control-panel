@@ -1,0 +1,8 @@
+[     153ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=b4852675:14335
+[   41728ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://zomboidcontrol.ddev.site:5173/app/:0
+[   41729ms] ApiError
+    at apiFetch (https://zomboidcontrol.ddev.site:5173/app/src/lib/api.ts:47:9)
+    at async signOut (https://zomboidcontrol.ddev.site:5173/app/src/features/auth/auth-context.tsx:49:5)
+[   43670ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://zomboidcontrol.ddev.site:5173/api/passkeys/register/options:0
+[   88075ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=b4852675:14335
+[  128005ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ https://zomboidcontrol.ddev.site:5173/app/node_modules/.vite/deps/react-dom_client.js?v=b4852675:14335

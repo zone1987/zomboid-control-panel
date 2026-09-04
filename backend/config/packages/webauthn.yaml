@@ -1,0 +1,26 @@
+webauthn:
+    credential_repository: App\Repository\WebauthnCredentialRepository
+    user_repository: App\Security\Webauthn\UserEntityRepository
+
+    creation_profiles:
+        default:
+            rp:
+                id: '%env(WEBAUTHN_RELYING_PARTY_ID)%'
+            authenticator_selection_criteria:
+                user_verification: preferred
+                resident_key: preferred
+
+    request_profiles:
+        default:
+            rp_id: '%env(WEBAUTHN_RELYING_PARTY_ID)%'
+            user_verification: preferred
+
+    controllers:
+        enabled: true
+        creation:
+            profile:
+                options_path: /api/passkeys/register/options
+                result_path: /api/passkeys/register
+                user_entity_guesser: Webauthn\Bundle\Security\Guesser\CurrentUserEntityGuesser
+                success_handler: App\Security\Webauthn\RegistrationSuccessHandler
+                failure_handler: App\Security\Webauthn\AuthenticationFailureHandler

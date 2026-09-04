@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useAuth } from './auth-context'
+import { browserSupportsWebAuthn, isUserCancellation, signInWithPasskey } from './passkeys'
 import { TwoFactorPrompt } from './two-factor-prompt'
 import { GoogleIcon, SteamIcon } from './provider-icons'
 
@@ -35,8 +36,13 @@ type FormValues = z.infer<typeof schema>
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { signIn, refresh } = useAuth()
   const [twoFactorPending, setTwoFactorPending] = useState(false)
+  const [passkeysSupported, setPasskeysSupported] = useState(false)
+
+  useEffect(() => {
+    setPasskeysSupported(browserSupportsWebAuthn())
+  }, [])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -58,6 +64,21 @@ export function LoginPage() {
       const key = error instanceof ApiError ? extractErrorKey(error) : 'errors.generic'
       toast.error(t(key))
       form.setValue('password', '')
+    },
+  })
+
+  const passkeyLogin = useMutation({
+    mutationFn: () => signInWithPasskey(form.getValues('email') || undefined),
+    onSuccess: async () => {
+      await refresh()
+      void navigate('/', { replace: true })
+    },
+    onError: (error) => {
+      if (isUserCancellation(error)) {
+        return
+      }
+
+      toast.error(t('auth.passkeyFailed'))
     },
   })
 
@@ -117,9 +138,14 @@ export function LoginPage() {
           </div>
 
           <div className="grid gap-2">
-            <Button variant="outline" className="w-full" disabled>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={!passkeysSupported || passkeyLogin.isPending}
+              onClick={() => passkeyLogin.mutate()}
+            >
               <KeyRound className="size-4" />
-              {t('auth.signInWithPasskey')}
+              {passkeyLogin.isPending ? t('common.loading') : t('auth.signInWithPasskey')}
             </Button>
 
             <Button variant="outline" className="w-full" asChild>
