@@ -44,17 +44,17 @@ appears only when a render exists.
 0.0 seconds** when the tile is absent. It should notice, render the
 cells behind it and answer with the result.
 
-0.0 seconds means the renderer was never invoked. Most likely causes,
-in order:
+**The cause is confirmed**, checked 2026-09-05:
 
-1. **The paths are host paths, and PHP runs in ddev.**
-   `/private/tmp/...` and the Steam directory do not exist inside the
-   container. This is almost certainly it.
-2. `python3` is not in the web container either.
-3. The env values may not reach the container at all -- check with
-   `ddev exec -d /var/www/html/backend "php bin/console debug:container --env-vars"`.
+    ddev exec "ls <renderer>/main.py"   -> No such file or directory
+    ddev exec "which python3"            -> /usr/bin/python3
 
-**Point 1 is architectural, not a typo.** Think it through before
+Python is in the container. The renderer and the game files are not:
+they live on the host, and PHP runs in ddev. `TileRenderer::isAvailable()`
+therefore returns false and the endpoint falls through to 404 without
+ever trying.
+
+**This is architectural, not a typo.** Think it through before
 patching: the panel container cannot render, because rendering needs a
 full game installation with the client texture packs. Options are a
 sidecar container with the game files mounted, a small render service
