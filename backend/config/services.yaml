@@ -25,3 +25,7 @@ services:
     App\Security\Encryption\CredentialCipher:
         arguments:
             $hexKey: '%env(CREDENTIALS_ENCRYPTION_KEY)%'
+
+    App\Security\Encryption\EncryptedTypeConfigurator:
+        tags:
+            - { name: doctrine.middleware }
