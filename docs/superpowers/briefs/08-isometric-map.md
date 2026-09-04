@@ -29,6 +29,43 @@ Xiang) from a game installation.
 The panel side is already built -- see "What is already done" -- so
 what is missing is the tiles and nothing else.
 
+### Why not simply use projectzomboidmap.com's tiles
+
+Investigated 2026-09-05, because the operator asked. The answer is no,
+and the reasons are worth keeping.
+
+**It is not pzmap.org.** Separate site, separate DNS, separate tile
+host, its own Vite bundle. What they share is the tool: both render
+with pzmap2dzi. It runs OpenSeadragon 6.1.0, one DZI per floor, and
+its coordinate formula is character for character the one this panel
+already implements.
+
+**The tiles are reachable** at
+`tiles.projectzomboidmap.com/maps/b42.20.2-r1/base/layer<N>_files/<level>/<col>_<row>.<ext>`
+with no token and no referer check. Floor 0 is jpg, the rest webp --
+the same split pzmap2dzi produces.
+
+**But CORS is allowlisted to their own domain.** `vary: Origin`, echoed
+only for `https://projectzomboidmap.com`. An `<img>` loads, but the
+canvas is tainted, which blocks exactly what a panel needs. That is a
+deliberate boundary, not an oversight.
+
+Three more reasons, each sufficient on its own:
+
+- **No terms, no imprint, no contact.** `/terms/`, `/legal/`,
+  `/impressum/`, `/api/` all 404. There is nobody to ask.
+- **They could not grant it anyway.** The tiles are renderings of The
+  Indie Stone's assets, and the operator says himself he has no rights
+  from them.
+- **The path carries a version stamp** (`b42.20.2-r1`). It changes with
+  the next map update, and a panel shipped to other people would break
+  for all of them at once.
+
+One thing worth borrowing, though: they publish a `tiles_manifest.json`
+recording which tile ranges are actually occupied, so empty regions are
+never requested -- and, by implication, never rendered. That is the
+lever on the storage problem.
+
 ### What it costs, from the project's own measurements
 
 Measured on a Ryzen 7 5700G, 16 threads:

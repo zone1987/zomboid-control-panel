@@ -23,6 +23,14 @@ enum BridgeCommand: string
     case SetSafehouseRespawn = 'setSafehouseRespawn';
 
     /**
+     * What is actually on the ground around a point, right now.
+     *
+     * The one thing rendered tiles can never show: they are a picture of
+     * the world as it shipped, and this is the world as it is.
+     */
+    case ReadSurroundings = 'readSurroundings';
+
+    /**
      * The climate values the game keeps, by their index.
      *
      * Taken from ClimateManager in build 42. The panel offers them by
@@ -69,7 +77,44 @@ enum BridgeCommand: string
                 'title' => self::text($arguments, 'title'),
                 'enabled' => (bool) ($arguments['enabled'] ?? false),
             ],
+            self::ReadSurroundings => self::surroundings($arguments),
         };
+    }
+
+    /**
+     * Where to look, and how far.
+     *
+     * The radius is capped hard: every square is an iteration inside the
+     * server's own loop, and a radius of 20 is already 1600 of them.
+     * Nobody should be able to ask for a whole cell by typing a bigger
+     * number.
+     *
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, scalar>
+     */
+    public const MAX_RADIUS = 20;
+
+    /**
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, scalar>
+     */
+    private static function surroundings(array $arguments): array
+    {
+        $radius = ['radius' => self::number($arguments, 'radius', 1, self::MAX_RADIUS)];
+
+        // Around a player, or around a point on the map.
+        if (isset($arguments['x'], $arguments['y'])) {
+            return [
+                ...$radius,
+                'x' => self::number($arguments, 'x', 0, 20000),
+                'y' => self::number($arguments, 'y', 0, 20000),
+                'z' => isset($arguments['z']) ? self::number($arguments, 'z', -1, 7) : 0,
+            ];
+        }
+
+        return [...$radius, 'player' => self::text($arguments, 'player')];
     }
 
     /** @param array<string, mixed> $arguments */
