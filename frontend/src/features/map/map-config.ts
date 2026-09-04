@@ -132,14 +132,29 @@ export const ISOMETRIC_DEFAULTS: MapGeometry = {
  */
 export const BUILD_42_FLOORS = { min: -32, max: 31 } as const
 
-/** Places worth jumping to, in world coordinates. */
+/**
+ * Places worth jumping to.
+ *
+ * Taken from the game's own map.info files -- every start area records
+ * a zoomX and zoomY, which is where the game centres when it shows that
+ * town. More accurate than any list written by hand.
+ *
+ * Louisville has no start area of its own, so its coordinate is the
+ * centre of the city rather than a value the game supplies.
+ */
 export const QUICK_TARGETS = [
-  { id: 'muldraugh', x: 10778, y: 9770 },
-  { id: 'westPoint', x: 11800, y: 6900 },
-  { id: 'riverside', x: 6500, y: 5300 },
-  { id: 'rosewood', x: 8000, y: 11800 },
-  { id: 'marchRidge', x: 10100, y: 12800 },
+  { id: 'muldraugh', x: 11181, y: 9725 },
+  { id: 'westPoint', x: 11581, y: 6916 },
+  { id: 'riverside', x: 6300, y: 5668 },
+  { id: 'rosewood', x: 8446, y: 11556 },
+  { id: 'marchRidge', x: 9921, y: 12603 },
   { id: 'louisville', x: 12800, y: 2000 },
+  { id: 'valleyStation', x: 13056, y: 6031 },
+  { id: 'echoCreek', x: 4235, y: 11069 },
+  { id: 'brandenburg', x: 2314, y: 6253 },
+  { id: 'irvington', x: 2729, y: 13797 },
+  { id: 'ekron', x: 1020, y: 9838 },
+  { id: 'fallasLake', x: 7348, y: 8371 },
 ] as const
 
 /** The world's own bounds, which no view may leave. */

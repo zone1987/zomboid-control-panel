@@ -522,7 +522,13 @@
       "riverside": "Riverside",
       "rosewood": "Rosewood",
       "marchRidge": "March Ridge",
-      "louisville": "Louisville"
+      "louisville": "Louisville",
+      "valleyStation": "Valley Station",
+      "echoCreek": "Echo Creek",
+      "brandenburg": "Brandenburg",
+      "irvington": "Irvington",
+      "ekron": "Ekron",
+      "fallasLake": "Fallas Lake"
     },
     "teleported": "Spieler teleportiert."
   },

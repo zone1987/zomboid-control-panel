@@ -70,6 +70,14 @@ services:
             # the same reason as the icons: it is game content.
             $directory: '%kernel.project_dir%/var/map/isometric'
 
+    App\Server\Map\TileRenderer:
+        arguments:
+            # Both optional: an operator without pzmap2dzi and a full
+            # game installation simply cannot render, and the panel says
+            # so rather than failing at the first missing tile.
+            $rendererPath: '%env(default::PZMAP_RENDERER_PATH)%'
+            $gamePath: '%env(default::PZ_GAME_PATH)%'
+
     App\Settings\SupportedLanguages:
         arguments:
             # Derived from the interface's own translation files, so a new

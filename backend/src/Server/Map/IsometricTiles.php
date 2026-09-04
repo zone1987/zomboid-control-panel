@@ -89,6 +89,56 @@ final readonly class IsometricTiles
         ];
     }
 
+    /**
+     * The tile size the render declares.
+     *
+     * Read from a .dzi rather than assumed: pzmap2dzi writes 1024, but
+     * that is configurable and a render made elsewhere may differ.
+     */
+    public function tileSize(): ?int
+    {
+        $descriptor = $this->firstDescriptor();
+
+        if ($descriptor === null) {
+            return null;
+        }
+
+        return preg_match('/TileSize="(\d+)"/', $descriptor, $matches) === 1
+            ? (int) $matches[1]
+            : null;
+    }
+
+    /**
+     * The deepest level in the pyramid.
+     *
+     * Deep Zoom numbers levels so the deepest is ceil(log2(longest
+     * side)) -- the level at which the image needs no scaling down.
+     */
+    public function deepestLevel(): ?int
+    {
+        $geometry = $this->geometry();
+        $size = $this->tileSize();
+
+        if ($geometry === null || $size === null || $geometry['width'] < 1) {
+            return null;
+        }
+
+        return (int) ceil(log(max($geometry['width'], $geometry['height']), 2));
+    }
+
+    private function firstDescriptor(): ?string
+    {
+        foreach (glob($this->directory.'/layer*.dzi') ?: [] as $path) {
+            $contents = @file_get_contents($path);
+
+            if ($contents !== false) {
+                return $contents;
+            }
+        }
+
+        return null;
+    }
+
     /** @return array<string, mixed>|null */
     public function info(): ?array
     {
