@@ -24,6 +24,7 @@ export type BridgeStatus = {
   playerCount: number
   generatedAt: string
   version: string | null
+  expectedVersion: string
   stale: boolean
 }
 

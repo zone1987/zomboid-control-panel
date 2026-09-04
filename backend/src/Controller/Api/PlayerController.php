@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Repository\ModerationActionRepository;
 use App\Repository\PlayerSnapshotRepository;
+use App\Server\Bridge\BridgeInstaller;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use App\Server\Players\PlayerModerator;
@@ -35,6 +36,7 @@ final class PlayerController extends AbstractController
         private readonly PlayerModerator $moderator,
         private readonly ModerationActionRepository $actions,
         private readonly EntityManagerInterface $entityManager,
+        private readonly BridgeInstaller $bridgeInstaller,
     ) {
     }
 
@@ -68,6 +70,9 @@ final class PlayerController extends AbstractController
                 'playerCount' => $status['playerCount'],
                 'generatedAt' => $status['generatedAt']->format(\DateTimeInterface::ATOM),
                 'version' => $status['bridgeVersion'],
+                // What the panel ships, so the interface can say when the
+                // server is running something older than the fields it reads.
+                'expectedVersion' => $this->bridgeInstaller->version(),
                 'stale' => $status['stale'],
             ],
             'error' => $error,

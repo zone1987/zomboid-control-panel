@@ -456,6 +456,8 @@
       "ban": "Ban",
       "unban": "Unban",
       "access_level": "Access level"
-    }
+    },
+    "bridgeOutdated": "The server is running an older bridge",
+    "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards."
   }
 }

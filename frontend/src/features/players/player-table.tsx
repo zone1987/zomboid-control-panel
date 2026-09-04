@@ -145,6 +145,18 @@ export function PlayerTable({ serverId }: { serverId: string }) {
         </Alert>
       )}
 
+      {bridge && bridge.version !== null && bridge.version !== bridge.expectedVersion && (
+        <Alert>
+          <AlertTitle>{t('players.bridgeOutdated')}</AlertTitle>
+          <AlertDescription>
+            {t('players.bridgeOutdatedHint', {
+              installed: bridge.version,
+              expected: bridge.expectedVersion,
+            })}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {bridge?.stale && (
         <Alert>
           <AlertTitle>{t('players.bridgeStale')}</AlertTitle>

@@ -456,6 +456,8 @@
       "ban": "Bann",
       "unban": "Entbannt",
       "access_level": "Zugriffsstufe"
-    }
+    },
+    "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
+    "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu."
   }
 }
