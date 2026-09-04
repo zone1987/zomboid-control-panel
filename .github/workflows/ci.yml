@@ -39,7 +39,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo_pgsql, intl, zip, sodium
+          extensions: pdo_pgsql, intl, zip, sodium, ftp, curl, mbstring
           coverage: none
 
       - name: Install dependencies
@@ -109,7 +109,67 @@ jobs:
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
+      # Built and proven to start before it is pushed: a broken image that
+      # only fails at deploy time is the expensive kind.
       - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: zomboidcontrol:candidate
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the image against a database
+        run: |
+          docker network create ci-net
+          docker run -d --name ci-db --network ci-net \
+            -e POSTGRES_DB=zomboid -e POSTGRES_USER=zomboid \
+            -e POSTGRES_PASSWORD=ci-password \
+            postgres:17-alpine
+          docker run -d --name ci-app --network ci-net -p 8099:80 \
+            -e APP_SECRET=0123456789abcdef0123456789abcdef \
+            -e CREDENTIALS_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+            -e "DATABASE_URL=postgresql://zomboid:ci-password@ci-db:5432/zomboid?serverVersion=17&charset=utf8" \
+            -e MESSENGER_TRANSPORT_DSN='doctrine://default?auto_setup=0' \
+            -e APP_PUBLIC_URL=http://localhost:8099 \
+            -e WEBAUTHN_RELYING_PARTY_ID=localhost \
+            zomboidcontrol:candidate
+
+      - name: Wait for the container to report healthy
+        run: |
+          for i in $(seq 1 40); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' ci-app 2>/dev/null || echo missing)
+            [ "$status" = "healthy" ] && exit 0
+            [ "$status" = "unhealthy" ] && break
+            sleep 3
+          done
+          echo "::error::The image did not become healthy."
+          docker logs ci-app
+          exit 1
+
+      - name: Check that the API and the interface answer
+        run: |
+          set -e
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/api/health)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/app/)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/app/servers)" = 200
+          curl -s http://localhost:8099/api/health | grep -q '"database":"ok"'
+          # Every supervised process must be RUNNING; a crash loop would
+          # otherwise pass unnoticed behind a healthy HTTP response.
+          docker exec ci-app supervisorctl status > procs.txt
+          cat procs.txt
+          total=$(grep -c . procs.txt)
+          running=$(grep -c RUNNING procs.txt)
+          test "$total" -eq "$running"
+          test "$total" -ge 4
+
+      - name: Report container logs when something failed
+        if: failure()
+        run: docker logs ci-app
+
+      - name: Push the image that was proven to start
+        uses: docker/build-push-action@v6
         with:
           context: .
           target: runtime
@@ -117,4 +177,3 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max

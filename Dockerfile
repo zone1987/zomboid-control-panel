@@ -17,9 +17,14 @@ RUN mkdir -p /backend/public && npm run build
 
 FROM php:8.4-fpm-bookworm AS vendor
 
+# ftp, sodium, curl and mbstring are hard requirements of the lock file;
+# without them composer install refuses to resolve.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip libpq-dev libzip-dev libicu-dev \
-    && docker-php-ext-install -j"$(nproc)" pdo_pgsql zip intl \
+    && apt-get install -y --no-install-recommends \
+        git unzip libpq-dev libzip-dev libicu-dev libsodium-dev \
+        libcurl4-openssl-dev libxml2-dev libonig-dev \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_pgsql zip intl ftp sodium curl mbstring xml fileinfo \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -46,7 +51,7 @@ ENV APP_ENV=prod \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         apache2 libapache2-mod-fcgid supervisor \
-        libpq5 libzip4 libicu72 libsodium23 \
+        libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
@@ -58,13 +63,20 @@ RUN a2enmod proxy proxy_fcgi rewrite headers setenvif \
     && rm -f /etc/apache2/sites-enabled/000-default.conf
 
 COPY docker/php.ini /usr/local/etc/php/conf.d/99-app.ini
-COPY docker/php-fpm-pools.conf /usr/local/etc/php-fpm.d/zz-app.conf
+COPY docker/php-fpm-pools.conf /usr/local/etc/php-fpm.d/zzz-app.conf
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/app.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/app.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 
+# The base image ships an empty [www] pool for backwards compatibility;
+# FPM refuses to start over a pool with no user, so it goes.
 RUN a2ensite app \
     && rm -f /usr/local/etc/php-fpm.d/www.conf \
+                /usr/local/etc/php-fpm.d/www.conf.default \
+                /usr/local/etc/php-fpm.d/zz-docker.conf \
+                /usr/local/etc/php-fpm.d/docker.conf \
+    && mkdir -p /var/run/apache2 /var/lock/apache2 /var/log/apache2 \
+    && chown -R www-data:www-data /var/run/apache2 /var/lock/apache2 \
     && chmod +x /usr/local/bin/entrypoint
 
 WORKDIR /app
