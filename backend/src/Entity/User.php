@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use App\Security\TwoFactor\BackupCodeGenerator;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -245,7 +246,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     public function isBackupCode(string $code): bool
     {
         foreach ($this->backupCodes as $hash) {
-            if (\password_verify($code, $hash)) {
+            if (self::backupCodeMatches($code, $hash)) {
                 return true;
             }
         }
@@ -253,11 +254,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         return false;
     }
 
+    /**
+     * Codes issued before the move to SHA-256 are bcrypt, and stay valid
+     * until the set is replaced.
+     */
+    private static function backupCodeMatches(string $code, string $hash): bool
+    {
+        if (str_starts_with($hash, 'sha256:')) {
+            return hash_equals($hash, BackupCodeGenerator::hash($code));
+        }
+
+        return \password_verify(BackupCodeGenerator::normalise($code), $hash)
+            || \password_verify($code, $hash);
+    }
+
     public function invalidateBackupCode(string $code): void
     {
         $this->backupCodes = \array_values(\array_filter(
             $this->backupCodes,
-            static fn (string $hash): bool => !\password_verify($code, $hash),
+            static fn (string $hash): bool => !self::backupCodeMatches($code, $hash),
         ));
     }
 }
