@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronDown, Lock } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,16 +69,24 @@ export function CredentialField({
         )}
       </div>
 
-      <Input
-        id={id}
-        type={state?.secret ? 'password' : 'text'}
-        autoComplete="off"
-        value={value}
-        placeholder={
-          state?.secret && state.configured ? t('settings.unchangedPlaceholder') : placeholder
-        }
-        onChange={(event) => onChange(event.target.value)}
-      />
+      {state?.secret ? (
+        <PasswordInput
+          id={id}
+          autoComplete="off"
+          value={value}
+          placeholder={state.configured ? t('settings.unchangedPlaceholder') : placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      ) : (
+        <Input
+          id={id}
+          type="text"
+          autoComplete="off"
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
 
       {state?.fromEnvironment && !showInstructions && (
         <p className="text-xs text-muted-foreground">{t('settings.environmentHint')}</p>

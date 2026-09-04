@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { FullPageSpinner } from '@/components/full-page-spinner'
@@ -101,7 +101,7 @@ export function ResetPasswordPage() {
                   <FormItem>
                     <FormLabel>{t('auth.newPassword')}</FormLabel>
                     <FormControl>
-                      <Input type="password" autoComplete="new-password" autoFocus {...field} />
+                      <PasswordInput autoComplete="new-password" autoFocus {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -7,7 +7,7 @@ import { ShieldCheck, ShieldOff } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -175,9 +175,8 @@ function PasswordPromptDialog({
 
         <div className="space-y-2">
           <Label htmlFor="confirm-password">{t('auth.password')}</Label>
-          <Input
+          <PasswordInput
             id="confirm-password"
-            type="password"
             autoComplete="current-password"
             autoFocus
             value={password}

@@ -8,6 +8,7 @@ import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Upload } from 'lucide-re
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -287,9 +288,8 @@ export function ServerDetailPage() {
                     </Badge>
                   )}
                 </div>
-                <Input
+                <PasswordInput
                   id="ftp-password"
-                  type="password"
                   autoComplete="new-password"
                   placeholder={server.ftp?.hasPassword ? t('settings.unchangedPlaceholder') : ''}
                   value={String(ftpField('password', ''))}
@@ -386,9 +386,8 @@ export function ServerDetailPage() {
                     </Badge>
                   )}
                 </div>
-                <Input
+                <PasswordInput
                   id="rcon-password"
-                  type="password"
                   autoComplete="new-password"
                   placeholder={server.rcon?.hasPassword ? t('settings.unchangedPlaceholder') : ''}
                   value={String(draft.rcon?.password ?? '')}

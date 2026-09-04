@@ -83,16 +83,27 @@ final readonly class PasswordResetService
         $link = rtrim($this->publicUrl, '/').'/app/reset-password/'.$token;
 
         try {
+            $ignore = 'If this was not you, nothing has changed and you can ignore this message.';
+
             $this->mailer->send(
                 new Email()
                     ->to($user->getEmail())
                     ->subject('Reset your ZomboidControl password')
                     ->text(sprintf(
                         "A password reset was requested for your account.\n\n%s\n\n"
-                        ."The link expires in one hour. If this was not you, nothing has changed "
-                        ."and you can ignore this message.\n",
+                        ."The link expires in one hour. %s\n",
                         $link,
-                    )),
+                        $ignore,
+                    ))
+                    ->html($this->mailer->render('mail/password-reset.html.twig', [
+                        'subject' => 'Reset your ZomboidControl password',
+                        'heading' => 'Reset your password',
+                        'intro' => 'Someone asked to reset the password for your account. The link expires in one hour.',
+                        'action' => 'Choose a new password',
+                        'link' => $link,
+                        'fallbackHint' => 'If the button does not work, copy this address into your browser:',
+                        'ignoreHint' => $ignore,
+                    ])),
             );
         } catch (\Throwable $exception) {
             $this->logger->error('Password reset mail could not be sent.', ['exception' => $exception]);

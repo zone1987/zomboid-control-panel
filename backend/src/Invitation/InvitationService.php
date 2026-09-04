@@ -110,10 +110,22 @@ final readonly class InvitationService
 
         $link = rtrim($this->publicUrl, '/').'/app/invitation/'.$token;
 
+        $heading = $invitedBy === null
+            ? 'You have been invited'
+            : sprintf('%s invited you', $invitedBy->getDisplayName());
+
         $email = new Email()
             ->to($invitation->getEmail())
-            ->subject('You have been invited to ZomboidControl')
+            ->subject('Your invitation to ZomboidControl')
             ->text($this->body($link, $invitedBy))
+            ->html($this->mailer->render('mail/invitation.html.twig', [
+                'subject' => 'Your invitation to ZomboidControl',
+                'heading' => $heading,
+                'intro' => 'Open the link below to choose a password and sign in. It expires in seven days.',
+                'action' => 'Create your account',
+                'link' => $link,
+                'fallbackHint' => 'If the button does not work, copy this address into your browser:',
+            ]))
         ;
 
         try {

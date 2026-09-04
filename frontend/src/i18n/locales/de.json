@@ -12,7 +12,9 @@
     "close": "Schließen",
     "required": "Pflichtfeld",
     "copy": "Kopieren",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen"
   },
   "auth": {
     "signIn": "Anmelden",

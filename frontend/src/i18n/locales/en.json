@@ -12,7 +12,9 @@
     "close": "Close",
     "required": "Required",
     "copy": "Copy",
-    "download": "Download"
+    "download": "Download",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "auth": {
     "signIn": "Sign in",

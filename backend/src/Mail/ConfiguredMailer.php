@@ -11,6 +11,7 @@ use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Twig\Environment;
 
 /**
  * Sends through the SMTP account configured in the interface.
@@ -20,8 +21,10 @@ use Symfony\Component\Mime\Email;
  */
 final class ConfiguredMailer
 {
-    public function __construct(private readonly SettingsProvider $settings)
-    {
+    public function __construct(
+        private readonly SettingsProvider $settings,
+        private readonly Environment $twig,
+    ) {
     }
 
     public const ENCRYPTION_MODES = ['tls', 'ssl', 'none'];
@@ -101,6 +104,11 @@ final class ConfiguredMailer
 
         $email->from($this->sender());
 
+        // A plain-text-only body from an unfamiliar domain is a spam
+        // signal in itself; so is a message with no stated origin.
+        $email->getHeaders()->addTextHeader('X-Mailer', 'ZomboidControl');
+        $email->getHeaders()->addTextHeader('X-Auto-Response-Suppress', 'All');
+
         new Mailer(Transport::fromDsn($dsn))->send($email);
     }
 
@@ -113,13 +121,31 @@ final class ConfiguredMailer
      */
     public function sendTestMessage(string $recipient): void
     {
+        $intro = 'If you are reading this, outgoing mail from your panel works.';
+
         $this->send(
             new Email()
                 ->to($recipient)
-                ->subject('ZomboidControl test message')
-                ->text("This is a test message from ZomboidControl.\n\n"
-                    ."If you are reading it, outgoing mail works.\n"),
+                ->subject('Your ZomboidControl mail settings work')
+                ->text($intro."\n")
+                ->html($this->render('mail/test.html.twig', [
+                    'subject' => 'Your ZomboidControl mail settings work',
+                    'heading' => 'Mail is working',
+                    'intro' => $intro,
+                ])),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function render(string $template, array $context): string
+    {
+        return $this->twig->render($template, [
+            'appName' => $this->settings->get(AppSetting::MAIL_FROM_NAME) ?? 'ZomboidControl',
+            'footer' => 'You are receiving this because someone administers a Project Zomboid server with ZomboidControl.',
+            ...$context,
+        ]);
     }
 
     public function sender(): Address
