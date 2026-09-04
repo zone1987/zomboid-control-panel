@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/features/auth/auth-context'
 import { PasskeyManager } from './passkey-manager'
+import { TwoFactorCard } from './two-factor-card'
 
 export function ProfilePage() {
   const { t } = useTranslation()
@@ -30,6 +31,8 @@ export function ProfilePage() {
           ))}
         </CardContent>
       </Card>
+
+      <TwoFactorCard />
 
       <PasskeyManager />
     </div>

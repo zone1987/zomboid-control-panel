@@ -10,7 +10,9 @@
     "loading": "Wird geladen …",
     "search": "Suchen",
     "close": "Schließen",
-    "required": "Pflichtfeld"
+    "required": "Pflichtfeld",
+    "copy": "Kopieren",
+    "download": "Herunterladen"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -83,7 +85,24 @@
     "noPasskeys": "Noch kein Passkey hinterlegt.",
     "passkeysUnsupported": "Dieser Browser unterstützt keine Passkeys.",
     "passkeyRegistrationFailed": "Der Passkey konnte nicht angelegt werden.",
-    "passkeyLastOne": "Das ist dein einziger Zugang. Lege zuerst ein Passwort oder einen weiteren Passkey an."
+    "passkeyLastOne": "Das ist dein einziger Zugang. Lege zuerst ein Passwort oder einen weiteren Passkey an.",
+    "twoFactorHint": "Ein zusätzlicher Code aus deiner Authenticator-App beim Anmelden.",
+    "twoFactorOn": "Aktiv",
+    "twoFactorOff": "Inaktiv",
+    "twoFactorEnable": "Einrichten",
+    "twoFactorDisable": "Deaktivieren",
+    "twoFactorDisabled": "Die Bestätigung in zwei Schritten wurde deaktiviert.",
+    "twoFactorSetupTitle": "Authenticator einrichten",
+    "twoFactorSetupHint": "Scanne den Code mit deiner Authenticator-App und gib anschließend die sechs angezeigten Ziffern ein.",
+    "twoFactorQrAlt": "QR-Code für die Authenticator-App",
+    "twoFactorManualEntry": "Oder diesen Schlüssel von Hand eintragen:",
+    "backupCodesTitle": "Wiederherstellungscodes",
+    "backupCodesHint": "Mit diesen Codes kommst du auch ohne dein Gerät hinein. Jeder Code funktioniert genau einmal.",
+    "backupCodesShownOnce": "Diese Codes werden nur jetzt angezeigt.",
+    "backupCodesWarning": "Bewahre sie an einem sicheren Ort auf. Später sind sie nicht mehr abrufbar — nur ersetzbar.",
+    "backupCodesRemaining": "Noch {{count}} Wiederherstellungscodes übrig.",
+    "regenerateBackupCodes": "Neue Codes erzeugen",
+    "confirmWithPassword": "Bitte bestätige mit deinem Passwort."
   },
   "errors": {
     "generic": "Es ist ein Fehler aufgetreten.",

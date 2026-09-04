@@ -10,7 +10,9 @@
     "loading": "Loading …",
     "search": "Search",
     "close": "Close",
-    "required": "Required"
+    "required": "Required",
+    "copy": "Copy",
+    "download": "Download"
   },
   "auth": {
     "signIn": "Sign in",
@@ -83,7 +85,24 @@
     "noPasskeys": "No passkey registered yet.",
     "passkeysUnsupported": "This browser does not support passkeys.",
     "passkeyRegistrationFailed": "The passkey could not be created.",
-    "passkeyLastOne": "That is your only way in. Add a password or another passkey first."
+    "passkeyLastOne": "That is your only way in. Add a password or another passkey first.",
+    "twoFactorHint": "An additional code from your authenticator app when signing in.",
+    "twoFactorOn": "On",
+    "twoFactorOff": "Off",
+    "twoFactorEnable": "Set up",
+    "twoFactorDisable": "Turn off",
+    "twoFactorDisabled": "Two-step verification is now off.",
+    "twoFactorSetupTitle": "Set up your authenticator",
+    "twoFactorSetupHint": "Scan the code with your authenticator app, then enter the six digits it shows.",
+    "twoFactorQrAlt": "QR code for the authenticator app",
+    "twoFactorManualEntry": "Or enter this key by hand:",
+    "backupCodesTitle": "Recovery codes",
+    "backupCodesHint": "These let you in without your device. Each code works exactly once.",
+    "backupCodesShownOnce": "These codes are shown only now.",
+    "backupCodesWarning": "Keep them somewhere safe. They cannot be retrieved later, only replaced.",
+    "backupCodesRemaining": "{{count}} recovery codes left.",
+    "regenerateBackupCodes": "Generate new codes",
+    "confirmWithPassword": "Please confirm with your password."
   },
   "errors": {
     "generic": "Something went wrong.",
