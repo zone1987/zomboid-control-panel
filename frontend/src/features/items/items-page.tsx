@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { LayoutGrid, List, Package, PackagePlus, Search, Trash2, Users, X } from 'lucide-react'
@@ -38,7 +38,9 @@ export function ItemsPage() {
   const [needle, setNeedle] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [selection, setSelection] = useState<Record<string, number>>({})
-  const [player, setPlayer] = useState<string | null>(null)
+  // Arriving from a player's context menu picks them straight away.
+  const [search] = useSearchParams()
+  const [player, setPlayer] = useState<string | null>(search.get('player'))
   const [visible, setVisible] = useState(PAGE_SIZE)
   const sentinel = useRef<HTMLDivElement>(null)
 

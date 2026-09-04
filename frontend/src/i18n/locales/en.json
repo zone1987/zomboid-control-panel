@@ -472,7 +472,16 @@
     },
     "bridgeOutdated": "The server is running an older bridge",
     "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards.",
-    "survivalTime": "Time survived"
+    "survivalTime": "Time survived",
+    "giveItems": "Give items",
+    "teleport": "Teleport",
+    "teleportTitle": "Teleport {{username}}",
+    "teleportDescription": "The player is moved to another player at once.",
+    "teleportTarget": "Destination player",
+    "teleportChoose": "Choose a player",
+    "teleportNoOthers": "Nobody else is online to teleport to.",
+    "teleportCoordinatesNote": "Project Zomboid has no RCON command that puts a named player at coordinates — “teleportto” always moves whoever typed it, and RCON has nobody. Only player-to-player is possible.",
+    "teleported": "Player teleported."
   },
   "console": {
     "title": "RCON console",

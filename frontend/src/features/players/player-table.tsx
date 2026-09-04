@@ -2,7 +2,18 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Ban as BanIcon, Biohazard, Heart, LogOut, MoreHorizontal, Shield, Users } from 'lucide-react'
+import {
+  Ban as BanIcon,
+  Biohazard,
+  Heart,
+  LogOut,
+  MapPin,
+  MoreHorizontal,
+  PackagePlus,
+  Shield,
+  Users,
+} from 'lucide-react'
+import { useNavigate } from 'react-router'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -28,12 +39,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { PlayerDetail } from './player-detail'
 import { BanDialog } from './ban-dialog'
+import { TeleportDialog } from './teleport-dialog'
 import {
   ACCESS_LEVELS,
   banPlayer,
   kickPlayer,
   listPlayers,
   setAccessLevel,
+  teleportPlayer,
   type AccessLevel,
   type Player,
 } from './players'
@@ -43,7 +56,9 @@ export function PlayerTable({ serverId }: { serverId: string }) {
   const queryClient = useQueryClient()
   const [onlineOnly, setOnlineOnly] = useState(false)
   const [banning, setBanning] = useState<Player | null>(null)
+  const [teleporting, setTeleporting] = useState<Player | null>(null)
   const [inspecting, setInspecting] = useState<Player | null>(null)
+  const navigate = useNavigate()
 
   const { data, isPending } = useQuery({
     queryKey: ['players', serverId, onlineOnly],
@@ -98,6 +113,12 @@ export function PlayerTable({ serverId }: { serverId: string }) {
     mutationFn: (input: { username: string; level: AccessLevel }) =>
       setAccessLevel(serverId, input.username, input.level),
     ...report('players.accessLevelChanged'),
+  })
+
+  const teleport = useMutation({
+    mutationFn: (input: { username: string; target: string }) =>
+      teleportPlayer(serverId, input.username, input.target),
+    ...report('players.teleported'),
   })
 
   if (isPending) {
@@ -249,6 +270,30 @@ export function PlayerTable({ serverId }: { serverId: string }) {
 
                         <DropdownMenuSeparator />
 
+                        {/* Both need somebody actually in the world to
+                            act on, so neither is offered while offline. */}
+                        <DropdownMenuItem
+                          disabled={!player.online}
+                          onSelect={() =>
+                            void navigate(
+                              `/servers/${serverId}/items?player=${encodeURIComponent(player.username)}`,
+                            )
+                          }
+                        >
+                          <PackagePlus className="size-4" />
+                          {t('players.giveItems')}
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          disabled={!player.online}
+                          onSelect={() => setTeleporting(player)}
+                        >
+                          <MapPin className="size-4" />
+                          {t('players.teleport')}
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
                         <DropdownMenuSub>
                           <DropdownMenuSubTrigger>
                             <Shield className="size-4" />
@@ -293,6 +338,20 @@ export function PlayerTable({ serverId }: { serverId: string }) {
           onConfirm={(options) => {
             ban.mutate({ username: banning.username, ...options })
             setBanning(null)
+          }}
+        />
+      )}
+
+      {teleporting && (
+        <TeleportDialog
+          player={teleporting}
+          players={players}
+          open
+          pending={teleport.isPending}
+          onOpenChange={(open) => !open && setTeleporting(null)}
+          onConfirm={(target) => {
+            teleport.mutate({ username: teleporting.username, target })
+            setTeleporting(null)
           }}
         />
       )}

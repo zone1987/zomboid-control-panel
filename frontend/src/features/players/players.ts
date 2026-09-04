@@ -90,6 +90,13 @@ export function unbanPlayer(serverId: string, username: string) {
   )
 }
 
+export function teleportPlayer(serverId: string, username: string, target: string) {
+  return apiFetch<{ status: string; reply: string }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/teleport`,
+    { method: 'POST', body: { target } },
+  )
+}
+
 export function setAccessLevel(serverId: string, username: string, level: AccessLevel) {
   return apiFetch<{ status: string; reply: string }>(
     `/servers/${serverId}/players/${encodeURIComponent(username)}/access-level`,

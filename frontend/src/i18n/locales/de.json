@@ -472,7 +472,16 @@
     },
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
     "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu.",
-    "survivalTime": "Überlebenszeit"
+    "survivalTime": "Überlebenszeit",
+    "giveItems": "Items geben",
+    "teleport": "Teleportieren",
+    "teleportTitle": "{{username}} teleportieren",
+    "teleportDescription": "Der Spieler wird sofort zu einem anderen Spieler versetzt.",
+    "teleportTarget": "Zielspieler",
+    "teleportChoose": "Spieler wählen",
+    "teleportNoOthers": "Es ist niemand sonst online, zu dem teleportiert werden könnte.",
+    "teleportCoordinatesNote": "Project Zomboid kennt über RCON keinen Befehl, der einen bestimmten Spieler an Koordinaten setzt — „teleportto“ versetzt immer den Aufrufer, den es bei RCON nicht gibt. Deshalb ist nur „zu einem Spieler“ möglich.",
+    "teleported": "Spieler teleportiert."
   },
   "console": {
     "title": "RCON-Konsole",

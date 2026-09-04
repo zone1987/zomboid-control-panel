@@ -34,6 +34,9 @@ class ModerationAction
     /** Items placed into a player's inventory. */
     public const ITEMS = 'items';
 
+    /** A player moved somewhere else. */
+    public const TELEPORT = 'teleport';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

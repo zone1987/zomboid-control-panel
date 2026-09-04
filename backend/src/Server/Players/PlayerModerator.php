@@ -52,6 +52,22 @@ final readonly class PlayerModerator
         return $this->run($server, sprintf('unbanuser "%s"', $this->sanitise($username)));
     }
 
+    /**
+     * Moves one player to another. RCON has no command that puts a named
+     * player at coordinates -- "teleportto" moves the caller, and RCON
+     * has no caller, so it answers "Error".
+     *
+     * @throws RconException
+     */
+    public function teleportToPlayer(GameServer $server, string $username, string $target): string
+    {
+        return $this->run($server, sprintf(
+            'teleportplayer "%s" "%s"',
+            $this->sanitise($username),
+            $this->sanitise($target),
+        ));
+    }
+
     public function setAccessLevel(GameServer $server, string $username, string $level): string
     {
         if (!\in_array($level, self::ACCESS_LEVELS, true)) {

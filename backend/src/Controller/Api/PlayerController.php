@@ -220,6 +220,28 @@ final class PlayerController extends AbstractController
         ]);
     }
 
+    #[Route('/{username}/teleport', name: 'api_players_teleport', methods: ['POST'])]
+    public function teleport(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
+    {
+        $target = $this->payloadOf($request)['target'] ?? null;
+
+        if (!\is_string($target) || trim($target) === '') {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['target' => 'validation.required'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->moderate(
+            $serverId,
+            fn (GameServer $server): string => $this->moderator->teleportToPlayer($server, $username, $target),
+            ModerationAction::TELEPORT,
+            $username,
+            $actor,
+            $target,
+        );
+    }
+
     #[Route('/{username}/access-level', name: 'api_players_access_level', methods: ['POST'])]
     public function setAccessLevel(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
     {
