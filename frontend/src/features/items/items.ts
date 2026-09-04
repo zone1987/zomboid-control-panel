@@ -56,6 +56,17 @@ export function iconUrl(icon: string): string {
   return `/api/icons/${encodeURIComponent(icon)}.png`
 }
 
+/**
+ * Items with no artwork of their own name their icon "None" or
+ * "default" in the scripts. Asking for those is a request that can only
+ * come back 404, so the placeholder is shown without asking.
+ */
+const NO_ICON = new Set(['none', 'default', ''])
+
+export function hasIcon(item: Item): boolean {
+  return item.icon !== undefined && !NO_ICON.has(item.icon.trim().toLowerCase())
+}
+
 export function iconStatus(): Promise<{ count: number; available: boolean }> {
   return apiFetch('/icons')
 }

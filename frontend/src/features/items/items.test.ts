@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { displayName, matchesSearch, splitSearch, type Item } from './items'
+import { displayName, hasIcon, matchesSearch, splitSearch, type Item } from './items'
 
 const item = (overrides: Partial<Item> & { type: string }): Item => ({ ...overrides })
 
@@ -48,6 +48,25 @@ describe('matchesSearch', () => {
 
   it('searches an item that has no name of its own', () => {
     expect(matchesSearch(item({ type: 'Base.Nails' }), ['nails'])).toBe(true)
+  })
+})
+
+describe('hasIcon', () => {
+  it('accepts an item that names a real icon', () => {
+    expect(hasIcon(item({ type: 'Base.Axe', icon: 'Axe' }))).toBe(true)
+  })
+
+  /** Asking for these can only ever come back 404. */
+  it('refuses the names the scripts use for "no artwork"', () => {
+    expect(hasIcon(item({ type: 'Base.X', icon: 'None' }))).toBe(false)
+    expect(hasIcon(item({ type: 'Base.X', icon: 'default' }))).toBe(false)
+    expect(hasIcon(item({ type: 'Base.X', icon: 'DEFAULT' }))).toBe(false)
+  })
+
+  it('refuses an empty or absent icon name', () => {
+    expect(hasIcon(item({ type: 'Base.X', icon: '' }))).toBe(false)
+    expect(hasIcon(item({ type: 'Base.X', icon: '  ' }))).toBe(false)
+    expect(hasIcon(item({ type: 'Base.X' }))).toBe(false)
   })
 })
 

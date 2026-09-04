@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Package } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { iconUrl, type Item } from './items'
+import { hasIcon, iconUrl, type Item } from './items'
 
 /**
  * The game's own picture for an item, falling back to a placeholder.
@@ -14,7 +14,7 @@ import { iconUrl, type Item } from './items'
 export function ItemIcon({ item, className }: { item: Item; className?: string }) {
   const [failed, setFailed] = useState(false)
 
-  if (item.icon === undefined || item.icon === '' || failed) {
+  if (!hasIcon(item) || failed) {
     return (
       <span
         className={cn(
@@ -29,12 +29,15 @@ export function ItemIcon({ item, className }: { item: Item; className?: string }
 
   return (
     <img
-      src={iconUrl(item.icon)}
+      src={iconUrl(item.icon as string)}
       alt=""
+      // Zomboid icons are at most 32 pixels; giving the browser the size
+      // up front stops the row jumping as pictures arrive.
+      width={32}
+      height={32}
       loading="lazy"
       decoding="async"
-      // Zomboid icons are small and pixel-art; smoothing them turns
-      // sharp edges to mush.
+      // Sharp pixel art: smoothing 32 pixels turns edges to mush.
       className={cn('object-contain [image-rendering:pixelated]', className)}
       onError={() => setFailed(true)}
     />
