@@ -20,7 +20,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.8.0"
+local BRIDGE_VERSION = "0.9.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -754,6 +754,47 @@ end
 --- Each handler returns ok, message, data. A handler confirms its work by
 --- reading the value back where that is safe: a setter that does not
 --- throw has not necessarily done anything.
+
+--- The three encoders the surroundings handler needs.
+---
+--- Written out rather than a generic serialiser: the shapes are fixed
+--- and a generic one would be more code than the three together.
+local function encodeItems(items)
+    local parts = {}
+
+    for fullType, entry in pairs(items) do
+        parts[#parts + 1] = string.format(
+            '{"type":"%s","name":"%s","count":%d,"x":%d,"y":%d}',
+            escape(fullType), escape(entry.name), entry.count, entry.x, entry.y
+        )
+    end
+
+    return "[" .. table.concat(parts, ",") .. "]"
+end
+
+local function encodeContainers(containers)
+    local parts = {}
+
+    for _, entry in ipairs(containers) do
+        parts[#parts + 1] = string.format(
+            '{"x":%d,"y":%d,"type":"%s","count":%d}',
+            entry.x, entry.y, escape(entry.type), entry.count
+        )
+    end
+
+    return "[" .. table.concat(parts, ",") .. "]"
+end
+
+local function encodeRooms(rooms)
+    local parts = {}
+
+    for name, squares in pairs(rooms) do
+        parts[#parts + 1] = string.format('{"name":"%s","squares":%d}', escape(name), squares)
+    end
+
+    return "[" .. table.concat(parts, ",") .. "]"
+end
+
 local handlers = {}
 
 handlers.ping = function()
@@ -920,6 +961,143 @@ handlers.setSafehouseRespawn = function(command)
     end
 
     return false, "no safehouse with that title"
+end
+
+
+--- What is actually on the ground around a point.
+---
+--- The one thing a rendered map can never show: tiles are a picture of
+--- the world as it shipped, this is the world as it is.
+---
+--- Two things to know before reading the result.
+---
+--- getGridSquare returns nil for a square that is not loaded AND for one
+--- that does not exist -- the game gives no way to tell those apart, and
+--- its own code just checks for nil (ClientCommands.lua does exactly
+--- that). So "scanned" counts the squares that were really there, and a
+--- much smaller number than asked for means the area is not loaded.
+---
+--- There is no flag saying a thing was built by a player. The whole
+--- IsoObject and IsoThumpable surface was searched and nothing of the
+--- sort exists, so this reports what is there and does not guess where
+--- it came from.
+handlers.readSurroundings = function(command)
+    local radius = math.floor(tonumber(command.radius) or 8)
+
+    if radius < 1 or radius > 20 then
+        return false, "radius must be between 1 and 20"
+    end
+
+    local centreX, centreY, centreZ
+
+    if command.x ~= nil and command.y ~= nil then
+        centreX = math.floor(tonumber(command.x) or 0)
+        centreY = math.floor(tonumber(command.y) or 0)
+        centreZ = math.floor(tonumber(command.z) or 0)
+    else
+        local player = findPlayer(command.player)
+
+        if player == nil then
+            return false, "needs coordinates or the name of an online player"
+        end
+
+        centreX = math.floor(player:getX())
+        centreY = math.floor(player:getY())
+        centreZ = math.floor(player:getZ())
+    end
+
+    local cell = getCell()
+
+    if cell == nil then
+        return false, "the world is not loaded"
+    end
+
+    local scanned = 0
+    local items = {}
+    local containers = {}
+    local rooms = {}
+    local zombies = 0
+
+    for x = centreX - radius, centreX + radius do
+        for y = centreY - radius, centreY + radius do
+            local square = cell:getGridSquare(x, y, centreZ)
+
+            if square ~= nil then
+                scanned = scanned + 1
+
+                -- getZombieCount is in the API index but the game never
+                -- calls it from Lua anywhere, so it is tried rather than
+                -- trusted: one bad square counts as none rather than
+                -- taking the whole scan down.
+                local ok, counted = pcall(square.getZombieCount, square)
+
+                if ok and type(counted) == "number" then
+                    zombies = zombies + counted
+                end
+
+                local room = square:getRoom()
+
+                if room ~= nil then
+                    local name = room:getName()
+
+                    if name ~= nil and name ~= "" then
+                        rooms[name] = (rooms[name] or 0) + 1
+                    end
+                end
+
+                -- Loose items on the floor.
+                local floor = square:getWorldObjects()
+
+                for i = 0, floor:size() - 1 do
+                    local item = floor:get(i):getItem()
+
+                    if item ~= nil then
+                        local key = item:getFullType()
+                        local entry = items[key]
+
+                        if entry == nil then
+                            items[key] = { count = 1, name = item:getDisplayName(), x = x, y = y }
+                        else
+                            entry.count = entry.count + 1
+                        end
+                    end
+                end
+
+                -- Anything with a container: crates, fridges, shelves.
+                local objects = square:getObjects()
+
+                for i = 0, objects:size() - 1 do
+                    local object = objects:get(i)
+                    local container = object:getContainer()
+
+                    if container ~= nil then
+                        local held = container:getItems()
+
+                        containers[#containers + 1] = {
+                            x = x,
+                            y = y,
+                            type = container:getType() or "container",
+                            count = held ~= nil and held:size() or 0,
+                        }
+                    end
+                end
+            end
+        end
+    end
+
+    local asked = (radius * 2 + 1) * (radius * 2 + 1)
+
+    return true, "read", string.format(
+        '{"centre":{"x":%d,"y":%d,"z":%d},"radius":%d,'
+        .. '"squares":{"asked":%d,"loaded":%d},'
+        .. '"zombies":%d,"items":%s,"containers":%s,"rooms":%s}',
+        centreX, centreY, centreZ, radius,
+        asked, scanned,
+        zombies,
+        encodeItems(items),
+        encodeContainers(containers),
+        encodeRooms(rooms)
+    )
 end
 
 local function runCommand(seq, command)

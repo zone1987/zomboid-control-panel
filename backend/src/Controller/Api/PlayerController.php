@@ -15,6 +15,10 @@ use App\Server\Bridge\BridgeInstaller;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use App\Security\Permission\Permission;
+use App\Server\Bridge\BridgeCommand;
+use App\Server\Bridge\BridgeCommandFailed;
+use App\Server\Bridge\BridgeCommandSender;
+use App\Server\Bridge\InvalidBridgeCommand;
 use App\Server\Players\PlayerModerator;
 use App\Server\Rcon\RconException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,6 +42,7 @@ final class PlayerController extends AbstractController
         private readonly ModerationActionRepository $actions,
         private readonly EntityManagerInterface $entityManager,
         private readonly BridgeInstaller $bridgeInstaller,
+        private readonly BridgeCommandSender $commands,
     ) {
     }
 
@@ -268,6 +273,48 @@ final class PlayerController extends AbstractController
             $actor,
             sprintf('%d,%d,%d', $x, $y, $z),
         );
+    }
+
+    /**
+     * What is on the ground around a player, right now.
+     *
+     * Read through the bridge rather than from the map: the tiles are a
+     * picture of the world as it shipped, and this is what players have
+     * since built, dropped and emptied.
+     */
+    #[Route('/{username}/surroundings', name: 'api_players_surroundings', methods: ['GET'])]
+    public function surroundings(string $serverId, string $username, Request $request): JsonResponse
+    {
+        $server = $this->requireServer($serverId);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $result = $this->commands->send($server, BridgeCommand::ReadSurroundings, [
+                'player' => $username,
+                'radius' => $request->query->getInt('radius', 8),
+            ]);
+        } catch (InvalidBridgeCommand $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'players.invalidRadius',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (BridgeCommandFailed $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse([
+            'ok' => $result->ok,
+            'message' => $result->message,
+            ...($result->data ?? []),
+        ]);
     }
 
     #[Route('/{username}/access-level', name: 'api_players_access_level', methods: ['POST'])]

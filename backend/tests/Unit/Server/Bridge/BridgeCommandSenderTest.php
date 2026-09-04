@@ -171,6 +171,42 @@ final class BridgeCommandSenderTest extends TestCase
         BridgeCommand::PlaySound->validate(['radius' => 50, 'volume' => 50]);
     }
 
+    /** Around a player, or around a point -- never neither. */
+    public function testSurroundingsTakeAPlayerOrAPoint(): void
+    {
+        $atPlayer = BridgeCommand::ReadSurroundings->validate(['player' => 'bob', 'radius' => 8]);
+        self::assertSame('bob', $atPlayer['player']);
+        self::assertArrayNotHasKey('x', $atPlayer);
+
+        $atPoint = BridgeCommand::ReadSurroundings->validate([
+            'x' => 10778, 'y' => 9770, 'radius' => 8,
+        ]);
+        self::assertSame(10778, $atPoint['x']);
+        self::assertArrayNotHasKey('player', $atPoint);
+    }
+
+    /**
+     * Every square is an iteration inside the server's own loop, and a
+     * radius of 20 is already 1681 of them. Nobody gets to ask for a
+     * whole cell by typing a bigger number.
+     */
+    public function testRefusesARadiusThatWouldScanTooMuch(): void
+    {
+        $this->expectException(InvalidBridgeCommand::class);
+
+        BridgeCommand::ReadSurroundings->validate(['player' => 'bob', 'radius' => 200]);
+    }
+
+    public function testAcceptsTheLargestRadiusItAllows(): void
+    {
+        $validated = BridgeCommand::ReadSurroundings->validate([
+            'player' => 'bob',
+            'radius' => BridgeCommand::MAX_RADIUS,
+        ]);
+
+        self::assertSame(BridgeCommand::MAX_RADIUS, $validated['radius']);
+    }
+
     public function testReadsAnAnswerThatIsNotJson(): void
     {
         $this->expectException(BridgeCommandFailed::class);
