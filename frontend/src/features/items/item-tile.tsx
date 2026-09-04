@@ -1,7 +1,8 @@
-import { Minus, Package, Plus } from 'lucide-react'
+import { Minus, Plus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ItemIcon } from './item-icon'
 import { displayName, type Item } from './items'
 
 /**
@@ -33,9 +34,7 @@ export function ItemTile({
         title={item.type}
         onClick={() => onChange(count + 1)}
       >
-        <span className="flex size-10 items-center justify-center rounded bg-muted text-muted-foreground">
-          <Package className="size-5" />
-        </span>
+        <ItemIcon item={item} className="size-10" />
 
         <span className="line-clamp-2 text-xs leading-tight">{name}</span>
       </button>

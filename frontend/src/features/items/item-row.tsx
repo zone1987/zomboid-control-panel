@@ -1,7 +1,8 @@
-import { Minus, Package, Plus } from 'lucide-react'
+import { Minus, Plus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ItemIcon } from './item-icon'
 import { displayName, type Item } from './items'
 
 /** The same item as a row, for when the grid is too coarse to scan. */
@@ -23,9 +24,7 @@ export function ItemRow({
         count > 0 ? 'border-primary bg-primary/5' : 'hover:bg-accent/50',
       )}
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-        <Package className="size-4" />
-      </span>
+      <ItemIcon item={item} className="size-8 shrink-0" />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm">{name}</p>

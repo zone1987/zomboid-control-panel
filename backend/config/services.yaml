@@ -52,6 +52,12 @@ services:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
 
+    App\Server\Items\Icons\IconStore:
+        arguments:
+            # Outside the document root and out of git: the pictures are
+            # The Indie Stone's, extracted from the operator's own copy.
+            $directory: '%kernel.project_dir%/var/icons'
+
     App\Settings\SupportedLanguages:
         arguments:
             # Derived from the interface's own translation files, so a new

@@ -17,3 +17,7 @@
 ###> zomboidcontrol ###
 /public/app/
 ###< zomboidcontrol ###
+
+# Extracted from the operator's own Zomboid installation; the artwork is
+# The Indie Stone's and does not belong in a repository.
+/var/icons/

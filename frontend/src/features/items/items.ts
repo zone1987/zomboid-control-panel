@@ -52,6 +52,14 @@ export function giveItems(
   })
 }
 
+export function iconUrl(icon: string): string {
+  return `/api/icons/${encodeURIComponent(icon)}.png`
+}
+
+export function iconStatus(): Promise<{ count: number; available: boolean }> {
+  return apiFetch('/icons')
+}
+
 /**
  * Matches on the displayed name and on the type, so both "Axe" and
  * "Base.Axe" find the same thing. Words may come in any order, which is
