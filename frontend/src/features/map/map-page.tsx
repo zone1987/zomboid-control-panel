@@ -112,7 +112,9 @@ export function MapPage() {
   }
 
   return (
-    <div className="relative h-[calc(100vh-8rem)] min-h-[30rem] w-full">
+    // Fills whatever the layout leaves, rather than guessing the header
+    // height and leaving a strip along the bottom.
+    <div className="relative h-full min-h-[30rem] w-full">
       <WorldMap
         source={source}
         players={players}
@@ -133,7 +135,6 @@ export function MapPage() {
         players={players}
         safehouses={overlay?.safehouses ?? []}
         onGoTo={move}
-        insetForFloors={source.layers.length > 1}
       />
 
       <Dialog open={target !== null} onOpenChange={(open) => !open && setTarget(null)}>

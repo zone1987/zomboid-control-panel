@@ -19,7 +19,9 @@ export function AppLayout() {
             <Breadcrumbs />
           </header>
 
-          <main className="flex-1 p-6">
+          {/* min-h-0 so a page that wants the full height can have it:
+              without it flex-1 grows past the viewport instead. */}
+          <main className="min-h-0 flex-1 p-6">
             <Outlet />
           </main>
         </SidebarInset>

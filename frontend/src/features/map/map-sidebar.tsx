@@ -11,8 +11,6 @@ type Props = {
   players: MapPlayer[]
   safehouses: MapSafehouse[]
   onGoTo: (point: WorldPoint) => void
-  /** True when the floor control occupies the right edge. */
-  insetForFloors: boolean
 }
 
 /**
@@ -22,7 +20,7 @@ type Props = {
  * list -- and because an operator watching one player does not need the
  * panel open the whole time.
  */
-export function MapSidebar({ players, safehouses, onGoTo, insetForFloors }: Props) {
+export function MapSidebar({ players, safehouses, onGoTo }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(true)
 
@@ -42,13 +40,10 @@ export function MapSidebar({ players, safehouses, onGoTo, insetForFloors }: Prop
   }
 
   return (
-    <div
-      className={cn(
-        'pointer-events-auto absolute bottom-3 top-3 z-10 flex w-56 flex-col gap-2 overflow-hidden',
-        // Only leaves room where the floor control actually is.
-        insetForFloors ? 'right-14' : 'right-3',
-      )}
-    >
+    // Flush with the right edge, and only as tall as its contents: a
+    // container reaching to the bottom would swallow clicks meant for
+    // the floor control and the places button underneath it.
+    <div className="pointer-events-auto absolute right-3 top-3 z-10 flex max-h-[60%] w-56 flex-col gap-2 overflow-hidden">
       <section className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border/60 bg-background/85 shadow-lg backdrop-blur">
         <header className="flex shrink-0 items-center gap-2 border-b border-border/60 px-2.5 py-1.5">
           <Users className="size-3.5 text-muted-foreground" />

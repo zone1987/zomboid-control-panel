@@ -10,10 +10,12 @@ use App\Repository\GameServerRepository;
 use App\Repository\PlayerSnapshotRepository;
 use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
+use App\Server\Map\IsometricTiles;
 use App\Server\Map\MapTileStore;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,13 +32,49 @@ final class MapController extends AbstractController
         private readonly BridgeStatusReader $bridge,
         private readonly PlayerSnapshotRepository $snapshots,
         private readonly ServerInfoReader $info,
+        private readonly IsometricTiles $isometric,
     ) {
     }
 
     #[Route('', name: 'api_map_status', methods: ['GET'])]
     public function status(): JsonResponse
     {
-        return new JsonResponse($this->tiles->describe());
+        return new JsonResponse([
+            ...$this->tiles->describe(),
+            // The isometric render, when the operator has made one. The
+            // game ships no such tiles, so this is usually absent.
+            'isometric' => $this->isometric->describe(),
+        ]);
+    }
+
+    /**
+     * A file out of the isometric render: a .dzi, or one of its tiles.
+     *
+     * Served through the panel rather than from a web root of its own,
+     * so a render inherits the panel's authentication instead of being
+     * readable by anyone who finds the URL.
+     */
+    #[Route(
+        '/isometric/{path}',
+        name: 'api_map_isometric',
+        methods: ['GET'],
+        requirements: ['path' => '.+'],
+    )]
+    public function isometric(string $path, Request $request): Response
+    {
+        $file = $this->isometric->resolve($path);
+
+        if ($file === null) {
+            return new Response('', Response::HTTP_NOT_FOUND);
+        }
+
+        $response = new BinaryFileResponse($file);
+        $response->setPublic();
+        $response->setMaxAge(604800);
+        $response->setAutoEtag();
+        $response->isNotModified($request);
+
+        return $response;
     }
 
     #[Route(

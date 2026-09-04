@@ -104,6 +104,34 @@ final readonly class ServerFileBrowser implements FileBrowserInterface
         }
     }
 
+    public function download(FtpConfig $config, string $path, string $target): int
+    {
+        $path = $this->normalise($path);
+
+        try {
+            $source = $this->storage->create($config)->readStream($path);
+            $sink = @fopen($target, 'wb');
+
+            if ($sink === false) {
+                throw new StorageException(sprintf('Cannot write to %s.', $target), 'storage.writeFailed');
+            }
+
+            $bytes = stream_copy_to_stream($source, $sink);
+
+            fclose($sink);
+
+            if (\is_resource($source)) {
+                fclose($source);
+            }
+
+            return $bytes === false ? 0 : $bytes;
+        } catch (StorageException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            throw $this->translate($exception);
+        }
+    }
+
     public function readTail(FtpConfig $config, string $path, int $maxBytes = 65536): string
     {
         $path = $this->normalise($path);

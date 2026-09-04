@@ -38,4 +38,14 @@ interface FileBrowserInterface
 
     /** @throws StorageException */
     public function upload(FtpConfig $config, string $path, string $contents): void;
+
+    /**
+     * Copies a file from the server to a local path, streaming it.
+     *
+     * For anything large enough that holding it in memory would be
+     * careless -- the map pyramid is 51 MB.
+     *
+     * @throws StorageException
+     */
+    public function download(FtpConfig $config, string $path, string $target): int;
 }

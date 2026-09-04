@@ -64,6 +64,12 @@ services:
             # of git for the same reason as the icons.
             $directory: '%kernel.project_dir%/var/map'
 
+    App\Server\Map\IsometricTiles:
+        arguments:
+            # Where an operator drops a pzmap2dzi render. Out of git for
+            # the same reason as the icons: it is game content.
+            $directory: '%kernel.project_dir%/var/map/isometric'
+
     App\Settings\SupportedLanguages:
         arguments:
             # Derived from the interface's own translation files, so a new
