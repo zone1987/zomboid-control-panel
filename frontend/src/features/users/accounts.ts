@@ -15,17 +15,24 @@ export type Account = {
   createdAt: string
   lastLoginAt: string | null
   self: boolean
+  assignedRoles: string[]
+  permissions: string[]
 }
 
 export type AccountDraft = {
   displayName?: string
   email?: string
   roles?: AssignableRole[]
+  assignedRoles?: string[]
   active?: boolean
   password?: string
 }
 
-export function listAccounts(): Promise<{ items: Account[]; assignableRoles: AssignableRole[] }> {
+export function listAccounts(): Promise<{
+  items: Account[]
+  assignableRoles: AssignableRole[]
+  roles: { id: string; label: string; builtIn: boolean }[]
+}> {
   return apiFetch('/accounts')
 }
 

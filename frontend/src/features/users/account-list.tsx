@@ -193,6 +193,7 @@ export function AccountList() {
       {editing && (
         <AccountDialog
           account={editing}
+          panelRoles={data?.roles ?? []}
           open
           onOpenChange={(open) => !open && setEditing(null)}
           onSaved={async () => {

@@ -200,6 +200,57 @@ final class RoleManagementTest extends WebTestCase
         self::assertNotNull(self::getContainer()->get(RoleRepository::class)->byName(Role::BUILT_IN_ADMIN));
     }
 
+    public function testAssignsARoleToAUserAndReportsThePermissionsTheyHold(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('POST', '/api/roles', ['label' => 'Moderator', 'permissions' => ['players.kick']]);
+        $roleId = $this->payload()['id'];
+
+        $subject = $this->createUser('mod@example.com', [User::ROLE_USER]);
+
+        $this->request('PATCH', '/api/accounts/'.$subject->getId()->toRfc4122(), [
+            'assignedRoles' => [$roleId],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([$roleId], $this->payload()['assignedRoles']);
+        self::assertSame(['players.kick'], $this->payload()['permissions']);
+    }
+
+    /** Sending a shorter list has to take the missing ones away. */
+    public function testReplacesTheAssignedRolesRatherThanAddingToThem(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('POST', '/api/roles', ['label' => 'Moderator', 'permissions' => ['players.kick']]);
+        $first = $this->payload()['id'];
+        $this->request('POST', '/api/roles', ['label' => 'Helper', 'permissions' => ['players.view']]);
+        $second = $this->payload()['id'];
+
+        $subject = $this->createUser('mod@example.com', [User::ROLE_USER]);
+        $url = '/api/accounts/'.$subject->getId()->toRfc4122();
+
+        $this->request('PATCH', $url, ['assignedRoles' => [$first, $second]]);
+        self::assertCount(2, $this->payload()['assignedRoles']);
+
+        $this->request('PATCH', $url, ['assignedRoles' => [$second]]);
+
+        self::assertSame([$second], $this->payload()['assignedRoles']);
+        self::assertSame(['players.view'], $this->payload()['permissions']);
+    }
+
+    public function testIgnoresARoleIdThatDoesNotExist(): void
+    {
+        $this->signInAsAdmin();
+        $subject = $this->createUser('mod@example.com', [User::ROLE_USER]);
+
+        $this->request('PATCH', '/api/accounts/'.$subject->getId()->toRfc4122(), [
+            'assignedRoles' => ['01920000-0000-7000-8000-000000000000'],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->payload()['assignedRoles']);
+    }
+
     public function testGroupsThePermissionsForTheInterfaceAndMarksTheSensitiveOnes(): void
     {
         $this->signInAsAdmin();

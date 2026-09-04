@@ -344,7 +344,7 @@
     "noInvitations": "No invitations sent yet.",
     "invitationSent": "Invitation sent to {{email}}.",
     "accountExists": "An account already exists for that address.",
-    "roles": "Roles",
+    "roles": "Basic access",
     "revoke": "Revoke invitation",
     "expiresOn": "Expires on {{date}}",
     "acceptedOn": "Accepted on {{date}}",
@@ -398,7 +398,9 @@
       "ROLE_ADMIN": "May manage users and settings."
     },
     "rolesTab": "Roles",
-    "rolesHint": "Roles bundle permissions. Whoever holds a role may do exactly what is ticked in it."
+    "rolesHint": "Roles bundle permissions. Whoever holds a role may do exactly what is ticked in it.",
+    "assignedRoles": "Roles",
+    "assignedRolesHint": "Extra permissions from the roles set up in the “Roles” tab."
   },
   "players": {
     "title": "Players",

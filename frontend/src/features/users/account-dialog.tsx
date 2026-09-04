@@ -22,11 +22,13 @@ import { updateAccount, type Account, type AccountDraft } from './accounts'
 
 export function AccountDialog({
   account,
+  panelRoles,
   open,
   onOpenChange,
   onSaved,
 }: {
   account: Account
+  panelRoles: { id: string; label: string }[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved: () => void | Promise<void>
@@ -35,12 +37,13 @@ export function AccountDialog({
   const [displayName, setDisplayName] = useState(account.displayName)
   const [email, setEmail] = useState(account.email)
   const [roles, setRoles] = useState<AssignableRole[]>(account.roles)
+  const [assigned, setAssigned] = useState<string[]>(account.assignedRoles)
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const save = useMutation({
     mutationFn: () => {
-      const values: AccountDraft = { displayName, email, roles }
+      const values: AccountDraft = { displayName, email, roles, assignedRoles: assigned }
 
       if (password !== '') {
         values.password = password
@@ -137,6 +140,34 @@ export function AccountDialog({
               <p className="text-xs text-muted-foreground">{t('users.cannotDemoteSelfHint')}</p>
             )}
           </div>
+
+          {panelRoles.length > 0 && (
+            <div className="space-y-2">
+              <Label>{t('users.assignedRoles')}</Label>
+              <p className="text-xs text-muted-foreground">{t('users.assignedRolesHint')}</p>
+
+              <div className="space-y-2">
+                {panelRoles.map((role) => (
+                  <div key={role.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`assigned-${role.id}`}
+                      checked={assigned.includes(role.id)}
+                      onCheckedChange={(checked) =>
+                        setAssigned((previous) =>
+                          checked === true
+                            ? [...previous, role.id]
+                            : previous.filter((entry) => entry !== role.id),
+                        )
+                      }
+                    />
+                    <Label htmlFor={`assigned-${role.id}`} className="font-normal">
+                      {role.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="account-password">{t('users.setPassword')}</Label>

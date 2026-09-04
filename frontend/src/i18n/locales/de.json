@@ -344,7 +344,7 @@
     "noInvitations": "Noch keine Einladungen verschickt.",
     "invitationSent": "Einladung an {{email}} verschickt.",
     "accountExists": "Für diese Adresse existiert bereits ein Konto.",
-    "roles": "Rollen",
+    "roles": "Grundzugang",
     "revoke": "Einladung zurückziehen",
     "expiresOn": "Läuft ab am {{date}}",
     "acceptedOn": "Angenommen am {{date}}",
@@ -398,7 +398,9 @@
       "ROLE_ADMIN": "Darf Benutzer und Einstellungen verwalten."
     },
     "rolesTab": "Rollen",
-    "rolesHint": "Rollen bündeln Berechtigungen. Wer eine Rolle bekommt, darf genau das, was darin angehakt ist."
+    "rolesHint": "Rollen bündeln Berechtigungen. Wer eine Rolle bekommt, darf genau das, was darin angehakt ist.",
+    "assignedRoles": "Rollen",
+    "assignedRolesHint": "Zusätzliche Berechtigungen aus den Rollen, die im Reiter „Rollen“ eingerichtet sind."
   },
   "players": {
     "title": "Spieler",
