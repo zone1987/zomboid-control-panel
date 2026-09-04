@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace App\Security\OAuth;
 
-use App\Entity\AppSetting;
 use App\Entity\OAuthIdentity;
 use App\Entity\User;
-use App\Settings\SettingsProvider;
 use Doctrine\ORM\EntityManagerInterface;
-use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
-use KnpU\OAuth2ClientBundle\Security\Authenticator\OAuth2Authenticator;
 use League\OAuth2\Client\Provider\GoogleUser;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,24 +14,18 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 
-final class GoogleAuthenticator extends OAuth2Authenticator
+final class GoogleAuthenticator extends AbstractAuthenticator
 {
     public function __construct(
-        private readonly ClientRegistry $clients,
+        private readonly GoogleClientFactory $clients,
         private readonly IdentityLinker $linker,
         private readonly EntityManagerInterface $entityManager,
-        private readonly SettingsProvider $settings,
     ) {
-    }
-
-    public function isConfigured(): bool
-    {
-        return $this->settings->isConfigured(AppSetting::GOOGLE_CLIENT_ID)
-            && $this->settings->isConfigured(AppSetting::GOOGLE_CLIENT_SECRET);
     }
 
     public function supports(Request $request): ?bool
@@ -45,12 +35,24 @@ final class GoogleAuthenticator extends OAuth2Authenticator
 
     public function authenticate(Request $request): Passport
     {
-        $client = $this->clients->getClient('google');
-        $accessToken = $this->fetchAccessToken($client);
+        $code = $request->query->get('code');
+
+        if (!\is_string($code) || $code === '') {
+            throw new CustomUserMessageAuthenticationException('auth.google.failed');
+        }
+
+        try {
+            $provider = $this->clients->create();
+            $accessToken = $provider->getAccessToken('authorization_code', ['code' => $code]);
+        } catch (GoogleNotConfigured) {
+            throw new CustomUserMessageAuthenticationException('auth.google.notConfigured');
+        } catch (\Throwable) {
+            throw new CustomUserMessageAuthenticationException('auth.google.failed');
+        }
 
         return new SelfValidatingPassport(
-            new UserBadge($accessToken->getToken(), function () use ($client, $accessToken): User {
-                $googleUser = $client->fetchUserFromToken($accessToken);
+            new UserBadge($accessToken->getToken(), function () use ($provider, $accessToken): User {
+                $googleUser = $provider->getResourceOwner($accessToken);
                 \assert($googleUser instanceof GoogleUser);
 
                 return $this->resolveUser($googleUser);
@@ -84,9 +86,9 @@ final class GoogleAuthenticator extends OAuth2Authenticator
         $user = $this->linker->findUser(OAuthIdentity::PROVIDER_GOOGLE, $googleUser->getId());
 
         if (!$user instanceof User) {
-            // A Google account nobody linked cannot create an account here;
-            // access is by invitation. Matching a verified address to an
-            // existing account is what lets an invitee finish sign-up.
+            // Access is invitation-only, so an unlinked Google account cannot
+            // create one. Matching a verified address to an existing account
+            // is what lets an invitee finish signing up.
             $email = $googleUser->getEmail();
 
             $user = \is_string($email) ? $this->linker->findInvitedByEmail($email) : null;

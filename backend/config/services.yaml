@@ -39,3 +39,7 @@ services:
                 'mailer.dsn': '%env(MAILER_DSN)%'
                 'mailer.from_address': '%env(MAIL_FROM_ADDRESS)%'
                 'mailer.from_name': '%env(MAIL_FROM_NAME)%'
+
+    App\Security\OAuth\GoogleClientFactory:
+        arguments:
+            $publicUrl: '%env(APP_PUBLIC_URL)%'

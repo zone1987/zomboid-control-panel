@@ -16,6 +16,7 @@ const ERROR_KEYS: Record<string, string> = {
   'auth.steam.failed': 'auth.providerFailed',
   'auth.google.notLinked': 'auth.googleNotLinked',
   'auth.google.failed': 'auth.providerFailed',
+  'auth.google.notConfigured': 'auth.googleNotConfigured',
   'auth.identityTaken': 'auth.identityTaken',
   'auth.accountInactive': 'auth.accountInactive',
 }

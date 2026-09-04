@@ -7,10 +7,10 @@ namespace App\Controller\Api;
 use App\Entity\OAuthIdentity;
 use App\Entity\User;
 use App\Security\OAuth\IdentityAlreadyLinked;
+use App\Security\OAuth\GoogleClientFactory;
 use App\Security\OAuth\IdentityLinker;
 use App\Security\OAuth\SteamProfileFetcher;
 use Doctrine\ORM\EntityManagerInterface;
-use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -31,9 +31,17 @@ final class ConnectController extends AbstractController
     }
 
     #[Route('/google', name: 'api_connect_google', methods: ['GET'])]
-    public function google(ClientRegistry $clients): RedirectResponse
+    public function google(GoogleClientFactory $clients): RedirectResponse
     {
-        return $clients->getClient('google')->redirect(['openid', 'profile', 'email'], []);
+        if (!$clients->isConfigured()) {
+            return new RedirectResponse('/app/login?error=auth.google.notConfigured');
+        }
+
+        $provider = $clients->create();
+
+        return new RedirectResponse(
+            $provider->getAuthorizationUrl(['scope' => ['openid', 'profile', 'email']]),
+        );
     }
 
     /**

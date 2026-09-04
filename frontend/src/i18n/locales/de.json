@@ -37,7 +37,8 @@
     "steamInvalidResponse": "Die Antwort von Steam war ungültig.",
     "identityTaken": "Dieses Konto ist bereits mit einem anderen Zugang verknüpft.",
     "providerFailed": "Die Anmeldung ist fehlgeschlagen.",
-    "steamRejected": "Steam hat diese Anmeldung nicht bestätigt."
+    "steamRejected": "Steam hat diese Anmeldung nicht bestätigt.",
+    "googleNotConfigured": "Die Google-Anmeldung ist noch nicht eingerichtet. Ein Administrator muss Client-ID und Secret in den Einstellungen hinterlegen."
   },
   "setup": {
     "title": "Ersteinrichtung",

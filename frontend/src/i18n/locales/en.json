@@ -37,7 +37,8 @@
     "steamInvalidResponse": "The response from Steam was not valid.",
     "identityTaken": "That account is already linked to someone else.",
     "providerFailed": "Signing in failed.",
-    "steamRejected": "Steam did not confirm this sign-in."
+    "steamRejected": "Steam did not confirm this sign-in.",
+    "googleNotConfigured": "Google sign-in is not set up yet. An administrator needs to enter the client ID and secret in the settings."
   },
   "setup": {
     "title": "First-run setup",

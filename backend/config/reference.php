@@ -1337,15 +1337,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     throttle_limit?: int|Param, // Another password reset cannot be made faster than this throttle time in seconds. // Default: 3600
  *     enable_garbage_collection?: bool|Param, // Enable/Disable automatic garbage collection. // Default: true
  * }
- * @psalm-type KnpuOauth2ClientConfig = array{
- *     http_client?: scalar|Param|null, // Service id of HTTP client to use (must implement GuzzleHttp\ClientInterface) // Default: null
- *     http_client_options?: array{
- *         timeout?: int|Param,
- *         proxy?: scalar|Param|null,
- *         verify?: bool|Param, // Use only with proxy option set
- *     },
- *     clients?: array<string, array<string, mixed>>,
- * }
  * @psalm-type WebauthnConfig = array{
  *     fake_credential_generator?: scalar|Param|null, // A service that implements the FakeCredentialGenerator to generate fake credentials for preventing username enumeration. // Default: "Webauthn\\SimpleFakeCredentialGenerator"
  *     clock?: scalar|Param|null, // PSR-20 Clock service. // Default: "webauthn.clock.default"
@@ -1486,7 +1477,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     twig?: TwigConfig,
  *     scheb_two_factor?: SchebTwoFactorConfig,
  *     symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
- *     knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *     webauthn?: WebauthnConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
@@ -1499,7 +1489,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         twig?: TwigConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
- *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         webauthn?: WebauthnConfig,
  *         maker?: MakerConfig,
  *     },
@@ -1514,7 +1503,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         twig?: TwigConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
- *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         webauthn?: WebauthnConfig,
  *     },
  *     "when@test"?: array{
@@ -1528,7 +1516,6 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         twig?: TwigConfig,
  *         scheb_two_factor?: SchebTwoFactorConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
- *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         webauthn?: WebauthnConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
