@@ -191,6 +191,9 @@ final class ServerController extends AbstractController
             return $this->notFound();
         }
 
+        // A hung port must not hold an FPM worker past this point.
+        set_time_limit(20);
+
         try {
             $reply = $this->rcon->probe($server->getRconConfig());
         } catch (RconException $exception) {

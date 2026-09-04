@@ -104,6 +104,22 @@ final class RconClientTest extends KernelTestCase
         $this->client->execute($this->config(port: 27099), 'players');
     }
 
+    public function testTreatsASilentPortAsUnreachable(): void
+    {
+        $silent = stream_socket_server('tcp://127.0.0.1:27078', $errno, $errstr);
+
+        if ($silent === false) {
+            self::markTestSkipped('Could not open a silent port.');
+        }
+
+        try {
+            $this->expectException(RconUnreachable::class);
+            $this->client->execute($this->config(port: 27078), 'players');
+        } finally {
+            fclose($silent);
+        }
+    }
+
     public function testRefusesAnEmptyCommand(): void
     {
         $this->expectException(\App\Server\Rcon\RconCommandFailed::class);

@@ -7,6 +7,7 @@ namespace App\Server\Rcon;
 use App\Entity\RconConfig;
 use Psr\Log\LoggerInterface;
 use xPaw\SourceQuery\Exception\AuthenticationException;
+use xPaw\SourceQuery\Exception\InvalidPacketException;
 use xPaw\SourceQuery\Exception\SocketException;
 use xPaw\SourceQuery\Exception\TimeoutException;
 use xPaw\SourceQuery\SourceQuery;
@@ -21,6 +22,13 @@ final readonly class SourceRconClient implements RconClientInterface
 {
     private const TIMEOUT_SECONDS = 5;
 
+    /**
+     * The library's timeout bounds individual reads, not the exchange as a
+     * whole, and a port that accepts a connection without ever answering
+     * would otherwise hold the worker indefinitely.
+     */
+    private const DEADLINE_SECONDS = 12;
+
     public function __construct(private LoggerInterface $logger)
     {
     }
@@ -34,15 +42,28 @@ final readonly class SourceRconClient implements RconClientInterface
         }
 
         $query = new SourceQuery();
+        $previousSocketTimeout = ini_get('default_socket_timeout');
+        ini_set('default_socket_timeout', (string) self::TIMEOUT_SECONDS);
+
+        $deadline = microtime(true) + self::DEADLINE_SECONDS;
 
         try {
             $query->Connect($config->getHost(), $config->getPort(), self::TIMEOUT_SECONDS, SourceQuery::SOURCE);
             $query->SetRconPassword($config->getPassword());
 
-            return trim($query->Rcon($command));
+            $reply = trim($query->Rcon($command));
+
+            if (microtime(true) > $deadline) {
+                throw new RconUnreachable('The server took too long to answer.');
+            }
+
+            return $reply;
         } catch (AuthenticationException $exception) {
             throw new RconAuthenticationFailed($exception->getMessage(), previous: $exception);
-        } catch (SocketException|TimeoutException $exception) {
+        } catch (SocketException|TimeoutException|InvalidPacketException $exception) {
+            // A port that accepts a connection but answers with nothing —
+            // or with something that is not RCON — is an unreachable RCON
+            // endpoint, not a failed command.
             $this->logger->info('RCON connection failed.', [
                 'host' => $config->getHost(),
                 'port' => $config->getPort(),
@@ -54,6 +75,7 @@ final readonly class SourceRconClient implements RconClientInterface
             throw new RconCommandFailed($exception->getMessage(), previous: $exception);
         } finally {
             $query->Disconnect();
+            ini_set('default_socket_timeout', $previousSocketTimeout === false ? '60' : $previousSocketTimeout);
         }
     }
 
