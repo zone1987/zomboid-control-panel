@@ -54,7 +54,16 @@
     "console": "Konsole",
     "users": "Benutzer",
     "settings": "Einstellungen",
-    "profile": "Profil"
+    "profile": "Profil",
+    "overview": "Übersicht",
+    "serverSection": "Server",
+    "administration": "Verwaltung",
+    "comingSoon": "Kommt später",
+    "health": "Systemstatus",
+    "lightTheme": "Helles Design",
+    "darkTheme": "Dunkles Design",
+    "language_de": "Deutsch",
+    "language_en": "Englisch"
   },
   "servers": {
     "title": "Server",
@@ -77,7 +86,30 @@
     "rconPassword": "RCON-Passwort",
     "passwordUnchanged": "Unverändert lassen",
     "uploadBridge": "Bridge hochladen",
-    "bridgeUploaded": "Bridge erfolgreich hochgeladen."
+    "bridgeUploaded": "Bridge erfolgreich hochgeladen.",
+    "noneSelected": "Kein Server ausgewählt",
+    "notConfigured": "Noch nicht konfiguriert",
+    "manage": "Server verwalten",
+    "emptyHint": "Lege deinen ersten Zomboid-Server an, um Verbindung aufzunehmen.",
+    "addHint": "Vergib einen Namen. Zugangsdaten trägst du danach ein.",
+    "saved": "Änderungen gespeichert.",
+    "verified": "Geprüft",
+    "transferTab": "Dateizugriff",
+    "transferTitle": "FTP / SFTP",
+    "transferDescription": "Über diese Verbindung liest die Anwendung Logdateien und lädt die Bridge hoch.",
+    "rconTitle": "RCON",
+    "rconDescription": "Über RCON werden Befehle ausgeführt: kicken, bannen, Nachrichten senden.",
+    "password": "Passwort",
+    "browseTitle": "Verzeichnis auswählen",
+    "browseHint": "Navigiere zum gewünschten Verzeichnis und bestätige die Auswahl.",
+    "browseFailed": "Das Verzeichnis konnte nicht gelesen werden.",
+    "rootDirectory": "Basisverzeichnis",
+    "emptyDirectory": "Dieses Verzeichnis ist leer.",
+    "useThisDirectory": "Dieses Verzeichnis verwenden",
+    "confirmDelete": "„{{name}}“ wirklich löschen? Die hinterlegten Zugangsdaten gehen dabei verloren.",
+    "ftpOk": "Verbindung steht. {{count}} Einträge im Basisverzeichnis gefunden.",
+    "ftpOkZomboid": "Verbindung steht, und das Verzeichnis sieht nach einem Zomboid-Server aus ({{count}} Einträge).",
+    "rconOk": "RCON antwortet: {{reply}}"
   },
   "profile": {
     "title": "Profil",
@@ -169,5 +201,16 @@
     "mailFromName": "Absendername",
     "mailerIntro": "Trage die Zugangsdaten deines SMTP-Anbieters in dieser Form ein:",
     "mailerNote": "Sonderzeichen im Passwort müssen URL-kodiert werden — aus @ wird %40, aus # wird %23."
+  },
+  "rcon": {
+    "authenticationFailed": "Das RCON-Passwort wurde abgelehnt.",
+    "unreachable": "Der RCON-Port ist nicht erreichbar. Läuft der Server, und ist der Port freigegeben?",
+    "commandFailed": "Der Befehl konnte nicht ausgeführt werden."
+  },
+  "storage": {
+    "authenticationFailed": "Benutzername oder Passwort wurde abgelehnt.",
+    "unreachable": "Der Server ist unter dieser Adresse nicht erreichbar.",
+    "operationFailed": "Der Zugriff ist fehlgeschlagen.",
+    "pathTraversal": "Dieser Pfad ist nicht erlaubt."
   }
 }

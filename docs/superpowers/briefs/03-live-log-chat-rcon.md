@@ -26,7 +26,33 @@ both possible from a browser.
   offset (reset to zero), and a byte offset can land mid-character (discard
   up to the first newline).
 
+## Command discovery, requested 2026-09-04
+
+`help` over RCON returns the command list of the server actually running,
+which beats shipping a list compiled from one build and hoping it still
+matches. The console should:
+
+- Fetch `help` once per server and cache the result
+- Offer the commands in a searchable dropdown with their syntax
+- Check arguments against that syntax before sending, so a mistyped
+  command fails in the browser rather than silently doing nothing
+
+Two things to establish first, neither of which is settled:
+
+- The exact shape of Zomboid's `help` output. The command classes are
+  known from the jar (67 of them, with syntax and required capability),
+  but whether `help` prints them in a parseable form has not been
+  checked against a live server.
+- Whether `help` lists only what the connected account may run. If it
+  does, the dropdown reflects permissions for free; if not, unavailable
+  commands need marking some other way.
+
+Fall back to the catalogue extracted from the jar when the output cannot
+be parsed — a stale list beats no list.
+
 ## What "done" looks like
 
 An administrator sees the server log scroll in real time, reads a player's
-question in chat, and answers it without leaving the browser.
+question in chat, and answers it without leaving the browser. Typing in the
+console offers the commands the server actually accepts, and rejects a wrong
+argument count before it reaches the server.

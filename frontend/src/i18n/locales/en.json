@@ -54,7 +54,16 @@
     "console": "Console",
     "users": "Users",
     "settings": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "overview": "Overview",
+    "serverSection": "Servers",
+    "administration": "Administration",
+    "comingSoon": "Coming later",
+    "health": "System health",
+    "lightTheme": "Light theme",
+    "darkTheme": "Dark theme",
+    "language_de": "German",
+    "language_en": "English"
   },
   "servers": {
     "title": "Servers",
@@ -77,7 +86,30 @@
     "rconPassword": "RCON password",
     "passwordUnchanged": "Leave unchanged",
     "uploadBridge": "Upload bridge",
-    "bridgeUploaded": "Bridge uploaded successfully."
+    "bridgeUploaded": "Bridge uploaded successfully.",
+    "noneSelected": "No server selected",
+    "notConfigured": "Not configured yet",
+    "manage": "Manage servers",
+    "emptyHint": "Add your first Zomboid server to start connecting.",
+    "addHint": "Give it a name. Credentials come next.",
+    "saved": "Changes saved.",
+    "verified": "Verified",
+    "transferTab": "File access",
+    "transferTitle": "FTP / SFTP",
+    "transferDescription": "This connection reads log files and uploads the bridge.",
+    "rconTitle": "RCON",
+    "rconDescription": "RCON runs commands: kicking, banning, sending messages.",
+    "password": "Password",
+    "browseTitle": "Choose a directory",
+    "browseHint": "Navigate to the directory you want and confirm.",
+    "browseFailed": "The directory could not be read.",
+    "rootDirectory": "Base directory",
+    "emptyDirectory": "This directory is empty.",
+    "useThisDirectory": "Use this directory",
+    "confirmDelete": "Really delete \"{{name}}\"? Its stored credentials go with it.",
+    "ftpOk": "Connected. Found {{count}} entries in the base directory.",
+    "ftpOkZomboid": "Connected, and the directory looks like a Zomboid server ({{count}} entries).",
+    "rconOk": "RCON replied: {{reply}}"
   },
   "profile": {
     "title": "Profile",
@@ -169,5 +201,16 @@
     "mailFromName": "From name",
     "mailerIntro": "Enter your SMTP provider's credentials in this form:",
     "mailerNote": "Special characters in the password must be URL-encoded — @ becomes %40, # becomes %23."
+  },
+  "rcon": {
+    "authenticationFailed": "The RCON password was refused.",
+    "unreachable": "The RCON port is unreachable. Is the server running, and the port open?",
+    "commandFailed": "The command could not be run."
+  },
+  "storage": {
+    "authenticationFailed": "The username or password was refused.",
+    "unreachable": "No server answered at that address.",
+    "operationFailed": "The operation failed.",
+    "pathTraversal": "That path is not allowed."
   }
 }

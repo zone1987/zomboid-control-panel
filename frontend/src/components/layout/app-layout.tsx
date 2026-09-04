@@ -1,78 +1,29 @@
-import { Link, Outlet, useNavigate } from 'react-router'
-import { useTranslation } from 'react-i18next'
-import { LogOut, Moon, Settings, Sun, User } from 'lucide-react'
+import { Outlet } from 'react-router'
 
-import { Button } from '@/components/ui/button'
-import { useTheme } from '@/components/theme-provider'
-import { useAuth } from '@/features/auth/auth-context'
-import { changeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
+import { ActiveServerProvider } from '@/features/servers/active-server'
+import { AppSidebar } from './app-sidebar'
+import { Breadcrumbs } from './breadcrumbs'
 
 export function AppLayout() {
-  const { t, i18n } = useTranslation()
-  const { theme, setTheme } = useTheme()
-  const { user, signOut, hasRole } = useAuth()
-  const navigate = useNavigate()
-
-  const handleSignOut = async () => {
-    await signOut()
-    void navigate('/login', { replace: true })
-  }
-
   return (
-    <div className="min-h-svh bg-background">
-      <header className="flex items-center justify-between border-b px-6 py-3">
-        <Link to="/" className="font-semibold">
-          {t('common.appName')}
-        </Link>
+    <ActiveServerProvider>
+      <SidebarProvider>
+        <AppSidebar />
 
-        <div className="flex items-center gap-2">
-          <select
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={i18n.language.slice(0, 2)}
-            onChange={(event) => changeLanguage(event.target.value as SupportedLanguage)}
-            aria-label={t('profile.language')}
-          >
-            {SUPPORTED_LANGUAGES.map((language) => (
-              <option key={language} value={language}>
-                {language.toUpperCase()}
-              </option>
-            ))}
-          </select>
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumbs />
+          </header>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle theme"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </Button>
-
-          {hasRole('ROLE_ADMIN') && (
-            <Button variant="ghost" size="icon" aria-label={t('nav.settings')} asChild>
-              <Link to="/settings">
-                <Settings className="size-4" />
-              </Link>
-            </Button>
-          )}
-
-          <Button variant="ghost" size="icon" aria-label={t('nav.profile')} asChild>
-            <Link to="/profile">
-              <User className="size-4" />
-            </Link>
-          </Button>
-
-          {user && (
-            <Button variant="ghost" size="icon" aria-label={t('auth.signOut')} onClick={() => void handleSignOut()}>
-              <LogOut className="size-4" />
-            </Button>
-          )}
-        </div>
-      </header>
-
-      <main className="p-6">
-        <Outlet />
-      </main>
-    </div>
+          <main className="flex-1 p-6">
+            <Outlet />
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </ActiveServerProvider>
   )
 }
