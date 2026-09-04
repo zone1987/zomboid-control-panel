@@ -729,7 +729,22 @@
     "noPlayersToMove": "Nobody is online to move.",
     "rconFailed": "The server could not be reached over RCON.",
     "noTiles": "The map is not set up yet",
-    "noTilesHint": "Project Zomboid ships its own world map — as finished tiles in media/maps. They have to be taken over once. The path points either at a game installation or at the server's own files:"
+    "noTilesHint": "Project Zomboid ships its own world map — as finished tiles in media/maps. They have to be taken over once. The path points either at a game installation or at the server's own files:",
+    "floors": "Floors",
+    "floorUp": "One floor up",
+    "floorDown": "One floor down",
+    "groundFloor": "Ground floor",
+    "floorNumber": "Floor {{floor}}",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Whole map",
+    "fullscreen": "Fullscreen",
+    "leaveFullscreen": "Leave fullscreen",
+    "copyLink": "Copy a link to this spot",
+    "showPanel": "Show the player list",
+    "hidePanel": "Hide the player list",
+    "isometricMissing": "Isometric view not set up",
+    "isometricMissingHint": "The angled 2.5D view needs tiles rendered for it, which the game does not ship. Until then the map shows the in-game view from above."
   },
   "logs": {
     "title": "Server log",

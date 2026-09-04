@@ -729,7 +729,22 @@
     "noPlayersToMove": "Es ist niemand online, der versetzt werden könnte.",
     "rconFailed": "Der Server war über RCON nicht erreichbar.",
     "noTiles": "Die Karte ist noch nicht eingerichtet",
-    "noTilesHint": "Project Zomboid bringt seine Weltkarte selbst mit — als fertige Kacheln in media/maps. Sie müssen einmalig übernommen werden. Der Pfad zeigt entweder auf eine Spielinstallation oder auf die Dateien des Servers:"
+    "noTilesHint": "Project Zomboid bringt seine Weltkarte selbst mit — als fertige Kacheln in media/maps. Sie müssen einmalig übernommen werden. Der Pfad zeigt entweder auf eine Spielinstallation oder auf die Dateien des Servers:",
+    "floors": "Etagen",
+    "floorUp": "Eine Etage höher",
+    "floorDown": "Eine Etage tiefer",
+    "groundFloor": "Erdgeschoss",
+    "floorNumber": "Etage {{floor}}",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "resetView": "Gesamtansicht",
+    "fullscreen": "Vollbild",
+    "leaveFullscreen": "Vollbild verlassen",
+    "copyLink": "Link zu dieser Stelle kopieren",
+    "showPanel": "Spielerliste einblenden",
+    "hidePanel": "Spielerliste ausblenden",
+    "isometricMissing": "Isometrische Ansicht nicht eingerichtet",
+    "isometricMissingHint": "Die schräge 2,5D-Ansicht braucht eigens gerenderte Kacheln, die das Spiel nicht mitliefert. Bis dahin zeigt die Karte die Ingame-Ansicht von oben."
   },
   "logs": {
     "title": "Server-Log",

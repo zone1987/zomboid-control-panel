@@ -1,14 +1,12 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Crosshair, Home, MapPin, Search, Users } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -26,20 +24,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getServer } from '@/features/servers/servers'
 import { teleportPlayer } from '@/features/players/players'
+import type { WorldPoint } from './coordinates'
+import { GAME_MAP_SOURCE, type MapSource } from './map-config'
+import { viewStateOnArrival } from './map-url-state'
+import { mapOverlay, mapStatus, type MapPlayer } from './map'
 import { WorldMap } from './world-map'
-import { mapOverlay, mapStatus, parseCoordinates, PLACES } from './map'
+import { MapSearch } from './map-search'
+import { MapSidebar } from './map-sidebar'
 
 export function MapPage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
-  const [needle, setNeedle] = useState('')
-  const [focus, setFocus] = useState<{ x: number; y: number } | null>(null)
-  const [target, setTarget] = useState<{ x: number; y: number } | null>(null)
+  const [target, setTarget] = useState<WorldPoint | null>(null)
   const [who, setWho] = useState<string | null>(null)
 
-  const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
+  // Set once the viewer is up, so search and the place buttons can move
+  // the view without the page holding viewer state of its own.
+  const goTo = useRef<((point: WorldPoint, zoom?: number) => void) | null>(null)
 
   const { data: status, isPending } = useQuery({
     queryKey: ['map-status'],
@@ -58,6 +60,13 @@ export function MapPage() {
 
   const players = overlay?.players ?? []
 
+  // Captured when the module loaded, not read here: this page is loaded
+  // lazily, and by the time it renders the viewer has already written
+  // its own position into the hash.
+  const initial = useMemo(() => viewStateOnArrival(), [])
+
+  const source: MapSource = GAME_MAP_SOURCE
+
   const teleport = useMutation({
     mutationFn: () =>
       teleportPlayer(id, who ?? '', { x: target?.x ?? 0, y: target?.y ?? 0, z: 0 }),
@@ -74,169 +83,58 @@ export function MapPage() {
       ),
   })
 
-  const jump = () => {
-    const point = parseCoordinates(needle)
+  const move = useCallback((point: WorldPoint) => goTo.current?.(point, 6), [])
 
-    if (point !== null) {
-      setFocus(point)
+  const onPlayerClick = useCallback((player: MapPlayer) => {
+    goTo.current?.({ x: player.x, y: player.y })
+  }, [])
 
-      return
-    }
-
-    const player = players.find((entry) =>
-      entry.username.toLowerCase().includes(needle.trim().toLowerCase()),
-    )
-
-    if (player !== undefined) {
-      setFocus({ x: player.x, y: player.y })
-
-      return
-    }
-
-    toast.error(t('map.notFound'))
-  }
+  const onReady = useCallback((move: (point: WorldPoint, zoom?: number) => void) => {
+    goTo.current = move
+  }, [])
 
   if (isPending) {
     return <Skeleton className="h-[36rem] w-full" />
   }
 
+  if (status?.available !== true) {
+    return (
+      <Alert>
+        <AlertTitle>{t('map.noTiles')}</AlertTitle>
+        <AlertDescription>
+          <p>{t('map.noTilesHint')}</p>
+          <code className="mt-1 block text-xs">
+            php bin/console app:map:import &lt;pfad&gt;/media/maps
+          </code>
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('map.title')}</h1>
-        <p className="text-muted-foreground">
-          {server ? t('map.descriptionFor', { server: server.name }) : t('map.description')}
-        </p>
-      </div>
+    <div className="relative h-[calc(100vh-8rem)] min-h-[30rem] w-full">
+      <WorldMap
+        source={source}
+        players={players}
+        safehouses={overlay?.safehouses ?? []}
+        initial={initial}
+        onContextMenu={setTarget}
+        onPlayerClick={onPlayerClick}
+        onReady={onReady}
+      />
 
-      {status?.available !== true ? (
-        <Alert>
-          <AlertTitle>{t('map.noTiles')}</AlertTitle>
-          <AlertDescription>
-            <p>{t('map.noTilesHint')}</p>
-            <code className="mt-1 block text-xs">
-              php bin/console app:map:import &lt;pfad&gt;/media/maps
-            </code>
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative h-9 min-w-56 flex-1">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={needle}
-                  className="pl-8"
-                  placeholder={t('map.search')}
-                  onChange={(event) => setNeedle(event.target.value)}
-                  onKeyDown={(event) => event.key === 'Enter' && jump()}
-                />
-              </div>
+      <MapSearch
+        players={players}
+        onGoTo={move}
+        onNotFound={() => toast.error(t('map.notFound'))}
+      />
 
-              <Button variant="outline" onClick={jump}>
-                <Crosshair className="size-4" />
-                {t('map.goTo')}
-              </Button>
-            </div>
-
-            <div className="h-[34rem] overflow-hidden rounded-md border bg-muted/30">
-              <WorldMap
-                status={status}
-                players={players}
-                safehouses={overlay?.safehouses ?? []}
-                focus={focus}
-                onContextMenu={setTarget}
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">{t('map.rightClickHint')}</p>
-          </div>
-
-          <div className="space-y-4">
-            <section className="rounded-md border">
-              <header className="flex items-center gap-2 border-b px-3 py-2">
-                <Users className="size-4 text-muted-foreground" />
-                <h2 className="flex-1 text-sm font-medium">{t('map.players')}</h2>
-                <Badge variant="secondary">{players.length}</Badge>
-              </header>
-
-              <div className="max-h-56 overflow-y-auto p-1.5">
-                {players.length === 0 ? (
-                  <p className="p-2 text-xs text-muted-foreground">{t('map.noPlayers')}</p>
-                ) : (
-                  players.map((player) => (
-                    <button
-                      key={player.username}
-                      type="button"
-                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setFocus({ x: player.x, y: player.y })}
-                    >
-                      <span
-                        aria-hidden
-                        className={`size-2 shrink-0 rounded-full ${
-                          player.infected ? 'bg-destructive' : 'bg-emerald-500'
-                        }`}
-                      />
-                      <span className="min-w-0 flex-1 truncate">{player.username}</span>
-                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                        {player.x},{player.y}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-md border">
-              <header className="flex items-center gap-2 border-b px-3 py-2">
-                <Home className="size-4 text-muted-foreground" />
-                <h2 className="flex-1 text-sm font-medium">{t('map.safehouses')}</h2>
-                <Badge variant="secondary">{overlay?.safehouses.length ?? 0}</Badge>
-              </header>
-
-              <div className="max-h-48 overflow-y-auto p-1.5">
-                {(overlay?.safehouses ?? []).length === 0 ? (
-                  <p className="p-2 text-xs text-muted-foreground">{t('map.noSafehouses')}</p>
-                ) : (
-                  (overlay?.safehouses ?? []).map((house, index) => (
-                    <button
-                      key={`${house.x}-${house.y}-${index}`}
-                      type="button"
-                      className="flex w-full flex-col rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setFocus({ x: house.x, y: house.y })}
-                    >
-                      <span className="truncate">
-                        {house.title === '' ? house.owner : house.title}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {t('map.membersCount', { count: house.members.length })}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-md border p-2">
-              <h2 className="px-1 pb-1.5 text-sm font-medium">{t('map.places')}</h2>
-
-              <div className="flex flex-wrap gap-1.5">
-                {PLACES.map((place) => (
-                  <Button
-                    key={place.id}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFocus({ x: place.x, y: place.y })}
-                  >
-                    {t(`players.landmarks.${place.id}`)}
-                  </Button>
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
-      )}
+      <MapSidebar
+        players={players}
+        safehouses={overlay?.safehouses ?? []}
+        onGoTo={move}
+        insetForFloors={source.layers.length > 1}
+      />
 
       <Dialog open={target !== null} onOpenChange={(open) => !open && setTarget(null)}>
         <DialogContent>

@@ -1,171 +1,147 @@
-import { useEffect, useRef } from 'react'
-import L from 'leaflet'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { levelOfLeafletZoom, TILE_URL, type MapPlayer, type MapSafehouse, type MapStatus } from './map'
+import type { WorldPoint } from './coordinates'
+import type { MapSource } from './map-config'
+import type { MapPlayer, MapSafehouse } from './map'
+import { encodeViewState, isSameView, type MapViewState } from './map-url-state'
+import { useMapViewer } from './use-map-viewer'
+import { useMapMarkers } from './use-map-markers'
+import { FloorControl } from './floor-control'
+import { MapControls } from './map-controls'
 
 type Props = {
-  status: MapStatus
+  source: MapSource
   players: MapPlayer[]
   safehouses: MapSafehouse[]
-  onContextMenu: (point: { x: number; y: number }) => void
-  focus: { x: number; y: number } | null
+  initial: MapViewState | null
+  onContextMenu: (point: WorldPoint) => void
+  onPlayerClick: (player: MapPlayer) => void
+  /** Set by the page to move the view from outside -- search, places. */
+  onReady: (goTo: (point: WorldPoint, zoom?: number) => void) => void
 }
 
-/**
- * The game's own map, drawn with Leaflet on a plain pixel grid.
- *
- * CRS.Simple maps one world square onto one pixel at the deepest zoom,
- * which the pyramid already matches, so a player's position needs no
- * projection -- only the y flip Leaflet's coordinate order asks for.
- */
-export function WorldMap({ status, players, safehouses, onContextMenu, focus }: Props) {
-  const container = useRef<HTMLDivElement>(null)
-  const map = useRef<L.Map | null>(null)
-  const playerLayer = useRef<L.LayerGroup | null>(null)
-  const houseLayer = useRef<L.LayerGroup | null>(null)
-  const handler = useRef(onContextMenu)
+/** How long panning has to settle before the URL is rewritten. */
+const URL_DEBOUNCE_MS = 400
 
-  handler.current = onContextMenu
+export function WorldMap({
+  source,
+  players,
+  safehouses,
+  initial,
+  onContextMenu,
+  onPlayerClick,
+  onReady,
+}: Props) {
+  const frame = useRef<HTMLDivElement>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [surface, setSurface] = useState<HTMLElement | null>(null)
+
+  // The last view written to the URL, so an unchanged view writes nothing.
+  const written = useRef<MapViewState | null>(initial)
+  const timer = useRef<number | null>(null)
+
+  const onViewChanged = useCallback((state: MapViewState) => {
+    if (timer.current !== null) {
+      window.clearTimeout(timer.current)
+    }
+
+    timer.current = window.setTimeout(() => {
+      if (isSameView(written.current, state)) {
+        return
+      }
+
+      written.current = state
+      // replaceState, not push: panning should not fill the back button
+      // with every intermediate position.
+      window.history.replaceState(null, '', `#${encodeViewState(state)}`)
+    }, URL_DEBOUNCE_MS)
+  }, [])
+
+  const viewer = useMapViewer({ source, initial, onViewChanged, onContextMenu })
+
+  useMapMarkers({
+    viewer: viewer.viewer,
+    ready: viewer.ready,
+    source,
+    floor: viewer.floor,
+    players,
+    safehouses,
+    onPlayerClick,
+  })
 
   useEffect(() => {
-    if (container.current === null || map.current !== null) {
-      return
+    if (viewer.ready) {
+      onReady(viewer.goTo)
     }
+  }, [viewer.ready, viewer.goTo, onReady])
 
-    const { width, height } = status.world
-    const maxZoom = status.maxLevel
-
-    const instance = L.map(container.current, {
-      crs: worldCrs(maxZoom),
-      minZoom: 0,
-      maxZoom,
-      zoomControl: false,
-      attributionControl: false,
-      // Panning past the world's edge only ever shows grey.
-      maxBounds: L.latLngBounds(toLatLng(0, 0), toLatLng(width, height)),
-      maxBoundsViscosity: 1,
-    })
-
-    new PyramidLayer(maxZoom, {
-      tileSize: status.tileSize,
-      minZoom: 0,
-      maxZoom,
-      noWrap: true,
-      bounds: L.latLngBounds(toLatLng(0, 0), toLatLng(width, height)),
-    }).addTo(instance)
-
-    instance.setView(toLatLng(10778, 9770), Math.max(0, maxZoom - 2))
-
-    instance.on('contextmenu', (event: L.LeafletMouseEvent) => {
-      handler.current({
-        x: Math.round(event.latlng.lng),
-        y: Math.round(event.latlng.lat),
-      })
-    })
-
-    playerLayer.current = L.layerGroup().addTo(instance)
-    houseLayer.current = L.layerGroup().addTo(instance)
-    map.current = instance
-
-    return () => {
-      instance.remove()
-      map.current = null
-    }
-  }, [status])
+  useEffect(
+    () => () => {
+      if (timer.current !== null) {
+        window.clearTimeout(timer.current)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
-    const layer = playerLayer.current
+    const onChange = () => setFullscreen(document.fullscreenElement === frame.current)
 
-    if (layer === null) {
-      return
+    document.addEventListener('fullscreenchange', onChange)
+
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement === frame.current) {
+      void document.exitFullscreen()
+    } else {
+      void frame.current?.requestFullscreen()
     }
-
-    layer.clearLayers()
-
-    for (const player of players) {
-      L.circleMarker(toLatLng(player.x, player.y), {
-        radius: 6,
-        weight: 2,
-        color: '#ffffff',
-        fillColor: player.infected ? '#dc2626' : '#10b981',
-        fillOpacity: 1,
-      })
-        .bindTooltip(player.username, { direction: 'top', offset: [0, -8] })
-        .addTo(layer)
-    }
-  }, [players, status])
-
-  useEffect(() => {
-    const layer = houseLayer.current
-
-    if (layer === null) {
-      return
-    }
-
-    layer.clearLayers()
-
-    for (const house of safehouses) {
-      L.rectangle(
-        L.latLngBounds(
-          toLatLng(house.x, house.y),
-          toLatLng(house.x + house.w, house.y + house.h),
-        ),
-        { color: '#3b82f6', weight: 2, fillOpacity: 0.2 },
-      )
-        .bindTooltip(house.title === '' ? house.owner : house.title, { direction: 'top' })
-        .addTo(layer)
-    }
-  }, [safehouses, status])
-
-  useEffect(() => {
-    if (focus !== null && map.current !== null) {
-      map.current.setView(toLatLng(focus.x, focus.y), status.maxLevel - 1)
-    }
-  }, [focus, status])
-
-  return <div ref={container} className="h-full w-full rounded-md" />
-}
-
-/**
- * Leaflet's zoom 0 is the whole world; the pyramid's level 0 is the most
- * detailed. The tile URL wants the level, so it is derived per tile
- * rather than by shifting Leaflet's own zoom.
- */
-class PyramidLayer extends L.TileLayer {
-  private readonly maxLevel: number
-
-  constructor(maxLevel: number, options: L.TileLayerOptions) {
-    super(TILE_URL, options)
-    this.maxLevel = maxLevel
   }
 
-  override getTileUrl(coords: L.Coords): string {
-    return TILE_URL.replace('{z}', String(levelOfLeafletZoom(coords.z, this.maxLevel)))
-      .replace('{x}', String(coords.x))
-      .replace('{y}', String(coords.y))
+  const copyLink = () => {
+    const state = {
+      x: viewer.centre.x,
+      y: viewer.centre.y,
+      zoom: viewer.viewer?.viewport.getZoom() ?? 1,
+      floor: viewer.floor,
+    }
+
+    void navigator.clipboard?.writeText(
+      `${window.location.origin}${window.location.pathname}#${encodeViewState(state)}`,
+    )
   }
-}
 
-/**
- * A coordinate system matching the tiles rather than the globe.
- *
- * Two things have to line up. CRS.Simple puts one map unit on one pixel
- * at zoom 0, but the pyramid's finest level is Leaflet's *highest* zoom,
- * so the scale is shifted by maxZoom. And Simple's y axis runs upward
- * while tile rows run downward, so the transformation keeps y positive
- * instead of mirroring it -- which is what left every row negative.
- */
-function worldCrs(maxZoom: number): L.CRS {
-  return L.extend({}, L.CRS.Simple, {
-    transformation: new L.Transformation(1, 0, 1, 0),
-    scale: (zoom: number) => 2 ** (zoom - maxZoom),
-    zoom: (scale: number) => Math.log(scale) / Math.LN2 + maxZoom,
-  }) as L.CRS
-}
+  const levels = source.layers.map((layer) => layer.level)
 
-/** With y running downward, a world square is its own map point. */
-function toLatLng(x: number, y: number): L.LatLngExpression {
-  return [y, x]
-}
+  return (
+    <div ref={frame} className="relative size-full overflow-hidden rounded-md bg-muted/30">
+      <div
+        ref={(node) => {
+          viewer.containerRef(node)
+          setSurface(node)
+        }}
+        className="size-full"
+      />
 
-export { levelOfLeafletZoom }
+      <MapControls
+        centre={viewer.centre}
+        pointer={viewer.pointer}
+        fullscreen={fullscreen}
+        onZoomIn={() => viewer.zoomBy(1.5)}
+        onZoomOut={() => viewer.zoomBy(1 / 1.5)}
+        onReset={viewer.reset}
+        onToggleFullscreen={toggleFullscreen}
+        onCopyLink={copyLink}
+      />
+
+      <FloorControl
+        levels={levels}
+        floor={viewer.floor}
+        onChange={viewer.setFloor}
+        target={surface}
+      />
+    </div>
+  )
+}

@@ -42,30 +42,33 @@ export function mapOverlay(serverId: string): Promise<MapOverlay> {
   return apiFetch(`/map/${serverId}/overlay`)
 }
 
-export const TILE_URL = '/api/map/tiles/{z}/{x}/{y}.png'
-
-/**
- * Level 0 of the game's own pyramid is one pixel per world square, so
- * world coordinates and image pixels are the same number. Leaflet counts
- * zoom the other way round -- 0 is furthest out -- hence the flip.
- */
-export function leafletZoomOf(level: number, maxLevel: number): number {
-  return maxLevel - level
+/** Which tiles the panel has, and what shape they are. */
+export type MapSources = {
+  /** The game's own top-down map, from pyramid.zip. */
+  gameMap: { available: boolean; tileSize: number; maxLevel: number }
+  /** An isometric render, when the operator has generated one. */
+  isometric: IsometricSource | null
 }
 
-export function levelOfLeafletZoom(zoom: number, maxLevel: number): number {
-  return maxLevel - zoom
+export type IsometricSource = {
+  available: boolean
+  /** Floors the render covers. */
+  levels: number[]
+  geometry: {
+    originX: number
+    originY: number
+    squareSize: number
+    scale: number
+    floorHeight: number
+    width: number
+    height: number
+    cellSize: number
+  }
 }
 
-/** Places worth jumping to, the same list the teleport dialog offers. */
-export const PLACES = [
-  { id: 'muldraugh', x: 10778, y: 9770 },
-  { id: 'westPoint', x: 11800, y: 6900 },
-  { id: 'riverside', x: 6500, y: 5300 },
-  { id: 'rosewood', x: 8000, y: 11800 },
-  { id: 'marchRidge', x: 10100, y: 12800 },
-  { id: 'louisville', x: 12800, y: 2000 },
-] as const
+export function mapSources(): Promise<MapSources> {
+  return apiFetch('/map/sources')
+}
 
 export function parseCoordinates(needle: string): { x: number; y: number } | null {
   const match = needle.trim().match(/^(\d{1,5})\s*[,x\s]\s*(\d{1,5})$/)

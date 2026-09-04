@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'leaflet/dist/leaflet.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -159,7 +158,50 @@
 }
 
 /* The map's own ground, so tiles that have not arrived are not white. */
-.leaflet-container {
-  background: var(--muted);
-  font-family: inherit;
+.openseadragon-container {
+  background: var(--muted) !important;
+}
+
+/* Markers sit on the map as overlays; OpenSeadragon keeps them pinned
+   to their world coordinate, the panel decides what they look like. */
+.pz-player {
+  display: grid;
+  place-items: center;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid oklch(1 0 0);
+  border-radius: 9999px;
+  background: var(--color-emerald-500, #10b981);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  cursor: pointer;
+}
+
+.pz-player--infected {
+  background: var(--destructive);
+}
+
+.pz-player__name {
+  position: absolute;
+  bottom: 1.1rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.2rem;
+  background: color-mix(in oklab, var(--background) 85%, transparent);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 120ms;
+  pointer-events: none;
+}
+
+.pz-player:hover .pz-player__name,
+.pz-player:focus-visible .pz-player__name {
+  opacity: 1;
+}
+
+.pz-safehouse {
+  border: 2px solid var(--primary);
+  border-radius: 0.15rem;
+  background: color-mix(in oklab, var(--primary) 20%, transparent);
+  pointer-events: none;
 }
