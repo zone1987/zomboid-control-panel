@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "309ccb3be136aae42b1b3db6b5eaf78e",
+    "content-hash": "839235fcad002d51b7ff07427781545d",
     "packages": [
         {
             "name": "brick/math",
@@ -8737,62 +8737,6 @@
                 "source": "https://github.com/webmozarts/assert/tree/2.4.1"
             },
             "time": "2026-06-15T15:31:57+00:00"
-        },
-        {
-            "name": "xpaw/php-source-query-class",
-            "version": "6.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/xPaw/PHP-Source-Query.git",
-                "reference": "fe854e0e582b3da4261034bbc0f1e9b1e5e5bd73"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/xPaw/PHP-Source-Query/zipball/fe854e0e582b3da4261034bbc0f1e9b1e5e5bd73",
-                "reference": "fe854e0e582b3da4261034bbc0f1e9b1e5e5bd73",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.2"
-            },
-            "require-dev": {
-                "phpstan/phpstan": "^2.0",
-                "phpstan/phpstan-strict-rules": "^2.0",
-                "phpunit/phpunit": "^12.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "xPaw\\SourceQuery\\": "SourceQuery/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "LGPL-2.1"
-            ],
-            "description": "PHP library to query and send RCON commands to servers based on \"Source Engine Query\" protocol",
-            "homepage": "https://github.com/xPaw/PHP-Source-Query",
-            "keywords": [
-                "ark",
-                "counter-strike",
-                "csgo",
-                "gmod",
-                "minecraft",
-                "rcon",
-                "rust",
-                "starbound",
-                "team fortress"
-            ],
-            "support": {
-                "source": "https://github.com/xPaw/PHP-Source-Query/tree/6.0.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/sponsors/xPaw",
-                    "type": "github"
-                }
-            ],
-            "time": "2026-01-29T10:35:30+00:00"
         },
         {
             "name": "xpaw/steam-openid",

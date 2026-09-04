@@ -57,9 +57,30 @@ function sendPacket($client, int $id, int $type, string $body): void
     fwrite($client, pack('V', strlen($payload)).$payload);
 }
 
+/**
+ * A reply long enough that Zomboid splits it. Measured against the real
+ * server: "help" arrives as 4086 bytes followed by the remainder, with
+ * the continuation sent unprompted.
+ */
+function longAnswer(): string
+{
+    $lines = ['List of server commands : '];
+
+    for ($i = 0; $i < 60; ++$i) {
+        $lines[] = sprintf(
+            '* command%02d : A description long enough to push the whole reply past one packet. Use: /command%02d "username" "argument"',
+            $i,
+            $i,
+        );
+    }
+
+    return implode("\n", $lines);
+}
+
 function answer(string $command): string
 {
     return match (true) {
+        $command === 'help' => longAnswer(),
         $command === 'players' => "Players connected (2):\n-Bob\n-Alice",
         str_starts_with($command, 'servermsg') => 'Message sent.',
         str_starts_with($command, 'kick') => "User \u{0001} kicked.",
@@ -85,12 +106,13 @@ while ($client = @stream_socket_accept($server, 30)) {
         }
 
         if ($packet['type'] === SERVERDATA_EXECCOMMAND) {
-            sendPacket(
-                $client,
-                $packet['id'],
-                SERVERDATA_RESPONSE_VALUE,
-                $authorized ? answer(trim($packet['body'])) : '',
-            );
+            $body = $authorized ? answer(trim($packet['body'])) : '';
+
+            // Zomboid caps a packet body at 4086 bytes and sends the rest
+            // unprompted, rather than waiting to be asked for it.
+            foreach (str_split($body, 4086) ?: [''] as $chunk) {
+                sendPacket($client, $packet['id'], SERVERDATA_RESPONSE_VALUE, $chunk);
+            }
         }
     }
 

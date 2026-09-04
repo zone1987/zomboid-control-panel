@@ -98,6 +98,21 @@ final class RconClientTest extends KernelTestCase
         $this->client->execute($this->config(password: 'wrong-password'), 'players');
     }
 
+    /**
+     * Zomboid answers "help" with more than one packet and sends the
+     * continuation unprompted. A client that stops after the first packet
+     * loses most of the command list.
+     */
+    public function testReassemblesAReplyThatArrivesInSeveralPackets(): void
+    {
+        $reply = $this->client->execute($this->config(), 'help');
+
+        self::assertStringStartsWith('List of server commands :', $reply);
+        self::assertGreaterThan(4086, \strlen($reply));
+        self::assertSame(60, substr_count($reply, '* command'));
+        self::assertStringContainsString('* command59 :', $reply);
+    }
+
     public function testReportsAnUnreachableServer(): void
     {
         $this->expectException(RconUnreachable::class);

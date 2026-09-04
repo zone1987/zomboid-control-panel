@@ -40,7 +40,6 @@
         "symfony/yaml": "7.4.*",
         "symfonycasts/reset-password-bundle": "^1.25",
         "web-auth/webauthn-symfony-bundle": "^5.3",
-        "xpaw/php-source-query-class": "^6.0",
         "xpaw/steam-openid": "^4.0"
     },
     "config": {
