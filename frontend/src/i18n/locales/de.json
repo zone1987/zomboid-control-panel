@@ -592,7 +592,12 @@
       "count": "Anzahl",
       "x": "X",
       "y": "Y",
-      "radius": "Radius"
+      "radius": "Radius",
+      "value": "Wert",
+      "hour": "Stunde",
+      "day": "Tag",
+      "month": "Monat",
+      "volume": "Lautstärke"
     },
     "actions": {
       "startRain": {
@@ -650,8 +655,58 @@
       "removeZombies": {
         "title": "Zombies entfernen",
         "description": "Entfernt alle geladenen Zombies im Umkreis eines Punktes."
+      },
+      "setTime": {
+        "title": "Uhrzeit setzen",
+        "description": "Setzt die Ingame-Uhr. 0 ist Mitternacht, 12 Mittag."
+      },
+      "setDate": {
+        "title": "Datum setzen",
+        "description": "Setzt Tag und Monat. Die Jahreszeit richtet sich danach."
+      },
+      "bridgeStartRain": {
+        "title": "Regen starten (Bridge)",
+        "description": "Wie der RCON-Befehl, aber mit einer Rückmeldung, ob es tatsächlich regnet."
+      },
+      "bridgeStopRain": {
+        "title": "Regen beenden (Bridge)",
+        "description": "Beendet den Regen und prüft nach, ob er wirklich aufgehört hat."
+      },
+      "setFog": {
+        "title": "Nebel",
+        "description": "Wie dicht der Nebel liegt. 0 ist klar, 100 ist undurchdringlich."
+      },
+      "setWind": {
+        "title": "Wind",
+        "description": "Wie stark der Wind weht."
+      },
+      "setTemperature": {
+        "title": "Temperatur",
+        "description": "Die Außentemperatur in Grad Celsius."
+      },
+      "setClouds": {
+        "title": "Bewölkung",
+        "description": "Wie stark der Himmel bedeckt ist."
+      },
+      "setDaylight": {
+        "title": "Tageslicht",
+        "description": "Wie hell es am Tag ist. Unter 100 wirkt die Welt düster."
+      },
+      "setViewDistance": {
+        "title": "Sichtweite",
+        "description": "Wie weit Spieler sehen können."
+      },
+      "soundAtPlayer": {
+        "title": "Geräusch bei einem Spieler",
+        "description": "Erzeugt ein Geräusch dort, wo ein Spieler steht. Zombies laufen darauf zu."
+      },
+      "soundAtPoint": {
+        "title": "Geräusch an einem Punkt",
+        "description": "Erzeugt ein Geräusch an einer Stelle der Karte. Zombies laufen darauf zu."
       }
-    }
+    },
+    "invalidInput": "Die Eingabe war nicht brauchbar.",
+    "bridgeNeeded": "Dafür muss die Bridge auf dem Server laufen."
   },
   "map": {
     "title": "Weltkarte",

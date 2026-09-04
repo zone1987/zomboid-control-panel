@@ -23,6 +23,7 @@ final readonly class EventCatalogue
             ...self::weather(),
             ...self::sounds(),
             ...self::players(),
+            ...self::world(),
         ];
     }
 
@@ -65,6 +66,61 @@ final readonly class EventCatalogue
             new EventAction('chopper', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['chopper']),
             new EventAction('gunshot', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['gunshot']),
             new EventAction('alarm', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['alarm']),
+        ];
+    }
+
+    /**
+     * The bridge half: things RCON has no command for.
+     *
+     * These travel through the command queue, so they need a bridge of
+     * 0.8.0 or newer and are offered greyed out when it is not
+     * answering.
+     *
+     * @return list<EventAction>
+     */
+    private static function world(): array
+    {
+        return [
+            new EventAction('setTime', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('hour', 0, 24, 12),
+            ]),
+            new EventAction('setDate', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('day', 1, 31, 1),
+                EventField::number('month', 1, 12, 7),
+            ]),
+            new EventAction('bridgeStartRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('intensity', 0, 100, 50),
+            ]),
+            new EventAction('bridgeStopRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE),
+            new EventAction('setFog', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', 0, 100, 50),
+            ]),
+            new EventAction('setWind', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', 0, 100, 50),
+            ]),
+            new EventAction('setTemperature', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', -30, 40, 20),
+            ]),
+            new EventAction('setClouds', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', 0, 100, 50),
+            ]),
+            new EventAction('setDaylight', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', 0, 100, 100),
+            ]),
+            new EventAction('setViewDistance', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('value', 0, 100, 50),
+            ]),
+            new EventAction('soundAtPlayer', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::player('player'),
+                EventField::number('radius', 1, 500, 100),
+                EventField::number('volume', 1, 500, 100),
+            ]),
+            new EventAction('soundAtPoint', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::number('x', 0, 20000, 10778),
+                EventField::number('y', 0, 20000, 9770),
+                EventField::number('radius', 1, 500, 100),
+                EventField::number('volume', 1, 500, 100),
+            ]),
         ];
     }
 

@@ -30,7 +30,8 @@ final readonly class EventAction
         public string $id,
         public string $group,
         public string $channel,
-        public array $commands,
+        /** Empty for a bridge action: it needs no RCON command at all. */
+        public array $commands = [],
         public array $fields = [],
         public bool $destructive = false,
     ) {

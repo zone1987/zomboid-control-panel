@@ -67,7 +67,11 @@ final class BridgeInstallerTest extends TestCase
         $this->installer($browser)->install($this->server('/', 'media/lua/server'));
 
         self::assertStringContainsString('ZomboidControl', $browser->contents);
-        self::assertStringContainsString('Events.OnTick.Add', $browser->contents);
+
+        // OnTickEvenPaused rather than OnTick: the panel has to reach a
+        // server nobody is playing on, which is exactly when a paused or
+        // idle server would otherwise stop listening.
+        self::assertStringContainsString('Events.OnTickEvenPaused.Add', $browser->contents);
     }
 
     public function testReadsTheVersionFromTheSource(): void

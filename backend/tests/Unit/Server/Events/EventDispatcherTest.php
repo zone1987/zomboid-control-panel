@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Server\Events;
 
+use App\Server\Events\EventAction;
 use App\Server\Events\EventCatalogue;
 use App\Server\Events\EventDispatcher;
 use App\Server\Events\EventOutcome;
@@ -131,6 +132,14 @@ final class EventDispatcherTest extends TestCase
         EventDispatcher::commandFor('hordeNearPlayer', ['count' => 10]);
     }
 
+    /** A bridge action reaching the RCON dispatcher is a mistake. */
+    public function testRefusesToBuildAnRconCommandForABridgeAction(): void
+    {
+        $this->expectException(RconCommandFailed::class);
+
+        EventDispatcher::commandFor('setTime', ['hour' => 12]);
+    }
+
     public function testRefusesAnUnknownAction(): void
     {
         $this->expectException(RconCommandFailed::class);
@@ -138,10 +147,14 @@ final class EventDispatcherTest extends TestCase
         EventDispatcher::commandFor('summonHelicopterGunship', []);
     }
 
-    /** Every action in the catalogue must build a command. */
-    public function testEveryActionInTheCatalogueBuildsSomething(): void
+    /** Every RCON action must build a command; a bridge action has none. */
+    public function testEveryRconActionInTheCatalogueBuildsSomething(): void
     {
         foreach (EventCatalogue::all() as $action) {
+            if ($action->channel !== EventAction::CHANNEL_RCON) {
+                continue;
+            }
+
             $inputs = [];
 
             foreach ($action->fields as $field) {

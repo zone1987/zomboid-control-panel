@@ -10,9 +10,14 @@ use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Repository\ModerationActionRepository;
 use App\Security\Permission\Permission;
+use App\Server\Bridge\BridgeCommand;
+use App\Server\Bridge\BridgeCommandFailed;
+use App\Server\Bridge\BridgeCommandSender;
+use App\Server\Bridge\InvalidBridgeCommand;
 use App\Server\Events\EventAction;
 use App\Server\Events\EventCatalogue;
 use App\Server\Events\EventDispatcher;
+use App\Server\Events\EventOutcome;
 use App\Server\Events\VehicleScripts;
 use App\Server\Rcon\CommandCatalogueProvider;
 use App\Server\Rcon\RconException;
@@ -35,6 +40,7 @@ final class EventController extends AbstractController
         private readonly CommandCatalogueProvider $catalogue,
         private readonly ModerationActionRepository $actions,
         private readonly EntityManagerInterface $entityManager,
+        private readonly BridgeCommandSender $bridge,
     ) {
     }
 
@@ -100,9 +106,24 @@ final class EventController extends AbstractController
         }
 
         $inputs = $this->payloadOf($request);
+        $action = EventCatalogue::find($actionId);
 
         try {
-            $outcome = $this->events->dispatch($server, $actionId, $inputs);
+            $outcome = $action?->channel === EventAction::CHANNEL_BRIDGE
+                ? $this->throughBridge($server, $actionId, $inputs)
+                : $this->events->dispatch($server, $actionId, $inputs);
+        } catch (InvalidBridgeCommand $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'events.invalidInput',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (BridgeCommandFailed $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
         } catch (RconException $exception) {
             return new JsonResponse([
                 'status' => 'failed',
@@ -124,6 +145,66 @@ final class EventController extends AbstractController
         $this->entityManager->flush();
 
         return new JsonResponse(['status' => 'sent', ...$outcome->toArray()]);
+    }
+
+    /**
+     * Runs an action through the bridge's command queue.
+     *
+     * The catalogue's action ids and the bridge's own vocabulary are
+     * deliberately separate: the panel offers "set the fog", the bridge
+     * knows only a climate value by index.
+     *
+     * @param array<string, mixed> $inputs
+     *
+     * @throws BridgeCommandFailed
+     * @throws InvalidBridgeCommand
+     */
+    private function throughBridge(GameServer $server, string $actionId, array $inputs): EventOutcome
+    {
+        [$command, $arguments] = match ($actionId) {
+            'setTime' => [BridgeCommand::SetTime, ['hour' => $inputs['hour'] ?? null]],
+            'setDate' => [BridgeCommand::SetDate, [
+                'day' => $inputs['day'] ?? null,
+                'month' => $inputs['month'] ?? null,
+            ]],
+            'bridgeStartRain' => [BridgeCommand::StartRain, ['intensity' => $inputs['intensity'] ?? null]],
+            'bridgeStopRain' => [BridgeCommand::StopRain, []],
+            'soundAtPlayer', 'soundAtPoint' => [BridgeCommand::PlaySound, $inputs],
+            default => [BridgeCommand::SetClimateValue, [
+                'name' => self::CLIMATE_ACTIONS[$actionId] ?? null,
+                // The interface works in percent; the game works in 0..1,
+                // except temperature, which is degrees either way.
+                'value' => self::climateValue($actionId, $inputs['value'] ?? null),
+            ]],
+        };
+
+        $result = $this->bridge->send($server, $command, $arguments);
+
+        return new EventOutcome(
+            $actionId,
+            $command->value,
+            $result->message === '' ? ($result->ok ? 'done' : 'refused') : $result->message,
+            failed: !$result->ok,
+        );
+    }
+
+    /** Action id to the climate value it sets. */
+    private const CLIMATE_ACTIONS = [
+        'setFog' => 'fog',
+        'setWind' => 'wind',
+        'setTemperature' => 'temperature',
+        'setClouds' => 'clouds',
+        'setDaylight' => 'daylight',
+        'setViewDistance' => 'viewDistance',
+    ];
+
+    private static function climateValue(string $actionId, mixed $value): float|int|null
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return $actionId === 'setTemperature' ? $value + 0 : ($value + 0) / 100;
     }
 
     /** What this page has done lately, newest first. */

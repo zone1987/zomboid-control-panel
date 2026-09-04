@@ -27,4 +27,26 @@ final class BridgeFiles
 
     /** Everything before 0.4.0 lived in one file. */
     public const LEGACY = self::DIRECTORY.'/status.json';
+
+    /**
+     * The command queue, from 0.8.0.
+     *
+     * Each side owns its files and only reads the other's: the panel
+     * writes commands and its own cursor, the bridge writes results and
+     * its own cursor.
+     */
+    public const COMMANDS = self::DIRECTORY.'/commands';
+    public const RESULTS = self::DIRECTORY.'/results';
+    public const BRIDGE_CURSOR = self::DIRECTORY.'/cursor.json';
+    public const PANEL_CURSOR = self::DIRECTORY.'/panel-cursor.json';
+
+    public static function commandFile(int $sequence): string
+    {
+        return sprintf('%s/cmd-%d.json', self::COMMANDS, $sequence);
+    }
+
+    public static function resultFile(int $sequence): string
+    {
+        return sprintf('%s/res-%d.json', self::RESULTS, $sequence);
+    }
 }

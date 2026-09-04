@@ -592,7 +592,12 @@
       "count": "Count",
       "x": "X",
       "y": "Y",
-      "radius": "Radius"
+      "radius": "Radius",
+      "value": "Value",
+      "hour": "Hour",
+      "day": "Day",
+      "month": "Month",
+      "volume": "Volume"
     },
     "actions": {
       "startRain": {
@@ -650,8 +655,58 @@
       "removeZombies": {
         "title": "Remove zombies",
         "description": "Removes every loaded zombie within a radius of a point."
+      },
+      "setTime": {
+        "title": "Set the time",
+        "description": "Sets the in-game clock. 0 is midnight, 12 is noon."
+      },
+      "setDate": {
+        "title": "Set the date",
+        "description": "Sets the day and month. The season follows from it."
+      },
+      "bridgeStartRain": {
+        "title": "Start rain (bridge)",
+        "description": "Like the RCON command, but it reports back whether it is actually raining."
+      },
+      "bridgeStopRain": {
+        "title": "Stop rain (bridge)",
+        "description": "Stops the rain and checks that it really stopped."
+      },
+      "setFog": {
+        "title": "Fog",
+        "description": "How thick the fog lies. 0 is clear, 100 is impenetrable."
+      },
+      "setWind": {
+        "title": "Wind",
+        "description": "How hard the wind blows."
+      },
+      "setTemperature": {
+        "title": "Temperature",
+        "description": "The outdoor temperature in degrees Celsius."
+      },
+      "setClouds": {
+        "title": "Cloud cover",
+        "description": "How heavily the sky is covered."
+      },
+      "setDaylight": {
+        "title": "Daylight",
+        "description": "How bright the day is. Below 100 the world turns gloomy."
+      },
+      "setViewDistance": {
+        "title": "View distance",
+        "description": "How far players can see."
+      },
+      "soundAtPlayer": {
+        "title": "Sound at a player",
+        "description": "Makes a noise where a player stands. Zombies walk towards it."
+      },
+      "soundAtPoint": {
+        "title": "Sound at a point",
+        "description": "Makes a noise at a spot on the map. Zombies walk towards it."
       }
-    }
+    },
+    "invalidInput": "The input could not be used.",
+    "bridgeNeeded": "This needs the bridge running on the server."
   },
   "map": {
     "title": "World map",

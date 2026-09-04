@@ -11,6 +11,12 @@ final readonly class EventOutcome
         public string $actionId,
         public string $command,
         public string $reply,
+        /**
+         * Set when the answer already carries a verdict. The bridge says
+         * plainly whether it worked; RCON never does, so its outcomes
+         * leave this null and the wording decides.
+         */
+        private ?bool $failed = null,
     ) {
     }
 
@@ -20,6 +26,10 @@ final readonly class EventOutcome
      */
     public function failed(): bool
     {
+        if ($this->failed !== null) {
+            return $this->failed;
+        }
+
         $reply = strtolower(trim($this->reply));
 
         if ($reply === '' || $reply === 'error') {
