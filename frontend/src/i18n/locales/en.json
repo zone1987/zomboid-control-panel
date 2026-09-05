@@ -416,7 +416,8 @@
         "finishing": "Finishing up",
         "clearing": "Clearing the store",
         "sweeping": "Removing outdated tiles",
-        "paused": "Paused"
+        "paused": "Paused",
+        "surveying": "Surveying the map"
       },
       "noWorker": "The job was queued but nothing is consuming it — no background worker is running. A Docker installation starts one under supervisor; locally it has to be started by hand."
     }
@@ -889,7 +890,11 @@
       "failedNote_other": "{{count}} tiles did not reach the store and are being retried.",
       "inStore": "in the store",
       "floor": "Floor",
-      "floorPass": "floor {{floor}}"
+      "floorPass": "floor {{floor}}",
+      "surveyed": "cells surveyed",
+      "withContent": "with content",
+      "skippedEmpty": "Skipped (empty)",
+      "surveyNote": "Checking which tiles hold anything. Only those get drawn."
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."

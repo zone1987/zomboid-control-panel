@@ -114,8 +114,12 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
   const paused = progress.paused === true
   const stopping = progress.stopRequested === true
 
-  const total = progress.cellsTotal ?? 0
-  const done = progress.cellsDone ?? 0
+  const surveying = progress.phase === 'surveying'
+
+  // During the survey the cell total is not known yet -- it is what the
+  // survey is working out -- so it counts against the whole grid.
+  const total = surveying ? 78 * 64 : (progress.cellsTotal ?? 0)
+  const done = surveying ? (progress.cellsSurveyed ?? 0) : (progress.cellsDone ?? 0)
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
 
   return (
@@ -156,7 +160,27 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        {/* The survey reads every cell before a tile is drawn, which
+            takes a quarter of an hour: without saying so, the run looks
+            stuck at nought per cent. */}
+        {surveying && (
+          <>
+            <p className="text-xs text-muted-foreground">{t('map.render.surveyNote')}</p>
+
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <Figure
+                label={t('map.render.surveyed')}
+                value={`${done.toLocaleString()} / ${total.toLocaleString()}`}
+              />
+              <Figure
+                label={t('map.render.withContent')}
+                value={(progress.cellsWithContent ?? 0).toLocaleString()}
+              />
+            </dl>
+          </>
+        )}
+
+        <dl className={`grid grid-cols-2 gap-x-4 gap-y-2 text-sm${surveying ? ' hidden' : ''}`}>
           <Figure
             label={t('settings.render.cells')}
             value={`${done.toLocaleString()} / ${total.toLocaleString()}`}
@@ -175,6 +199,15 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
           {/* What the bucket holds, which is what it costs -- not what
               this run happened to send. */}
           <Figure label={t('map.render.inStore')} value={size(progress.bytesHeld ?? 0)} />
+          {/* What the survey saved: cell-floor pairs that hold nothing
+              and are never drawn. Distinct from tilesSkipped, which
+              means the store already has it. */}
+          {(progress.passesSkippedEmpty ?? 0) > 0 && (
+            <Figure
+              label={t('map.render.skippedEmpty')}
+              value={(progress.passesSkippedEmpty ?? 0).toLocaleString()}
+            />
+          )}
         </dl>
 
         {/* Shown from the first batch, not once an estimate exists: a

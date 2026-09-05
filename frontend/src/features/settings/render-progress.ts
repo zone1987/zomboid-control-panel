@@ -30,6 +30,9 @@ export type RenderProgress = {
   tilesEstimated?: number
   tilesProduced?: number
   cellsSkipped?: number
+  cellsSurveyed?: number
+  cellsWithContent?: number
+  passesSkippedEmpty?: number
   error?: string
 }
 

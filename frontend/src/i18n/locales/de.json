@@ -416,7 +416,8 @@
         "finishing": "Räumt auf",
         "clearing": "Räumt den Speicher auf",
         "sweeping": "Entfernt veraltete Kacheln",
-        "paused": "Pausiert"
+        "paused": "Pausiert",
+        "surveying": "Analysiert die Karte"
       },
       "noWorker": "Der Auftrag wurde eingereiht, aber niemand arbeitet ihn ab — es läuft kein Hintergrundprozess. Bei einer Docker-Installation startet ihn Supervisor; lokal muss er von Hand laufen."
     }
@@ -889,7 +890,11 @@
       "failedNote_other": "{{count}} Kacheln kamen nicht im Speicher an und werden erneut versucht.",
       "inStore": "im Speicher",
       "floor": "Etage",
-      "floorPass": "Etage {{floor}}"
+      "floorPass": "Etage {{floor}}",
+      "surveyed": "Zellen geprüft",
+      "withContent": "mit Inhalt",
+      "skippedEmpty": "Übersprungen (leer)",
+      "surveyNote": "Es wird geprüft, welche Kacheln überhaupt Inhalt haben. Nur die werden gezeichnet."
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."
