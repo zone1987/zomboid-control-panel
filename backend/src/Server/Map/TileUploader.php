@@ -42,6 +42,9 @@ final readonly class TileUploader
     /** Requests started before waiting for any of them. */
     private const IN_FLIGHT = 32;
 
+    /** What S3 accepts in one DeleteObjects call. */
+    private const DELETE_BATCH = 1000;
+
     public function __construct(
         private ObjectStorageInterface $storage,
         private LoggerInterface $logger,
@@ -370,24 +373,96 @@ final readonly class TileUploader
     {
         $filesystem = $this->storage->create();
         $removed = 0;
+        $batch = [];
 
         foreach ($filesystem->listContents($prefix, true) as $item) {
             if (!$item->isFile()) {
                 continue;
             }
 
-            $path = $item->path();
+            $batch[] = $item->path();
 
-            if ($this->attempt(static function () use ($filesystem, $path): bool {
-                $filesystem->delete($path);
+            if (\count($batch) >= self::DELETE_BATCH) {
+                $removed += $this->deleteBatch($batch);
+                $batch = [];
+
+                if ($onProgress !== null) {
+                    $onProgress($removed);
+                }
+            }
+        }
+
+        if ($batch !== []) {
+            $removed += $this->deleteBatch($batch);
+
+            if ($onProgress !== null) {
+                $onProgress($removed);
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
+     * Deletes up to a thousand objects in one request.
+     *
+     * One request per object turns clearing a finished render into
+     * hours; S3 takes a thousand keys at a time.
+     *
+     * @param list<string> $keys
+     */
+    private function deleteBatch(array $keys): int
+    {
+        if ($keys === []) {
+            return 0;
+        }
+
+        $client = $this->storage->client();
+        $bucket = (string) $this->storage->bucket();
+        $deleted = 0;
+
+        $sent = $this->attempt(function () use ($client, $bucket, $keys, &$deleted): bool {
+            $result = $client->deleteObjects([
+                'Bucket' => $bucket,
+                'Delete' => [
+                    'Objects' => array_map(static fn (string $key): array => ['Key' => $key], $keys),
+                    'Quiet' => true,
+                ],
+            ]);
+
+            foreach ($result->getErrors() as $error) {
+                $this->logger->warning('The store refused to delete an object.', [
+                    'key' => $error->getKey(),
+                    'error' => $error->getMessage(),
+                ]);
+            }
+
+            $deleted = \count($keys) - \count(iterator_to_array($result->getErrors()));
+
+            return true;
+        });
+
+        if (!$sent) {
+            // A store without batch deletion still has to be cleared.
+            return $this->deleteOneByOne($keys);
+        }
+
+        return $deleted;
+    }
+
+    /** @param list<string> $keys */
+    private function deleteOneByOne(array $keys): int
+    {
+        $filesystem = $this->storage->create();
+        $removed = 0;
+
+        foreach ($keys as $key) {
+            if ($this->attempt(static function () use ($filesystem, $key): bool {
+                $filesystem->delete($key);
 
                 return true;
             })) {
                 ++$removed;
-
-                if ($onProgress !== null && $removed % 100 === 0) {
-                    $onProgress($removed);
-                }
             }
         }
 

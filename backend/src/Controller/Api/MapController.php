@@ -16,7 +16,6 @@ use App\Server\Map\TileRenderer;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -313,22 +312,10 @@ final class MapController extends AbstractController
         methods: ['GET'],
         requirements: ['path' => '.+'],
     )]
-    public function isometric(string $path, Request $request): Response
+    public function isometric(string $path): Response
     {
-        $file = $this->reader->localPath($path);
-
-        if ($file !== null) {
-            $response = new BinaryFileResponse($file);
-            $response->setPublic();
-            $response->setMaxAge(604800);
-            $response->setAutoEtag();
-            $response->isNotModified($request);
-
-            return $response;
-        }
-
-        // Everything a finished run produced is in the object store; a
-        // tile is only on disk while its batch is still being uploaded.
+        // Tiles are served from the object store alone: an empty bucket
+        // is an empty map, with nothing on disk standing in for it.
         $stream = $this->reader->stream($path);
 
         if ($stream === null) {

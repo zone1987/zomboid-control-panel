@@ -20,3 +20,6 @@
 # Scratch task list. What is open belongs in CONTEXT.md, which is the
 # one place a new session reads.
 /TODO.md
+
+# Per-batch renderer configurations; written and deleted at runtime.
+/renderer/conf/render-*.yaml
