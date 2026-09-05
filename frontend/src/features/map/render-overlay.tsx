@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Pause, Play, X } from 'lucide-react'
+import { Loader2, Pause, Play, TriangleAlert, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
@@ -200,6 +200,17 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
             }
           />
         </dl>
+
+        {(progress.tilesFailed ?? 0) > 0 && (
+          <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+            <TriangleAlert className="size-3.5 shrink-0" />
+            {/* Cleared as soon as they arrive: a tile the store refused
+                is retried on the next batch, so this is what is
+                outstanding right now, not a tally of everything that
+                ever failed. */}
+            {t('map.render.failedNote', { count: progress.tilesFailed ?? 0 })}
+          </p>
+        )}
 
         {(progress.tilesSkipped ?? 0) > 0 && (
           <p className="text-xs text-muted-foreground">

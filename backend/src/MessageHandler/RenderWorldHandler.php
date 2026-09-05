@@ -287,6 +287,7 @@ final readonly class RenderWorldHandler
         $counts['tilesUploaded'] = $before + $result['sent'];
         $counts['tilesSkipped'] += $result['skipped'];
         $counts['bytesUploaded'] += $result['bytes'];
+        $counts['tilesFailed'] = 0;
 
         // Nobody knows how many tiles a world makes: it depends on what
         // stands in each cell. Counted from what the renderer produced,
@@ -343,8 +344,11 @@ final readonly class RenderWorldHandler
             sleep(2 << $round);
 
             $again = $this->uploader->upload($tiles, 'map/base');
+
+            // Only the retried tiles count: this pass walks the whole
+            // directory, so its skipped ones are tiles the first pass
+            // already reported.
             $counts['tilesUploaded'] += $again['sent'];
-            $counts['tilesSkipped'] += $again['skipped'];
             $counts['bytesUploaded'] += $again['bytes'];
 
             $missing = $this->uploader->verify($tiles, 'map/base', $again['inStore']);
@@ -358,11 +362,14 @@ final readonly class RenderWorldHandler
             return;
         }
 
-        $counts['tilesFailed'] += \count($missing);
+        $counts['tilesFailed'] = \count($missing);
 
-        // Kept rather than deleted: the next batch's upload walks the
-        // whole directory again, so what stayed behind gets another
-        // chance without anything having to remember it.
+        // What did arrive is removed even though some did not: leaving
+        // the whole batch means the next one walks it again and counts
+        // every tile a second time, which is how 1.6 GB in the store
+        // was reported as 11.9.
+        $this->clear($tiles, keepExtension: '.dzi', except: $missing, prefix: 'map/base');
+
         $this->logger->warning('Tiles did not reach the store after retrying; keeping them on disk.', [
             'count' => \count($missing),
             'first' => \array_slice($missing, 0, 5),
@@ -409,11 +416,20 @@ final readonly class RenderWorldHandler
         }
     }
 
-    private function clear(string $directory, ?string $keepExtension): void
-    {
+    /**
+     * @param list<string> $except keys, as the store names them, to leave alone
+     */
+    private function clear(
+        string $directory,
+        ?string $keepExtension,
+        array $except = [],
+        string $prefix = '',
+    ): void {
         if (!is_dir($directory)) {
             return;
         }
+
+        $keep = array_flip($except);
 
         $entries = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
@@ -431,9 +447,17 @@ final readonly class RenderWorldHandler
                 continue;
             }
 
-            if ($keepExtension === null || !str_ends_with($entry->getFilename(), $keepExtension)) {
-                @unlink($entry->getPathname());
+            if ($keepExtension !== null && str_ends_with($entry->getFilename(), $keepExtension)) {
+                continue;
             }
+
+            $key = $prefix.'/'.ltrim(str_replace($directory, '', $entry->getPathname()), '/');
+
+            if (isset($keep[$key])) {
+                continue;
+            }
+
+            @unlink($entry->getPathname());
         }
     }
 }

@@ -177,6 +177,23 @@ final class TileUploaderTest extends TestCase
         self::assertSame(0, $second['bytes']);
     }
 
+    /**
+     * A second pass over the same directory reports its tiles as
+     * skipped, not sent. Counting those bytes again is how 1.6 GB in
+     * the store came out as 11.9 in the interface.
+     */
+    public function testASecondPassCountsNoBytesAgain(): void
+    {
+        $store = new Filesystem(new InMemoryFilesystemAdapter());
+        $uploader = new TileUploader($this->storageReturning($store), new NullLogger());
+
+        $first = $uploader->upload($this->root, 'map/base');
+        $second = $uploader->upload($this->root, 'map/base');
+
+        self::assertSame(3 * 128, $first['bytes']);
+        self::assertSame(0, $second['bytes'], 'The same tiles were billed twice.');
+    }
+
     private function storageReturning(FilesystemOperator $filesystem): ObjectStorageInterface
     {
         return new class($filesystem) implements ObjectStorageInterface {

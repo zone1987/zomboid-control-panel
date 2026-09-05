@@ -884,7 +884,9 @@
       "resumed": "The run is continuing.",
       "skippedNote_one": "One tile was already stored and was skipped.",
       "skippedNote_other": "{{count}} tiles were already stored and were skipped.",
-      "emptyCells": "empty"
+      "emptyCells": "empty",
+      "failedNote_one": "One tile did not reach the store and is being retried.",
+      "failedNote_other": "{{count}} tiles did not reach the store and are being retried."
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."

@@ -884,7 +884,9 @@
       "resumed": "Der Lauf wird fortgesetzt.",
       "skippedNote_one": "Eine Kachel lag bereits im Speicher und wurde übersprungen.",
       "skippedNote_other": "{{count}} Kacheln lagen bereits im Speicher und wurden übersprungen.",
-      "emptyCells": "leer"
+      "emptyCells": "leer",
+      "failedNote_one": "Eine Kachel kam nicht im Speicher an und wird erneut versucht.",
+      "failedNote_other": "{{count}} Kacheln kamen nicht im Speicher an und werden erneut versucht."
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."
