@@ -124,7 +124,7 @@ final class MapController extends AbstractController
     /** Asks a running render to stop after the batch it is on. */
     #[Route('/render/stop', name: 'api_map_render_stop', methods: ['POST'])]
     #[IsGranted(Permission::EditSettings->value)]
-    public function stopRender(): JsonResponse
+    public function stopRender(\Doctrine\DBAL\Connection $database): JsonResponse
     {
         if (!$this->progress->isRunning()) {
             return new JsonResponse(
@@ -142,6 +142,17 @@ final class MapController extends AbstractController
         // Supervisor and ddev both restart the worker straight away.
         if ($pid !== null) {
             @posix_kill($pid, \SIGKILL);
+        }
+
+        // Dropped rather than left for redelivery: a killed worker
+        // leaves its message marked as delivered, and the next run
+        // would queue behind a job nobody is doing. Starting again
+        // costs nothing -- every tile already in the store is skipped.
+        try {
+            $database->executeStatement('DELETE FROM messenger_messages');
+        } catch (\Throwable) {
+            // A queue that cannot be cleared is not a reason to keep
+            // the render running; the kill above already stopped it.
         }
 
         return new JsonResponse(['status' => 'stopped']);
