@@ -35,6 +35,17 @@ final readonly class RenderWorldHandler
     /** 4065 of 4992 in build 42's default range, from its map_info.json. */
     private const OCCUPIED_SHARE = 0.814;
 
+    /**
+     * Floors in the order they are drawn.
+     *
+     * Ground first, over the whole world, because that is the floor
+     * somebody looking at the map sees -- waiting hours for a map that
+     * exists only in one corner is the wrong way round. Then outwards
+     * from it: the first storey and the basement are where most
+     * interiors are, and the far ends of the range are nearly empty.
+     */
+    private const FLOOR_ORDER = [0, 1, -1, 2, 3];
+
     /** The world is 78 by 64 cells; most of the corners are empty. */
     private const COLUMNS = 78;
     private const ROWS = 64;
@@ -74,7 +85,9 @@ final readonly class RenderWorldHandler
         $counts = [
             'state' => RenderProgress::RUNNING,
             'startedAt' => $started,
-            'cellsTotal' => self::COLUMNS * self::ROWS,
+            'cellsTotal' => self::COLUMNS * self::ROWS * \count(self::FLOOR_ORDER),
+            'floorsTotal' => \count(self::FLOOR_ORDER),
+            'currentFloor' => self::FLOOR_ORDER[0],
             'cellsDone' => 0,
             'cellsRendered' => 0,
             'cellsEmpty' => 0,
@@ -99,7 +112,7 @@ final readonly class RenderWorldHandler
         $this->progress->resume();
         $this->progress->write($counts);
 
-        foreach ($this->batches() as $batch) {
+        foreach ($this->passes() as [$floor, $batch]) {
             // Checked between batches, where the last upload has been
             // verified and nothing is half-written.
             if ($this->progress->stopRequested()) {
@@ -144,7 +157,7 @@ final readonly class RenderWorldHandler
 
                 // Same bytes, same picture: the tiles in the store are
                 // already this cell, so there is nothing to draw.
-                if ($checksum !== null && $this->ledger->matches($cell[0], $cell[1], $checksum)) {
+                if ($checksum !== null && $this->ledger->matches($cell[0], $cell[1], $checksum, $floor)) {
                     ++$counts['cellsSkipped'];
 
                     continue;
@@ -153,15 +166,16 @@ final readonly class RenderWorldHandler
                 $wanted[] = $cell;
 
                 if ($checksum !== null) {
-                    $checksums[\App\Server\Map\CellLedger::name($cell[0], $cell[1])] = $checksum;
+                    $checksums[\App\Server\Map\CellLedger::name($cell[0], $cell[1], $floor)] = $checksum;
                 }
             }
 
             $counts['currentCell'] = $batch[0][0].','.$batch[0][1];
+            $counts['currentFloor'] = $floor;
             $counts['phase'] = 'rendering';
             $this->progress->write($counts);
 
-            if ($wanted !== [] && $this->renderer->render($server, $wanted)) {
+            if ($wanted !== [] && $this->renderer->render($server, $wanted, [$floor, $floor + 1])) {
                 $counts['phase'] = 'uploading';
                 $counts['cellsRendered'] += \count($wanted);
 
@@ -397,6 +411,20 @@ final readonly class RenderWorldHandler
         }
 
         return $count;
+    }
+
+    /**
+     * Every batch of every pass, one floor at a time.
+     *
+     * @return \Generator<array{int, list<array{int, int}>}>
+     */
+    private function passes(): \Generator
+    {
+        foreach (self::FLOOR_ORDER as $floor) {
+            foreach ($this->batches() as $batch) {
+                yield [$floor, $batch];
+            }
+        }
     }
 
     /** @return \Generator<list<array{int, int}>> */

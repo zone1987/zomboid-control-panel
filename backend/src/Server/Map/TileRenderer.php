@@ -77,10 +77,11 @@ final readonly class TileRenderer
      * overlap its edge.
      *
      * @param list<array{int, int}> $cells
+     * @param array{int, int}|null   $layers floors to draw, or every one
      *
      * @return bool whether anything was produced
      */
-    public function render(GameServer $server, array $cells): bool
+    public function render(GameServer $server, array $cells, ?array $layers = null): bool
     {
         if (!$this->isAvailable() || $cells === []) {
             return false;
@@ -100,7 +101,7 @@ final readonly class TileRenderer
 
         $this->root->ensure();
 
-        $configuration = $this->writeConfiguration($available);
+        $configuration = $this->writeConfiguration($available, $layers);
 
         if ($configuration === null) {
             return false;
@@ -206,8 +207,9 @@ final readonly class TileRenderer
      * range between writing it and reading it.
      *
      * @param list<array{int, int}> $cells
+     * @param array{int, int}|null   $layers
      */
-    private function writeConfiguration(array $cells): ?string
+    private function writeConfiguration(array $cells, ?array $layers = null): ?string
     {
         $template = $this->rendererPath.'/conf/conf.yaml';
 
@@ -255,6 +257,15 @@ final readonly class TileRenderer
         // Beside the template, not in a temporary directory: main.py
         // resolves map_conf_default and the rest relative to the
         // configuration file it was handed.
+        if ($layers !== null) {
+            $body = preg_replace(
+                '/^    layer_range:.*$/m',
+                sprintf('    layer_range: [%d, %d]', $layers[0], $layers[1]),
+                $body,
+                1,
+            ) ?? $body;
+        }
+
         $path = $this->rendererPath.'/conf/'.uniqid('render-', true).'.yaml';
 
         return file_put_contents($path, $body) === false ? null : $path;

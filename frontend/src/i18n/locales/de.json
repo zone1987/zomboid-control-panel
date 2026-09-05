@@ -887,7 +887,9 @@
       "emptyCells": "leer",
       "failedNote_one": "Eine Kachel kam nicht im Speicher an und wird erneut versucht.",
       "failedNote_other": "{{count}} Kacheln kamen nicht im Speicher an und werden erneut versucht.",
-      "inStore": "im Speicher"
+      "inStore": "im Speicher",
+      "floor": "Etage",
+      "floorPass": "Etage {{floor}}"
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."

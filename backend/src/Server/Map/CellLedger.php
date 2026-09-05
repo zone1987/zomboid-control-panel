@@ -57,9 +57,9 @@ final class CellLedger
         return $this->cache;
     }
 
-    public function matches(int $x, int $y, string $checksum): bool
+    public function matches(int $x, int $y, string $checksum, int $floor = 0): bool
     {
-        return ($this->all()[self::name($x, $y)] ?? null) === $checksum;
+        return ($this->all()[self::name($x, $y, $floor)] ?? null) === $checksum;
     }
 
     /** @param array<string, string> $checksums */
@@ -80,8 +80,9 @@ final class CellLedger
         }
     }
 
-    public static function name(int $x, int $y): string
+    /** Keyed by floor as well: each pass draws a different one. */
+    public static function name(int $x, int $y, int $floor = 0): string
     {
-        return $x.','.$y;
+        return $x.','.$y.'@'.$floor;
     }
 }

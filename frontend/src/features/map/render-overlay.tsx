@@ -135,7 +135,14 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
 
         <div className="space-y-2">
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span>{t(`settings.render.phase.${progress.phase ?? 'starting'}`, progress.phase ?? '')}</span>
+            <span>
+              {t(`settings.render.phase.${progress.phase ?? 'starting'}`, progress.phase ?? '')}
+              {progress.currentFloor !== undefined && (
+                <span className="ml-1.5 text-muted-foreground">
+                  · {t('map.render.floorPass', { floor: progress.currentFloor })}
+                </span>
+              )}
+            </span>
             <span className="tabular-nums text-muted-foreground">
               {percent}% · {elapsed(progress.startedAt ?? 0)}
             </span>
@@ -224,6 +231,9 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
         {/* The tile name going past is how somebody tells a working
             render from a stuck one. */}
         <p className="truncate rounded-md bg-muted/60 px-2 py-1.5 font-mono text-xs text-muted-foreground">
+          {progress.currentFloor !== undefined
+            ? `${t('map.render.floor')} ${progress.currentFloor} · `
+            : ''}
           {progress.currentCell ? `${t('settings.render.cell')} ${progress.currentCell} · ` : ''}
           {progress.currentTile || '…'}
         </p>
