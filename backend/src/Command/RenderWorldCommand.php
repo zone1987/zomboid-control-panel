@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\Repository\GameServerRepository;
 use App\Server\Map\CellFetcher;
+use App\Server\Map\TileReader;
 use App\Server\Map\TileRenderer;
 use App\Server\Map\TileUploader;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -139,7 +140,7 @@ final class RenderWorldCommand extends Command
                 // must never accumulate on the panel's own disk. The
                 // bucket is the only place it is allowed to exist.
                 if ($streaming) {
-                    $result = $this->uploader->upload($tiles, 'map/base');
+                    $result = $this->uploader->upload($tiles, TileReader::PREFIX);
                     $uploaded += $result['sent'];
                     $bytes += $result['bytes'];
 
@@ -147,7 +148,7 @@ final class RenderWorldCommand extends Command
                     // that only half arrived is gone for good once the
                     // local copy goes, and this store refuses a
                     // fraction of requests with a working key.
-                    $missing = $this->uploader->verify($tiles, 'map/base');
+                    $missing = $this->uploader->verify($tiles, TileReader::PREFIX);
 
                     if ($missing === []) {
                         $this->clear($tiles);
@@ -201,7 +202,7 @@ final class RenderWorldCommand extends Command
 
         $result = $this->uploader->upload(
             $this->renderer->tilesDirectory(),
-            'map/base',
+            TileReader::PREFIX,
             static function (string $key, int $sent, int $failed) use ($io): void {
                 $io->write(sprintf("\r  %d sent, %d failed  %-40s", $sent, $failed, basename($key)));
             },
@@ -262,7 +263,7 @@ final class RenderWorldCommand extends Command
         $tiles = $this->renderer->tilesDirectory();
         $io->writeln('Checking what the store already has …');
 
-        $missing = $this->uploader->verify($tiles, 'map/base');
+        $missing = $this->uploader->verify($tiles, TileReader::PREFIX);
 
         if ($missing !== []) {
             $io->warning(sprintf(

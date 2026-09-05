@@ -8,6 +8,7 @@ use App\Message\RenderWorld;
 use App\Repository\GameServerRepository;
 use App\Server\Map\CellFetcher;
 use App\Server\Map\RenderProgress;
+use App\Server\Map\TileReader;
 use App\Server\Map\TileRenderer;
 use App\Server\Map\TileUploader;
 use Psr\Log\LoggerInterface;
@@ -212,7 +213,7 @@ final readonly class RenderWorldHandler
             $this->progress->write($counts);
 
             $swept = $this->uploader->removeStale(
-                'map/base',
+                TileReader::PREFIX,
                 $written,
                 function (int $removed) use (&$counts): void {
                     $counts['tilesRemoved'] = $removed;
@@ -256,7 +257,7 @@ final readonly class RenderWorldHandler
 
         $result = $this->uploader->upload(
             $tiles,
-            'map/base',
+            TileReader::PREFIX,
             function (string $key, int $sent, int $failed, int $bytes) use (&$counts, $before, &$lastWrite): void {
                 if ($this->progress->stopRequested()) {
                     throw new StopRequested();
@@ -338,7 +339,7 @@ final readonly class RenderWorldHandler
 
         // The upload already listed the store and knows what it wrote;
         // listing again for every batch is what made this quadratic.
-        $missing = $this->uploader->verify($tiles, 'map/base', $result['inStore']);
+        $missing = $this->uploader->verify($tiles, TileReader::PREFIX, $result['inStore']);
 
         if ($missing === []) {
             // The .dzi descriptors stay: tiny, and the viewer needs them.
@@ -361,7 +362,7 @@ final readonly class RenderWorldHandler
             // a few seconds later.
             sleep(2 << $round);
 
-            $again = $this->uploader->upload($tiles, 'map/base');
+            $again = $this->uploader->upload($tiles, TileReader::PREFIX);
 
             // Only the retried tiles count: this pass walks the whole
             // directory, so its skipped ones are tiles the first pass
@@ -369,7 +370,7 @@ final readonly class RenderWorldHandler
             $counts['tilesUploaded'] += $again['sent'];
             $counts['bytesUploaded'] += $again['bytes'];
 
-            $missing = $this->uploader->verify($tiles, 'map/base', $again['inStore']);
+            $missing = $this->uploader->verify($tiles, TileReader::PREFIX, $again['inStore']);
         }
 
         unset($counts['retryRound'], $counts['retryPending']);
@@ -386,7 +387,7 @@ final readonly class RenderWorldHandler
         // the whole batch means the next one walks it again and counts
         // every tile a second time, which is how 1.6 GB in the store
         // was reported as 11.9.
-        $this->clear($tiles, keepExtension: '.dzi', except: $missing, prefix: 'map/base');
+        $this->clear($tiles, keepExtension: '.dzi', except: $missing, prefix: TileReader::PREFIX);
 
         $this->logger->warning('Tiles did not reach the store after retrying; keeping them on disk.', [
             'count' => \count($missing),

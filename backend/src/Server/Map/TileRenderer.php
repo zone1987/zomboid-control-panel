@@ -132,7 +132,9 @@ final readonly class TileRenderer
 
             return false;
         } finally {
-            @unlink($configuration);
+            if (getenv('PZMAP_KEEP_CONF') === '') {
+                @unlink($configuration);
+            }
         }
     }
 
@@ -176,7 +178,9 @@ final readonly class TileRenderer
 
             return $process->isSuccessful();
         } finally {
-            @unlink($configuration);
+            if (getenv('PZMAP_KEEP_CONF') === '') {
+                @unlink($configuration);
+            }
         }
     }
 
@@ -257,6 +261,24 @@ final readonly class TileRenderer
         // Beside the template, not in a temporary directory: main.py
         // resolves map_conf_default and the rest relative to the
         // configuration file it was handed.
+        // The image covers the whole world, whatever this batch draws.
+        // Left to itself pzmap2dzi sizes the pyramid to the cells in
+        // hand, so every batch would write a different origin and every
+        // tile uploaded before it would land in the wrong place.
+        // The [default] variant wins over the plain key, so it has to
+        // go as well.
+        $body = preg_replace('/^    dzi_cell_range\[default\]: .*$/m', '', $body, 1) ?? $body;
+
+        $body = preg_replace(
+            '/^    dzi_cell_range: .*$/m',
+            "    dzi_cell_range:\n".
+            "        - [0, 18, 45, 45]\n".
+            "        - [45, 3, 13, 60]\n".
+            "        - [58, 0, 20, 63]",
+            $body,
+            1,
+        ) ?? $body;
+
         if ($layers !== null) {
             $body = preg_replace(
                 '/^    layer_range:.*$/m',

@@ -35,13 +35,18 @@ final class TestObjectStorageCommand extends Command
             ->addOption('clean', null, InputOption::VALUE_NONE, 'Delete leftover probe objects')
             ->addOption('clear-prefix', null, InputOption::VALUE_REQUIRED, 'Delete everything under this prefix')
             ->addOption('etag', null, InputOption::VALUE_NONE, 'Check whether the store returns a usable checksum')
-            ->addOption('diagnose', null, InputOption::VALUE_NONE, 'Report exactly how the store refuses');
+            ->addOption('diagnose', null, InputOption::VALUE_NONE, 'Report exactly how the store refuses')
+            ->addOption('ranges', null, InputOption::VALUE_NONE, 'Check whether the store serves byte ranges');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $repeat = max(1, (int) $input->getOption('repeat'));
+
+        if ($input->getOption('ranges')) {
+            return $this->ranges($io);
+        }
 
         if ($input->getOption('diagnose')) {
             return $this->diagnose($io);
@@ -110,6 +115,43 @@ final class TestObjectStorageCommand extends Command
         }
 
         return Command::FAILURE;
+    }
+
+    /**
+     * Whether a single tile can be pulled out of an archive without
+     * fetching the whole thing.
+     */
+    private function ranges(SymfonyStyle $io): int
+    {
+        $client = $this->storage->client();
+        $bucket = (string) $this->storage->bucket();
+        $key = 'range-probe-'.bin2hex(random_bytes(4)).'.bin';
+        $body = str_repeat('A', 1000).str_repeat('B', 1000).str_repeat('C', 1000);
+
+        $client->putObject(['Bucket' => $bucket, 'Key' => $key, 'Body' => $body])->resolve();
+
+        try {
+            $result = $client->getObject([
+                'Bucket' => $bucket,
+                'Key' => $key,
+                'Range' => 'bytes=1000-1999',
+            ]);
+
+            $slice = $result->getBody()->getContentAsString();
+
+            $io->definitionList(
+                ['requested' => '1000 bytes from offset 1000'],
+                ['received' => \strlen($slice).' bytes'],
+                ['content' => substr($slice, 0, 1).'…'.substr($slice, -1)],
+                ['usable' => \strlen($slice) === 1000 && $slice === str_repeat('B', 1000) ? 'yes' : 'no'],
+            );
+        } catch (\Throwable $exception) {
+            $io->error('No ranges: '.mb_substr($exception->getMessage(), 0, 200));
+        } finally {
+            $client->deleteObject(['Bucket' => $bucket, 'Key' => $key])->resolve();
+        }
+
+        return Command::SUCCESS;
     }
 
     /**

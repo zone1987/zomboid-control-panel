@@ -17,7 +17,13 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class TileReader
 {
-    public const PREFIX = 'map/base';
+    /**
+     * Where build 42's render lives in the store.
+     *
+     * Named for the build rather than "map" so a later one, or a mod
+     * map, sits beside it instead of overwriting it tile by tile.
+     */
+    public const PREFIX = 'B42/base';
 
     public function __construct(
         private IsometricTiles $tiles,

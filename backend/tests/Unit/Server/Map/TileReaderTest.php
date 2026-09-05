@@ -41,7 +41,7 @@ final class TileReaderTest extends TestCase
 
     public function testReadsATileTheStoreHoldsAndDiskDoesNot(): void
     {
-        $this->store->write('map/base/layer0_files/16/3_4.jpg', 'tile bytes');
+        $this->store->write(TileReader::PREFIX.'/layer0_files/16/3_4.jpg', 'tile bytes');
 
         $stream = $this->reader()->stream('layer0_files/16/3_4.jpg');
 
@@ -68,12 +68,12 @@ final class TileReaderTest extends TestCase
      */
     public function testCopiesTheDescriptorsDownOnFirstUse(): void
     {
-        $this->store->write('map/base/map_info.json', json_encode([
+        $this->store->write(TileReader::PREFIX.'/map_info.json', json_encode([
             'w' => 2314688, 'h' => 1021920, 'sqr' => 128, 'x0' => 1, 'y0' => 2,
             'minlayer' => -1, 'maxlayer' => 1,
         ]));
-        $this->store->write('map/base/layer-1.dzi', '<Image TileSize="1024"/>');
-        $this->store->write('map/base/layer0.dzi', '<Image TileSize="1024"/>');
+        $this->store->write(TileReader::PREFIX.'/layer-1.dzi', '<Image TileSize="1024"/>');
+        $this->store->write(TileReader::PREFIX.'/layer0.dzi', '<Image TileSize="1024"/>');
 
         $tiles = new IsometricTiles($this->root);
 
