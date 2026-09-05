@@ -212,6 +212,35 @@ final class TileUploaderTest extends TestCase
         self::assertSame(3 * 128, $result['bytes'], 'Only what was sent counts as sent.');
     }
 
+    /**
+     * Listing costs a request per thousand objects, so a run past a
+     * hundred thousand tiles would spend longer asking what is there
+     * than writing to it.
+     */
+    public function testDoesNotListTheStoreWhenHandedAListing(): void
+    {
+        $store = new CountingFilesystem(new InMemoryFilesystemAdapter());
+        $uploader = new TileUploader($this->storageReturning($store), new NullLogger());
+
+        $first = $uploader->upload($this->root, 'map/base');
+        self::assertSame(1, $store->listings, 'The first batch has to ask.');
+
+        $uploader->upload($this->root, 'map/base', null, $first['inStore']);
+        self::assertSame(1, $store->listings, 'The second must not.');
+    }
+
+    /** What a batch wrote has to appear in the listing it hands on. */
+    public function testCarriesWhatItWroteIntoTheListing(): void
+    {
+        $store = new CountingFilesystem(new InMemoryFilesystemAdapter());
+        $uploader = new TileUploader($this->storageReturning($store), new NullLogger());
+
+        $result = $uploader->upload($this->root, 'map/base');
+
+        self::assertArrayHasKey('map/base/layer0_files/16/0_0.jpg', $result['inStore']);
+        self::assertSame(128, $result['inStore']['map/base/layer0_files/16/0_0.jpg']);
+    }
+
     private function storageReturning(FilesystemOperator $filesystem): ObjectStorageInterface
     {
         return new class($filesystem) implements ObjectStorageInterface {
@@ -259,5 +288,18 @@ final class FlakyFilesystem extends Filesystem
         }
 
         parent::writeStream($location, $contents, $config);
+    }
+}
+
+/** Counts how often the bucket is listed. */
+final class CountingFilesystem extends Filesystem
+{
+    public int $listings = 0;
+
+    public function listContents(string $location, bool $deep = self::LIST_SHALLOW): \League\Flysystem\DirectoryListing
+    {
+        ++$this->listings;
+
+        return parent::listContents($location, $deep);
     }
 }

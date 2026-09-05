@@ -87,6 +87,11 @@ final readonly class RenderWorldHandler
         // strings, against re-listing the bucket for every cell.
         $written = [];
 
+        // What the store holds, read once and then kept current from
+        // what each batch writes. Listing it per batch costs a request
+        // per thousand objects and grows as the run does.
+        $inStore = null;
+
         $counts = [
             'state' => RenderProgress::RUNNING,
             'startedAt' => $started,
@@ -200,7 +205,7 @@ final readonly class RenderWorldHandler
                 $counts['cellsRendered'] += \count($wanted);
 
                 if ($message->upload) {
-                    $this->ship($tiles, $counts, $written);
+                    $this->ship($tiles, $counts, $written, $inStore);
 
                     // Recorded only after the tiles are in the store, so
                     // an interrupted batch is drawn again rather than
@@ -221,7 +226,7 @@ final readonly class RenderWorldHandler
         if ($message->upload) {
             $counts['phase'] = 'finishing';
             $this->progress->write($counts);
-            $this->ship($tiles, $counts, $written);
+            $this->ship($tiles, $counts, $written, $inStore);
 
             // Anything in the store this run did not write is left over
             // from a world that has since changed -- a demolished
@@ -257,16 +262,18 @@ final readonly class RenderWorldHandler
      * @param array<string, mixed> $counts
      * @param list<string>         $written every key this run has produced
      */
-    private function ship(string $tiles, array &$counts, array &$written): void
+    /** @param array<string, int>|null $inStore carried across batches */
+    private function ship(string $tiles, array &$counts, array &$written, ?array &$inStore = null): void
     {
         try {
-            $this->shipOnce($tiles, $counts, $written);
+            $this->shipOnce($tiles, $counts, $written, $inStore);
         } catch (StopRequested) {
             return;
         }
     }
 
-    private function shipOnce(string $tiles, array &$counts, array &$written): void
+    /** @param array<string, int>|null $inStore carried across batches */
+    private function shipOnce(string $tiles, array &$counts, array &$written, ?array &$inStore = null): void
     {
         $before = $counts['tilesUploaded'];
         $lastWrite = 0.0;
@@ -318,7 +325,12 @@ final readonly class RenderWorldHandler
                     $this->progress->write($counts);
                 }
             },
+            $inStore,
         );
+
+        // Carried on, so the next batch does not ask the store what it
+        // already knows.
+        $inStore = $result['inStore'];
 
         $counts['tilesUploaded'] = $before + $result['sent'];
         $counts['tilesSkipped'] += $result['skipped'];
@@ -381,7 +393,8 @@ final readonly class RenderWorldHandler
             // a few seconds later.
             sleep(2 << $round);
 
-            $again = $this->uploader->upload($tiles, TileReader::PREFIX);
+            $again = $this->uploader->upload($tiles, TileReader::PREFIX, null, $inStore);
+            $inStore = $again['inStore'];
 
             // Only the retried tiles count: this pass walks the whole
             // directory, so its skipped ones are tiles the first pass

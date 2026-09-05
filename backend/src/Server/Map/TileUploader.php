@@ -59,12 +59,17 @@ final readonly class TileUploader
     }
 
     /**
-     * @param callable(string, int, int, int): void|null $onProgress key, sent, failed, bytes
+     * @param callable(string, int, int, int): void|null       $onProgress key, sent, failed, bytes
+     * @param array<string, int>|null                          $inStore    a listing carried from an earlier call
      *
      * @return array{inStore: array<string, int>, bytesHeld: int, objectsHeld: int, sent: int, skipped: int, failed: int, bytes: int, keys: list<string>}
      */
-    public function upload(string $directory, string $prefix, ?callable $onProgress = null): array
-    {
+    public function upload(
+        string $directory,
+        string $prefix,
+        ?callable $onProgress = null,
+        ?array $inStore = null,
+    ): array {
         $filesystem = $this->storage->create();
         // A store without a native client -- an in-memory one in a
         // test -- writes through Flysystem one file at a time.
@@ -77,7 +82,18 @@ final readonly class TileUploader
         }
 
         $bucket = (string) $this->storage->bucket();
-        $inStore = $this->index($filesystem, $prefix);
+        // Listing the bucket costs a request per thousand objects, so a
+        // run past a hundred thousand tiles spends longer asking what
+        // is there than writing to it. The caller keeps the answer and
+        // adds what each batch wrote.
+        $sums = [];
+
+        if ($inStore === null) {
+            $inStore = $this->index($filesystem, $prefix);
+            // Fetched with the listing, so a resumed run does not pay a
+            // HeadObject for every tile it is about to skip.
+            $sums = $inStore === [] ? [] : $this->checksums($prefix);
+        }
         $written = [];
         $flight = [];
         $sent = 0;
@@ -106,7 +122,7 @@ final readonly class TileUploader
                 // returns the body's md5 as the etag for a single-part
                 // upload, which is what every tile is -- verified
                 // against the store this runs on.
-                if ($this->isUnchanged($filesystem, $key, $file, $inStore)) {
+                if ($this->isUnchanged($filesystem, $key, $file, $inStore, $sums)) {
                     ++$skipped;
 
                     continue;
@@ -281,15 +297,72 @@ final readonly class TileUploader
         return $sizes;
     }
 
+    /**
+     * The etag of every object under a prefix, from the listing itself.
+     *
+     * S3 returns it alongside the size, but Flysystem drops it when
+     * mapping a listed object -- so without this, telling a changed
+     * tile from an unchanged one costs a HeadObject each, run serially
+     * outside the parallel window.
+     *
+     * @return array<string, string>
+     */
+    private function checksums(string $prefix): array
+    {
+        $sums = [];
+
+        try {
+            $client = $this->storage->client();
+            $bucket = (string) $this->storage->bucket();
+            $token = null;
+
+            do {
+                $page = $client->listObjectsV2(array_filter([
+                    'Bucket' => $bucket,
+                    'Prefix' => rtrim($prefix, '/').'/',
+                    'ContinuationToken' => $token,
+                ]));
+
+                foreach ($page->getContents() as $object) {
+                    $key = $object->getKey();
+                    $etag = $object->getEtag();
+
+                    if ($key !== null && $etag !== null) {
+                        $sums[$key] = trim($etag, '"');
+                    }
+                }
+
+                $token = $page->getNextContinuationToken();
+            } while ($token !== null && $token !== '');
+        } catch (\Throwable $exception) {
+            // A store without a client, or one that refuses: the size
+            // comparison still stands and a HeadObject settles the rest.
+            $this->logger->debug('Reading etags from the listing failed.', [
+                'prefix' => $prefix,
+                'error' => mb_substr($exception->getMessage(), 0, 200),
+            ]);
+        }
+
+        return $sums;
+    }
+
     /** Whether the store already holds exactly this file. */
+    /** @param array<string, string> $sums etags from the listing */
     private function isUnchanged(
         FilesystemOperator $filesystem,
         string $key,
         \SplFileInfo $file,
         array $inStore,
+        array $sums = [],
     ): bool {
         if (($inStore[$key] ?? null) !== $file->getSize()) {
             return false;
+        }
+
+        // The listing already carried the etag, so the usual case costs
+        // nothing beyond hashing the local file.
+        if (isset($sums[$key])) {
+            return $sums[$key] === md5_file($file->getPathname());
         }
 
         $sum = null;
