@@ -878,7 +878,8 @@
       "totalTiles": "insgesamt zu übertragen",
       "totalDone": "insgesamt übertragen",
       "totalPending": "insgesamt ausstehend",
-      "totalSkipped": "übersprungen (lag bereits im Speicher)"
+      "totalSkipped": "übersprungen (lag bereits im Speicher)",
+      "startHere": "Kartenrendering starten"
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."

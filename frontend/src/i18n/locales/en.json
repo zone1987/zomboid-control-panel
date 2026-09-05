@@ -878,7 +878,8 @@
       "totalTiles": "tiles in all",
       "totalDone": "sent in all",
       "totalPending": "still to send",
-      "totalSkipped": "skipped (already stored)"
+      "totalSkipped": "skipped (already stored)",
+      "startHere": "Render the map"
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."
