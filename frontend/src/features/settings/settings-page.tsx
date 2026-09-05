@@ -21,6 +21,7 @@ import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
 import { IconPacksCard } from './icon-packs-card'
 import { ObjectStorageCard } from './object-storage-card'
+import { TexturePacksCard } from './texture-packs-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -125,6 +126,7 @@ export function SettingsPage() {
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
+          <TabsTrigger value="map">{t('settings.mapTab')}</TabsTrigger>
           <TabsTrigger value="storage">{t('settings.storageTab')}</TabsTrigger>
         </TabsList>
 
@@ -304,6 +306,10 @@ export function SettingsPage() {
 
         <TabsContent value="icons">
           <IconPacksCard />
+        </TabsContent>
+
+        <TabsContent value="map">
+          <TexturePacksCard />
         </TabsContent>
 
         <TabsContent value="storage">

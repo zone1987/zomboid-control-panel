@@ -3,7 +3,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CheckCircle2, Database, HardDrive, HelpCircle } from 'lucide-react'
 
-import { ApiError } from '@/lib/api'
+import { errorField } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -17,14 +17,18 @@ import {
 } from '@/components/ui/dialog'
 import { CredentialField } from './credential-field'
 import { HetznerInstructions } from './instructions'
-import { SETTING_KEYS, testObjectStorage, type SettingState } from './settings'
+import { SETTING_KEYS, testObjectStorage, type SettingKey, type SettingState } from './settings'
 
 export function ObjectStorageCard({
   items,
   field,
 }: {
   items: Record<string, SettingState> | undefined
-  field: (key: string) => { state: SettingState | undefined; value: string; onChange: (value: string) => void }
+  field: (key: SettingKey) => {
+    state: SettingState | undefined
+    value: string
+    onChange: (value: string) => void
+  }
 }) {
   const { t } = useTranslation()
 
@@ -32,13 +36,13 @@ export function ObjectStorageCard({
     mutationFn: testObjectStorage,
     onSuccess: (result) => toast.success(t('settings.s3Works', { bucket: result.bucket })),
     onError: (error) => {
-      if (error instanceof ApiError && error.payload?.error === 'settings.s3Incomplete') {
+      if (errorField(error, 'error') === 'settings.s3Incomplete') {
         toast.error(t('settings.s3Incomplete'))
 
         return
       }
 
-      const detail = error instanceof ApiError ? error.payload?.detail : null
+      const detail = errorField(error, 'detail')
 
       toast.error(detail ? `${t('settings.s3Rejected')}: ${detail}` : t('settings.s3Rejected'))
     },

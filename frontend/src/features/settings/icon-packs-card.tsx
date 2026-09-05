@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CheckCircle2, Image, Upload, XCircle } from 'lucide-react'
+import { CheckCircle2, Image, XCircle } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import { DropZone } from '@/components/ui/drop-zone'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,7 +24,6 @@ export function IconPacksCard() {
   const queryClient = useQueryClient()
   const [clear, setClear] = useState(false)
   const [report, setReport] = useState<IconUploadResult | null>(null)
-  const picker = useRef<HTMLInputElement>(null)
 
   const { data: status } = useQuery({ queryKey: ['icon-status'], queryFn: iconStatus })
 
@@ -54,9 +53,7 @@ export function IconPacksCard() {
     },
   })
 
-  const choose = (list: FileList | null) => {
-    const files = Array.from(list ?? [])
-
+  const choose = (files: File[]) => {
     if (files.length === 0) {
       return
     }
@@ -88,8 +85,16 @@ export function IconPacksCard() {
               : t('settings.icons.haveNone')}
           </AlertTitle>
           <AlertDescription>
-            <p>{t('settings.icons.where')}</p>
-            <p className="font-mono text-xs">{(status?.wanted ?? []).join(' · ')}</p>
+            {/* Once the icons are there, naming the files reads as a
+                demand rather than as a note for later. */}
+            {status?.available === true ? (
+              <p>{t('settings.icons.ready')}</p>
+            ) : (
+              <>
+                <p>{t('settings.icons.where')}</p>
+                <p className="font-mono text-xs">{(status?.wanted ?? []).join(' · ')}</p>
+              </>
+            )}
           </AlertDescription>
         </Alert>
 
@@ -100,23 +105,16 @@ export function IconPacksCard() {
           </Label>
         </div>
 
-        <input
-          ref={picker}
-          type="file"
+        <DropZone
           accept=".pack"
-          multiple
-          hidden
-          onChange={(event) => {
-            choose(event.target.files)
-            // Picking the same file twice in a row must still fire.
-            event.target.value = ''
-          }}
-        />
-
-        <Button disabled={upload.isPending} onClick={() => picker.current?.click()}>
-          <Upload className="size-4" />
-          {upload.isPending ? t('settings.icons.working') : t('settings.icons.choose')}
-        </Button>
+          disabled={upload.isPending}
+          onFiles={choose}
+        >
+          <span className="text-sm font-medium">
+            {upload.isPending ? t('settings.icons.working') : t('settings.icons.drop')}
+          </span>
+          <span className="text-xs text-muted-foreground">{t('settings.icons.dropHint')}</span>
+        </DropZone>
 
         {upload.isPending && (
           <p className="text-xs text-muted-foreground">{t('settings.icons.patience')}</p>

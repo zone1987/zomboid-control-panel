@@ -87,3 +87,19 @@ function extractMessage(payload: unknown): string | null {
 
   return null
 }
+
+/**
+ * A field out of an error payload, when the server sent one.
+ *
+ * ApiError carries `unknown` on purpose -- the body comes off the
+ * wire -- so every reader would otherwise repeat the same narrowing.
+ */
+export function errorField(error: unknown, field: string): string | null {
+  if (!(error instanceof ApiError) || typeof error.payload !== 'object' || error.payload === null) {
+    return null
+  }
+
+  const value = (error.payload as Record<string, unknown>)[field]
+
+  return typeof value === 'string' ? value : null
+}

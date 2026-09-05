@@ -40,6 +40,16 @@ services:
                 'mailer.from_address': '%env(MAIL_FROM_ADDRESS)%'
                 'mailer.from_name': '%env(MAIL_FROM_NAME)%'
 
+    App\Server\Map\Textures\TexturePackStore:
+        arguments:
+            # Outside the image: a redeploy would otherwise take 400 MB
+            # of uploaded packs with it.
+            $directory: '%kernel.project_dir%/var/textures'
+
+    App\Server\Map\Textures\ChunkedUpload:
+        arguments:
+            $temporaryDirectory: '%kernel.project_dir%/var/textures/incoming'
+
     App\Security\OAuth\GoogleClientFactory:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'

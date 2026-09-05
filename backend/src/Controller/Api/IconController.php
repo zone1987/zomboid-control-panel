@@ -21,6 +21,13 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class IconController extends AbstractController
 {
     /** The packs that hold item icons; the rest are world tiles. */
+    /**
+     * What a vanilla installation calls them.
+     *
+     * A hint, not a filter: a mod ships its own pack under whatever
+     * name its author chose, and an operator running twenty mods needs
+     * those icons as much as the base game's.
+     */
     public const WANTED_PACKS = ['UI.pack', 'UI2.pack', 'ApComUI.pack'];
 
     public function __construct(
@@ -119,6 +126,89 @@ final class IconController extends AbstractController
             'pages' => $result['pages'],
             'skipped' => $result['skipped'],
         ];
+    }
+
+    /**
+     * Takes one piece of a pack.
+     *
+     * UI2.pack is 54 MB and a modded install can carry larger ones,
+     * against a container that accepts a 16 MB request. Pieces also
+     * mean a dropped connection costs one piece, not the upload.
+     */
+    #[Route('/chunk', name: 'api_icons_chunk', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
+    public function chunk(Request $request, \App\Server\Map\Textures\ChunkedUpload $upload): JsonResponse
+    {
+        $name = \App\Server\Map\Textures\ChunkedUpload::safeName((string) $request->request->get('name'));
+        $file = $request->files->get('chunk');
+
+        if ($name === null || $file === null) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'icons.notAPackName'],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        $bytes = @file_get_contents($file->getPathname());
+
+        if ($bytes === false) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'icons.unreadable'],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        try {
+            $received = $upload->appendAny($name, $request->request->getInt('offset'), $bytes);
+        } catch (\App\Server\Map\Textures\UploadRefused $refused) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => $refused->messageKey()],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        return new JsonResponse(['status' => 'ok', 'received' => $received]);
+    }
+
+    /** Cuts the icons out of a pack that has fully arrived. */
+    #[Route('/finish', name: 'api_icons_finish', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
+    public function finishUpload(Request $request, \App\Server\Map\Textures\ChunkedUpload $upload): JsonResponse
+    {
+        $payload = $request->toArray();
+        $name = \App\Server\Map\Textures\ChunkedUpload::safeName((string) ($payload['name'] ?? ''));
+
+        if ($name === null) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'icons.notAPackName'],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
+        try {
+            $contents = $upload->takeAny($name, (int) ($payload['bytes'] ?? 0));
+            $result = $this->extractor->extract($contents, $name);
+        } catch (\App\Server\Map\Textures\UploadRefused $refused) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => $refused->messageKey()],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        } catch (MalformedPack $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'icons.notAnIconPack',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return new JsonResponse([
+            'status' => 'ok',
+            'name' => $name,
+            'extracted' => $result['extracted'],
+            'pages' => $result['pages'],
+            'skipped' => $result['skipped'],
+            'count' => $this->store->count(),
+        ]);
     }
 
     #[Route('/{name}.png', name: 'api_icons_show', methods: ['GET'], requirements: ['name' => '[A-Za-z0-9_.-]{1,150}'])]
