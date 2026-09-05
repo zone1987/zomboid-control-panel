@@ -119,10 +119,11 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
 
   return (
-    // The map underneath is a fragment while this runs, so it is dimmed
-    // rather than left competing for attention.
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-md space-y-4 rounded-xl border bg-background p-6 shadow-2xl">
+    // Nothing between this and the map: watching the tiles arrive is
+    // the best evidence a run is working, so the panel floats and the
+    // map underneath stays draggable.
+    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-4">
+      <div className="pointer-events-auto w-full max-w-md space-y-4 rounded-xl border bg-background/95 p-6 shadow-2xl backdrop-blur">
         <div className="flex items-start gap-3">
           <Loader2 className="mt-0.5 size-5 shrink-0 animate-spin text-primary" />
 
