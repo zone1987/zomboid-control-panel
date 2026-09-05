@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -33,6 +34,7 @@ final class MapController extends AbstractController
         private readonly PlayerSnapshotRepository $snapshots,
         private readonly ServerInfoReader $info,
         private readonly IsometricTiles $isometric,
+        private readonly \App\Server\Map\TileReader $reader,
         private readonly TileRenderer $renderer,
         private readonly \App\Server\Map\RenderProgress $progress,
         private readonly \Symfony\Component\Messenger\MessageBusInterface $bus,
@@ -43,7 +45,11 @@ final class MapController extends AbstractController
     public function status(): JsonResponse
     {
         return new JsonResponse([
-            'isometric' => $this->isometric->describe(),
+            // Asked first: a finished render lives in the store, and
+            // its descriptor is copied down so geometry stays local.
+            'isometric' => $this->reader->hasRender()
+                ? $this->isometric->describe()
+                : ['available' => false, 'levels' => [], 'geometry' => null],
         ]);
     }
 
@@ -289,24 +295,34 @@ final class MapController extends AbstractController
     )]
     public function isometric(string $path, Request $request): Response
     {
-        $file = $this->isometric->resolve($path);
+        $file = $this->reader->localPath($path);
 
-        if ($file === null) {
-            // Not there yet: the deepest zoom level is three quarters of
-            // a render, so the panel holds the levels above it and makes
-            // this one when somebody looks that closely.
-            $file = $this->renderMissing($path);
+        if ($file !== null) {
+            $response = new BinaryFileResponse($file);
+            $response->setPublic();
+            $response->setMaxAge(604800);
+            $response->setAutoEtag();
+            $response->isNotModified($request);
+
+            return $response;
         }
 
-        if ($file === null) {
+        // Everything a finished run produced is in the object store; a
+        // tile is only on disk while its batch is still being uploaded.
+        $stream = $this->reader->stream($path);
+
+        if ($stream === null) {
             return new Response('', Response::HTTP_NOT_FOUND);
         }
 
-        $response = new BinaryFileResponse($file);
+        $response = new StreamedResponse(static function () use ($stream): void {
+            fpassthru($stream);
+            fclose($stream);
+        });
+
+        $response->headers->set('Content-Type', self::contentTypeFor($path));
         $response->setPublic();
         $response->setMaxAge(604800);
-        $response->setAutoEtag();
-        $response->isNotModified($request);
 
         return $response;
     }
@@ -380,4 +396,16 @@ final class MapController extends AbstractController
             'accessLevel' => $player->getAccessLevel(),
         ];
     }
+    private static function contentTypeFor(string $path): string
+    {
+        return match (strtolower(pathinfo($path, \PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            'png' => 'image/png',
+            'dzi', 'xml' => 'application/xml',
+            'json' => 'application/json',
+            default => 'application/octet-stream',
+        };
+    }
+
 }

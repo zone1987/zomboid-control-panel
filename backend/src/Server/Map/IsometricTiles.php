@@ -30,6 +30,24 @@ final readonly class IsometricTiles
         return is_file($this->directory.'/'.self::INFO_FILE);
     }
 
+    /** Keeps a copy of the store's map_info.json, so geometry works offline. */
+    public function remember(string $info): void
+    {
+        @mkdir($this->directory, 0o775, true);
+        @file_put_contents($this->directory.'/'.self::INFO_FILE, $info);
+    }
+
+    /** The same for a layer descriptor, which names the floors and tile size. */
+    public function rememberDescriptor(string $name, string $contents): void
+    {
+        if (preg_match('/^layer(-?\d+)\.dzi$/', $name) !== 1) {
+            return;
+        }
+
+        @mkdir($this->directory, 0o775, true);
+        @file_put_contents($this->directory.'/'.$name, $contents);
+    }
+
     public function directory(): string
     {
         return $this->directory;
