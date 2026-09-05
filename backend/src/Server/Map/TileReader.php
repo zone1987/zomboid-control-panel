@@ -74,9 +74,10 @@ final readonly class TileReader
             return null;
         }
 
+        $key = self::PREFIX.'/'.ltrim($path, '/');
+
         try {
             $filesystem = $this->storage->create();
-            $key = self::PREFIX.'/'.ltrim($path, '/');
 
             if (!$filesystem->fileExists($key)) {
                 return null;
