@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Server\Map;
 
 use App\Storage\ObjectStorageInterface;
+use AsyncAws\S3\Result\PutObjectOutput;
+use AsyncAws\S3\S3Client;
 use League\Flysystem\FilesystemOperator;
 use Psr\Log\LoggerInterface;
 
@@ -37,6 +39,9 @@ final readonly class TileUploader
     /** Waiting longer than this helps nothing and hides a real fault. */
     private const MAX_BACKOFF_MICROSECONDS = 30_000_000;
 
+    /** Requests started before waiting for any of them. */
+    private const IN_FLIGHT = 32;
+
     public function __construct(
         private ObjectStorageInterface $storage,
         private LoggerInterface $logger,
@@ -46,11 +51,25 @@ final readonly class TileUploader
     /**
      * @param callable(string, int, int, int): void|null $onProgress key, sent, failed, bytes
      *
-     * @return array{sent: int, skipped: int, failed: int, bytes: int, keys: list<string>}
+     * @return array{inStore: array<string, int>, sent: int, skipped: int, failed: int, bytes: int, keys: list<string>}
      */
     public function upload(string $directory, string $prefix, ?callable $onProgress = null): array
     {
         $filesystem = $this->storage->create();
+        // A store without a native client -- an in-memory one in a
+        // test -- writes through Flysystem one file at a time.
+        $client = null;
+
+        try {
+            $client = $this->storage->client();
+        } catch (\Throwable) {
+            $client = null;
+        }
+
+        $bucket = (string) $this->storage->bucket();
+        $inStore = $this->index($filesystem, $prefix);
+        $written = [];
+        $flight = [];
         $sent = 0;
         $skipped = 0;
         $failed = 0;
@@ -77,35 +96,41 @@ final readonly class TileUploader
                 // returns the body's md5 as the etag for a single-part
                 // upload, which is what every tile is -- verified
                 // against the store this runs on.
-                if ($this->isUnchanged($filesystem, $key, $file)) {
+                if ($this->isUnchanged($filesystem, $key, $file, $inStore)) {
                     ++$skipped;
 
                     continue;
                 }
 
-                $written = $this->attempt(static function () use ($filesystem, $key, $file): bool {
-                    $handle = fopen($file->getPathname(), 'rb');
-
-                    if ($handle === false) {
-                        return false;
+                if ($client === null) {
+                    if ($this->writeThrough($filesystem, $key, $file)) {
+                        ++$sent;
+                        $bytes += $file->getSize();
+                        $written[$key] = $file->getSize();
+                    } else {
+                        ++$failed;
                     }
 
-                    try {
-                        $filesystem->writeStream($key, $handle);
-                    } finally {
-                        if (\is_resource($handle)) {
-                            fclose($handle);
-                        }
+                    if ($onProgress !== null) {
+                        $onProgress($key, $sent, $failed, $bytes);
                     }
 
-                    return true;
-                });
+                    continue;
+                }
 
-                if ($written) {
-                    ++$sent;
-                    $bytes += $file->getSize();
-                } else {
-                    ++$failed;
+                $flight[] = [
+                    'key' => $key,
+                    'path' => $file->getPathname(),
+                    'size' => $file->getSize(),
+                    'result' => $client->putObject([
+                        'Bucket' => $bucket,
+                        'Key' => $key,
+                        'Body' => file_get_contents($file->getPathname()),
+                    ]),
+                ];
+
+                if (\count($flight) >= self::IN_FLIGHT) {
+                    $this->settle($client, $bucket, $flight, $sent, $failed, $bytes, $written, $onProgress);
                 }
             } catch (\Throwable $exception) {
                 ++$failed;
@@ -118,12 +143,14 @@ final readonly class TileUploader
             // Reported per tile rather than per batch: watching the
             // names go past is how somebody tells a working render
             // from a stuck one, and the cost is a small file write.
-            if ($onProgress !== null) {
-                $onProgress($key, $sent, $failed, $bytes);
-            }
+        }
+
+        if ($client !== null) {
+            $this->settle($client, $bucket, $flight, $sent, $failed, $bytes, $written, $onProgress);
         }
 
         return [
+            'inStore' => $inStore + $written,
             'sent' => $sent,
             'skipped' => $skipped,
             'failed' => $failed,
@@ -132,24 +159,119 @@ final readonly class TileUploader
         ];
     }
 
-    /**
-     * Whether the store already holds exactly this file.
-     *
-     * Size first because it is free -- the listing carries it -- and a
-     * changed tile is nearly always a different length. The checksum
-     * settles the rest.
-     */
-    private function isUnchanged(FilesystemOperator $filesystem, string $key, \SplFileInfo $file): bool
+    private function writeThrough(FilesystemOperator $filesystem, string $key, \SplFileInfo $file): bool
     {
-        $stored = null;
+        return $this->attempt(static function () use ($filesystem, $key, $file): bool {
+            $handle = fopen($file->getPathname(), 'rb');
 
-        $this->attempt(static function () use ($filesystem, $key, &$stored): bool {
-            $stored = $filesystem->fileExists($key) ? $filesystem->fileSize($key) : null;
+            if ($handle === false) {
+                return false;
+            }
+
+            try {
+                $filesystem->writeStream($key, $handle);
+            } finally {
+                if (\is_resource($handle)) {
+                    fclose($handle);
+                }
+            }
 
             return true;
         });
+    }
 
-        if ($stored !== $file->getSize()) {
+    /**
+     * Waits for the requests in flight and records how they went.
+     *
+     * @param list<array{key: string, path: string, size: int, result: PutObjectOutput}> $flight
+     * @param callable(string, int, int, int): void|null                                 $onProgress
+     */
+    private function settle(
+        S3Client $client,
+        string $bucket,
+        array &$flight,
+        int &$sent,
+        int &$failed,
+        int &$bytes,
+        array &$written,
+        ?callable $onProgress,
+    ): void {
+        foreach ($flight as $request) {
+            $ok = false;
+
+            try {
+                $request['result']->resolve();
+                $ok = true;
+            } catch (\Throwable) {
+                $ok = $this->retrySequentially($client, $bucket, $request['key'], $request['path']);
+            }
+
+            if ($ok) {
+                ++$sent;
+                $bytes += $request['size'];
+                $written[$request['key']] = $request['size'];
+            } else {
+                ++$failed;
+                $this->logger->warning('Uploading a tile failed.', ['key' => $request['key']]);
+            }
+
+            if ($onProgress !== null) {
+                $onProgress($request['key'], $sent, $failed, $bytes);
+            }
+        }
+
+        $flight = [];
+    }
+
+    /**
+     * One tile, retried on its own after a parallel attempt failed.
+     */
+    private function retrySequentially(S3Client $client, string $bucket, string $key, string $path): bool
+    {
+        return $this->attempt(static function () use ($client, $bucket, $key, $path): bool {
+            $client->putObject([
+                'Bucket' => $bucket,
+                'Key' => $key,
+                'Body' => file_get_contents($path),
+            ])->resolve();
+
+            return true;
+        });
+    }
+
+    /**
+     * Every object under a prefix, as key to size.
+     *
+     * @return array<string, int>
+     */
+    private function index(FilesystemOperator $filesystem, string $prefix): array
+    {
+        $sizes = [];
+
+        try {
+            foreach ($filesystem->listContents($prefix, true) as $item) {
+                if ($item->isFile()) {
+                    $sizes[$item->path()] = (int) $item->fileSize();
+                }
+            }
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Listing the store failed; falling back to per-file checks.', [
+                'prefix' => $prefix,
+                'error' => mb_substr($exception->getMessage(), 0, 200),
+            ]);
+        }
+
+        return $sizes;
+    }
+
+    /** Whether the store already holds exactly this file. */
+    private function isUnchanged(
+        FilesystemOperator $filesystem,
+        string $key,
+        \SplFileInfo $file,
+        array $inStore,
+    ): bool {
+        if (($inStore[$key] ?? null) !== $file->getSize()) {
             return false;
         }
 
@@ -273,11 +395,14 @@ final readonly class TileUploader
      * store refuses a fraction of requests, so "the upload reported
      * success" is not the same as "the tile is there".
      *
+     * @param array<string, int>|null $inStore a listing to reuse, if one is at hand
+     *
      * @return list<string> the keys that are missing or the wrong size
      */
-    public function verify(string $directory, string $prefix): array
+    public function verify(string $directory, string $prefix, ?array $inStore = null): array
     {
         $filesystem = $this->storage->create();
+        $inStore ??= $this->index($filesystem, $prefix);
         $wrong = [];
 
         $files = new \RecursiveIteratorIterator(
@@ -290,21 +415,8 @@ final readonly class TileUploader
             }
 
             $key = $prefix.'/'.ltrim(str_replace($directory, '', $file->getPathname()), '/');
-            $expected = $file->getSize();
 
-            $sized = null;
-
-            try {
-                $this->attempt(static function () use ($filesystem, $key, &$sized): bool {
-                    $sized = $filesystem->fileSize($key);
-
-                    return true;
-                });
-            } catch (\Throwable) {
-                $sized = null;
-            }
-
-            if ($sized !== $expected) {
+            if (($inStore[$key] ?? null) !== $file->getSize()) {
                 $wrong[] = $key;
             }
         }

@@ -23,7 +23,8 @@
     "confirm": "Bestätigen",
     "actions": "Aktionen",
     "none": "Keine",
-    "unknown": "Unbekannt"
+    "unknown": "Unbekannt",
+    "dismiss": "Ausblenden"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -414,8 +415,10 @@
         "retrying": "Wiederholt fehlgeschlagene Uploads",
         "finishing": "Räumt auf",
         "clearing": "Räumt den Speicher auf",
-        "sweeping": "Entfernt veraltete Kacheln"
-      }
+        "sweeping": "Entfernt veraltete Kacheln",
+        "paused": "Pausiert"
+      },
+      "noWorker": "Der Auftrag wurde eingereiht, aber niemand arbeitet ihn ab — es läuft kein Hintergrundprozess. Bei einer Docker-Installation startet ihn Supervisor; lokal muss er von Hand laufen."
     }
   },
   "rcon": {
@@ -862,7 +865,13 @@
       "description": "Solange das läuft, zeigt die isometrische Ansicht nur die Teile, die schon fertig sind.",
       "keepsGoing": "Der Lauf geht weiter, auch wenn diese Seite geschlossen wird.",
       "stop": "Abbrechen",
-      "stopping": "Wird beendet …"
+      "stopping": "Wird beendet …",
+      "stopped": "Der Lauf wird beendet.",
+      "pause": "Pause",
+      "resume": "Fortsetzen",
+      "batchTotal": "zu übertragen",
+      "batchDone": "übertragen",
+      "batchPending": "ausstehend"
     }
   },
   "logs": {

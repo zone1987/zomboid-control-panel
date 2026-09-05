@@ -23,7 +23,8 @@
     "confirm": "Confirm",
     "actions": "Actions",
     "none": "None",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "dismiss": "Dismiss"
   },
   "auth": {
     "signIn": "Sign in",
@@ -414,8 +415,10 @@
         "retrying": "Retrying failed uploads",
         "finishing": "Finishing up",
         "clearing": "Clearing the store",
-        "sweeping": "Removing outdated tiles"
-      }
+        "sweeping": "Removing outdated tiles",
+        "paused": "Paused"
+      },
+      "noWorker": "The job was queued but nothing is consuming it — no background worker is running. A Docker installation starts one under supervisor; locally it has to be started by hand."
     }
   },
   "rcon": {
@@ -861,8 +864,14 @@
       "title": "The map is being rendered",
       "description": "While this runs, the isometric view shows only the parts that are already done.",
       "keepsGoing": "The run continues even if this page is closed.",
-      "stop": "Stop",
-      "stopping": "Stopping …"
+      "stop": "Cancel",
+      "stopping": "Stopping …",
+      "stopped": "The run is being stopped.",
+      "pause": "Pause",
+      "resume": "Resume",
+      "batchTotal": "to send",
+      "batchDone": "sent",
+      "batchPending": "pending"
     }
   },
   "logs": {

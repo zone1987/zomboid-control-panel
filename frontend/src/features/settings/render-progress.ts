@@ -18,6 +18,10 @@ export type RenderProgress = {
   currentTile?: string
   tilesRemoved?: number
   stopRequested?: boolean
+  paused?: boolean
+  batchTotal?: number
+  batchDone?: number
+  batchPending?: number
   error?: string
 }
 
@@ -34,6 +38,10 @@ export function startWorldRender(serverId: string, fresh = false): Promise<{ sta
  */
 export function stopWorldRender(): Promise<{ status: string }> {
   return apiFetch<{ status: string }>('/map/render/stop', { method: 'POST', body: {} })
+}
+
+export function pauseWorldRender(resume = false): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>('/map/render/pause', { method: 'POST', body: { resume } })
 }
 
 export function renderProgress(): Promise<RenderProgress> {

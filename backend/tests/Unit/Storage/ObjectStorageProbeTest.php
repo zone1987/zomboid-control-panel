@@ -64,6 +64,11 @@ final class ObjectStorageProbeTest extends TestCase
             {
                 return $this->filesystem;
             }
+
+            public function client(): \AsyncAws\S3\S3Client
+            {
+                throw new \LogicException('The in-memory store needs no client.');
+            }
         };
     }
 }

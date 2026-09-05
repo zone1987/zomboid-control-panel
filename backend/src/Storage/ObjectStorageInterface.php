@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Storage;
 
+use AsyncAws\S3\S3Client;
 use League\Flysystem\FilesystemOperator;
 
 /**
@@ -21,4 +22,7 @@ interface ObjectStorageInterface
 
     /** @throws ObjectStorageNotConfigured */
     public function create(): FilesystemOperator;
+
+    /** The raw client, for work Flysystem cannot express. */
+    public function client(): S3Client;
 }

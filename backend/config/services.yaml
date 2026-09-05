@@ -100,8 +100,8 @@ services:
             # Both come from the image, which ships pzmap2dzi and its
             # own Python. Left overridable so a developer can point at a
             # checkout instead.
-            $rendererPath: '%env(default::PZMAP_RENDERER_PATH)%'
-            $python: '%env(default::PZMAP_PYTHON)%'
+            $rendererPath: '%env(PZMAP_RENDERER_PATH)%'
+            $python: '%env(PZMAP_PYTHON)%'
             $projectDirectory: '%kernel.project_dir%'
 
     App\Settings\SupportedLanguages:

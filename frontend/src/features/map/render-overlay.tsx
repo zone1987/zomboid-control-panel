@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Square } from 'lucide-react'
+import { Loader2, Pause, Play, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 
 import {
+  pauseWorldRender,
   renderProgress,
   stopWorldRender,
   watchRender,
@@ -44,6 +45,11 @@ export function RenderOverlay() {
     onError: () => toast.error(t('errors.generic')),
   })
 
+  const holdRun = useMutation({
+    mutationFn: (resume: boolean) => pauseWorldRender(resume),
+    onError: () => toast.error(t('errors.generic')),
+  })
+
   useEffect(() => {
     let alive = true
 
@@ -76,6 +82,9 @@ export function RenderOverlay() {
   if (progress.state !== 'running') {
     return null
   }
+
+  const paused = progress.paused === true
+  const stopping = progress.stopRequested === true
 
   const total = progress.cellsTotal ?? 0
   const done = progress.cellsDone ?? 0
@@ -121,6 +130,14 @@ export function RenderOverlay() {
           <Figure label={t('settings.render.uploaded')} value={size(progress.bytesUploaded ?? 0)} />
         </dl>
 
+        {(progress.batchTotal ?? 0) > 0 && (
+          <dl className="grid grid-cols-3 gap-x-4 rounded-md bg-muted/60 px-3 py-2 text-sm">
+            <Figure label={t('map.render.batchTotal')} value={(progress.batchTotal ?? 0).toLocaleString()} />
+            <Figure label={t('map.render.batchDone')} value={(progress.batchDone ?? 0).toLocaleString()} />
+            <Figure label={t('map.render.batchPending')} value={(progress.batchPending ?? 0).toLocaleString()} />
+          </dl>
+        )}
+
         {/* The tile name going past is how somebody tells a working
             render from a stuck one. */}
         <p className="truncate rounded-md bg-muted/60 px-2 py-1.5 font-mono text-xs text-muted-foreground">
@@ -133,17 +150,31 @@ export function RenderOverlay() {
 
           {/* Asks rather than kills: the run stops at the next batch
               boundary, where the last upload is already verified. */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            disabled={stopRun.isPending || progress.stopRequested === true}
-            onClick={() => stopRun.mutate()}
-          >
-            <Square className="size-3.5" />
-            {progress.stopRequested === true ? t('map.render.stopping') : t('map.render.stop')}
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={holdRun.isPending || stopping}
+              onClick={() => holdRun.mutate(paused)}
+            >
+              {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+              {paused ? t('map.render.resume') : t('map.render.pause')}
+            </Button>
+
+            {/* The run ends at the next batch boundary, so the window
+                stays and says so rather than closing on a promise. */}
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={stopRun.isPending || stopping}
+              onClick={() => stopRun.mutate()}
+            >
+              <X className="size-3.5" />
+              {stopping ? t('map.render.stopping') : t('map.render.stop')}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

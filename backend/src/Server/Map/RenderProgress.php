@@ -42,6 +42,16 @@ final readonly class RenderProgress
 
         // A worker that died leaves "running" behind for ever, which
         // would keep the interface waiting on nothing.
+        // A job that was queued and never picked up means no worker is
+        // consuming; 90 seconds is long past any normal start.
+        if (($state['phase'] ?? '') === 'queued'
+            && time() - (int) ($state['updatedAt'] ?? 0) > 90) {
+            $state['state'] = self::FAILED;
+            $state['error'] = 'map.noWorker';
+
+            return $state;
+        }
+
         if (($state['state'] ?? '') === self::RUNNING
             && time() - (int) ($state['updatedAt'] ?? 0) > 300) {
             $state['state'] = self::FAILED;
@@ -54,6 +64,9 @@ final readonly class RenderProgress
     /** @param array<string, mixed> $state */
     public function write(array $state): void
     {
+        $state['stopRequested'] = $this->stopRequested();
+        $state['paused'] = $this->isPaused();
+
         @mkdir(\dirname($this->path), 0o775, true);
 
         $state['updatedAt'] = time();
@@ -80,14 +93,44 @@ final readonly class RenderProgress
      */
     public function requestStop(): void
     {
-        $state = $this->read();
-        $state['stopRequested'] = true;
-        $this->write($state);
+        @mkdir(\dirname($this->stopPath()), 0o775, true);
+        @touch($this->stopPath());
     }
 
     public function stopRequested(): bool
     {
-        return ($this->read()['stopRequested'] ?? false) === true;
+        return is_file($this->stopPath());
+    }
+
+    public function clearStop(): void
+    {
+        @unlink($this->stopPath());
+    }
+
+    public function requestPause(): void
+    {
+        @mkdir(\dirname($this->pausePath()), 0o775, true);
+        @touch($this->pausePath());
+    }
+
+    public function resume(): void
+    {
+        @unlink($this->pausePath());
+    }
+
+    public function isPaused(): bool
+    {
+        return is_file($this->pausePath());
+    }
+
+    private function pausePath(): string
+    {
+        return $this->path.'.pause';
+    }
+
+    private function stopPath(): string
+    {
+        return $this->path.'.stop';
     }
 
     public function isRunning(): bool

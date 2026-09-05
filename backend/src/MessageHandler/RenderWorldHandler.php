@@ -79,15 +79,36 @@ final readonly class RenderWorldHandler
             'currentTile' => '',
         ];
 
+        $this->progress->clearStop();
+        $this->progress->resume();
         $this->progress->write($counts);
 
         foreach ($this->batches() as $batch) {
             // Checked between batches, where the last upload has been
             // verified and nothing is half-written.
             if ($this->progress->stopRequested()) {
+                $this->progress->clearStop();
                 $counts['state'] = RenderProgress::STOPPED;
                 $counts['finishedAt'] = time();
-                unset($counts['stopRequested']);
+                $this->progress->write($counts);
+
+                return;
+            }
+
+            while ($this->progress->isPaused() && !$this->progress->stopRequested()) {
+                if (($counts['phase'] ?? '') !== 'paused') {
+                    $counts['phase'] = 'paused';
+                    $this->progress->write($counts);
+                }
+
+                sleep(2);
+            }
+
+            if ($this->progress->stopRequested()) {
+                $this->progress->clearStop();
+                $this->progress->resume();
+                $counts['state'] = RenderProgress::STOPPED;
+                $counts['finishedAt'] = time();
                 $this->progress->write($counts);
 
                 return;
@@ -165,16 +186,34 @@ final readonly class RenderWorldHandler
      */
     private function ship(string $tiles, array &$counts, array &$written): void
     {
+        try {
+            $this->shipOnce($tiles, $counts, $written);
+        } catch (StopRequested) {
+            return;
+        }
+    }
+
+    private function shipOnce(string $tiles, array &$counts, array &$written): void
+    {
         $before = $counts['tilesUploaded'];
         $lastWrite = 0.0;
+        $counts['batchTotal'] = $this->countFiles($tiles);
+        $counts['batchDone'] = 0;
+        $counts['batchPending'] = $counts['batchTotal'];
 
         $result = $this->uploader->upload(
             $tiles,
             'map/base',
             function (string $key, int $sent, int $failed, int $bytes) use (&$counts, $before, &$lastWrite): void {
+                if ($this->progress->stopRequested()) {
+                    throw new StopRequested();
+                }
+
                 $counts['currentTile'] = basename($key);
                 $counts['currentPath'] = $key;
                 $counts['tilesUploaded'] = $before + $sent;
+                $counts['batchDone'] = $sent + $failed;
+                $counts['batchPending'] = max(0, ($counts['batchTotal'] ?? 0) - $sent - $failed);
 
                 // Every tile updates the numbers, but the file is
                 // written at most a few times a second: at 300 tiles a
@@ -198,7 +237,9 @@ final readonly class RenderWorldHandler
         $counts['phase'] = 'verifying';
         $this->progress->write($counts);
 
-        $missing = $this->uploader->verify($tiles, 'map/base');
+        // The upload already listed the store and knows what it wrote;
+        // listing again for every batch is what made this quadratic.
+        $missing = $this->uploader->verify($tiles, 'map/base', $result['inStore']);
 
         if ($missing === []) {
             // The .dzi descriptors stay: tiny, and the viewer needs them.
@@ -225,7 +266,7 @@ final readonly class RenderWorldHandler
             $counts['tilesUploaded'] += $again['sent'];
             $counts['bytesUploaded'] += $again['bytes'];
 
-            $missing = $this->uploader->verify($tiles, 'map/base');
+            $missing = $this->uploader->verify($tiles, 'map/base', $again['inStore']);
         }
 
         unset($counts['retryRound'], $counts['retryPending']);
@@ -245,6 +286,25 @@ final readonly class RenderWorldHandler
             'count' => \count($missing),
             'first' => \array_slice($missing, 0, 5),
         ]);
+    }
+
+    private function countFiles(string $directory): int
+    {
+        if (!is_dir($directory)) {
+            return 0;
+        }
+
+        $count = 0;
+
+        foreach (new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+        ) as $entry) {
+            if ($entry instanceof \SplFileInfo && $entry->isFile()) {
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 
     /** @return \Generator<list<array{int, int}>> */

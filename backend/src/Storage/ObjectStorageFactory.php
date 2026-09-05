@@ -83,11 +83,16 @@ final class ObjectStorageFactory implements ObjectStorageInterface
      */
     public function create(): FilesystemOperator
     {
+        return new Filesystem(new AsyncAwsS3Adapter($this->client(), (string) $this->bucket()));
+    }
+
+    public function client(): S3Client
+    {
         if (!$this->isConfigured()) {
             throw new ObjectStorageNotConfigured();
         }
 
-        $client = new S3Client([
+        return new S3Client([
             'endpoint' => self::normaliseEndpoint((string) $this->settings->get(AppSetting::S3_ENDPOINT)),
             'region' => (string) $this->settings->get(AppSetting::S3_REGION),
             'accessKeyId' => (string) $this->settings->get(AppSetting::S3_ACCESS_KEY),
@@ -96,7 +101,5 @@ final class ObjectStorageFactory implements ObjectStorageInterface
             // segment; only AWS puts it in the hostname.
             'pathStyleEndpoint' => true,
         ]);
-
-        return new Filesystem(new AsyncAwsS3Adapter($client, (string) $this->bucket()));
     }
 }

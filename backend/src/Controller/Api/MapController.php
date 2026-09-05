@@ -123,52 +123,6 @@ final class MapController extends AbstractController
      * operator running a rented server has a browser, not a shell on the
      * machine the panel runs on.
      */
-    /**
-     * Starts a world render, unless one is already going.
-     *
-     * The work is hours long and happens in a worker; this only says
-     * whether it was accepted.
-     */
-    #[Route('/render/{serverId}', name: 'api_map_render', methods: ['POST'])]
-    #[IsGranted(Permission::EditSettings->value)]
-    public function startRender(string $serverId, Request $request): JsonResponse
-    {
-        if ($this->progress->isRunning()) {
-            return new JsonResponse(
-                ['status' => 'failed', 'error' => 'map.renderAlreadyRunning'],
-                Response::HTTP_CONFLICT,
-            );
-        }
-
-        $readiness = $this->renderer->readiness();
-
-        if (!$readiness['ready']) {
-            return new JsonResponse([
-                'status' => 'failed',
-                'error' => $readiness['renderer'] ? 'map.texturesMissing' : 'map.rendererMissing',
-                'missingPacks' => $readiness['missingPacks'],
-            ], Response::HTTP_CONFLICT);
-        }
-
-        $server = $this->servers->find($serverId);
-
-        if ($server === null) {
-            return new JsonResponse(['status' => 'failed', 'error' => 'servers.notFound'], Response::HTTP_NOT_FOUND);
-        }
-
-        $this->progress->write(['state' => \App\Server\Map\RenderProgress::RUNNING, 'phase' => 'queued']);
-        // Off by default: tiles are named by position, so a second run
-        // overwrites them. Only a tile the new render no longer
-        // produces -- where a building was demolished in-game -- would
-        // survive, and deleting 1.5 million objects to catch that is
-        // the wrong trade.
-        $fresh = $request->getPayload()->getBoolean('fresh', false);
-
-        $this->bus->dispatch(new \App\Message\RenderWorld($server->getId(), upload: true, fresh: $fresh));
-
-        return new JsonResponse(['status' => 'started']);
-    }
-
     /** Asks a running render to stop after the batch it is on. */
     #[Route('/render/stop', name: 'api_map_render_stop', methods: ['POST'])]
     #[IsGranted(Permission::EditSettings->value)]
@@ -186,6 +140,29 @@ final class MapController extends AbstractController
         return new JsonResponse(['status' => 'stopping']);
     }
 
+    /** Holds a running render where it is, without ending it. */
+    #[Route('/render/pause', name: 'api_map_render_pause', methods: ['POST'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function pauseRender(Request $request): JsonResponse
+    {
+        if (!$this->progress->isRunning()) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'map.renderNotRunning'],
+                Response::HTTP_CONFLICT,
+            );
+        }
+
+        if ($request->getPayload()->getBoolean('resume')) {
+            $this->progress->resume();
+
+            return new JsonResponse(['status' => 'running']);
+        }
+
+        $this->progress->requestPause();
+
+        return new JsonResponse(['status' => 'paused']);
+    }
+
     /**
      * The render's state, for a client that cannot hold a stream.
      *
@@ -195,9 +172,21 @@ final class MapController extends AbstractController
      */
     #[Route('/render', name: 'api_map_render_state', methods: ['GET'])]
     #[IsGranted(Permission::EditSettings->value)]
-    public function renderState(): JsonResponse
+    public function renderState(\Doctrine\DBAL\Connection $database): JsonResponse
     {
-        return new JsonResponse($this->progress->read());
+        $state = $this->progress->read();
+
+        // "Queued" with nobody consuming means no worker is running,
+        // which looks identical to a slow start from the outside.
+        if (($state['phase'] ?? '') === 'queued') {
+            try {
+                $state['queueDepth'] = (int) $database->fetchOne('SELECT count(*) FROM messenger_messages');
+            } catch (\Throwable) {
+                $state['queueDepth'] = null;
+            }
+        }
+
+        return new JsonResponse($state);
     }
 
     /**
@@ -245,6 +234,52 @@ final class MapController extends AbstractController
         $response->headers->set('X-Accel-Buffering', 'no');
 
         return $response;
+    }
+
+    /**
+     * Starts a world render, unless one is already going.
+     *
+     * The work is hours long and happens in a worker; this only says
+     * whether it was accepted.
+     */
+    #[Route('/render/{serverId}', name: 'api_map_render', methods: ['POST'], requirements: ['serverId' => '[0-9a-fA-F-]{36}'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function startRender(string $serverId, Request $request): JsonResponse
+    {
+        if ($this->progress->isRunning()) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'map.renderAlreadyRunning'],
+                Response::HTTP_CONFLICT,
+            );
+        }
+
+        $readiness = $this->renderer->readiness();
+
+        if (!$readiness['ready']) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $readiness['renderer'] ? 'map.texturesMissing' : 'map.rendererMissing',
+                'missingPacks' => $readiness['missingPacks'],
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $server = $this->servers->find($serverId);
+
+        if ($server === null) {
+            return new JsonResponse(['status' => 'failed', 'error' => 'servers.notFound'], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->progress->write(['state' => \App\Server\Map\RenderProgress::RUNNING, 'phase' => 'queued']);
+        // Off by default: tiles are named by position, so a second run
+        // overwrites them. Only a tile the new render no longer
+        // produces -- where a building was demolished in-game -- would
+        // survive, and deleting 1.5 million objects to catch that is
+        // the wrong trade.
+        $fresh = $request->getPayload()->getBoolean('fresh', false);
+
+        $this->bus->dispatch(new \App\Message\RenderWorld($server->getId(), upload: true, fresh: $fresh));
+
+        return new JsonResponse(['status' => 'started']);
     }
 
     #[Route('/import/{serverId}', name: 'api_map_import', methods: ['POST'])]

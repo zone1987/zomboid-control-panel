@@ -308,3 +308,25 @@ web_extra_exposed_ports:
 # information on the commands that can be extended and the tasks you can define
 # for them. Example:
 #hooks:
+
+# The production image runs this under supervisor. Without it here, a
+# queued job sits in messenger_messages and the interface waits on a
+# render that nobody started.
+web_extra_daemons:
+  - name: messenger
+    command: "php /var/www/html/backend/bin/console messenger:consume async --time-limit=86400 --memory-limit=1G"
+    directory: /var/www/html/backend
+
+# /opt is not mounted, so a restart wipes anything installed there.
+# The renderer lives in the repository and its virtualenv beside it.
+hooks:
+  post-start:
+    - exec: |
+        set -e
+        cd /var/www/html/renderer
+        if [ ! -x .venv/bin/python ]; then
+          python3 -m venv --without-pip .venv
+          curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+          .venv/bin/python /tmp/get-pip.py --quiet
+          .venv/bin/pip install --quiet -r requirements.txt
+        fi

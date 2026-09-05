@@ -31,6 +31,7 @@ export function WorldRenderCard({ serverId }: { serverId: string | null }) {
   // The settings page has no server in its URL, and a fresh browser has
   // none remembered either -- but a panel with one server has an
   // obvious answer, so the card finds it rather than staying disabled.
+  const [dismissed, setDismissed] = useState(false)
   const { data: servers } = useQuery({ queryKey: ['servers'], queryFn: listServers })
   const target = serverId ?? servers?.items[0]?.id ?? null
   const [progress, setProgress] = useState<RenderProgress>({ state: 'idle' })
@@ -59,7 +60,10 @@ export function WorldRenderCard({ serverId }: { serverId: string | null }) {
 
   const start = useMutation({
     mutationFn: () => startWorldRender(target ?? ''),
-    onSuccess: () => toast.success(t('settings.render.started')),
+    onSuccess: () => {
+      setDismissed(true)
+      toast.success(t('settings.render.started'))
+    },
     onError: (error) => {
       const key = errorField(error, 'error')
 
@@ -94,12 +98,24 @@ export function WorldRenderCard({ serverId }: { serverId: string | null }) {
           </Alert>
         )}
 
-        {progress.state === 'failed' && (
+        {progress.state === 'failed' && !dismissed && (
           <Alert variant="destructive">
             <TriangleAlert className="size-4" />
             <AlertTitle>{t('settings.render.failed')}</AlertTitle>
-            <AlertDescription>
-              {t(`settings.render.${(progress.error ?? '').split('.').pop()}`, t('errors.generic'))}
+            <AlertDescription className="flex items-start justify-between gap-3">
+              <span>
+                {t(`settings.render.${(progress.error ?? '').split('.').pop()}`, t('errors.generic'))}
+              </span>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-my-1 shrink-0"
+                onClick={() => setDismissed(true)}
+              >
+                {t('common.dismiss')}
+              </Button>
             </AlertDescription>
           </Alert>
         )}
