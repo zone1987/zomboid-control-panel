@@ -99,6 +99,11 @@ services:
             $python: '%env(PZMAP_PYTHON)%'
             $projectDirectory: '%kernel.project_dir%'
 
+    App\Server\Map\CellSurvey:
+        arguments:
+            $rendererPath: '%env(PZMAP_RENDERER_PATH)%'
+            $python: '%env(PZMAP_PYTHON)%'
+
     App\Settings\SupportedLanguages:
         arguments:
             # Derived from the interface's own translation files, so a new

@@ -372,8 +372,98 @@ def deploy(args):
     })
 
 
+
+def survey(args):
+    """Reports which floors and which blocks of each cell hold anything.
+
+    A cell is 32x32 blocks of 8x8 squares. A tile at the deepest zoom
+    covers 256 squares against a block's 64, so block occupancy settles
+    every tile of a cell exactly -- without drawing one.
+    """
+    import base64
+    import json
+    from pzmap2dzi import cell as cellmod, lotheader
+
+    if not args.args:
+        print(json.dumps({'error': 'no cell directory given'}))
+        return
+
+    rest = [a for a in args.args if a != '--headers-only']
+    headers_only = getattr(args, 'headers_only', False) or len(rest) != len(args.args)
+
+    path = rest[0]
+    wanted = rest[1:]
+
+    if wanted:
+        cells = []
+        for arg in wanted:
+            x, _, y = arg.partition(',')
+            cells.append((int(x), int(y)))
+    else:
+        cells = sorted(lotheader.scan_headers(path))
+
+    result = {}
+    for x, y in cells:
+        key = '{},{}'.format(x, y)
+        try:
+            header = lotheader.load_lotheader(path, x, y)
+        except Exception as e:
+            result[key] = {'error': '{}: {}'.format(type(e).__name__, e)}
+            continue
+
+        if not header:
+            result[key] = {'error': 'no header'}
+            continue
+
+        entry = {
+            'minlayer': header['minlayer'],
+            'maxlayer': header['maxlayer'],
+        }
+
+        if headers_only:
+            result[key] = entry
+            continue
+
+        try:
+            c = cellmod.load_cell(path, x, y)
+        except Exception as e:
+            entry['error'] = '{}: {}'.format(type(e).__name__, e)
+            result[key] = entry
+            continue
+
+        if not c:
+            entry['error'] = 'no lotpack'
+            result[key] = entry
+            continue
+
+        # read_block indexes block_data[z] with z running from minlayer,
+        # so a negative floor lands on a negative Python index.
+        span = c.maxlayer - c.minlayer
+        floors = {}
+        for z in range(c.minlayer, c.maxlayer):
+            bits = bytearray((len(c.blocks) + 7) // 8)
+            occupied = 0
+            for i, block in enumerate(c.blocks):
+                index = z if z >= 0 else z + span
+                if 0 <= index < len(block) and block[index]:
+                    bits[i >> 3] |= 1 << (i & 7)
+                    occupied += 1
+            if occupied:
+                floors[str(z)] = {
+                    'blocks': occupied,
+                    'total': len(c.blocks),
+                    'mask': base64.b64encode(bytes(bits)).decode('ascii'),
+                }
+
+        entry['floors'] = floors
+        result[key] = entry
+
+    print(json.dumps(result, separators=(',', ':')))
+
+
 CMD = {
     'deploy': deploy,
+    'survey': survey,
     'unpack': unpack,
     'render': render,
 }
@@ -384,6 +474,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='pzmap2dzi render')
     parser.add_argument('-c', '--conf', type=str, default='conf/conf.yaml')
     parser.add_argument('cmd', type=str)
+    parser.add_argument('--headers-only', action='store_true',
+                        help='report floor ranges only, without reading lotpacks')
     parser.add_argument('args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
