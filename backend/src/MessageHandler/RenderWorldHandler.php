@@ -29,11 +29,11 @@ final readonly class RenderWorldHandler
     /** Extra passes over tiles the verify step found missing. */
     private const RETRY_ROUNDS = 4;
 
-    /**
-     * Cells that actually hold map data, from the reference render's
-     * own map_info.json: 4065 of the 4992 the grid allows.
-     */
-    private const OCCUPIED_CELLS = 4065;
+    /** Cells to get through before the run's own occupancy means anything. */
+    private const SAMPLE_CELLS = 600;
+
+    /** 4065 of 4992 in build 42's default range, from its map_info.json. */
+    private const OCCUPIED_SHARE = 0.814;
 
     /** The world is 78 by 64 cells; most of the corners are empty. */
     private const COLUMNS = 78;
@@ -82,6 +82,7 @@ final readonly class RenderWorldHandler
             'tilesUploaded' => 0,
             'tilesSkipped' => 0,
             'tilesEstimated' => 0,
+            'tilesProduced' => 0,
             'tilesFailed' => 0,
             'bytesUploaded' => 0,
             'phase' => 'starting',
@@ -288,11 +289,25 @@ final readonly class RenderWorldHandler
         $counts['bytesUploaded'] += $result['bytes'];
 
         // Nobody knows how many tiles a world makes: it depends on what
-        // stands in each cell. Extrapolating from the cells already
-        // drawn is the only honest figure, and it settles quickly.
-        if (($counts['cellsRendered'] ?? 0) > 0) {
-            $perCell = ($counts['tilesUploaded'] + $counts['tilesSkipped']) / $counts['cellsRendered'];
-            $counts['tilesEstimated'] = (int) round($perCell * self::OCCUPIED_CELLS);
+        // stands in each cell. Counted from what the renderer produced,
+        // not from what has been uploaded so far -- mid-batch the
+        // latter is a fraction of it, and the estimate came out an
+        // order of magnitude short.
+        $counts['tilesProduced'] = ($counts['tilesProduced'] ?? 0) + ($counts['batchTotal'] ?? 0);
+
+        if (($counts['cellsRendered'] ?? 0) > 0 && ($counts['cellsDone'] ?? 0) > 0) {
+            $perCell = $counts['tilesProduced'] / $counts['cellsRendered'];
+
+            // How much of the grid holds map. Measured on this run, but
+            // only once enough of it is done to mean anything: the run
+            // starts along an empty edge, where the ratio reads far too
+            // low. Build 42's own share stands in until then.
+            $occupied = ($counts['cellsDone'] ?? 0) >= self::SAMPLE_CELLS
+                ? $counts['cellsRendered'] / $counts['cellsDone']
+                : self::OCCUPIED_SHARE;
+            $counts['tilesEstimated'] = (int) round(
+                $perCell * $occupied * ($counts['cellsTotal'] ?? self::COLUMNS * self::ROWS),
+            );
         }
 
         foreach ($result['keys'] as $key) {

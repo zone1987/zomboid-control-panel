@@ -883,7 +883,8 @@
       "inProgress": "Rendering",
       "resumed": "The run is continuing.",
       "skippedNote_one": "One tile was already stored and was skipped.",
-      "skippedNote_other": "{{count}} tiles were already stored and were skipped."
+      "skippedNote_other": "{{count}} tiles were already stored and were skipped.",
+      "emptyCells": "empty"
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."

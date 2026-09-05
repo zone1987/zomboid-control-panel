@@ -24,6 +24,7 @@ export type RenderProgress = {
   batchPending?: number
   tilesSkipped?: number
   tilesEstimated?: number
+  tilesProduced?: number
   cellsSkipped?: number
   error?: string
 }

@@ -153,7 +153,16 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
             label={t('settings.render.cells')}
             value={`${done.toLocaleString()} / ${total.toLocaleString()}`}
           />
-          <Figure label={t('settings.render.rendered')} value={(progress.cellsRendered ?? 0).toLocaleString()} />
+          {/* The grid is 78 by 64, but the world is not a rectangle:
+              the rest report themselves empty and cost nothing. */}
+          <Figure
+            label={t('settings.render.rendered')}
+            value={`${(progress.cellsRendered ?? 0).toLocaleString()}${
+              (progress.cellsEmpty ?? 0) > 0
+                ? ` (${(progress.cellsEmpty ?? 0).toLocaleString()} ${t('map.render.emptyCells')})`
+                : ''
+            }`}
+          />
           <Figure label={t('settings.render.tiles')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
           <Figure label={t('settings.render.uploaded')} value={size(progress.bytesUploaded ?? 0)} />
         </dl>
@@ -185,9 +194,7 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
               (progress.tilesEstimated ?? 0) > 0
                 ? `≈ ${Math.max(
                     0,
-                    (progress.tilesEstimated ?? 0) -
-                      (progress.tilesUploaded ?? 0) -
-                      (progress.tilesSkipped ?? 0),
+                    (progress.tilesEstimated ?? 0) - (progress.tilesUploaded ?? 0),
                   ).toLocaleString()}`
                 : '—'
             }
