@@ -380,7 +380,43 @@
       "drop": "Drop texture packs here",
       "dropHint": "or click to choose them — all five at once"
     },
-    "mapTab": "Map"
+    "mapTab": "Map",
+    "render": {
+      "title": "Render the isometric map",
+      "description": "Draws the whole world from the server's own map data and puts the tiles in the object store. It takes several hours and keeps going after this page is closed.",
+      "cost": "What the run costs",
+      "costBody": "About 4000 cells, roughly three hours, around 330 GB in the object store. Nothing is left on the panel's disk: every cell is rendered, uploaded, verified and removed again.",
+      "start": "Start rendering",
+      "inProgress": "Running …",
+      "started": "The render has started.",
+      "running": "for {{time}}",
+      "cells": "Cells",
+      "cell": "Cell",
+      "rendered": "drawn",
+      "tiles": "Tiles",
+      "uploaded": "uploaded",
+      "finished": "Finished",
+      "finishedBody": "{{cells}} cells drawn, {{tiles}} tiles stored, {{size}}.",
+      "failed": "The run failed",
+      "someFailed_one": "One tile did not arrive and stays on disk for now.",
+      "someFailed_other": "{{count}} tiles did not arrive and stay on disk for now.",
+      "renderAlreadyRunning": "A render is already going.",
+      "rendererMissing": "This installation has no renderer.",
+      "texturesMissing": "Texture packs are missing; they live under the Map tab.",
+      "rendererNotReady": "The renderer or the texture packs are missing.",
+      "renderStalled": "The run stopped reporting. Please start it again.",
+      "phase": {
+        "queued": "Queued",
+        "starting": "Preparing",
+        "rendering": "Drawing",
+        "uploading": "Uploading",
+        "verifying": "Verifying the upload",
+        "retrying": "Retrying failed uploads",
+        "finishing": "Finishing up",
+        "clearing": "Clearing the store",
+        "sweeping": "Removing outdated tiles"
+      }
+    }
   },
   "rcon": {
     "authenticationFailed": "The RCON password was refused.",
@@ -820,6 +856,13 @@
       "players": "Players",
       "safehouses": "Safehouses",
       "vehicles": "Vehicles"
+    },
+    "render": {
+      "title": "The map is being rendered",
+      "description": "While this runs, the isometric view shows only the parts that are already done.",
+      "keepsGoing": "The run continues even if this page is closed.",
+      "stop": "Stop",
+      "stopping": "Stopping …"
     }
   },
   "logs": {

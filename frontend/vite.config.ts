@@ -49,6 +49,18 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:80',
         changeOrigin: false,
+        // Server-sent events arrive as one long response. Without this
+        // the dev proxy holds the whole thing until the connection
+        // ends, so a live stream shows nothing until it is over --
+        // which production, going straight through Apache, does not do.
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes, req) => {
+            if (req.url?.endsWith('/stream') === true) {
+              delete proxyRes.headers['content-encoding']
+              proxyRes.headers['cache-control'] = 'no-cache, no-transform'
+            }
+          })
+        },
       },
     },
   },

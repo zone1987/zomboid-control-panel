@@ -1,0 +1,12 @@
+# What pzmap2dzi actually imports when rendering the base map.
+# The upstream list also carries flask, waitress, requests and pynput
+# for its own viewer and hotkeys, none of which this panel calls.
+setuptools
+lupa
+pyclipper
+pillow
+pyyaml
+kaitaistruct
+# Imported by render_impl/save.py at module load, so the render command
+# will not start without it -- even though nothing here calls it.
+requests

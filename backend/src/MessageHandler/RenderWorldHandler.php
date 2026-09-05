@@ -1,0 +1,298 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\MessageHandler;
+
+use App\Message\RenderWorld;
+use App\Repository\GameServerRepository;
+use App\Server\Map\CellFetcher;
+use App\Server\Map\RenderProgress;
+use App\Server\Map\TileRenderer;
+use App\Server\Map\TileUploader;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+/**
+ * Renders the world, cell by cell, and streams the tiles out.
+ *
+ * Hours of work, so it reports as it goes and resumes where it
+ * stopped: cells already in the store are skipped, and nothing is
+ * deleted locally until the store confirms it has it.
+ */
+#[AsMessageHandler]
+final readonly class RenderWorldHandler
+{
+    /** Enough to keep every core busy, small enough to report often. */
+    private const BATCH = 6;
+
+    /** Extra passes over tiles the verify step found missing. */
+    private const RETRY_ROUNDS = 4;
+
+    /** The world is 78 by 64 cells; most of the corners are empty. */
+    private const COLUMNS = 78;
+    private const ROWS = 64;
+
+    public function __construct(
+        private GameServerRepository $servers,
+        private TileRenderer $renderer,
+        private CellFetcher $cells,
+        private TileUploader $uploader,
+        private RenderProgress $progress,
+        private LoggerInterface $logger,
+    ) {
+    }
+
+    public function __invoke(RenderWorld $message): void
+    {
+        $server = $this->servers->find($message->serverId);
+
+        if ($server === null || !$this->renderer->isAvailable()) {
+            $this->progress->write([
+                'state' => RenderProgress::FAILED,
+                'error' => 'map.rendererNotReady',
+            ]);
+
+            return;
+        }
+
+        $tiles = $this->renderer->tilesDirectory();
+        $started = time();
+
+        // Every key this run wrote. A world is 1.5 million tiles, so
+        // this is the one large thing held in memory -- about 90 MB of
+        // strings, against re-listing the bucket for every cell.
+        $written = [];
+
+        $counts = [
+            'state' => RenderProgress::RUNNING,
+            'startedAt' => $started,
+            'cellsTotal' => self::COLUMNS * self::ROWS,
+            'cellsDone' => 0,
+            'cellsRendered' => 0,
+            'cellsEmpty' => 0,
+            'tilesUploaded' => 0,
+            'tilesFailed' => 0,
+            'bytesUploaded' => 0,
+            'phase' => 'starting',
+            'currentCell' => '',
+            'currentTile' => '',
+        ];
+
+        $this->progress->write($counts);
+
+        foreach ($this->batches() as $batch) {
+            // Checked between batches, where the last upload has been
+            // verified and nothing is half-written.
+            if ($this->progress->stopRequested()) {
+                $counts['state'] = RenderProgress::STOPPED;
+                $counts['finishedAt'] = time();
+                unset($counts['stopRequested']);
+                $this->progress->write($counts);
+
+                return;
+            }
+
+            $wanted = [];
+
+            foreach ($batch as $cell) {
+                if ($this->cells->fetch($server, $cell[0], $cell[1])) {
+                    $wanted[] = $cell;
+                } else {
+                    ++$counts['cellsEmpty'];
+                }
+            }
+
+            $counts['currentCell'] = $batch[0][0].','.$batch[0][1];
+            $counts['phase'] = 'rendering';
+            $this->progress->write($counts);
+
+            if ($wanted !== [] && $this->renderer->render($server, $wanted)) {
+                $counts['phase'] = 'uploading';
+                $counts['cellsRendered'] += \count($wanted);
+
+                if ($message->upload) {
+                    $this->ship($tiles, $counts, $written);
+                }
+            }
+
+            // Cells only feed the renderer; 4.2 GB of them serves
+            // nothing once they are drawn.
+            $this->clear($this->cells->directory(), keepExtension: null);
+
+            $counts['cellsDone'] += \count($batch);
+            $this->progress->write($counts);
+        }
+
+        if ($message->upload) {
+            $counts['phase'] = 'finishing';
+            $this->progress->write($counts);
+            $this->ship($tiles, $counts, $written);
+
+            // Anything in the store this run did not write is left over
+            // from a world that has since changed -- a demolished
+            // building draws no tile, so its old one would be served
+            // for ever. Swept at the end rather than cleared at the
+            // start: at no point is the map missing tiles it needs.
+            $counts['phase'] = 'sweeping';
+            $this->progress->write($counts);
+
+            $swept = $this->uploader->removeStale(
+                'map/base',
+                $written,
+                function (int $removed) use (&$counts): void {
+                    $counts['tilesRemoved'] = $removed;
+                    $this->progress->write($counts);
+                },
+            );
+
+            $counts['tilesRemoved'] = $swept['removed'];
+        }
+
+        $counts['state'] = RenderProgress::DONE;
+        $counts['finishedAt'] = time();
+        $this->progress->write($counts);
+    }
+
+    /**
+     * Uploads what was just rendered, then removes it.
+     *
+     * Verified before deleting, never after: a tile that only half
+     * arrived is gone for good once the local copy goes.
+     *
+     * @param array<string, mixed> $counts
+     * @param list<string>         $written every key this run has produced
+     */
+    private function ship(string $tiles, array &$counts, array &$written): void
+    {
+        $before = $counts['tilesUploaded'];
+        $lastWrite = 0.0;
+
+        $result = $this->uploader->upload(
+            $tiles,
+            'map/base',
+            function (string $key, int $sent, int $failed, int $bytes) use (&$counts, $before, &$lastWrite): void {
+                $counts['currentTile'] = basename($key);
+                $counts['currentPath'] = $key;
+                $counts['tilesUploaded'] = $before + $sent;
+
+                // Every tile updates the numbers, but the file is
+                // written at most a few times a second: at 300 tiles a
+                // second the writes would cost more than the uploads.
+                $now = microtime(true);
+
+                if ($now - $lastWrite > 0.25) {
+                    $lastWrite = $now;
+                    $this->progress->write($counts);
+                }
+            },
+        );
+
+        $counts['tilesUploaded'] = $before + $result['sent'];
+        $counts['bytesUploaded'] += $result['bytes'];
+
+        foreach ($result['keys'] as $key) {
+            $written[] = $key;
+        }
+
+        $counts['phase'] = 'verifying';
+        $this->progress->write($counts);
+
+        $missing = $this->uploader->verify($tiles, 'map/base');
+
+        if ($missing === []) {
+            // The .dzi descriptors stay: tiny, and the viewer needs them.
+            $this->clear($tiles, keepExtension: '.dzi');
+
+            return;
+        }
+
+        // A second pass over what the verify pass found missing: this
+        // store refuses a fraction of requests with a working key, so a
+        // tile that failed six times in a row is unlucky rather than
+        // broken, and giving up would leave holes in the map.
+        for ($round = 0; $round < self::RETRY_ROUNDS && $missing !== []; ++$round) {
+            $counts['phase'] = 'retrying';
+            $counts['retryRound'] = $round + 1;
+            $counts['retryPending'] = \count($missing);
+            $this->progress->write($counts);
+
+            // Rising pauses: a store refusing a burst is usually over it
+            // a few seconds later.
+            sleep(2 << $round);
+
+            $again = $this->uploader->upload($tiles, 'map/base');
+            $counts['tilesUploaded'] += $again['sent'];
+            $counts['bytesUploaded'] += $again['bytes'];
+
+            $missing = $this->uploader->verify($tiles, 'map/base');
+        }
+
+        unset($counts['retryRound'], $counts['retryPending']);
+
+        if ($missing === []) {
+            $this->clear($tiles, keepExtension: '.dzi');
+
+            return;
+        }
+
+        $counts['tilesFailed'] += \count($missing);
+
+        // Kept rather than deleted: the next batch's upload walks the
+        // whole directory again, so what stayed behind gets another
+        // chance without anything having to remember it.
+        $this->logger->warning('Tiles did not reach the store after retrying; keeping them on disk.', [
+            'count' => \count($missing),
+            'first' => \array_slice($missing, 0, 5),
+        ]);
+    }
+
+    /** @return \Generator<list<array{int, int}>> */
+    private function batches(): \Generator
+    {
+        $batch = [];
+
+        for ($x = 0; $x < self::COLUMNS; ++$x) {
+            for ($y = 0; $y < self::ROWS; ++$y) {
+                $batch[] = [$x, $y];
+
+                if (\count($batch) === self::BATCH) {
+                    yield $batch;
+                    $batch = [];
+                }
+            }
+        }
+
+        if ($batch !== []) {
+            yield $batch;
+        }
+    }
+
+    private function clear(string $directory, ?string $keepExtension): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $entries = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        foreach ($entries as $entry) {
+            if (!$entry instanceof \SplFileInfo) {
+                continue;
+            }
+
+            if ($entry->isDir()) {
+                @rmdir($entry->getPathname());
+
+                continue;
+            }
+
+            if ($keepExtension === null || !str_ends_with($entry->getFilename(), $keepExtension)) {
+                @unlink($entry->getPathname());
+            }
+        }
+    }
+}

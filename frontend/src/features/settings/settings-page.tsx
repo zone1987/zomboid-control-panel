@@ -17,11 +17,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { useActiveServer } from '@/features/servers/active-server'
 import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
 import { IconPacksCard } from './icon-packs-card'
 import { ObjectStorageCard } from './object-storage-card'
 import { TexturePacksCard } from './texture-packs-card'
+import { WorldRenderCard } from './world-render-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -39,6 +41,7 @@ export function SettingsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>({})
+  const { activeServerId } = useActiveServer()
 
   const { data, isPending } = useQuery({
     queryKey: ['settings'],
@@ -308,8 +311,9 @@ export function SettingsPage() {
           <IconPacksCard />
         </TabsContent>
 
-        <TabsContent value="map">
+        <TabsContent value="map" className="space-y-4">
           <TexturePacksCard />
+          <WorldRenderCard serverId={activeServerId} />
         </TabsContent>
 
         <TabsContent value="storage">

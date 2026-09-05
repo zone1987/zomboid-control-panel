@@ -380,7 +380,43 @@
       "drop": "Texturpakete hierher ziehen",
       "dropHint": "oder klicken, um sie auszuwählen — alle fünf auf einmal"
     },
-    "mapTab": "Karte"
+    "mapTab": "Karte",
+    "render": {
+      "title": "Isometrische Karte rendern",
+      "description": "Zeichnet die ganze Welt aus den Kartendaten des Servers und legt die Kacheln im Objektspeicher ab. Der Lauf dauert mehrere Stunden und läuft im Hintergrund weiter, auch wenn diese Seite geschlossen wird.",
+      "cost": "Was der Lauf kostet",
+      "costBody": "Rund 4000 Zellen, etwa drei Stunden, ungefähr 330 GB im Objektspeicher. Auf der Platte des Panels bleibt nichts liegen: Jede Zelle wird gerendert, hochgeladen, geprüft und wieder gelöscht.",
+      "start": "Rendern starten",
+      "inProgress": "Läuft …",
+      "started": "Der Render-Lauf wurde gestartet.",
+      "running": "seit {{time}}",
+      "cells": "Zellen",
+      "cell": "Zelle",
+      "rendered": "gezeichnet",
+      "tiles": "Kacheln",
+      "uploaded": "hochgeladen",
+      "finished": "Fertig",
+      "finishedBody": "{{cells}} Zellen gezeichnet, {{tiles}} Kacheln im Speicher, {{size}}.",
+      "failed": "Der Lauf ist gescheitert",
+      "someFailed_one": "Eine Kachel kam nicht an und bleibt vorerst lokal liegen.",
+      "someFailed_other": "{{count}} Kacheln kamen nicht an und bleiben vorerst lokal liegen.",
+      "renderAlreadyRunning": "Es läuft bereits ein Render-Vorgang.",
+      "rendererMissing": "Der Renderer ist in dieser Installation nicht vorhanden.",
+      "texturesMissing": "Es fehlen Texturpakete. Sie liegen im Reiter „Karte“.",
+      "rendererNotReady": "Renderer oder Texturpakete fehlen.",
+      "renderStalled": "Der Vorgang meldet sich nicht mehr. Bitte erneut starten.",
+      "phase": {
+        "queued": "Wird eingereiht",
+        "starting": "Wird vorbereitet",
+        "rendering": "Zeichnet",
+        "uploading": "Lädt hoch",
+        "verifying": "Prüft den Upload",
+        "retrying": "Wiederholt fehlgeschlagene Uploads",
+        "finishing": "Räumt auf",
+        "clearing": "Räumt den Speicher auf",
+        "sweeping": "Entfernt veraltete Kacheln"
+      }
+    }
   },
   "rcon": {
     "authenticationFailed": "Das RCON-Passwort wurde abgelehnt.",
@@ -820,6 +856,13 @@
       "players": "Spieler",
       "safehouses": "Safehouses",
       "vehicles": "Fahrzeuge"
+    },
+    "render": {
+      "title": "Die Karte wird gerendert",
+      "description": "Solange das läuft, zeigt die isometrische Ansicht nur die Teile, die schon fertig sind.",
+      "keepsGoing": "Der Lauf geht weiter, auch wenn diese Seite geschlossen wird.",
+      "stop": "Abbrechen",
+      "stopping": "Wird beendet …"
     }
   },
   "logs": {

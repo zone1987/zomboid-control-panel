@@ -22,6 +22,7 @@ final class TestObjectStorageCommand extends Command
     public function __construct(
         private readonly ObjectStorageProbe $probe,
         private readonly ObjectStorageFactory $storage,
+        private readonly \App\Server\Map\TileUploader $uploader,
     ) {
         parent::__construct();
     }
@@ -31,13 +32,60 @@ final class TestObjectStorageCommand extends Command
         $this
             ->addOption('repeat', null, InputOption::VALUE_REQUIRED, 'Run the round trip this many times', '1')
             ->addOption('list', null, InputOption::VALUE_NONE, 'List what the bucket holds instead of testing')
-            ->addOption('clean', null, InputOption::VALUE_NONE, 'Delete leftover probe objects');
+            ->addOption('clean', null, InputOption::VALUE_NONE, 'Delete leftover probe objects')
+            ->addOption('clear-prefix', null, InputOption::VALUE_REQUIRED, 'Delete everything under this prefix')
+            ->addOption('etag', null, InputOption::VALUE_NONE, 'Check whether the store returns a usable checksum')
+            ->addOption('diagnose', null, InputOption::VALUE_NONE, 'Report exactly how the store refuses');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $repeat = max(1, (int) $input->getOption('repeat'));
+
+        if ($input->getOption('diagnose')) {
+            return $this->diagnose($io);
+        }
+
+        if ($input->getOption('etag')) {
+            $filesystem = $this->storage->create();
+            $key = 'probe-etag-'.bin2hex(random_bytes(4)).'.txt';
+            $body = 'hello';
+
+            $filesystem->write($key, $body);
+
+            try {
+                $sum = $filesystem->checksum($key);
+                $io->definitionList(
+                    ['etag' => $sum],
+                    ['md5 of the body' => md5($body)],
+                    ['usable' => $sum === md5($body) ? 'yes' : 'no'],
+                );
+            } catch (\Throwable $exception) {
+                $io->warning('No checksum: '.mb_substr($exception->getMessage(), 0, 200));
+            } finally {
+                $filesystem->delete($key);
+            }
+
+            return Command::SUCCESS;
+        }
+
+        $prefix = (string) $input->getOption('clear-prefix');
+
+        if ($prefix !== '') {
+            if (!$io->confirm(sprintf('Delete every object under "%s"?', $prefix), false)) {
+                return Command::SUCCESS;
+            }
+
+            $removed = $this->uploader->clear($prefix, static function (int $done) use ($io): void {
+                $io->write(sprintf("\r  %d removed", $done));
+            });
+
+            $io->newLine();
+            $io->success(sprintf('%d object(s) removed.', $removed));
+
+            return Command::SUCCESS;
+        }
 
         if ($input->getOption('list') || $input->getOption('clean')) {
             return $this->inventory($io, (bool) $input->getOption('clean'));
@@ -62,6 +110,75 @@ final class TestObjectStorageCommand extends Command
         }
 
         return Command::FAILURE;
+    }
+
+    /**
+     * Records exactly how the store refuses, rather than that it did.
+     *
+     * A run of writes with every failure's class, status and full
+     * message: an intermittent AccessDenied looks the same from the
+     * outside whether it is a rate limit, a clock skew, a key still
+     * propagating, or something about the request itself.
+     */
+    private function diagnose(SymfonyStyle $io): int
+    {
+        $filesystem = $this->storage->create();
+        $failures = [];
+        $ok = 0;
+        $times = [];
+
+        for ($i = 0; $i < 40; ++$i) {
+            $key = 'diagnose-'.bin2hex(random_bytes(6)).'.txt';
+            $started = microtime(true);
+
+            try {
+                $filesystem->write($key, str_repeat('x', 4096));
+                $times[] = microtime(true) - $started;
+                ++$ok;
+                $filesystem->delete($key);
+            } catch (\Throwable $exception) {
+                $deepest = $exception;
+
+                while ($deepest->getPrevious() !== null) {
+                    $deepest = $deepest->getPrevious();
+                }
+
+                $failures[] = [
+                    'attempt' => $i + 1,
+                    'class' => $deepest::class,
+                    'message' => mb_substr(trim($deepest->getMessage()), 0, 400),
+                ];
+            }
+        }
+
+        $io->definitionList(
+            ['attempts' => 40],
+            ['succeeded' => $ok],
+            ['failed' => \count($failures)],
+            ['median write' => $times === [] ? 'n/a' : sprintf('%.2fs', $this->median($times))],
+        );
+
+        if ($failures !== []) {
+            $io->section('How it refused');
+
+            foreach (\array_slice($failures, 0, 3) as $failure) {
+                $io->writeln(sprintf('<comment>attempt %d — %s</comment>', $failure['attempt'], $failure['class']));
+                $io->writeln($failure['message']);
+                $io->newLine();
+            }
+
+            $io->writeln('Failed on attempts: '.implode(', ', array_column($failures, 'attempt')));
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /** @param list<float> $values */
+    private function median(array $values): float
+    {
+        sort($values);
+
+        return $values[intdiv(\count($values), 2)];
     }
 
     /**

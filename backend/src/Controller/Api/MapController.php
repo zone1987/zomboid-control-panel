@@ -39,6 +39,8 @@ final class MapController extends AbstractController
         private readonly IsometricTiles $isometric,
         private readonly MapImporter $importer,
         private readonly TileRenderer $renderer,
+        private readonly \App\Server\Map\RenderProgress $progress,
+        private readonly \Symfony\Component\Messenger\MessageBusInterface $bus,
     ) {
     }
 
@@ -121,6 +123,130 @@ final class MapController extends AbstractController
      * operator running a rented server has a browser, not a shell on the
      * machine the panel runs on.
      */
+    /**
+     * Starts a world render, unless one is already going.
+     *
+     * The work is hours long and happens in a worker; this only says
+     * whether it was accepted.
+     */
+    #[Route('/render/{serverId}', name: 'api_map_render', methods: ['POST'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function startRender(string $serverId, Request $request): JsonResponse
+    {
+        if ($this->progress->isRunning()) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'map.renderAlreadyRunning'],
+                Response::HTTP_CONFLICT,
+            );
+        }
+
+        $readiness = $this->renderer->readiness();
+
+        if (!$readiness['ready']) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $readiness['renderer'] ? 'map.texturesMissing' : 'map.rendererMissing',
+                'missingPacks' => $readiness['missingPacks'],
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $server = $this->servers->find($serverId);
+
+        if ($server === null) {
+            return new JsonResponse(['status' => 'failed', 'error' => 'servers.notFound'], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->progress->write(['state' => \App\Server\Map\RenderProgress::RUNNING, 'phase' => 'queued']);
+        // Off by default: tiles are named by position, so a second run
+        // overwrites them. Only a tile the new render no longer
+        // produces -- where a building was demolished in-game -- would
+        // survive, and deleting 1.5 million objects to catch that is
+        // the wrong trade.
+        $fresh = $request->getPayload()->getBoolean('fresh', false);
+
+        $this->bus->dispatch(new \App\Message\RenderWorld($server->getId(), upload: true, fresh: $fresh));
+
+        return new JsonResponse(['status' => 'started']);
+    }
+
+    /** Asks a running render to stop after the batch it is on. */
+    #[Route('/render/stop', name: 'api_map_render_stop', methods: ['POST'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function stopRender(): JsonResponse
+    {
+        if (!$this->progress->isRunning()) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'map.renderNotRunning'],
+                Response::HTTP_CONFLICT,
+            );
+        }
+
+        $this->progress->requestStop();
+
+        return new JsonResponse(['status' => 'stopping']);
+    }
+
+    /**
+     * The render's state, for a client that cannot hold a stream.
+     *
+     * Vite's dev proxy buffers an event stream until it ends, and a
+     * corporate proxy may do the same, so the interface needs an
+     * answer that arrives without one.
+     */
+    #[Route('/render', name: 'api_map_render_state', methods: ['GET'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function renderState(): JsonResponse
+    {
+        return new JsonResponse($this->progress->read());
+    }
+
+    /**
+     * The render's own account of itself, as it happens.
+     *
+     * A stream rather than polling: an operator watching a three-hour
+     * job wants to see the tiles go past, and a request a second for
+     * three hours is a lot of requests to answer.
+     */
+    #[Route('/render/stream', name: 'api_map_render_stream', methods: ['GET'])]
+    #[IsGranted(Permission::EditSettings->value)]
+    public function renderStream(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(function (): void {
+            $sent = null;
+            // The pool gives a stream 60 seconds; EventSource reconnects
+            // on its own, which is cheaper than holding a worker longer.
+            $until = time() + 55;
+
+            while (time() < $until) {
+                $state = $this->progress->read();
+                $encoded = json_encode($state);
+
+                if ($encoded !== $sent) {
+                    $sent = $encoded;
+                    echo 'data: '.$encoded."\n\n";
+                    flush();
+                }
+
+                if (\in_array($state['state'] ?? '', [
+                    \App\Server\Map\RenderProgress::DONE,
+                    \App\Server\Map\RenderProgress::FAILED,
+                ], true)) {
+                    break;
+                }
+
+                // Four times a second: fast enough to read tile names
+                // going past, slow enough not to spin a core.
+                usleep(250_000);
+            }
+        });
+
+        $response->headers->set('Content-Type', 'text/event-stream');
+        $response->headers->set('Cache-Control', 'no-cache');
+        $response->headers->set('X-Accel-Buffering', 'no');
+
+        return $response;
+    }
+
     #[Route('/import/{serverId}', name: 'api_map_import', methods: ['POST'])]
     #[IsGranted(Permission::ManageBridge->value)]
     public function import(string $serverId): JsonResponse

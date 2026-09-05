@@ -18,6 +18,8 @@ framework:
             # A slow SMTP server would otherwise hold up the request that
             # triggered the mail.
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async
+            # Hours of work; it must not hold a request open.
+            App\Message\RenderWorld: async
 
 when@test:
     framework:

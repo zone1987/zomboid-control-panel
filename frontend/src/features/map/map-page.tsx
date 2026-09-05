@@ -34,6 +34,7 @@ import { WorldMap } from './world-map'
 import { MapSearch } from './map-search'
 import { MapSidebar } from './map-sidebar'
 import { ProjectionToggle } from './projection-toggle'
+import { RenderOverlay } from './render-overlay'
 
 export function MapPage() {
   const { t } = useTranslation()
@@ -130,6 +131,8 @@ export function MapPage() {
     // Fills whatever the layout leaves, rather than guessing the header
     // height and leaving a strip along the bottom.
     <div className="relative h-full min-h-[30rem] w-full">
+      <RenderOverlay />
+
       <WorldMap
         source={source}
         players={players}

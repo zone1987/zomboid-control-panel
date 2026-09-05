@@ -40,6 +40,20 @@ services:
                 'mailer.from_address': '%env(MAIL_FROM_ADDRESS)%'
                 'mailer.from_name': '%env(MAIL_FROM_NAME)%'
 
+    App\Server\Map\CellFetcher:
+        arguments:
+            # Cells arrive from the game server on demand; the renderer
+            # reads them from here as if they were a local installation.
+            $directory: '%kernel.project_dir%/var/map-cells'
+
+    App\Server\Map\RenderProgress:
+        arguments:
+            $path: '%kernel.project_dir%/var/map/render-progress.json'
+
+    App\Server\Map\RenderRoot:
+        arguments:
+            $directory: '%kernel.project_dir%/var/pz-root'
+
     App\Server\Map\Textures\TexturePackStore:
         arguments:
             # Outside the image: a redeploy would otherwise take 400 MB
@@ -76,17 +90,19 @@ services:
 
     App\Server\Map\IsometricTiles:
         arguments:
-            # Where an operator drops a pzmap2dzi render. Out of git for
-            # the same reason as the icons: it is game content.
-            $directory: '%kernel.project_dir%/var/map/isometric'
+            # Where the renderer puts its tiles. The path is fixed by
+            # pzmap2dzi, which appends html/map_data/base to whatever
+            # output root it is given.
+            $directory: '%kernel.project_dir%/var/map/iso/html/map_data/base'
 
     App\Server\Map\TileRenderer:
         arguments:
-            # Both optional: an operator without pzmap2dzi and a full
-            # game installation simply cannot render, and the panel says
-            # so rather than failing at the first missing tile.
+            # Both come from the image, which ships pzmap2dzi and its
+            # own Python. Left overridable so a developer can point at a
+            # checkout instead.
             $rendererPath: '%env(default::PZMAP_RENDERER_PATH)%'
-            $gamePath: '%env(default::PZ_GAME_PATH)%'
+            $python: '%env(default::PZMAP_PYTHON)%'
+            $projectDirectory: '%kernel.project_dir%'
 
     App\Settings\SupportedLanguages:
         arguments:
