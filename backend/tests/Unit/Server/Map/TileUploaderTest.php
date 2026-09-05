@@ -194,6 +194,24 @@ final class TileUploaderTest extends TestCase
         self::assertSame(0, $second['bytes'], 'The same tiles were billed twice.');
     }
 
+    /**
+     * What the operator is billed for is what the prefix holds, not
+     * what this run happened to send: a resumed run sends almost
+     * nothing while the bucket still holds everything.
+     */
+    public function testReportsWhatThePrefixHolds(): void
+    {
+        $store = new Filesystem(new InMemoryFilesystemAdapter());
+        $store->write('map/base/layer0_files/16/9_9.jpg', str_repeat('o', 500));
+
+        $uploader = new TileUploader($this->storageReturning($store), new NullLogger());
+        $result = $uploader->upload($this->root, 'map/base');
+
+        self::assertSame(3 * 128 + 500, $result['bytesHeld']);
+        self::assertSame(4, $result['objectsHeld']);
+        self::assertSame(3 * 128, $result['bytes'], 'Only what was sent counts as sent.');
+    }
+
     private function storageReturning(FilesystemOperator $filesystem): ObjectStorageInterface
     {
         return new class($filesystem) implements ObjectStorageInterface {

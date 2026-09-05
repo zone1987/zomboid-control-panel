@@ -886,7 +886,8 @@
       "skippedNote_other": "{{count}} tiles were already stored and were skipped.",
       "emptyCells": "empty",
       "failedNote_one": "One tile did not reach the store and is being retried.",
-      "failedNote_other": "{{count}} tiles did not reach the store and are being retried."
+      "failedNote_other": "{{count}} tiles did not reach the store and are being retried.",
+      "inStore": "in the store"
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."

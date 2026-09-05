@@ -13,6 +13,8 @@ export type RenderProgress = {
   cellsEmpty?: number
   tilesUploaded?: number
   tilesFailed?: number
+  bytesHeld?: number
+  objectsHeld?: number
   bytesUploaded?: number
   currentCell?: string
   currentTile?: string

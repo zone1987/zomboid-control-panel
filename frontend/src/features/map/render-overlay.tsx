@@ -164,7 +164,9 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
             }`}
           />
           <Figure label={t('settings.render.tiles')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
-          <Figure label={t('settings.render.uploaded')} value={size(progress.bytesUploaded ?? 0)} />
+          {/* What the bucket holds, which is what it costs -- not what
+              this run happened to send. */}
+          <Figure label={t('map.render.inStore')} value={size(progress.bytesHeld ?? 0)} />
         </dl>
 
         {/* Shown from the first batch, not once an estimate exists: a

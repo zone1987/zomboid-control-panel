@@ -85,6 +85,8 @@ final readonly class RenderWorldHandler
             'tilesProduced' => 0,
             'tilesFailed' => 0,
             'bytesUploaded' => 0,
+            'bytesHeld' => 0,
+            'objectsHeld' => 0,
             'phase' => 'starting',
             // So the panel can end this run outright rather than asking
             // it to notice: an upload that keeps going costs money.
@@ -287,6 +289,8 @@ final readonly class RenderWorldHandler
         $counts['tilesUploaded'] = $before + $result['sent'];
         $counts['tilesSkipped'] += $result['skipped'];
         $counts['bytesUploaded'] += $result['bytes'];
+        $counts['bytesHeld'] = $result['bytesHeld'];
+        $counts['objectsHeld'] = $result['objectsHeld'];
         $counts['tilesFailed'] = 0;
 
         // Nobody knows how many tiles a world makes: it depends on what

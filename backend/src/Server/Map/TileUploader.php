@@ -51,7 +51,7 @@ final readonly class TileUploader
     /**
      * @param callable(string, int, int, int): void|null $onProgress key, sent, failed, bytes
      *
-     * @return array{inStore: array<string, int>, sent: int, skipped: int, failed: int, bytes: int, keys: list<string>}
+     * @return array{inStore: array<string, int>, bytesHeld: int, objectsHeld: int, sent: int, skipped: int, failed: int, bytes: int, keys: list<string>}
      */
     public function upload(string $directory, string $prefix, ?callable $onProgress = null): array
     {
@@ -149,8 +149,15 @@ final readonly class TileUploader
             $this->settle($client, $bucket, $flight, $sent, $failed, $bytes, $written, $onProgress);
         }
 
+        $held = $inStore + $written;
+
         return [
-            'inStore' => $inStore + $written,
+            'inStore' => $held,
+            // What the prefix actually occupies, which is what an
+            // operator is billed for -- not what this run happened to
+            // send. The listing is already in hand.
+            'bytesHeld' => array_sum($held),
+            'objectsHeld' => \count($held),
             'sent' => $sent,
             'skipped' => $skipped,
             'failed' => $failed,
