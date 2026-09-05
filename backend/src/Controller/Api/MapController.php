@@ -133,9 +133,18 @@ final class MapController extends AbstractController
             );
         }
 
+        $pid = $this->progress->workerPid();
         $this->progress->requestStop();
 
-        return new JsonResponse(['status' => 'stopping']);
+        // Killed rather than asked: between two checks of the stop flag
+        // sits a whole cell being drawn or a tile being retried, and an
+        // upload that keeps running is bandwidth already paid for.
+        // Supervisor and ddev both restart the worker straight away.
+        if ($pid !== null) {
+            @posix_kill($pid, \SIGKILL);
+        }
+
+        return new JsonResponse(['status' => 'stopped']);
     }
 
     /** Holds a running render where it is, without ending it. */

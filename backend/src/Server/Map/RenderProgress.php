@@ -91,10 +91,32 @@ final readonly class RenderProgress
      * mid-upload leaves tiles whose arrival nobody confirmed, and the
      * batch boundary is where that question is already settled.
      */
+    /**
+     * Stops now, not at the next convenient moment.
+     *
+     * The state is written here rather than by the worker: uploads cost
+     * money, so the interface must not wait for a batch to finish
+     * before it can say the run is over. The worker is killed straight
+     * after, and finds the file already saying stopped if it survives.
+     */
     public function requestStop(): void
     {
         @mkdir(\dirname($this->stopPath()), 0o775, true);
         @touch($this->stopPath());
+
+        $state = $this->read();
+        $state['state'] = self::STOPPED;
+        $state['phase'] = 'stopped';
+        $state['finishedAt'] = time();
+        $this->write($state);
+    }
+
+    /** The worker holding this run, if it wrote one down. */
+    public function workerPid(): ?int
+    {
+        $pid = (int) ($this->read()['workerPid'] ?? 0);
+
+        return $pid > 0 ? $pid : null;
     }
 
     public function stopRequested(): bool

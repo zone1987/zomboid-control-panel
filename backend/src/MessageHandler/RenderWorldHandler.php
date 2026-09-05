@@ -29,6 +29,12 @@ final readonly class RenderWorldHandler
     /** Extra passes over tiles the verify step found missing. */
     private const RETRY_ROUNDS = 4;
 
+    /**
+     * Cells that actually hold map data, from the reference render's
+     * own map_info.json: 4065 of the 4992 the grid allows.
+     */
+    private const OCCUPIED_CELLS = 4065;
+
     /** The world is 78 by 64 cells; most of the corners are empty. */
     private const COLUMNS = 78;
     private const ROWS = 64;
@@ -39,6 +45,7 @@ final readonly class RenderWorldHandler
         private CellFetcher $cells,
         private TileUploader $uploader,
         private RenderProgress $progress,
+        private \App\Server\Map\CellLedger $ledger,
         private LoggerInterface $logger,
     ) {
     }
@@ -71,10 +78,16 @@ final readonly class RenderWorldHandler
             'cellsDone' => 0,
             'cellsRendered' => 0,
             'cellsEmpty' => 0,
+            'cellsSkipped' => 0,
             'tilesUploaded' => 0,
+            'tilesSkipped' => 0,
+            'tilesEstimated' => 0,
             'tilesFailed' => 0,
             'bytesUploaded' => 0,
             'phase' => 'starting',
+            // So the panel can end this run outright rather than asking
+            // it to notice: an upload that keeps going costs money.
+            'workerPid' => getmypid(),
             'currentCell' => '',
             'currentTile' => '',
         ];
@@ -115,12 +128,29 @@ final readonly class RenderWorldHandler
             }
 
             $wanted = [];
+            $checksums = [];
 
             foreach ($batch as $cell) {
-                if ($this->cells->fetch($server, $cell[0], $cell[1])) {
-                    $wanted[] = $cell;
-                } else {
+                if (!$this->cells->fetch($server, $cell[0], $cell[1])) {
                     ++$counts['cellsEmpty'];
+
+                    continue;
+                }
+
+                $checksum = $this->cells->checksumFor($cell[0], $cell[1]);
+
+                // Same bytes, same picture: the tiles in the store are
+                // already this cell, so there is nothing to draw.
+                if ($checksum !== null && $this->ledger->matches($cell[0], $cell[1], $checksum)) {
+                    ++$counts['cellsSkipped'];
+
+                    continue;
+                }
+
+                $wanted[] = $cell;
+
+                if ($checksum !== null) {
+                    $checksums[\App\Server\Map\CellLedger::name($cell[0], $cell[1])] = $checksum;
                 }
             }
 
@@ -134,6 +164,12 @@ final readonly class RenderWorldHandler
 
                 if ($message->upload) {
                     $this->ship($tiles, $counts, $written);
+
+                    // Recorded only after the tiles are in the store, so
+                    // an interrupted batch is drawn again rather than
+                    // skipped on the strength of a render that never
+                    // finished arriving.
+                    $this->ledger->record($checksums);
                 }
             }
 
@@ -228,7 +264,16 @@ final readonly class RenderWorldHandler
         );
 
         $counts['tilesUploaded'] = $before + $result['sent'];
+        $counts['tilesSkipped'] += $result['skipped'];
         $counts['bytesUploaded'] += $result['bytes'];
+
+        // Nobody knows how many tiles a world makes: it depends on what
+        // stands in each cell. Extrapolating from the cells already
+        // drawn is the only honest figure, and it settles quickly.
+        if (($counts['cellsRendered'] ?? 0) > 0) {
+            $perCell = ($counts['tilesUploaded'] + $counts['tilesSkipped']) / $counts['cellsRendered'];
+            $counts['tilesEstimated'] = (int) round($perCell * self::OCCUPIED_CELLS);
+        }
 
         foreach ($result['keys'] as $key) {
             $written[] = $key;
@@ -264,6 +309,7 @@ final readonly class RenderWorldHandler
 
             $again = $this->uploader->upload($tiles, 'map/base');
             $counts['tilesUploaded'] += $again['sent'];
+            $counts['tilesSkipped'] += $again['skipped'];
             $counts['bytesUploaded'] += $again['bytes'];
 
             $missing = $this->uploader->verify($tiles, 'map/base', $again['inStore']);

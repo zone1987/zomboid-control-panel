@@ -869,12 +869,16 @@
       "stopped": "Der Lauf wird beendet.",
       "pause": "Pause",
       "resume": "Fortsetzen",
-      "batchTotal": "zu übertragen",
-      "batchDone": "übertragen",
-      "batchPending": "ausstehend",
+      "batchTotal": "im Stapel",
+      "batchDone": "davon fertig",
+      "batchPending": "davon offen",
       "nothingYet": "Die Karte wurde noch nicht gerendert",
       "nothingYetHint": "Die isometrische Ansicht entsteht aus den Kartendaten des Servers. Sobald der Lauf startet, erscheinen die fertigen Kacheln hier nach und nach.",
-      "goToSettings": "Zu den Einstellungen"
+      "goToSettings": "Zu den Einstellungen",
+      "totalTiles": "insgesamt zu übertragen",
+      "totalDone": "insgesamt übertragen",
+      "totalPending": "insgesamt ausstehend",
+      "totalSkipped": "übersprungen (lag bereits im Speicher)"
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."

@@ -93,6 +93,19 @@ final readonly class CellFetcher
         return true;
     }
 
+    /**
+     * The lotpack's checksum, once the cell is here.
+     *
+     * What decides whether a cell needs drawing again: the same bytes
+     * make the same picture.
+     */
+    public function checksumFor(int $x, int $y): ?string
+    {
+        $path = $this->directory.'/'.sprintf('world_%d_%d.lotpack', $x, $y);
+
+        return is_file($path) ? (md5_file($path) ?: null) : null;
+    }
+
     /** @return list<string> */
     private function namesFor(int $x, int $y): array
     {

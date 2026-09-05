@@ -869,12 +869,16 @@
       "stopped": "The run is being stopped.",
       "pause": "Pause",
       "resume": "Resume",
-      "batchTotal": "to send",
-      "batchDone": "sent",
-      "batchPending": "pending",
+      "batchTotal": "in this batch",
+      "batchDone": "done",
+      "batchPending": "left",
       "nothingYet": "The map has not been rendered yet",
       "nothingYetHint": "The isometric view is drawn from the server's own map data. Once a run starts, finished tiles appear here as they are made.",
-      "goToSettings": "Go to settings"
+      "goToSettings": "Go to settings",
+      "totalTiles": "tiles in all",
+      "totalDone": "sent in all",
+      "totalPending": "still to send",
+      "totalSkipped": "skipped (already stored)"
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."
