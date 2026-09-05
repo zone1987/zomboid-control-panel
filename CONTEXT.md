@@ -33,11 +33,8 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ## Next concrete step
 
-**A full world render is running.** Started 2026-09-05 from the header
-button, on an empty bucket, with the geometry defect below fixed. What
-it needs is watching, not building: whether the geometry holds across
-hundreds of batches is the thing two earlier runs failed at, and it
-only shows after the renderer has run many times.
+**A full world render is running**, started 2026-09-05 22:00 with the
+survey below. It needs watching, not building.
 
 Everything else on the map is built and verified. What remains open is
 listed under "Not yet built".
@@ -53,13 +50,56 @@ Nothing needs a game installation anywhere near the panel.
 | Renderer | `pzmap2dzi`, in the image at `/opt/pzmap2dzi` |
 | Finished tiles | the object store, under `B42/base` |
 
-A run draws one floor over the whole world before starting the next,
-in the order 0, 1, -1, 2, 3. Each batch of six cells is rendered,
-uploaded, verified against the store, and only then deleted locally --
-330 GB never accumulates on the panel's disk.
-
 Tiles are served **only** from the store. An empty bucket means an
 empty map; there is no local fallback.
+
+### The survey, and why it is the whole saving
+
+A run reads every cell before drawing a tile, and draws only the
+cell-floor pairs that hold something. Measured against the user's
+server, 2026-09-05:
+
+| | Value |
+|---|---|
+| Cells the server has | 4,064 of 4,992 (928 do not exist) |
+| **Floors the world has** | **47, from -17 to +29** |
+| Possible cell-floor passes | 191,008 |
+| **Passes that hold anything** | **7,140** |
+| Skipped as empty | 183,871 — **96 %** |
+
+The survey costs 50 minutes of FTP, so its answer is kept at
+`map/occupancy.json` (2.5 MB). A second run starts drawing at once --
+verified: the restart skipped straight to `uploading`.
+
+**Floors are not a fixed list.** `FLOOR_ORDER = [0, 1, -1, 2, 3]` is
+only the starting assumption for the progress display. The floors
+actually drawn come from `floorsIn()`, which reads what the survey
+found -- B42 allows -32 to 32, and Louisville really does reach 29
+while a bunker sits at -17. A fixed range surveyed them and then never
+drew them, which is what the 5-floor run before this one did.
+
+The order is outwards from the ground: 0, 1, -1, then by distance, so
+the bunker at -17 comes before the 29th storey.
+
+**The check is per cell and floor, not per tile.** A block is 8x8
+squares against a tile's 256, so block occupancy is finer than a tile
+-- but `render_cell_range` addresses cells, so a drawn cell-floor may
+still contain empty tiles where a tower occupies one corner. Going
+below cell level would mean rewriting the renderer's task builder.
+
+### What a run now costs
+
+Projected from the running render, 441 tiles per cell-floor pass:
+
+| | Without the survey | With it |
+|---|---|---|
+| Tiles | 8.96 M | **3.15 M** |
+| Runtime at ~13/s | 173 h | **~71 h** |
+| Storage | 1.97 TB | **0.69 TB** |
+
+The 1 TB bucket fits the second and not the first. Note that 330 GB,
+recorded here earlier, was wrong: measured at 236 KB a tile
+(16.5 GB / 71,833 objects).
 
 ### The defect that ruined two runs
 
@@ -85,6 +125,36 @@ present it reports "Affected tiles: 0" and draws nothing at all.
 live in the same tree, under `var/map/iso/texture`. Deleting the render
 takes them with it, and every tile then comes out `.empty`. Restore
 with `app:map:render <server> --unpack`.
+
+### Upload concurrency: the cap was not the constraint
+
+`ObjectStorageFactory` handed AsyncAws no HTTP client, so it built one
+with Symfony's default of six connections per host. That looked like
+the reason `IN_FLIGHT = 32` never behaved like 32.
+
+It was not. Measured against Hetzner, 2026-09-05:
+
+| Connections | Objects/s |
+|---|---|
+| 4 | 14.1, 13.8 |
+| 8 | 15.4, 14.4 |
+| 16 | 14.8, 15.1 |
+| 32 | 9.2 |
+| 64 | 9.1 |
+
+The line saturates at about 3.5 MB/s well before the connection count
+matters, and past 16 the transfers compete and it gets *worse*. Both
+the client and `IN_FLIGHT` are now 16; 32 was in the range that
+measured slower.
+
+What the change did buy: the `S3Client` is kept between calls, so a
+batch no longer pays for a fresh set of TLS handshakes.
+
+### Batch deletes, measured
+
+`clear()` deleted one object per request. `DeleteObjects` takes a
+thousand keys: **78,701 objects in 75 seconds, 1,045 a second**,
+against roughly 19 before. `app:storage:clear <prefix>` uses it.
 
 ### Measurements that decided the design
 
