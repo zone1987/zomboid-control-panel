@@ -137,7 +137,7 @@ final readonly class RenderWorldHandler
         $counts['cellsTotal'] = $this->passesWorth($occupancy) * self::BATCH;
         $this->progress->write($counts);
 
-        foreach ($this->passes($occupancy) as [$floor, $batch]) {
+        foreach ($this->passes($occupancy) as [$floor, $batch, $lastForTheseCells]) {
             // Checked between batches, where the last upload has been
             // verified and nothing is half-written.
             if ($this->progress->stopRequested()) {
@@ -216,8 +216,11 @@ final readonly class RenderWorldHandler
             }
 
             // Cells only feed the renderer; 4.2 GB of them serves
-            // nothing once they are drawn.
-            $this->clear($this->cells->directory(), keepExtension: null);
+            // nothing once they are drawn. A cell with several floors
+            // stays until its last one is done.
+            if ($lastForTheseCells) {
+                $this->clear($this->cells->directory(), keepExtension: null);
+            }
 
             $counts['cellsDone'] += \count($batch);
             $this->progress->write($counts);
@@ -540,25 +543,51 @@ final readonly class RenderWorldHandler
      */
     private function passes(array $occupancy): \Generator
     {
-        foreach (self::FLOOR_ORDER as $floor) {
-            $batch = [];
+        // Cells that hold nothing but the ground go first, and they are
+        // most of the world: floor 0 finishes early, which is what
+        // somebody watching the map wants, and those cells are then
+        // done with -- fetched once, drawn once, deleted.
+        $single = [];
+        $several = [];
 
-            foreach ($occupancy as $name => $cell) {
-                if (!$cell->hasContent($floor)) {
-                    continue;
+        foreach ($occupancy as $name => $cell) {
+            [$x, $y] = array_map(intval(...), explode(',', $name));
+
+            if ($cell->floors() === [0]) {
+                $single[] = [$x, $y];
+            } else {
+                $several[$name] = [$x, $y];
+            }
+        }
+
+        foreach (array_chunk($single, self::BATCH) as $batch) {
+            yield [0, $batch, true];
+        }
+
+        // The rest carry upper floors or a basement. Each is fetched
+        // once and drawn for every floor it has, in the usual order, so
+        // the megabyte of cell data is not brought down five times.
+        foreach (array_chunk($several, self::BATCH, preserve_keys: true) as $chunk) {
+            $floors = [];
+
+            foreach (self::FLOOR_ORDER as $floor) {
+                $batch = [];
+
+                foreach ($chunk as $name => $cell) {
+                    if ($occupancy[$name]->hasContent($floor)) {
+                        $batch[] = $cell;
+                    }
                 }
 
-                [$x, $y] = array_map(intval(...), explode(',', $name));
-                $batch[] = [$x, $y];
-
-                if (\count($batch) === self::BATCH) {
-                    yield [$floor, $batch];
-                    $batch = [];
+                if ($batch !== []) {
+                    $floors[] = [$floor, $batch];
                 }
             }
 
-            if ($batch !== []) {
-                yield [$floor, $batch];
+            foreach ($floors as $index => [$floor, $batch]) {
+                // Kept until the last floor of these cells is drawn,
+                // rather than fetched again for each one.
+                yield [$floor, $batch, $index === array_key_last($floors)];
             }
         }
     }
