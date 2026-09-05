@@ -158,35 +158,46 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
           <Figure label={t('settings.render.uploaded')} value={size(progress.bytesUploaded ?? 0)} />
         </dl>
 
-        {(progress.tilesEstimated ?? 0) > 0 && (
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md bg-muted/60 px-3 py-2 text-sm">
-            {/* Estimated, not counted: how many tiles a world makes
-                depends on what stands in each cell, so this is the rate
-                so far carried across the cells still to come. */}
-            <Figure
-              label={t('map.render.totalTiles')}
-              value={`≈ ${(progress.tilesEstimated ?? 0).toLocaleString()}`}
-            />
-            <Figure
-              label={t('map.render.totalPending')}
-              value={`≈ ${Math.max(
-                0,
-                (progress.tilesEstimated ?? 0) -
-                  (progress.tilesUploaded ?? 0) -
-                  (progress.tilesSkipped ?? 0),
-              ).toLocaleString()}`}
-            />
-            <Figure label={t('map.render.totalDone')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
-            <Figure label={t('map.render.totalSkipped')} value={(progress.tilesSkipped ?? 0).toLocaleString()} />
-          </dl>
-        )}
+        {/* Shown from the first batch, not once an estimate exists: a
+            run that reports nothing for its first minutes looks stuck. */}
+        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-md bg-muted/60 px-3 py-2 text-sm">
+          <Figure label={t('map.render.batchTotal')} value={(progress.batchTotal ?? 0).toLocaleString()} />
+          <Figure label={t('map.render.batchDone')} value={(progress.batchDone ?? 0).toLocaleString()} />
+          <Figure label={t('map.render.batchPending')} value={(progress.batchPending ?? 0).toLocaleString()} />
+        </dl>
 
-        {(progress.batchTotal ?? 0) > 0 && (
-          <dl className="grid grid-cols-3 gap-x-4 rounded-md bg-muted/40 px-3 py-2 text-xs">
-            <Figure label={t('map.render.batchTotal')} value={(progress.batchTotal ?? 0).toLocaleString()} />
-            <Figure label={t('map.render.batchDone')} value={(progress.batchDone ?? 0).toLocaleString()} />
-            <Figure label={t('map.render.batchPending')} value={(progress.batchPending ?? 0).toLocaleString()} />
-          </dl>
+        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-md bg-muted/40 px-3 py-2 text-xs">
+          {/* Estimated, not counted: how many tiles a world makes
+              depends on what stands in each cell, so this is the rate
+              so far carried across the cells still to come. */}
+          <Figure
+            label={t('map.render.totalTiles')}
+            value={
+              (progress.tilesEstimated ?? 0) > 0
+                ? `≈ ${(progress.tilesEstimated ?? 0).toLocaleString()}`
+                : '—'
+            }
+          />
+          <Figure label={t('map.render.totalDone')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
+          <Figure
+            label={t('map.render.totalPending')}
+            value={
+              (progress.tilesEstimated ?? 0) > 0
+                ? `≈ ${Math.max(
+                    0,
+                    (progress.tilesEstimated ?? 0) -
+                      (progress.tilesUploaded ?? 0) -
+                      (progress.tilesSkipped ?? 0),
+                  ).toLocaleString()}`
+                : '—'
+            }
+          />
+        </dl>
+
+        {(progress.tilesSkipped ?? 0) > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {t('map.render.skippedNote', { count: progress.tilesSkipped ?? 0 })}
+          </p>
         )}
 
         {/* The tile name going past is how somebody tells a working

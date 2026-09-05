@@ -245,6 +245,26 @@ final readonly class RenderWorldHandler
                     throw new StopRequested();
                 }
 
+                // Checked per tile, not per batch: a batch is hundreds
+                // of uploads, and a pause that waits for the end of one
+                // is a pause nobody believes.
+                while ($this->progress->isPaused()) {
+                    if ($this->progress->stopRequested()) {
+                        throw new StopRequested();
+                    }
+
+                    if (($counts['phase'] ?? '') !== 'paused') {
+                        $counts['phase'] = 'paused';
+                        $this->progress->write($counts);
+                    }
+
+                    sleep(1);
+                }
+
+                if (($counts['phase'] ?? '') === 'paused') {
+                    $counts['phase'] = 'uploading';
+                }
+
                 $counts['currentTile'] = basename($key);
                 $counts['currentPath'] = $key;
                 $counts['tilesUploaded'] = $before + $sent;

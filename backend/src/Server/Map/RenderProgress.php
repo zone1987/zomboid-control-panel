@@ -40,6 +40,11 @@ final readonly class RenderProgress
             return ['state' => self::IDLE];
         }
 
+        // Both live in files of their own so the handler's counter
+        // writes cannot erase them; a reader has to look there too.
+        $state['stopRequested'] = $this->stopRequested();
+        $state['paused'] = $this->isPaused();
+
         // A worker that died leaves "running" behind for ever, which
         // would keep the interface waiting on nothing.
         // A job that was queued and never picked up means no worker is
