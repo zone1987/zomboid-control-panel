@@ -29,12 +29,19 @@ class AppSetting
     public const MAIL_FROM_ADDRESS = 'mailer.from_address';
     public const MAIL_FROM_NAME = 'mailer.from_name';
 
+    public const S3_ENDPOINT = 's3.endpoint';
+    public const S3_REGION = 's3.region';
+    public const S3_BUCKET = 's3.bucket';
+    public const S3_ACCESS_KEY = 's3.access_key';
+    public const S3_SECRET_KEY = 's3.secret_key';
+
     /** Values that must never be returned to the frontend in plaintext. */
     public const SECRET_KEYS = [
         self::STEAM_API_KEY,
         self::GOOGLE_CLIENT_SECRET,
         self::MAILER_DSN,
         self::MAIL_PASSWORD,
+        self::S3_SECRET_KEY,
     ];
 
     #[ORM\Id]

@@ -12,3 +12,11 @@
 # Clone it back with:
 #   git clone --depth 1 https://github.com/fpsacha/zomboid-control-panel.git reference/zomboid-control-panel
 /reference/
+
+# Screenshots from verification runs. Evidence for a conversation, not
+# part of the project -- CONTEXT.md records what they showed.
+/*.png
+
+# Scratch task list. What is open belongs in CONTEXT.md, which is the
+# one place a new session reads.
+/TODO.md

@@ -32,7 +32,8 @@ final class InspectServerFilesCommand extends Command
             ->addArgument('server', InputArgument::REQUIRED, 'Server id or name')
             ->addArgument('path', InputArgument::OPTIONAL, 'Directory to list', '')
             ->addOption('filter', null, InputOption::VALUE_REQUIRED, 'Only names containing this', '')
-            ->addOption('exists', null, InputOption::VALUE_NONE, 'Only report whether the path is there');
+            ->addOption('exists', null, InputOption::VALUE_NONE, 'Only report whether the path is there')
+            ->addOption('download', null, InputOption::VALUE_REQUIRED, 'Fetch the file to this local path');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -59,6 +60,21 @@ final class InspectServerFilesCommand extends Command
         }
 
         $path = (string) $input->getArgument('path');
+        $target = (string) $input->getOption('download');
+
+        if ($target !== '') {
+            try {
+                $bytes = $this->files->download($config, $path, $target);
+            } catch (StorageException $exception) {
+                $io->error($exception->getMessage());
+
+                return Command::FAILURE;
+            }
+
+            $io->writeln(sprintf('<info>%s bytes</info> -> %s', number_format($bytes), $target));
+
+            return Command::SUCCESS;
+        }
 
         // A path to a file rather than a directory just says whether it
         // is there, which is what most of these questions really are.

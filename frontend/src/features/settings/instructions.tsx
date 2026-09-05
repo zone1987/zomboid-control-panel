@@ -93,3 +93,26 @@ export function MailerInstructions() {
     </div>
   )
 }
+
+export function HetznerInstructions() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-2">
+      <StepList
+        items={[
+          t('settings.s3Step1'),
+          t('settings.s3Step2'),
+          t('settings.s3Step3'),
+          t('settings.s3Step4'),
+        ]}
+      />
+
+      <p>
+        <DocLink href="https://console.hetzner.cloud/">console.hetzner.cloud</DocLink>
+      </p>
+
+      <p className="text-xs text-muted-foreground">{t('settings.s3Note')}</p>
+    </div>
+  )
+}

@@ -131,6 +131,64 @@ final class SettingsTest extends WebTestCase
         self::assertSame('settings.steamKeyMissing', $this->payload()['error']);
     }
 
+    public function testTestingAnUnconfiguredStoreIsRefused(): void
+    {
+        $this->signInAsAdmin();
+
+        $this->request('POST', '/api/settings/storage/test');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+        self::assertSame('settings.s3Incomplete', $this->payload()['error']);
+    }
+
+    /**
+     * A store missing one field is as unusable as one missing all five,
+     * and saying so beats a signature error from the provider.
+     */
+    public function testAPartiallyConfiguredStoreIsStillRefused(): void
+    {
+        $this->signInAsAdmin();
+
+        $this->request('PATCH', '/api/settings', [
+            AppSetting::S3_ENDPOINT => 'https://fsn1.your-objectstorage.com',
+            AppSetting::S3_REGION => 'fsn1',
+            AppSetting::S3_BUCKET => 'zomboid-tiles',
+            AppSetting::S3_ACCESS_KEY => 'AKIAEXAMPLE',
+        ]);
+
+        $this->request('POST', '/api/settings/storage/test');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
+    }
+
+    public function testTheStoreSecretIsEncryptedAndNeverReturned(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::S3_SECRET_KEY => 'bucket-secret-value']);
+
+        self::assertStringNotContainsString(
+            'bucket-secret-value',
+            (string) $this->client->getResponse()->getContent(),
+        );
+
+        $stored = $this->em->getConnection()->fetchOne(
+            'SELECT value FROM app_setting WHERE name = ?',
+            [AppSetting::S3_SECRET_KEY],
+        );
+
+        self::assertStringNotContainsString('bucket-secret-value', $stored);
+        self::assertStringStartsWith('v1:', $stored);
+    }
+
+    /** The bucket name is not a secret; hiding it would only confuse. */
+    public function testTheBucketNameIsReturned(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::S3_BUCKET => 'zomboid-tiles']);
+
+        self::assertSame('zomboid-tiles', $this->payload()['items'][AppSetting::S3_BUCKET]['value']);
+    }
+
     private function signInAsAdmin(): void
     {
         $this->createUser('admin@example.com', [User::ROLE_ADMIN]);

@@ -16,6 +16,15 @@ a DSN, an environment variable, a DNS record — has to be either avoided or
 explained in the interface. This has already shaped several decisions and
 should keep doing so.
 
+### Standing rules
+
+- Never read or print stored credentials, environment values or
+  passwords. Checking whether a value is set is fine.
+- Everything is live: the panel polls, there are no refresh buttons.
+- Verify against the live server where possible, and say plainly what
+  was verified and what was not.
+- Screenshots and scratch notes stay out of the repository.
+
 Work is split into sub-projects; see `docs/superpowers/briefs/`.
 Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 07 (event console) are not started.

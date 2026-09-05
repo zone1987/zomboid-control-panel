@@ -12,6 +12,7 @@
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6",
         "knpuniversity/oauth2-client-bundle": "^2.20",
+        "league/flysystem-async-aws-s3": "^3.0",
         "league/flysystem-ftp": "^3.35",
         "league/flysystem-sftp-v3": "^3.36",
         "league/oauth2-google": "^5.0",
@@ -93,6 +94,7 @@
         }
     },
     "require-dev": {
+        "league/flysystem-memory": "^3.31",
         "phpunit/phpunit": "^13.3",
         "symfony/browser-kit": "7.4.*",
         "symfony/css-selector": "7.4.*",

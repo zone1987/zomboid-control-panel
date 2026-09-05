@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
 import { IconPacksCard } from './icon-packs-card'
+import { ObjectStorageCard } from './object-storage-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -124,6 +125,7 @@ export function SettingsPage() {
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
+          <TabsTrigger value="storage">{t('settings.storageTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steam">
@@ -302,6 +304,10 @@ export function SettingsPage() {
 
         <TabsContent value="icons">
           <IconPacksCard />
+        </TabsContent>
+
+        <TabsContent value="storage">
+          <ObjectStorageCard items={data?.items} field={field} />
         </TabsContent>
       </Tabs>
 

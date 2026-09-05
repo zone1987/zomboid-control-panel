@@ -33,6 +33,11 @@ final class SettingsController extends AbstractController
         // Still accepted for anyone who would rather paste one, but the
         // interface asks for the individual fields.
         AppSetting::MAILER_DSN,
+        AppSetting::S3_ENDPOINT,
+        AppSetting::S3_REGION,
+        AppSetting::S3_BUCKET,
+        AppSetting::S3_ACCESS_KEY,
+        AppSetting::S3_SECRET_KEY,
     ];
 
     public function __construct(
@@ -151,6 +156,28 @@ final class SettingsController extends AbstractController
     public function deliverability(\App\Mail\DeliverabilityChecker $checker): JsonResponse
     {
         return new JsonResponse($checker->check($this->settings));
+    }
+
+    /**
+     * Writes, reads back and deletes an object, rather than only
+     * checking that the fields are filled in.
+     */
+    #[Route('/storage/test', name: 'api_settings_test_storage', methods: ['POST'])]
+    public function testStorage(\App\Storage\ObjectStorageProbe $probe): JsonResponse
+    {
+        $result = $probe->run();
+
+        if ($result['ok']) {
+            return new JsonResponse(['status' => 'ok', 'bucket' => $result['bucket'] ?? '']);
+        }
+
+        return new JsonResponse([
+            'status' => 'failed',
+            'error' => $result['error'] ?? 'settings.s3Rejected',
+            'detail' => $result['detail'] ?? null,
+        ], $result['error'] === 'settings.s3Incomplete'
+            ? Response::HTTP_CONFLICT
+            : Response::HTTP_BAD_GATEWAY);
     }
 
     #[Route('/steam/test', name: 'api_settings_test_steam', methods: ['POST'])]
