@@ -14,14 +14,14 @@ export type TileSpecifier = NonNullable<OpenSeadragon.Options['tileSources']>
 /**
  * The tile source for one floor.
  *
- * Two shapes, because the two projections come from different places.
+ * Built from what pzmap2dzi wrote beside the tiles.
  * An isometric render is a Deep Zoom pyramid with its own .dzi per
  * floor, which OpenSeadragon reads directly. The game's own map is a
  * flat pyramid of 256-pixel tiles named tile<col>x<row>, one floor
  * only, so it needs a source that knows that naming.
  */
 export function tileSourceFor(source: MapSource, floor: number): TileSpecifier {
-  if (source.projection === 'isometric') {
+  {
     const layer = source.layers.find((entry) => entry.level === floor) ?? source.layers[0]
 
     return `${source.root}/${layer.dzi}`

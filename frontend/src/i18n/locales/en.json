@@ -871,8 +871,13 @@
       "resume": "Resume",
       "batchTotal": "to send",
       "batchDone": "sent",
-      "batchPending": "pending"
-    }
+      "batchPending": "pending",
+      "nothingYet": "The map has not been rendered yet",
+      "nothingYetHint": "The isometric view is drawn from the server's own map data. Once a run starts, finished tiles appear here as they are made.",
+      "goToSettings": "Go to settings"
+    },
+    "noRender": "No map has been rendered yet",
+    "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."
   },
   "logs": {
     "title": "Server log",

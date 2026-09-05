@@ -8,7 +8,6 @@ import { MapPin } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -26,14 +25,13 @@ import {
 } from '@/components/ui/select'
 import { teleportPlayer } from '@/features/players/players'
 import type { WorldPoint } from './coordinates'
-import { GAME_MAP_SOURCE, isometricSourceFrom, type MapSource } from './map-config'
+import { isometricSourceFrom, PENDING_SOURCE, type MapSource } from './map-config'
 import { viewStateOnArrival } from './map-url-state'
 import { mapOverlay, mapStatus, type MapPlayer } from './map'
 import { ALL_LAYERS_ON, type LayerVisibility } from './layer-toggles'
 import { WorldMap } from './world-map'
 import { MapSearch } from './map-search'
 import { MapSidebar } from './map-sidebar'
-import { ProjectionToggle } from './projection-toggle'
 import { RenderOverlay } from './render-overlay'
 
 export function MapPage() {
@@ -47,10 +45,14 @@ export function MapPage() {
   // the view without the page holding viewer state of its own.
   const goTo = useRef<((point: WorldPoint, zoom?: number) => void) | null>(null)
 
+  // Asked again while a render is going: the descriptors appear early
+  // and the floors grow as layers are drawn, so the viewer can open on
+  // a partial render and fill in.
   const { data: status, isPending } = useQuery({
     queryKey: ['map-status'],
     queryFn: mapStatus,
-    staleTime: Number.POSITIVE_INFINITY,
+    refetchInterval: 15_000,
+    placeholderData: (previous) => previous,
   })
 
   const { data: overlay } = useQuery({
@@ -69,19 +71,13 @@ export function MapPage() {
   // its own position into the hash.
   const initial = useMemo(() => viewStateOnArrival(), [])
 
-  // An isometric render when the operator has one, the game's own map
-  // otherwise. Switching rebuilds the viewer, which is right: they are
-  // different images, not two views of one.
-  const isometric = useMemo(
+  const source: MapSource | null = useMemo(
     () =>
       status?.isometric.available === true
         ? isometricSourceFrom(status.isometric.levels, status.isometric.geometry)
         : null,
     [status],
   )
-
-  const [preferIsometric, setPreferIsometric] = useState(true)
-  const source: MapSource = preferIsometric && isometric !== null ? isometric : GAME_MAP_SOURCE
 
   const teleport = useMutation({
     mutationFn: () =>
@@ -113,28 +109,16 @@ export function MapPage() {
     return <Skeleton className="h-[36rem] w-full" />
   }
 
-  if (status?.available !== true) {
-    return (
-      <Alert>
-        <AlertTitle>{t('map.noTiles')}</AlertTitle>
-        <AlertDescription>
-          <p>{t('map.noTilesHint')}</p>
-          <code className="mt-1 block text-xs">
-            php bin/console app:map:import &lt;pfad&gt;/media/maps
-          </code>
-        </AlertDescription>
-      </Alert>
-    )
-  }
+
 
   return (
     // Fills whatever the layout leaves, rather than guessing the header
     // height and leaving a strip along the bottom.
     <div className="relative h-full min-h-[30rem] w-full">
-      <RenderOverlay />
+      <RenderOverlay hasRender={source !== null} />
 
       <WorldMap
-        source={source}
+        source={source ?? PENDING_SOURCE}
         players={players}
         safehouses={overlay?.safehouses ?? []}
         vehicles={overlay?.vehicles ?? []}
@@ -153,13 +137,6 @@ export function MapPage() {
         onGoTo={move}
         onNotFound={() => toast.error(t('map.notFound'))}
       />
-
-      {isometric !== null && (
-        <ProjectionToggle
-          isometric={preferIsometric}
-          onChange={setPreferIsometric}
-        />
-      )}
 
       <MapSidebar
         players={players}

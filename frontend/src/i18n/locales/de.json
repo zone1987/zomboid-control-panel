@@ -871,8 +871,13 @@
       "resume": "Fortsetzen",
       "batchTotal": "zu übertragen",
       "batchDone": "übertragen",
-      "batchPending": "ausstehend"
-    }
+      "batchPending": "ausstehend",
+      "nothingYet": "Die Karte wurde noch nicht gerendert",
+      "nothingYetHint": "Die isometrische Ansicht entsteht aus den Kartendaten des Servers. Sobald der Lauf startet, erscheinen die fertigen Kacheln hier nach und nach.",
+      "goToSettings": "Zu den Einstellungen"
+    },
+    "noRender": "Es gibt noch keine gerenderte Karte",
+    "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."
   },
   "logs": {
     "title": "Server-Log",

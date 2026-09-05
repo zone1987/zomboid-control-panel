@@ -11,11 +11,8 @@ use App\Repository\PlayerSnapshotRepository;
 use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
 use App\Server\Map\IsometricTiles;
-use App\Server\Map\MapImportFailed;
-use App\Server\Map\MapImporter;
 use App\Server\Map\TileGeometry;
 use App\Server\Map\TileRenderer;
-use App\Server\Map\MapTileStore;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,13 +28,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class MapController extends AbstractController
 {
     public function __construct(
-        private readonly MapTileStore $tiles,
         private readonly GameServerRepository $servers,
         private readonly BridgeStatusReader $bridge,
         private readonly PlayerSnapshotRepository $snapshots,
         private readonly ServerInfoReader $info,
         private readonly IsometricTiles $isometric,
-        private readonly MapImporter $importer,
         private readonly TileRenderer $renderer,
         private readonly \App\Server\Map\RenderProgress $progress,
         private readonly \Symfony\Component\Messenger\MessageBusInterface $bus,
@@ -48,9 +43,6 @@ final class MapController extends AbstractController
     public function status(): JsonResponse
     {
         return new JsonResponse([
-            ...$this->tiles->describe(),
-            // The isometric render, when the operator has made one. The
-            // game ships no such tiles, so this is usually absent.
             'isometric' => $this->isometric->describe(),
         ]);
     }
@@ -282,29 +274,6 @@ final class MapController extends AbstractController
         return new JsonResponse(['status' => 'started']);
     }
 
-    #[Route('/import/{serverId}', name: 'api_map_import', methods: ['POST'])]
-    #[IsGranted(Permission::ManageBridge->value)]
-    public function import(string $serverId): JsonResponse
-    {
-        $server = $this->servers->find($serverId);
-
-        if (!$server instanceof GameServer) {
-            return new JsonResponse(['status' => 'failed', 'error' => 'errors.notFound'], Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $result = $this->importer->importFrom($server);
-        } catch (MapImportFailed $exception) {
-            return new JsonResponse([
-                'status' => 'failed',
-                'error' => $exception->messageKey(),
-                'detail' => $exception->getMessage(),
-            ], Response::HTTP_BAD_GATEWAY);
-        }
-
-        return new JsonResponse(['status' => 'imported', ...$result]);
-    }
-
     /**
      * A file out of the isometric render: a .dzi, or one of its tiles.
      *
@@ -337,32 +306,6 @@ final class MapController extends AbstractController
         $response->setPublic();
         $response->setMaxAge(604800);
         $response->setAutoEtag();
-        $response->isNotModified($request);
-
-        return $response;
-    }
-
-    #[Route(
-        '/tiles/{level}/{column}/{row}.png',
-        name: 'api_map_tile',
-        methods: ['GET'],
-        requirements: ['level' => '\d{1,2}', 'column' => '\d{1,4}', 'row' => '\d{1,4}'],
-    )]
-    public function tile(int $level, int $column, int $row, Request $request): Response
-    {
-        $png = $this->tiles->tile($level, $column, $row);
-
-        if ($png === null) {
-            return new Response('', Response::HTTP_NOT_FOUND);
-        }
-
-        $response = new Response($png, Response::HTTP_OK, ['Content-Type' => 'image/png']);
-
-        // The world only changes when the game is updated, and then the
-        // operator imports it again under the same names.
-        $response->setEtag(md5($png));
-        $response->setPublic();
-        $response->setMaxAge(604800);
         $response->isNotModified($request);
 
         return $response;

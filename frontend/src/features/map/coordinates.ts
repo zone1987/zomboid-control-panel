@@ -8,25 +8,13 @@ export type ViewportPoint = { x: number; y: number }
 /**
  * Turns Zomboid world squares into pixels of the rendered map.
  *
- * Two projections, and they are not variations of each other.
- *
- * Top-down is a straight scale: the game's own map is one pixel per
- * square, so the numbers pass through untouched.
- *
- * Isometric rotates the grid 45 degrees and halves the vertical axis,
- * which is what makes walls and roofs visible. A floor is drawn higher
- * up the image than the one below it, so the floor is part of the
- * transform rather than a separate offset applied afterwards.
+ * The grid is rotated 45 degrees and the vertical axis halved, which
+ * is what makes walls and roofs visible. A floor is drawn higher up
+ * the image than the one below it, so it belongs in the transform
+ * rather than as an offset applied afterwards.
  */
 export function worldToImage(point: WorldPoint, floor: number, source: MapSource): ImagePoint {
   const { originX, originY, squareSize, scale, floorHeight } = source.geometry
-
-  if (source.projection === 'topDown') {
-    return {
-      x: (originX + point.x * squareSize) / scale,
-      y: (originY + point.y * squareSize) / scale,
-    }
-  }
 
   return {
     x: (originX + (point.x - point.y) * squareSize * 0.5) / scale,
@@ -37,13 +25,6 @@ export function worldToImage(point: WorldPoint, floor: number, source: MapSource
 /** The way back, for turning a click into a world coordinate. */
 export function imageToWorld(point: ImagePoint, floor: number, source: MapSource): WorldPoint {
   const { originX, originY, squareSize, scale, floorHeight } = source.geometry
-
-  if (source.projection === 'topDown') {
-    return {
-      x: (point.x * scale - originX) / squareSize,
-      y: (point.y * scale - originY) / squareSize,
-    }
-  }
 
   // Undo the rotation: the two isometric axes are sum and difference of
   // the world axes, so solving for x and y is a pair of linear terms.

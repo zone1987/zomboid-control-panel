@@ -8,38 +8,13 @@ import {
   worldToImage,
   worldToViewport,
 } from './coordinates'
-import { GAME_MAP_SOURCE, ISOMETRIC_DEFAULTS, type MapSource } from './map-config'
+import { ISOMETRIC_DEFAULTS, type MapSource } from './map-config'
 
 const ISOMETRIC: MapSource = {
-  projection: 'isometric',
   root: '/api/map/iso',
   geometry: ISOMETRIC_DEFAULTS,
   layers: [{ level: 0, dzi: 'base/layer0.dzi' }],
 }
-
-describe('top-down projection', () => {
-  /** The game's own map is one pixel per square, so nothing changes. */
-  it('passes world squares through as pixels', () => {
-    expect(worldToImage({ x: 10778, y: 9770 }, 0, GAME_MAP_SOURCE)).toEqual({
-      x: 10778,
-      y: 9770,
-    })
-  })
-
-  it('comes back to where it started', () => {
-    const world = { x: 6500, y: 5300 }
-    const image = worldToImage(world, 0, GAME_MAP_SOURCE)
-
-    expect(imageToWorld(image, 0, GAME_MAP_SOURCE)).toEqual(world)
-  })
-
-  /** A flat map draws every floor in the same place. */
-  it('ignores the floor', () => {
-    expect(worldToImage({ x: 100, y: 200 }, 0, GAME_MAP_SOURCE)).toEqual(
-      worldToImage({ x: 100, y: 200 }, 5, GAME_MAP_SOURCE),
-    )
-  })
-})
 
 describe('isometric projection', () => {
   /**
@@ -150,16 +125,17 @@ describe('viewport coordinates', () => {
    * and y ends at height/width rather than at 1.
    */
   it('scales both axes by the image width', () => {
-    const point = imageToViewport({ x: 9984, y: 8064 }, GAME_MAP_SOURCE.geometry)
+    const { width, height } = ISOMETRIC.geometry
+    const point = imageToViewport({ x: width / 2, y: height }, ISOMETRIC.geometry)
 
     expect(point.x).toBeCloseTo(0.5, 6)
-    expect(point.y).toBeCloseTo(8064 / 19968, 6)
+    expect(point.y).toBeCloseTo(height / width, 6)
   })
 
   it('takes a world point all the way to the viewport and back', () => {
     const world = { x: 11800, y: 6900 }
-    const viewport = worldToViewport(world, 0, GAME_MAP_SOURCE)
-    const back = viewportToWorld(viewport, 0, GAME_MAP_SOURCE)
+    const viewport = worldToViewport(world, 0, ISOMETRIC)
+    const back = viewportToWorld(viewport, 0, ISOMETRIC)
 
     expect(back.x).toBeCloseTo(world.x, 6)
     expect(back.y).toBeCloseTo(world.y, 6)
@@ -177,11 +153,11 @@ describe('viewport coordinates', () => {
 
 describe('bounds', () => {
   it('accepts a point inside the world', () => {
-    expect(isInsideWorld({ x: 10778, y: 9770 }, GAME_MAP_SOURCE)).toBe(true)
+    expect(isInsideWorld({ x: 10778, y: 9770 }, ISOMETRIC)).toBe(true)
   })
 
   it('rejects a point past the edge', () => {
-    expect(isInsideWorld({ x: -1, y: 100 }, GAME_MAP_SOURCE)).toBe(false)
-    expect(isInsideWorld({ x: 100, y: 99999 }, GAME_MAP_SOURCE)).toBe(false)
+    expect(isInsideWorld({ x: -1, y: 100 }, ISOMETRIC)).toBe(false)
+    expect(isInsideWorld({ x: 100, y: 99999 }, ISOMETRIC)).toBe(false)
   })
 })

@@ -4,6 +4,8 @@ import { Loader2, Pause, Play, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
+import { Link } from 'react-router'
+
 import { Button } from '@/components/ui/button'
 
 import {
@@ -35,7 +37,7 @@ function elapsed(from: number): string {
  * fragment -- so the progress belongs on top of it rather than on a
  * settings page nobody would sit and watch.
  */
-export function RenderOverlay() {
+export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
   const { t } = useTranslation()
   const [progress, setProgress] = useState<RenderProgress>({ state: 'idle' })
 
@@ -79,8 +81,25 @@ export function RenderOverlay() {
     }
   }, [])
 
+  // Nothing rendered and nothing running: the map behind this is black,
+  // so the box says what to do rather than leaving an empty page.
   if (progress.state !== 'running') {
-    return null
+    if (hasRender) {
+      return null
+    }
+
+    return (
+      <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]">
+        <div className="w-full max-w-md space-y-3 rounded-xl border bg-background p-6 shadow-2xl">
+          <h2 className="font-semibold">{t('map.render.nothingYet')}</h2>
+          <p className="text-sm text-muted-foreground">{t('map.render.nothingYetHint')}</p>
+
+          <Button asChild size="sm">
+            <Link to="/app/settings">{t('map.render.goToSettings')}</Link>
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const paused = progress.paused === true

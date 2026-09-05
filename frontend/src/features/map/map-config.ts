@@ -6,7 +6,6 @@
  * four copies of a constant drift apart.
  */
 
-export type MapProjection = 'isometric' | 'topDown'
 
 /**
  * One floor of the world, with the tiles that draw it.
@@ -30,7 +29,6 @@ export function tileExtensionFor(level: number): 'jpg' | 'webp' {
 }
 
 export type MapSource = {
-  projection: MapProjection
 
   /** Prefix every tile and .dzi path is resolved against. */
   root: string
@@ -62,36 +60,6 @@ export type MapGeometry = {
   height: number
   /** Squares per cell, for reading pzmap2dzi's own numbers back. */
   cellSize: number
-}
-
-/**
- * The map the game ships with itself: media/maps/<map>/pyramid.zip.
- *
- * This is Project Zomboid's own in-game map, drawn top-down. Level 0 is
- * 19968x16128, exactly the world in squares, so one pixel is one square
- * and one tile is one cell. It is orthogonal because the game draws it
- * that way -- no viewer can turn it into an isometric view.
- */
-export const GAME_MAP_SOURCE: MapSource = {
-  projection: 'topDown',
-  root: '/api/map/tiles',
-  geometry: {
-    originX: 0,
-    originY: 0,
-    squareSize: 1,
-    scale: 1,
-    floorHeight: 0,
-    width: 19968,
-    height: 16128,
-    cellSize: 256,
-  },
-  /**
-   * The floors the world has, even though this map draws one image for
-   * all of them: the game's own map is flat. Offering them keeps the
-   * control usable -- the floor travels into markers and the URL -- and
-   * an isometric render later swaps real tiles behind the same buttons.
-   */
-  layers: [7, 6, 5, 4, 3, 2, 1, 0, -1].map((level) => ({ level, dzi: '' })),
 }
 
 /**
@@ -178,9 +146,21 @@ export function isometricSourceFrom(
   }
 
   return {
-    projection: 'isometric',
     root: '/api/map/isometric',
     geometry,
     layers: levels.map((level) => ({ level, dzi: `layer${level}.dzi` })),
   }
+}
+
+/**
+ * What the viewer opens before a render exists.
+ *
+ * The controls, the floor picker and the coordinate readout all belong
+ * on screen while a render is running: tiles appear underneath them as
+ * they are drawn, rather than the page staying empty for hours.
+ */
+export const PENDING_SOURCE: MapSource = {
+  root: '/api/map/isometric',
+  geometry: ISOMETRIC_DEFAULTS,
+  layers: [{ level: 0, dzi: 'layer0.dzi' }],
 }

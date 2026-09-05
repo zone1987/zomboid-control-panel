@@ -3,6 +3,19 @@ import OpenSeadragon from 'openseadragon'
 
 import { viewportToWorld, worldToViewport, type WorldPoint } from './coordinates'
 import type { MapSource } from './map-config'
+
+// A tile that has not been drawn yet is the normal state during a
+// render, and OpenSeadragon logs an error for every one of them.
+const seadragonConsole = (OpenSeadragon as unknown as { console: Console }).console
+const originalError = seadragonConsole.error.bind(seadragonConsole)
+
+seadragonConsole.error = (...args: unknown[]) => {
+  if (typeof args[0] === 'string' && args[0].startsWith('Tile %s failed to load')) {
+    return
+  }
+
+  originalError(...args)
+}
 import { fitZoom, tileSourceFor } from './tile-source'
 import type { MapViewState } from './map-url-state'
 
@@ -133,6 +146,11 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
     instance.addHandler('animation-finish', report)
     instance.addHandler('zoom', report)
 
+    // A tile that is not there yet is the normal state during a render,
+    // not a fault. Registering a handler keeps OpenSeadragon from
+    // logging every one of them to the console.
+    instance.addHandler('tile-load-failed', () => undefined)
+
     // Tracks the pointer so the readout can show where the mouse is.
     const tracker = new OpenSeadragon.MouseTracker({
       element: node,
@@ -196,15 +214,6 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
 
       const { source: current } = state.current
 
-      if (current.projection !== 'isometric') {
-        // A flat map draws one image for every floor, so there are no
-        // other tiles to fetch. The number still matters: it goes into
-        // the URL and decides where markers sit.
-        setFloorState(next)
-        reportFloor.current(next)
-
-        return
-      }
 
       const world = viewportToWorld(
         { x: instance.viewport.getCenter().x, y: instance.viewport.getCenter().y },

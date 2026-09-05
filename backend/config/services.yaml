@@ -82,11 +82,6 @@ services:
             # The Indie Stone's, extracted from the operator's own copy.
             $directory: '%kernel.project_dir%/var/icons'
 
-    App\Server\Map\MapTileStore:
-        arguments:
-            # The game's own map pyramid, copied in by the operator. Out
-            # of git for the same reason as the icons.
-            $directory: '%kernel.project_dir%/var/map'
 
     App\Server\Map\IsometricTiles:
         arguments:
