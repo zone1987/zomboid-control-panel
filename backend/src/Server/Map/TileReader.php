@@ -32,11 +32,6 @@ final readonly class TileReader
     ) {
     }
 
-    public function localPath(string $path): ?string
-    {
-        return $this->tiles->resolve($path);
-    }
-
     /**
      * The layer descriptors a render of this shape would have written.
      *
@@ -103,10 +98,6 @@ final readonly class TileReader
      */
     public function hasRender(): bool
     {
-        if ($this->tiles->isAvailable()) {
-            return true;
-        }
-
         $stream = $this->stream(IsometricTiles::INFO_FILE);
 
         if ($stream === null) {

@@ -33,89 +33,122 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ## Next concrete step
 
-**The isometric map, one bug from working.** Everything else on the
-task list is done and verified against the live server.
+**A full world render is running.** Started 2026-09-05 from the header
+button, on an empty bucket, with the geometry defect below fixed. What
+it needs is watching, not building: whether the geometry holds across
+hundreds of batches is the thing two earlier runs failed at, and it
+only shows after the renderer has run many times.
 
-### Where it stands
+Everything else on the map is built and verified. What remains open is
+listed under "Not yet built".
 
-The renderer works. `pzmap2dzi` produces exactly what was asked for --
-interiors with furniture, shelves, machinery, the "Welcome to West
-Point" sign. Confirmed by eye on 2026-09-05 and shown in the panel.
+### How the map works now
 
-The panel side is complete: it reads a render's own `map_info.json`,
-lists the floors from the files, serves tiles behind its own
-authentication, and offers a toggle between the two projections that
-appears only when a render exists.
+Nothing needs a game installation anywhere near the panel.
 
-### The one thing that does not work
-
-`GET /api/map/isometric/layer0_files/22/1332_459.jpg` answers **404 in
-0.0 seconds** when the tile is absent. It should notice, render the
-cells behind it and answer with the result.
-
-**The cause is confirmed**, checked 2026-09-05:
-
-    ddev exec "ls <renderer>/main.py"   -> No such file or directory
-    ddev exec "which python3"            -> /usr/bin/python3
-
-Python is in the container. The renderer and the game files are not:
-they live on the host, and PHP runs in ddev. `TileRenderer::isAvailable()`
-therefore returns false and the endpoint falls through to 404 without
-ever trying.
-
-**This is architectural, not a typo.** Think it through before
-patching: the panel container cannot render, because rendering needs a
-full game installation with the client texture packs. Options are a
-sidecar container with the game files mounted, a small render service
-on the host that the panel calls, or accepting that the deepest level
-is pre-rendered after all.
-
-### The numbers that decide the design
-
-Measured on a real render of one cell, not estimated:
-
-| Vorrat | Size (whole world) |
+| Piece | Where it comes from |
 |---|---|
-| everything, full resolution | 438 GB |
-| without level 22 | **102 GB** |
-| without levels 21 and 22 | **26 GB** |
-| up to level 18 only | **2.7 GB** |
+| Cell geometry | the game server, a cell at a time over FTP |
+| Artwork | texture packs, uploaded once through the interface |
+| Renderer | `pzmap2dzi`, in the image at `/opt/pzmap2dzi` |
+| Finished tiles | the object store, under `B42/base` |
 
-Level 22 alone is 336 GB -- three quarters. Each level quarters the one
-below. One cell renders in **about one second** on 14 cores. Dropping
-level 22 from the test render took it from 110 MB to 28 MB.
+A run draws one floor over the whole world before starting the next,
+in the order 0, 1, -1, 2, 3. Each batch of six cells is rendered,
+uploaded, verified against the store, and only then deleted locally --
+330 GB never accumulates on the panel's disk.
 
-The ceiling is a Coolify server: 26 GB was called too much, which is
-why on-demand rendering matters.
+Tiles are served **only** from the store. An empty bucket means an
+empty map; there is no local fallback.
 
-### How to render, for whoever picks this up
+### The defect that ruined two runs
 
-    cd <renderer>
-    <venv>/bin/python main.py unpack     # once: extracts the textures
-    <venv>/bin/python main.py render base
+pzmap2dzi sizes the DZI pyramid to the cells it is given, so every
+batch wrote a different `w`, `h`, `x0` and `y0`. Tiles from batch 1 and
+batch 500 belonged to different coordinate systems, and zooming showed
+forest where none stood.
 
-`unpack` is the step that is easy to miss -- without it every tile
-comes out `.empty` and the log says "Missing texture". The venv needs
-lupa, pyclipper, kaitaistruct, pillow, pyyaml, requests, flask,
-waitress, ruamel.yaml **and setuptools**, the last because Python 3.12
-removed distutils and `main.py` imports it.
+`dzi_cell_range` pins the image to the whole world regardless of what a
+batch draws. `TileRenderer::writeConfiguration()` writes it, along with
+removing the `dzi_cell_range[default]` line, which otherwise wins.
 
-Settings that matter, in `conf/conf.yaml`: `pz_root`, `output_root`,
-`render_cell_range` (a list of `[x, y]` or `[x, y, w, h]`),
-`layer_range`, `omit_levels`.
+Verified 2026-09-05: `w=2314688` in the render's own `map_info.json`,
+not a cropped extent.
+
+**Two traps around this.** The renderer refuses to write into a
+directory whose existing `map_info.json` disagrees -- correct
+behaviour, but it means a geometry change needs the output directory
+genuinely empty, not merely cleared of tiles. And with leftovers
+present it reports "Affected tiles: 0" and draws nothing at all.
+
+**Careful with `rm -rf var/map/iso`:** the 502 MB of unpacked textures
+live in the same tree, under `var/map/iso/texture`. Deleting the render
+takes them with it, and every tile then comes out `.empty`. Restore
+with `app:map:render <server> --unpack`.
+
+### Measurements that decided the design
+
+All against the user's Hetzner bucket, not estimated.
+
+| Approach | Tiles/s | MB/s | Whole world |
+|---|---|---|---|
+| **Individual objects, 32 in flight** | **19** | **3.7** | **~28 h** |
+| Archives of 200 tiles | 9.7 | 0.32 | ~55 h |
+
+Bundling was built, measured, and removed. The reasoning was that the
+store answers about nineteen requests a second whatever the
+concurrency, so fewer larger requests should win. It does not: one 6 MB
+archive takes 18.6 seconds, while 32 small transfers in parallel use
+the line far better. The machinery worked -- packing, byte-range reads,
+an index -- and a tile came back byte-identical through it. See commit
+`4deddd4` if another provider behaves differently.
+
+The store serves byte ranges (verified: 1000 bytes from offset 1000
+came back exactly), which is what made the archive idea worth testing.
+
+### Storage, from a real render
+
+| Depth | Whole world |
+|---|---|
+| Full resolution | ~330 GB |
+| Without the deepest level | ~72 GB |
+| Two levels short | ~16 GB |
+
+The deepest level is around three quarters of the total; each level
+quarters the one below. Full resolution was chosen deliberately.
+
+### The store refuses intermittently
+
+A freshly created Hetzner key pair answered `AccessDenied` to roughly
+4 requests in 10 for its first hour, then stopped. Not the key, the
+clock, the request rate or the object name -- all ruled out by
+measurement. Every write is retried twelve times with rising pauses,
+which is what carries a run through it.
+
+`app:storage:test --diagnose` reports how a store refuses, if it
+returns.
 
 ### Ruled out, with reasons
 
-**projectzomboidmap.com's tiles.** Investigated in full on 2026-09-05.
-Reachable, and the site uses the same tool this panel does -- but CORS
-is allowlisted to their own domain, there is no imprint or contact to
-ask, the operator has no rights from The Indie Stone to grant, and the
-tile path carries a version stamp that would break a shipped panel for
-everyone at once. See brief 08.
+**projectzomboidmap.com's tiles.** Asked twice, refused twice. CORS is
+allowlisted to their own domain, there is no imprint or contact, the
+operator holds no rights from The Indie Stone to grant, and the tile
+path carries a version stamp that would break every shipped panel at
+once. Their own site documents three moves already.
+
+Worth saying plainly: their map is build 42.20.2 as shipped. This one
+is *this server* -- what players built and demolished, redrawn on
+demand.
 
 **The other panel's approach.** `fpsacha/zomboid-control-panel` proxies
 `tiles.pzmap.org` and caches to disk, with no word anywhere about
-licensing. Its disk-cache idea is worth borrowing; its source is not.
+licensing, and reaches it with curl because Node is blocked by the bot
+challenge. Its disk-cache idea is worth borrowing; its source is not.
+
+**The game's own top-down map.** Removed in `9a9f23b`. One pixel per
+world square is a blur at any useful zoom -- nothing on it can be made
+out. It was only ever the thing that worked while the isometric render
+did not.
 
 ---
 
@@ -155,46 +188,65 @@ licensing. Its disk-cache idea is worth borrowing; its source is not.
 | Zombie removal | **`removezombies` with -x/-y/-radius answered "Zombies removed."** |
 | Texture pack upload | **a real pack uploaded through the browser, icons extracted** |
 | Roles and permissions | 17 permissions in five groups, three built-in roles |
-| World map | **the game's own tiles; searching 11800,6900 lands on 11800,6900** |
+| Map coordinates | **searching 11800,6900 lands on 11800,6900** |
 | Two-way bridge | **a command answered in 1.5s; setting the hour put it in the world** |
 | Vehicles and factions | bridge 0.10.0 writes them; empty until players load chunks |
 | Live world reading | `readSurroundings` built, not yet exercised with a player online |
-| Map from the server | **51 MB pulled over FTP; the server was 36 builds newer than the local game** |
+| Cell data from the server | **world_X_Y.lotpack byte-identical to a local copy; ~1 MB, ~0.7 s each** |
 | OpenSeadragon map | **deep links, floor control, layer toggles, right-click teleport** |
-| Isometric render | **produces interiors; one cell in ~1s; not yet wired for on demand** |
+| Isometric render | **one cell, 559 tiles, 3 s; interiors, furniture, trees** |
+| Texture pack upload for the map | **414 MB in 8 MB pieces, SHA-256 identical to the originals** |
+| Object storage | **write, read back, delete against the user's Hetzner bucket** |
+| Tiles served from the store | **verified with nothing local: 12331 objects, four floors, the region drew** |
+| World geometry | **w=2314688 pinned, not a moving crop** |
 | Production image | **builds, starts healthy, serves the whole panel** |
 
 380 backend tests, 78 frontend tests. Both suites green.
 
 ### Not yet built
 
-- **On-demand tile rendering from inside the container** — see "Next
-  concrete step". The renderer works; reaching it from PHP does not.
+- **A finished world render.** One is running; nothing has completed
+  end to end yet. Until it does, the map shows only what has been drawn.
 - **Death locations as a map layer** — the fourth layer a design draft
   asked for. The log has the data; nothing reads it yet.
-- **Automatic map import on server restart** — the bridge already
-  stamps a session id, so a restart is detectable; the import endpoint
-  exists but nothing triggers it.
+- **Automatic re-render after a server update** — the bridge stamps a
+  session id, so a restart is detectable, but nothing acts on it. A
+  second run is cheap: unchanged cells are skipped before they are
+  drawn, and unchanged tiles are never re-sent.
 - **Zombies as a map layer** — deliberately absent: `getZombieList()`
   is in the API index but the game never calls it from Lua anywhere, so
   a layer built on it might silently stay empty. Test it against a live
   server before building it.
+- **`stopRain` bridge handler is incomplete** — it ends the weather
+  period but does not clear the admin-forced rain override, so rain
+  resumes.
 
 ### Known open risks
 
-1. **The bridge is one-way.** It writes; nothing reads a command from the
-   panel. What is left of brief 07 waits on this — see "The reference
-   panel's two-way bridge" for how the other panel solves it.
-2. **A custom role does not restrict anything yet.** Permissions exist and
+1. **A custom role does not restrict anything yet.** Permissions exist and
    are editable, but every controller still guards with a legacy role
    name. The voter honours both, so nothing is broken; the restriction
    simply has no effect until the checks move over.
-3. **Map tiles are the operator's own artefact.** `app:map:import` needs a
-   path to `media/maps` from a game or server installation. The map says
-   so and names the command when the tiles are missing.
+2. **The map needs texture packs before it can be drawn.** Five files,
+   414 MB, from a game installation — a dedicated server does not have
+   them and Steam does not ship them for app 380870. Checked against
+   the user's own server: `media/texturepacks` absent, not one `.pack`
+   among its 85 entries. The interface says so and explains where to
+   find them on Windows, Linux and macOS.
+3. **A killed worker blocks its own message.** Cancelling kills the
+   worker outright, which leaves the row marked as delivered. The stop
+   endpoint deletes it, and `redeliver_timeout: 120` covers a worker
+   that dies some other way — but a message stuck this way is silent:
+   the interface sits at "queued" and nothing says why. It happened
+   three times before the endpoint was made to clean up.
 4. **Mail lands in spam** without DKIM. Not a defect — see the DNS section
    — but new operators will hit it. The deliverability check now names the
    exact record.
+5. **Two workers can run at once.** `ddev restart` starts one and a
+   manual start adds another; both then write the progress file, and
+   the older one's stale counters overwrite the newer one's. Check with
+   `ps -eo pid,etime,cmd | grep messenger:consume` before trusting what
+   the interface reports.
 
 ---
 
@@ -740,3 +792,114 @@ concrete step".
 tile. Its tests caught a factor of two in that inversion, which would
 have rendered every missing tile from the wrong part of the world.
 Commits `8445bab` through `d444519`.
+
+### 2026-09-05 — The map, rebuilt to render itself
+
+The panel now draws the world from the game server's own data, with no
+game installation anywhere near it. The pieces, and what each cost.
+
+**Cell data comes from the server.** `media/maps/<map>/world_X_Y.lotpack`
+plus its header, about 1 MB and 0.7 s a cell, verified byte-identical
+to a local copy by SHA-256. This was the finding that made everything
+else possible, and it arrived late: a dedicated server was assumed to
+have no map data at all. It has all of it except the artwork.
+`CellFetcher` fetches; `app:server:find` was written to search the
+server for it, and `app:server:ls --download` to pull a file down.
+
+**Texture packs are uploaded once.** Five files, 414 MB, listed in
+pzmap2dzi's own `conf/vanilla.txt`. They arrive in 8 MB pieces because
+the production image accepts a 16 MB request and raising that would
+apply to every endpoint; measured at 6.4 s a piece on a 10 Mbit line
+against a 60-second limit. `TexturePackStore`, `ChunkedUpload`,
+`TexturePackController`. Both upload cards take a drop as well as a
+click.
+
+Two things the real files taught. A pack is recognised by either
+shape — `JumboTrees2x.pack` is the older format and carries no `PZPK`
+marker, so demanding it refused a file the renderer reads perfectly
+well. And a short pack is refused rather than stored: it parses far
+enough to look valid and then renders holes.
+
+**The renderer rides in the image.** `renderer/` in the repository,
+`/opt/pzmap2dzi` in the container, its own virtualenv. `requests` is in
+the requirements because `render_impl/save.py` imports it at module
+load, though nothing here calls it.
+
+**Object storage is configured through the interface**, like every
+other credential — the operators are not developers and have no `.env`.
+Five settings, the secret encrypted. The connection test writes, reads
+back and deletes: a key that may list but not write passes a read-only
+check and fails hours later. The endpoint is accepted with or without a
+scheme, because Hetzner's console prints a bare host and AsyncAws
+rejects it with "the endpoint is invalid", which names neither cause
+nor fix.
+
+**A run is a Messenger job** that draws one floor over the whole world
+before the next, in the order 0, 1, -1, 2, 3. Before that it went cell
+by cell drawing every floor, and after hours the map existed only in
+the first few columns — a diagonal stripe.
+
+Each batch is rendered, uploaded, verified against the store, and only
+then deleted locally. Uploads compare content, not existence: S3
+returns the body's md5 as the etag, so an unchanged world sends
+nothing and a changed one sends only what changed. Tiles the new render
+no longer produces are swept at the end rather than cleared at the
+start, so the map is never missing tiles it still needs. A cell whose
+lotpack checksum matches the ledger is skipped before it is drawn.
+
+**Progress lives over the map**, not in the settings: it is the thing
+being built. It streams (SSE, with polling alongside because Vite's dev
+proxy buffers a stream until it ends), reports the tile name going
+past, and carries pause and cancel.
+
+#### What went wrong, and what it cost
+
+**The geometry moved.** pzmap2dzi sizes the pyramid to the cells it is
+given, so every batch wrote a different origin. Two full runs were
+thrown away because of it — the second only after the user reported
+seeing forest where none stood. `dzi_cell_range` pins the image to the
+whole world; see "Next concrete step" for the two traps around it.
+
+**Verify listed the whole bucket every batch**, and the listing grew
+with the run. Seven hours in, a render was 12 percent done and heading
+for 60 hours. Reusing the listing the upload already builds took that
+step from 35 seconds to 0.03.
+
+**Bytes were counted twice.** A batch that ended with failures kept all
+its tiles, including the ones that had arrived, and the next pass
+counted them again: 11.9 GB reported against 1.63 GB held. The figure
+now reports what the prefix occupies, which is what an operator is
+billed for.
+
+**Cancel did nothing for minutes.** Two faults at once: the route
+`/render/{serverId}` shadowed `/render/stop`, and the stop flag lived
+in the file the handler rewrites every few seconds. Both fixed; the
+flag now has its own file and the endpoint kills the worker outright.
+Pause had the same shape — checked once per batch, which is hundreds of
+uploads.
+
+**Bundling was built and removed.** Sending tiles in archives should
+have cut a day of round trips to minutes. Measured, it does the
+opposite: 9.7 tiles/s against 19, because 32 small transfers in
+parallel use the line better than one 6 MB serial stream. Commit
+`4deddd4` keeps the reasoning and the numbers.
+
+**ddev ran no worker at all**, and the production image capped one at
+an hour with 128 MB — a render is a single message that runs for hours.
+Now a `web_extra_daemon` locally, 24 hours and 1 GB in both.
+
+#### Also this session
+
+- The game's own top-down map was removed (`9a9f23b`). One pixel per
+  world square is a blur at any useful zoom.
+- Icons: the panel's 4351 came from `PZ_GAME_PATH` on the developer's
+  machine, not from the server and not from an upload. The reference
+  panel has no item icons at all — its spawn browser uses Lucide
+  category symbols. Verified by reading its `SpawnBrowser.tsx` and its
+  bridge's `getItemCatalog`, which returns ids and names only.
+- Vehicle artwork does not exist to fetch: vehicles are `.fbx` models,
+  and `media/ui/vehicles/` holds seven control icons.
+- Screenshots and `TODO.md` were removed from git and ignored.
+
+Commits `ecb20b2` through `4deddd4`.
+
