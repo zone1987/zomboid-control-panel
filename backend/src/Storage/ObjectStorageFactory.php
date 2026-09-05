@@ -10,6 +10,7 @@ use AsyncAws\S3\S3Client;
 use League\Flysystem\AsyncAwsS3\AsyncAwsS3Adapter;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemOperator;
+use Symfony\Component\HttpClient\CurlHttpClient;
 
 /**
  * The object store an operator configures in the interface.
@@ -21,6 +22,26 @@ use League\Flysystem\FilesystemOperator;
  */
 final class ObjectStorageFactory implements ObjectStorageInterface
 {
+    /**
+     * Transfers allowed to the store at once.
+     *
+     * AsyncAws builds its own client when handed none, and Symfony's
+     * default caps a host at six. Raising it turned out not to be the
+     * constraint: measured against Hetzner, 4, 8 and 16 connections all
+     * hold ~15 objects a second, and 32 or more drop to ~9 as the
+     * transfers compete. The line saturates at about 3.5 MB/s well
+     * before the connection count matters.
+     *
+     * Sixteen leaves room for a faster line without the falling-off
+     * seen above it.
+     */
+    private const CONNECTIONS = 16;
+
+    private ?S3Client $client = null;
+
+    /** @var array<string, string|null> */
+    private array $settingsWhenBuilt = [];
+
     public function __construct(private readonly SettingsProvider $settings)
     {
     }
@@ -92,7 +113,7 @@ final class ObjectStorageFactory implements ObjectStorageInterface
             throw new ObjectStorageNotConfigured();
         }
 
-        return new S3Client([
+        $configuration = [
             'endpoint' => self::normaliseEndpoint((string) $this->settings->get(AppSetting::S3_ENDPOINT)),
             'region' => (string) $this->settings->get(AppSetting::S3_REGION),
             'accessKeyId' => (string) $this->settings->get(AppSetting::S3_ACCESS_KEY),
@@ -100,6 +121,21 @@ final class ObjectStorageFactory implements ObjectStorageInterface
             // Hetzner, Backblaze and MinIO address a bucket as a path
             // segment; only AWS puts it in the hostname.
             'pathStyleEndpoint' => true,
-        ]);
+        ];
+
+        // Kept between calls so the connection pool survives: a render
+        // asks for a client every batch, and a fresh one pays for a new
+        // set of TLS handshakes each time.
+        if ($this->client !== null && $this->settingsWhenBuilt === $configuration) {
+            return $this->client;
+        }
+
+        $this->settingsWhenBuilt = $configuration;
+
+        return $this->client = new S3Client(
+            $configuration,
+            null,
+            new CurlHttpClient([], self::CONNECTIONS),
+        );
     }
 }

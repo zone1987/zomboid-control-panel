@@ -39,8 +39,15 @@ final readonly class TileUploader
     /** Waiting longer than this helps nothing and hides a real fault. */
     private const MAX_BACKOFF_MICROSECONDS = 30_000_000;
 
-    /** Requests started before waiting for any of them. */
-    private const IN_FLIGHT = 32;
+    /**
+     * Requests started before waiting for any of them.
+     *
+     * Measured against Hetzner: 4, 8 and 16 in flight all reach ~15
+     * objects a second, 32 and 64 fall to ~9 as the transfers compete
+     * for the same 3.5 MB/s. More parallelism past this point costs
+     * throughput rather than buying it.
+     */
+    private const IN_FLIGHT = 16;
 
     /** What S3 accepts in one DeleteObjects call. */
     private const DELETE_BATCH = 1000;
