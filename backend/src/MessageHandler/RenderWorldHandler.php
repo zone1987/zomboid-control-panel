@@ -39,13 +39,18 @@ final readonly class RenderWorldHandler
     private const OCCUPIED_SHARE = 0.814;
 
     /**
-     * Floors in the order they are drawn.
+     * Floors in the order they are drawn, when nothing is known yet.
      *
      * Ground first, over the whole world, because that is the floor
      * somebody looking at the map sees -- waiting hours for a map that
      * exists only in one corner is the wrong way round. Then outwards
      * from it: the first storey and the basement are where most
-     * interiors are, and the far ends of the range are nearly empty.
+     * interiors are.
+     *
+     * A run does not stop here. Louisville has towers reaching floor 29
+     * and there is a bunker at -17, and a fixed list would survey them
+     * and then never draw them. The floors actually drawn come from
+     * floorsIn(), which reads what the survey found.
      */
     private const FLOOR_ORDER = [0, 1, -1, 2, 3];
 
@@ -135,6 +140,9 @@ final readonly class RenderWorldHandler
         }
 
         $counts['cellsTotal'] = $this->passesWorth($occupancy) * self::BATCH;
+        // The world says how many floors it has; a tower reaching 29
+        // makes this larger than the five a run starts out assuming.
+        $counts['floorsTotal'] = \count($this->floorsIn($occupancy));
         $this->progress->write($counts);
 
         foreach ($this->passes($occupancy) as [$floor, $batch, $lastForTheseCells]) {
@@ -479,7 +487,7 @@ final readonly class RenderWorldHandler
             $counts['cellsSurveyed'] = \count($known);
             $counts['cellsWithContent'] = \count($known);
             $counts['passesSkippedEmpty'] =
-                \count($known) * \count(self::FLOOR_ORDER) - $this->floorPasses($known);
+                \count($known) * \count($this->floorsIn($known)) - $this->floorPasses($known);
             $this->progress->write($counts);
 
             return $known;
@@ -528,7 +536,7 @@ final readonly class RenderWorldHandler
         }
 
         $counts['passesSkippedEmpty'] =
-            \count($occupancy) * \count(self::FLOOR_ORDER) - $this->floorPasses($occupancy);
+            \count($occupancy) * \count($this->floorsIn($occupancy)) - $this->floorPasses($occupancy);
 
         $this->occupancyMap->record($occupancy);
         $this->progress->write($counts);
@@ -547,6 +555,7 @@ final readonly class RenderWorldHandler
         // most of the world: floor 0 finishes early, which is what
         // somebody watching the map wants, and those cells are then
         // done with -- fetched once, drawn once, deleted.
+        $order = $this->floorsIn($occupancy);
         $single = [];
         $several = [];
 
@@ -570,7 +579,7 @@ final readonly class RenderWorldHandler
         foreach (array_chunk($several, self::BATCH, preserve_keys: true) as $chunk) {
             $floors = [];
 
-            foreach (self::FLOOR_ORDER as $floor) {
+            foreach ($order as $floor) {
                 $batch = [];
 
                 foreach ($chunk as $name => $cell) {
@@ -593,6 +602,37 @@ final readonly class RenderWorldHandler
     }
 
     /**
+     * Every floor the world actually has, nearest the ground first.
+     *
+     * B42 allows -32 to 32. Which of those exist is a property of the
+     * map, not something to hard-code: a tower block reaching floor 29
+     * has to be drawn, and a range that stops at 3 would quietly lose
+     * it.
+     *
+     * @param array<string, CellOccupancy> $occupancy
+     *
+     * @return list<int>
+     */
+    private function floorsIn(array $occupancy): array
+    {
+        $floors = [];
+
+        foreach ($occupancy as $cell) {
+            foreach ($cell->floors() as $floor) {
+                $floors[$floor] = true;
+            }
+        }
+
+        $found = array_keys($floors);
+
+        // Ground first, then outwards: |floor| ascending, and a storey
+        // before the basement at the same distance.
+        usort($found, static fn (int $a, int $b): int => abs($a) <=> abs($b) ?: $b <=> $a);
+
+        return $found;
+    }
+
+    /**
      * How many cell-floor pairs actually hold something.
      *
      * @param array<string, CellOccupancy> $occupancy
@@ -602,11 +642,7 @@ final readonly class RenderWorldHandler
         $pairs = 0;
 
         foreach ($occupancy as $cell) {
-            foreach (self::FLOOR_ORDER as $floor) {
-                if ($cell->hasContent($floor)) {
-                    ++$pairs;
-                }
-            }
+            $pairs += \count($cell->floors());
         }
 
         return $pairs;

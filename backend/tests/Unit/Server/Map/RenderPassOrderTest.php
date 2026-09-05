@@ -76,6 +76,33 @@ final class RenderPassOrderTest extends TestCase
      *
      * @return list<array{int, list<array{int, int}>, bool}>
      */
+    /**
+     * Louisville has towers reaching floor 29 and there is a bunker at
+     * -17. A fixed range of [0, 1, -1, 2, 3] surveys them and then
+     * never draws them.
+     */
+    public function testDrawsATowerAndABunkerBeyondTheUsualRange(): void
+    {
+        $passes = $this->passes(['9,9' => [0, 1, 2, 17, 29], '8,8' => [0, -17]]);
+
+        $floors = array_unique(array_column($passes, 0));
+
+        self::assertContains(29, $floors, 'A tower block reaching 29 has to be drawn.');
+        self::assertContains(-17, $floors, 'So does a bunker at -17.');
+        self::assertContains(17, $floors);
+    }
+
+    /**
+     * Nearest the ground first, however far the range reaches: the
+     * bunker at -17 is closer to the ground than the 29th storey.
+     */
+    public function testOrdersFloorsOutwardsFromTheGround(): void
+    {
+        $passes = $this->passes(['9,9' => [0, 29, -17, 1, -1]]);
+
+        self::assertSame([0, 1, -1, -17, 29], array_column($passes, 0));
+    }
+
     private function passes(array $cells): array
     {
         $occupancy = [];
