@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Entity\GameServer;
 use App\Message\RenderWorld;
 use App\Repository\GameServerRepository;
 use App\Server\Map\CellFetcher;
+use App\Server\Map\CellOccupancy;
 use App\Server\Map\RenderProgress;
 use App\Server\Map\TileReader;
 use App\Server\Map\TileRenderer;
@@ -58,6 +60,8 @@ final readonly class RenderWorldHandler
         private TileUploader $uploader,
         private RenderProgress $progress,
         private \App\Server\Map\CellLedger $ledger,
+        private \App\Server\Map\CellSurvey $survey,
+        private \App\Server\Map\OccupancyMap $occupancyMap,
         private LoggerInterface $logger,
     ) {
     }
@@ -93,6 +97,9 @@ final readonly class RenderWorldHandler
             'cellsRendered' => 0,
             'cellsEmpty' => 0,
             'cellsSkipped' => 0,
+            'cellsSurveyed' => 0,
+            'cellsWithContent' => 0,
+            'passesSkippedEmpty' => 0,
             'tilesUploaded' => 0,
             'tilesSkipped' => 0,
             'tilesEstimated' => 0,
@@ -113,7 +120,19 @@ final readonly class RenderWorldHandler
         $this->progress->resume();
         $this->progress->write($counts);
 
-        foreach ($this->passes() as [$floor, $batch]) {
+        // Nothing is drawn until it is known what holds anything. Four
+        // passes in five would otherwise produce blank tiles across the
+        // whole world, upload them, and be paid for monthly.
+        $occupancy = $this->surveyWorld($server, $counts);
+
+        if ($occupancy === null) {
+            return;
+        }
+
+        $counts['cellsTotal'] = $this->passesWorth($occupancy) * self::BATCH;
+        $this->progress->write($counts);
+
+        foreach ($this->passes($occupancy) as [$floor, $batch]) {
             // Checked between batches, where the last upload has been
             // verified and nothing is half-written.
             if ($this->progress->stopRequested()) {
@@ -419,13 +438,142 @@ final readonly class RenderWorldHandler
      *
      * @return \Generator<array{int, list<array{int, int}>}>
      */
-    private function passes(): \Generator
+    /**
+     * Walks the world once, recording what each cell holds.
+     *
+     * Cells are fetched in batches and surveyed together: a renderer
+     * invocation costs 1.5-4 s to start, so one per cell would cost
+     * more than the pass saves. The lotpacks stay on disk afterwards,
+     * so the render pass does not fetch them a second time.
+     *
+     * @param array<string, mixed> $counts
+     *
+     * @return array<string, CellOccupancy>|null null when the run was stopped
+     */
+    private function surveyWorld(GameServer $server, array &$counts): ?array
+    {
+        $counts['phase'] = 'surveying';
+        $this->progress->write($counts);
+
+        // A survey is a quarter of an hour of FTP; its answer is 2.5 MB
+        // and survives the run, so a second run starts drawing at once.
+        $known = $this->occupancyMap->all();
+
+        if ($known !== []) {
+            $counts['cellsSurveyed'] = \count($known);
+            $counts['cellsWithContent'] = \count($known);
+            $counts['passesSkippedEmpty'] =
+                \count($known) * \count(self::FLOOR_ORDER) - $this->floorPasses($known);
+            $this->progress->write($counts);
+
+            return $known;
+        }
+
+        $occupancy = [];
+
+        foreach ($this->batches() as $batch) {
+            if ($this->progress->stopRequested()) {
+                $this->progress->clearStop();
+                $counts['state'] = RenderProgress::STOPPED;
+                $counts['finishedAt'] = time();
+                $this->progress->write($counts);
+
+                return null;
+            }
+
+            $here = [];
+
+            foreach ($batch as $cell) {
+                if ($this->cells->fetch($server, $cell[0], $cell[1])) {
+                    $here[] = $cell;
+                } else {
+                    ++$counts['cellsEmpty'];
+                }
+            }
+
+            $counts['cellsSurveyed'] += \count($batch);
+            $counts['currentCell'] = $batch[0][0].','.$batch[0][1];
+
+            if ($here !== []) {
+                foreach ($this->survey->occupancy($this->cells->directory(), $here) as $name => $cell) {
+                    if ($cell->floors() !== []) {
+                        $occupancy[$name] = $cell;
+                        ++$counts['cellsWithContent'];
+                    }
+                }
+            }
+
+            // 4,065 cells is 7.9 GB; they are fetched again for the
+            // render pass, whereas the occupancy map is 2.5 MB and
+            // outlives the run.
+            $this->clear($this->cells->directory(), keepExtension: null);
+
+            $this->progress->write($counts);
+        }
+
+        $counts['passesSkippedEmpty'] =
+            \count($occupancy) * \count(self::FLOOR_ORDER) - $this->floorPasses($occupancy);
+
+        $this->occupancyMap->record($occupancy);
+        $this->progress->write($counts);
+
+        return $occupancy;
+    }
+
+    /**
+     * Batches of cells that share a floor worth drawing.
+     *
+     * @param array<string, CellOccupancy> $occupancy
+     */
+    private function passes(array $occupancy): \Generator
     {
         foreach (self::FLOOR_ORDER as $floor) {
-            foreach ($this->batches() as $batch) {
+            $batch = [];
+
+            foreach ($occupancy as $name => $cell) {
+                if (!$cell->hasContent($floor)) {
+                    continue;
+                }
+
+                [$x, $y] = array_map(intval(...), explode(',', $name));
+                $batch[] = [$x, $y];
+
+                if (\count($batch) === self::BATCH) {
+                    yield [$floor, $batch];
+                    $batch = [];
+                }
+            }
+
+            if ($batch !== []) {
                 yield [$floor, $batch];
             }
         }
+    }
+
+    /**
+     * How many cell-floor pairs actually hold something.
+     *
+     * @param array<string, CellOccupancy> $occupancy
+     */
+    private function floorPasses(array $occupancy): int
+    {
+        $pairs = 0;
+
+        foreach ($occupancy as $cell) {
+            foreach (self::FLOOR_ORDER as $floor) {
+                if ($cell->hasContent($floor)) {
+                    ++$pairs;
+                }
+            }
+        }
+
+        return $pairs;
+    }
+
+    /** @param array<string, CellOccupancy> $occupancy */
+    private function passesWorth(array $occupancy): int
+    {
+        return (int) ceil($this->floorPasses($occupancy) / self::BATCH);
     }
 
     /** @return \Generator<list<array{int, int}>> */

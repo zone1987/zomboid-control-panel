@@ -103,20 +103,52 @@ final readonly class CellOccupancy
         return ($byte & (1 << ($index & 7))) !== 0;
     }
 
+    /** @param array<string, mixed> $entry as toArray() wrote it */
+    public static function fromStorage(array $entry): self
+    {
+        $masks = [];
+        $occupied = [];
+
+        /** @var array<string, array<string, mixed>> $floors */
+        $floors = \is_array($entry['floors'] ?? null) ? $entry['floors'] : [];
+
+        foreach ($floors as $floor => $detail) {
+            $mask = base64_decode((string) ($detail['mask'] ?? ''), true);
+
+            if ($mask === false) {
+                continue;
+            }
+
+            $masks[(int) $floor] = $mask;
+            $occupied[(int) $floor] = (int) ($detail['blocks'] ?? 0);
+        }
+
+        return new self(
+            (int) ($entry['minFloor'] ?? 0),
+            (int) ($entry['maxFloor'] ?? 1),
+            $masks,
+            $occupied,
+            (int) ($entry['blocks'] ?? 1024),
+        );
+    }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {
+        $floors = [];
+
+        foreach ($this->floors() as $floor) {
+            $floors[(string) $floor] = [
+                'blocks' => $this->occupied[$floor],
+                'mask' => base64_encode($this->masks[$floor]),
+            ];
+        }
+
         return [
             'minFloor' => $this->minFloor,
             'maxFloor' => $this->maxFloor,
             'blocks' => $this->blocksPerCell,
-            'floors' => array_map(
-                fn (int $floor): array => [
-                    'blocks' => $this->occupied[$floor],
-                    'mask' => base64_encode($this->masks[$floor]),
-                ],
-                array_combine($this->floors(), $this->floors()),
-            ),
+            'floors' => $floors,
         ];
     }
 }
