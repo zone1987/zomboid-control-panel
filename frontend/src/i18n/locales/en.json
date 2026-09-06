@@ -78,7 +78,7 @@
     "servers": "Servers",
     "players": "Players",
     "console": "Console",
-    "events": "Event console",
+    "events": "Events",
     "users": "Users",
     "settings": "Settings",
     "profile": "Profile",
@@ -100,7 +100,11 @@
     "items": "Items",
     "vehicles": "Vehicles",
     "map": "Map",
-    "credits": "Credits"
+    "credits": "Credits",
+    "sectionLive": "Live",
+    "sectionWorld": "World",
+    "sectionContent": "Content",
+    "sectionDiagnostics": "Diagnostics"
   },
   "dashboard": {
     "subtitle": "What is happening on this server right now.",
@@ -628,7 +632,7 @@
     }
   },
   "events": {
-    "title": "Event console",
+    "title": "Events",
     "description": "Trigger weather, sounds and events on the server.",
     "descriptionFor": "Trigger weather, sounds and events on {{server}}.",
     "search": "Search actions",

@@ -78,7 +78,7 @@
     "servers": "Server",
     "players": "Spieler",
     "console": "Konsole",
-    "events": "Eventkonsole",
+    "events": "Events",
     "users": "Benutzer",
     "settings": "Einstellungen",
     "profile": "Profil",
@@ -100,7 +100,11 @@
     "items": "Items",
     "vehicles": "Fahrzeuge",
     "map": "Karte",
-    "credits": "Danksagungen"
+    "credits": "Danksagungen",
+    "sectionLive": "Betrieb",
+    "sectionWorld": "Welt",
+    "sectionContent": "Inhalte",
+    "sectionDiagnostics": "Diagnose"
   },
   "dashboard": {
     "subtitle": "Was auf diesem Server gerade los ist.",
@@ -628,7 +632,7 @@
     }
   },
   "events": {
-    "title": "Eventkonsole",
+    "title": "Events",
     "description": "Wetter, Geräusche und Ereignisse auf dem Server auslösen.",
     "descriptionFor": "Wetter, Geräusche und Ereignisse auf {{server}} auslösen.",
     "search": "Aktion suchen",

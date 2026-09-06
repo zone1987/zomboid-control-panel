@@ -38,7 +38,7 @@ import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
 import { BrandLogo } from '@/components/brand-logo'
 import { PanelVersionLine } from './panel-version-line'
-import { SERVER_PAGES } from './server-pages'
+import { pagesOf, SERVER_SECTIONS } from './server-pages'
 
 export function AppSidebar() {
   const { t } = useTranslation()
@@ -136,32 +136,47 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
-              {SERVER_PAGES.filter((page) => can(page.permission)).map((page) => (
-                <SidebarMenuItem key={page.path}>
-                  {activeServer === undefined ? (
-                    <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                      <page.icon />
-                      <span>{t(page.label)}</span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(`/servers/${activeServer.id}/${page.path}`)}
-                      tooltip={t(page.label)}
-                    >
-                      <Link to={`/servers/${activeServer.id}/${page.path}`}>
-                        <page.icon />
-                        <span>{t(page.label)}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-              ))}
-
             </SidebarMenu>
           </SidebarGroup>
         )}
+
+        {SERVER_SECTIONS.map((section) => {
+          const pages = pagesOf(section.id).filter((page) => can(page.permission))
+
+          // A heading with nothing under it is worse than no heading.
+          if (pages.length === 0) {
+            return null
+          }
+
+          return (
+            <SidebarGroup key={section.id}>
+              <SidebarGroupLabel>{t(section.label)}</SidebarGroupLabel>
+              <SidebarMenu>
+                {pages.map((page) => (
+                  <SidebarMenuItem key={page.path}>
+                    {activeServer === undefined ? (
+                      <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
+                        <page.icon />
+                        <span>{t(page.label)}</span>
+                      </SidebarMenuButton>
+                    ) : (
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(`/servers/${activeServer.id}/${page.path}`)}
+                        tooltip={t(page.label)}
+                      >
+                        <Link to={`/servers/${activeServer.id}/${page.path}`}>
+                          <page.icon />
+                          <span>{t(page.label)}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          )
+        })}
 
         {(can('users.manage') || can('users.invite') || can('settings.edit')) && (
           <SidebarGroup>
