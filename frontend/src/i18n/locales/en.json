@@ -965,7 +965,34 @@
     "favourites": "Favourites",
     "addFavourite": "Keep as a favourite",
     "removeFavourite": "Remove from favourites",
-    "noFavourites": "No favourites yet. Mark a vehicle with the star."
+    "noFavourites": "No favourites yet. Mark a vehicle with the star.",
+    "facts": "Specifications",
+    "noFacts": "No script data for this vehicle — most likely a mod.",
+    "seats": "Seats",
+    "trunk": "Trunk",
+    "gloveBox": "Glove box",
+    "maxSpeed": "Top speed",
+    "mass": "Mass",
+    "mechanicType": "Repair",
+    "capacityUnit_one": "{{count}} unit",
+    "capacityUnit_other": "{{count}} units",
+    "allTypes": "All",
+    "grades": {
+      "standard": "Standard",
+      "heavy": "Heavy",
+      "sports": "Sports"
+    },
+    "types": {
+      "small": "Small car",
+      "car": "Saloon",
+      "sports": "Sports & luxury",
+      "suv": "SUV & off-road",
+      "pickup": "Pickup",
+      "van": "Van",
+      "service": "Service vehicles",
+      "trailer": "Trailer",
+      "wreck": "Wrecks"
+    }
   },
   "icons": {
     "uploadFailed": "The upload failed.",

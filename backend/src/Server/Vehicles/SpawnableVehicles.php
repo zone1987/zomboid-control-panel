@@ -12,6 +12,7 @@ use App\Server\Storage\StorageException;
 use App\Server\Vehicles\Models\ModelStore;
 use App\Server\Vehicles\Models\VehicleCatalogue;
 use App\Server\Vehicles\Models\VehicleNames;
+use App\Server\Vehicles\Models\VehicleSpecs;
 use Psr\Cache\CacheItemPoolInterface;
 
 /**
@@ -166,9 +167,11 @@ final readonly class SpawnableVehicles
      *     script: string,
      *     name: string,
      *     body: string,
+     *     type: string,
      *     model: string|null,
      *     texture: string|null,
-     *     drawable: bool
+     *     drawable: bool,
+     *     specs: array<string, int|null>|null
      * }
      */
     private function describe(string $script): array
@@ -181,12 +184,14 @@ final readonly class SpawnableVehicles
             // A shared paint mask is one body shell. Anything without a
             // mask -- a burnt-out hull carries no paint -- stands alone.
             'body' => self::bodyOf($script, $artwork),
+            'type' => VehicleTypes::of($script, $artwork),
             'model' => $artwork['model'] ?? null,
             'texture' => $artwork['texture'] ?? null,
             'drawable' => $artwork !== null
                 && $this->models->has($artwork['model'])
                 && $artwork['texture'] !== null
                 && $this->models->has($artwork['texture']),
+            'specs' => VehicleSpecs::of($script),
         ];
     }
 

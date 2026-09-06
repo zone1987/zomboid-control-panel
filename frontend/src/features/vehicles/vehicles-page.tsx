@@ -25,15 +25,19 @@ import { listPlayers } from '@/features/players/players'
 import { useVehicleRenderer } from '@/features/map/use-vehicle-renderer'
 import { VehiclePreview } from './vehicle-preview'
 import { BodyTile } from './body-tile'
+import { TypeFilter } from './type-filter'
 import { useFavourites } from './use-favourites'
+import { VehicleFacts } from './vehicle-facts'
 import { VehicleTile } from './vehicle-tile'
 import {
   listVehicles,
   select,
   selectBodies,
   spawnVehicle,
+  typesPresent,
   WRECKS,
   type SpawnableVehicle,
+  type VehicleType,
 } from './vehicles'
 
 /** How many tiles are drawn before the list has to be narrowed. */
@@ -49,6 +53,7 @@ export function VehiclesPage() {
 
   const [body, setBody] = useState<string | null>(null)
   const [onlyFavourites, setOnlyFavourites] = useState(false)
+  const [types, setTypes] = useState<string[]>([])
   const [needle, setNeedle] = useState('')
   const [chosen, setChosen] = useState<SpawnableVehicle | null>(null)
   const [player, setPlayer] = useState('')
@@ -66,6 +71,18 @@ export function VehiclesPage() {
 
   const toggleFavouritesFilter = () => {
     setOnlyFavourites((previous) => !previous)
+    setVisible(PAGE_SIZE)
+  }
+
+  const toggleType = (type: VehicleType) => {
+    setTypes((previous) =>
+      previous.includes(type) ? previous.filter((entry) => entry !== type) : [...previous, type],
+    )
+    setVisible(PAGE_SIZE)
+  }
+
+  const clearTypes = () => {
+    setTypes([])
     setVisible(PAGE_SIZE)
   }
 
@@ -95,12 +112,30 @@ export function VehiclesPage() {
   // name does not know which shell it belongs to.
   const searching = needle.trim() !== ''
 
+  const available = useMemo(() => typesPresent(catalogue?.items ?? []), [catalogue])
+
+  const perType = useMemo(() => {
+    const counts: Record<string, number> = {}
+
+    for (const item of catalogue?.items ?? []) {
+      counts[item.type] = (counts[item.type] ?? 0) + 1
+    }
+
+    return counts
+  }, [catalogue])
+
   const bodies = useMemo(
     () =>
       catalogue === undefined
         ? []
-        : selectBodies(catalogue, onlyFavourites, favouriteBodies.has, favouriteVehicles.has),
-    [catalogue, onlyFavourites, favouriteBodies, favouriteVehicles],
+        : selectBodies(
+            catalogue,
+            onlyFavourites,
+            favouriteBodies.has,
+            favouriteVehicles.has,
+            types,
+          ),
+    [catalogue, onlyFavourites, favouriteBodies, favouriteVehicles, types],
   )
 
   // A body that has just been filtered out of the row above must not stay
@@ -111,11 +146,11 @@ export function VehiclesPage() {
     () =>
       select(
         catalogue?.items ?? [],
-        { needle, body: reachable, onlyFavourites },
+        { needle, body: reachable, onlyFavourites, types },
         favouriteVehicles.has,
         favouriteBodies.has,
       ),
-    [catalogue, reachable, needle, onlyFavourites, favouriteVehicles, favouriteBodies],
+    [catalogue, reachable, needle, onlyFavourites, types, favouriteVehicles, favouriteBodies],
   )
 
   const markedCount = favouriteBodies.ids.length + favouriteVehicles.ids.length
@@ -199,6 +234,14 @@ export function VehiclesPage() {
               {markedCount > 0 && <span className="font-mono text-xs">{markedCount}</span>}
             </Button>
           </div>
+
+          <TypeFilter
+            available={available}
+            active={types}
+            counts={perType}
+            onToggle={toggleType}
+            onClear={clearTypes}
+          />
 
           {/* The body row stays visible while a body is open, so changing
               shell is one click rather than a step backwards. */}
@@ -317,9 +360,12 @@ export function VehiclesPage() {
                 </div>
 
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium">{chosen.name}</p>
                     <Copyable value={chosen.script} />
+                    <p className="text-xs text-muted-foreground">
+                      {t(`vehicles.types.${chosen.type}`)}
+                    </p>
                   </div>
 
                   <Button
@@ -351,6 +397,8 @@ export function VehiclesPage() {
               </div>
             )}
           </section>
+
+          {chosen !== null && <VehicleFacts specs={chosen.specs} />}
 
           <section className="space-y-3 rounded-md border p-3">
             <SectionMark

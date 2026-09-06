@@ -12,14 +12,49 @@ export type VehicleBody = {
   preview: string | null
 }
 
+/**
+ * The kinds the backend sorts vehicles into, in the order the filter
+ * shows them. Mirrored from `VehicleTypes::ORDER`, and asserted against
+ * it by a test rather than trusted.
+ */
+export const VEHICLE_TYPES = [
+  'small',
+  'car',
+  'sports',
+  'suv',
+  'pickup',
+  'van',
+  'service',
+  'trailer',
+  'wreck',
+] as const
+
+export type VehicleType = (typeof VEHICLE_TYPES)[number]
+
+/** What a vehicle's own script says about it. Null for a modded one. */
+export type VehicleSpecs = {
+  seats: number | null
+  trunk: number | null
+  gloveBox: number | null
+  mass: number | null
+  maxSpeed: number | null
+  engineForce: number | null
+  brakingForce: number | null
+  mechanicType: number | null
+  engineLoudness: number | null
+  engineQuality: number | null
+}
+
 export type SpawnableVehicle = {
   script: string
   name: string
   body: string
+  type: string
   model: string | null
   texture: string | null
   /** Whether the artwork is both named and uploaded. */
   drawable: boolean
+  specs: VehicleSpecs | null
 }
 
 export type VehicleCatalogue = {
@@ -87,6 +122,26 @@ export type Selection = {
   needle: string
   body: string | null
   onlyFavourites: boolean
+  /** Empty means every type; otherwise only these. */
+  types?: string[]
+}
+
+/** Whether a type filter lets this vehicle through. */
+function inTypes(vehicle: SpawnableVehicle, types: string[] | undefined): boolean {
+  return types === undefined || types.length === 0 || types.includes(vehicle.type)
+}
+
+/**
+ * Which types the catalogue actually holds, in the offered order.
+ *
+ * Derived from the vehicles rather than listed, so a filter never offers
+ * a type this server has none of -- a modded server may have no
+ * trailers, and a dead button is worse than a missing one.
+ */
+export function typesPresent(items: SpawnableVehicle[]): VehicleType[] {
+  const seen = new Set(items.map((item) => item.type))
+
+  return VEHICLE_TYPES.filter((type) => seen.has(type))
 }
 
 /**
@@ -94,23 +149,36 @@ export type Selection = {
  *
  * Filtering by favourite narrows the bodies to the marked ones, and to
  * those holding a marked livery -- a favourite livery whose body was
- * never marked must still be reachable.
+ * never marked must still be reachable. A type filter narrows them to
+ * the bodies still holding something.
  */
 export function selectBodies(
   catalogue: VehicleCatalogue,
   onlyFavourites: boolean,
   isFavouriteBody: (id: string) => boolean,
   isFavouriteVehicle: (script: string) => boolean,
+  types: string[] = [],
 ): VehicleBody[] {
+  const withinTypes =
+    types.length === 0
+      ? catalogue.bodies
+      : catalogue.bodies.filter((body) =>
+          catalogue.items.some(
+            (item) => item.body === body.id && types.includes(item.type),
+          ),
+        )
+
   if (!onlyFavourites) {
-    return catalogue.bodies
+    return withinTypes
   }
 
   const bodiesHoldingOne = new Set(
-    catalogue.items.filter((item) => isFavouriteVehicle(item.script)).map((item) => item.body),
+    catalogue.items
+      .filter((item) => isFavouriteVehicle(item.script) && inTypes(item, types))
+      .map((item) => item.body),
   )
 
-  return catalogue.bodies.filter(
+  return withinTypes.filter(
     (body) => isFavouriteBody(body.id) || bodiesHoldingOne.has(body.id),
   )
 }
@@ -129,16 +197,20 @@ export function select(
   isFavouriteVehicle: (script: string) => boolean,
   isFavouriteBody: (id: string) => boolean = () => false,
 ): SpawnableVehicle[] {
+  // The type filter narrows the ground the other steps work on rather
+  // than being a mode of its own, so it combines with all of them.
+  const within = items.filter((vehicle) => inTypes(vehicle, selection.types))
+
   if (selection.needle.trim() !== '') {
-    return items.filter((vehicle) => matches(vehicle, selection.needle))
+    return within.filter((vehicle) => matches(vehicle, selection.needle))
   }
 
   if (selection.body !== null) {
-    return items.filter((vehicle) => vehicle.body === selection.body)
+    return within.filter((vehicle) => vehicle.body === selection.body)
   }
 
   if (selection.onlyFavourites) {
-    return items.filter(
+    return within.filter(
       (vehicle) => isFavouriteVehicle(vehicle.script) || isFavouriteBody(vehicle.body),
     )
   }

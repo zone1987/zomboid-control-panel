@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
+import { readFileSync } from 'node:fs'
+
 import {
   matches,
   representatives,
   select,
   selectBodies,
+  typesPresent,
+  VEHICLE_TYPES,
   WRECKS,
   type SpawnableVehicle,
   type VehicleCatalogue,
@@ -13,15 +17,27 @@ import {
 const vehicle = (overrides: Partial<SpawnableVehicle> & { script: string }): SpawnableVehicle => ({
   name: overrides.script,
   body: 'van',
+  type: 'van',
   model: null,
   texture: null,
   drawable: false,
+  specs: null,
   ...overrides,
 })
 
-const nyala = vehicle({ script: 'Base.CarNormal', name: 'Chevalier Nyala', body: 'nyala' })
+const nyala = vehicle({
+  script: 'Base.CarNormal',
+  name: 'Chevalier Nyala',
+  body: 'nyala',
+  type: 'car',
+})
 const van = vehicle({ script: 'Base.VanSeats', name: 'Franklin Valuline', body: 'van' })
-const wreck = vehicle({ script: 'Base.CarBurnt', name: 'Burnt Car', body: WRECKS })
+const wreck = vehicle({
+  script: 'Base.CarBurnt',
+  name: 'Burnt Car',
+  body: WRECKS,
+  type: 'wreck',
+})
 
 const items = [nyala, van, wreck]
 
@@ -178,5 +194,104 @@ describe('selectBodies', () => {
 
   it('shows nothing when nothing is marked', () => {
     expect(selectBodies(catalogue, true, none, none)).toEqual([])
+  })
+})
+
+describe('the type filter', () => {
+  const none = () => false
+
+  const small = vehicle({ script: 'Base.SmallCar', body: 'small', type: 'small' })
+  const cruiser = vehicle({ script: 'Base.CarLightsPolice', body: 'car', type: 'service' })
+  const fleet = [nyala, van, wreck, small, cruiser]
+
+  it('offers only the types the catalogue holds, in the offered order', () => {
+    expect(typesPresent(fleet)).toEqual(['small', 'car', 'van', 'service', 'wreck'])
+  })
+
+  it('offers nothing for an empty catalogue', () => {
+    expect(typesPresent([])).toEqual([])
+  })
+
+  it('narrows a chosen body to the types asked for', () => {
+    expect(
+      select(fleet, { needle: '', body: 'van', onlyFavourites: false, types: ['service'] }, none),
+    ).toEqual([])
+  })
+
+  it('keeps a chosen body when its type is asked for', () => {
+    expect(
+      select(fleet, { needle: '', body: 'van', onlyFavourites: false, types: ['van'] }, none),
+    ).toEqual([van])
+  })
+
+  /** Several types at once, because they are not mutually exclusive. */
+  it('accepts more than one type', () => {
+    expect(
+      select(fleet, { needle: 'a', body: null, onlyFavourites: false, types: ['small', 'service'] }, none)
+        .map((entry) => entry.script),
+    ).toEqual(['Base.SmallCar', 'Base.CarLightsPolice'])
+  })
+
+  it('narrows a search to the types asked for', () => {
+    expect(
+      select(fleet, { needle: 'nyala', body: null, onlyFavourites: false, types: ['van'] }, none),
+    ).toEqual([])
+  })
+
+  it('narrows the favourites to the types asked for', () => {
+    expect(
+      select(
+        fleet,
+        { needle: '', body: null, onlyFavourites: true, types: ['van'] },
+        (script) => script === 'Base.CarNormal',
+      ),
+    ).toEqual([])
+  })
+
+  it('shows every type when none is asked for', () => {
+    expect(
+      select(fleet, { needle: '', body: 'van', onlyFavourites: false, types: [] }, none),
+    ).toEqual([van])
+  })
+
+  it('hides a body holding nothing of the asked-for type', () => {
+    const catalogue: VehicleCatalogue = {
+      bodies: [
+        { id: 'van', name: 'Van', count: 1, preview: null },
+        { id: 'small', name: 'Small', count: 1, preview: null },
+      ],
+      items: fleet,
+      generatedAt: null,
+      bridgeVersion: null,
+      available: true,
+    }
+
+    expect(selectBodies(catalogue, false, none, none, ['small']).map((body) => body.id)).toEqual([
+      'small',
+    ])
+  })
+})
+
+/**
+ * The frontend lists the types to keep the filter's order and its typing
+ * local, so it can drift from the backend that assigns them. Asserted
+ * against the source rather than trusted.
+ */
+describe('the type list against the backend', () => {
+  it('matches VehicleTypes::ORDER', () => {
+    const source = readFileSync('../backend/src/Server/Vehicles/VehicleTypes.php', 'utf8')
+    const start = source.indexOf('public const ORDER')
+    const order = source.slice(start, source.indexOf('];', start))
+    const constants = [...order.matchAll(/self::([A-Z]+),/g)].map((match) => match[1])
+
+    const values = constants.map((name) => {
+      const found = source.match(new RegExp(`public const ${name} = '([a-z]+)'`))
+
+      expect(found).not.toBeNull()
+
+      return (found as RegExpMatchArray)[1]
+    })
+
+    expect(values).toEqual([...VEHICLE_TYPES])
   })
 })

@@ -965,7 +965,34 @@
     "favourites": "Favoriten",
     "addFavourite": "Als Favorit merken",
     "removeFavourite": "Aus den Favoriten entfernen",
-    "noFavourites": "Noch keine Favoriten. Markiere ein Fahrzeug mit dem Stern."
+    "noFavourites": "Noch keine Favoriten. Markiere ein Fahrzeug mit dem Stern.",
+    "facts": "Technische Daten",
+    "noFacts": "Für dieses Fahrzeug liegen keine Skriptdaten vor — vermutlich ein Mod.",
+    "seats": "Sitzplätze",
+    "trunk": "Kofferraum",
+    "gloveBox": "Handschuhfach",
+    "maxSpeed": "Höchstgeschwindigkeit",
+    "mass": "Masse",
+    "mechanicType": "Reparatur",
+    "capacityUnit_one": "{{count}} Einheit",
+    "capacityUnit_other": "{{count}} Einheiten",
+    "allTypes": "Alle",
+    "grades": {
+      "standard": "Standard",
+      "heavy": "Nutzfahrzeug",
+      "sports": "Sportwagen"
+    },
+    "types": {
+      "small": "Kleinwagen",
+      "car": "Limousine",
+      "sports": "Sport & Luxus",
+      "suv": "SUV & Geländewagen",
+      "pickup": "Pick-up",
+      "van": "Van & Transporter",
+      "service": "Einsatzfahrzeuge",
+      "trailer": "Anhänger",
+      "wreck": "Wracks"
+    }
   },
   "icons": {
     "uploadFailed": "Der Upload ist fehlgeschlagen.",
