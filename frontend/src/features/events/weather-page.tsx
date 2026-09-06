@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Play } from 'lucide-react'
+import { Play, TriangleAlert } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { ApiError } from '@/lib/api'
+import { ApiError, errorField } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,8 +15,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
 import { SectionMark } from '@/components/layout/section-mark'
 import { WorldStrip } from '@/features/servers/world-strip'
+import { formatRange } from './units'
 import { listEvents, triggerEvent, type EventAction } from './events'
-import { actionsOf, WEATHER_PRESETS, type WeatherPreset } from './weather-presets'
+import {
+  actionsOf,
+  PRESET_GROUPS,
+  presetsOf,
+  type PresetGroup,
+  type WeatherPreset,
+} from './weather-presets'
 
 /**
  * How often the bridge writes time and weather.
@@ -43,7 +50,10 @@ export function WeatherPage() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
   const [chosen, setChosen] = useState<WeatherPreset | null>(null)
-  const [values, setValues] = useState<Record<string, number>>({})
+  const [values, setValues] = useState<Record<string, number | boolean>>({})
+  // What the server said when it refused a step, keyed by action id: a
+  // preset half-applied must say which half, not claim success.
+  const [refused, setRefused] = useState<Record<string, string>>({})
 
   const { data: catalogue, isPending } = useQuery({
     queryKey: ['events', id],
@@ -71,9 +81,11 @@ export function WeatherPage() {
   const choose = (preset: WeatherPreset) => {
     setChosen(preset)
 
+    setRefused({})
+
     // Seeded from the preset rather than the field defaults: its own
     // numbers are what "Downpour" means.
-    const seeded: Record<string, number> = {}
+    const seeded: Record<string, number | boolean> = {}
 
     for (const step of preset.steps) {
       for (const [field, value] of Object.entries(step.inputs ?? {})) {
@@ -86,6 +98,8 @@ export function WeatherPage() {
 
   const fire = useMutation({
     mutationFn: async () => {
+      const declined: Record<string, string> = {}
+
       // Sequentially, not in parallel: the game applies these to one
       // world, and "stop the weather, then set the clouds" only means
       // what it says in that order.
@@ -97,17 +111,48 @@ export function WeatherPage() {
         const inputs =
           field === undefined ? {} : { [field]: values[`${step.action}.${field}`] ?? 0 }
 
-        await triggerEvent(id, step.action, inputs)
-      }
-    },
-    onSuccess: () => {
-      toast.success(
-        t('events.presetApplied', {
-          preset: chosen === null ? '' : t(`events.presets.${chosen.id}`),
-        }),
-      )
+        try {
+          const result = await triggerEvent(id, step.action, inputs)
 
-      // Bridge 0.14 writes time and weather every ten seconds, so one
+          // The bridge reads back rather than trusting the setter, so a
+          // 200 can still mean "the game would not do that".
+          if (result.failed) {
+            declined[step.action] = result.reply
+          }
+        } catch (error) {
+          // One step being refused must not abandon the rest: snow out
+          // of season still leaves the clouds and the downpour worth
+          // setting.
+          declined[step.action] =
+            error instanceof ApiError
+              ? (errorField(error, 'detail') ?? error.message)
+              : String(error)
+        }
+      }
+
+      return declined
+    },
+    onSuccess: (declined) => {
+      setRefused(declined)
+
+      const names = Object.keys(declined)
+
+      if (names.length > 0) {
+        toast.warning(
+          t('events.presetPartly', {
+            count: names.length,
+            preset: chosen === null ? '' : t(`events.presets.${chosen.id}`),
+          }),
+        )
+      } else {
+        toast.success(
+          t('events.presetApplied', {
+            preset: chosen === null ? '' : t(`events.presets.${chosen.id}`),
+          }),
+        )
+      }
+
+      // Bridge 0.15 writes time and weather every ten seconds, so one
       // refetch shortly after is enough to show what was just set.
       window.setTimeout(
         () => void queryClient.invalidateQueries({ queryKey: ['world', id] }),
@@ -142,43 +187,30 @@ export function WeatherPage() {
         <WorldStrip serverId={id} />
       </section>
 
-      <section className="space-y-2">
+      <section className="space-y-3">
         <SectionMark label={t('events.weatherSet')} />
 
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2">
-          {WEATHER_PRESETS.map((preset) => {
-            const enabled = usable(preset)
-            const picked = chosen?.id === preset.id
-
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                aria-pressed={picked}
-                disabled={!enabled}
-                title={enabled ? undefined : t('events.presetUnavailable')}
-                className={cn(
-                  'pz-interactive flex flex-col items-center gap-2 rounded-md border p-3 text-center',
-                  picked
-                    ? 'border-primary bg-primary/10'
-                    : enabled
-                      ? 'hover:bg-accent/50'
-                      : 'opacity-40',
-                )}
-                onClick={() => choose(preset)}
-              >
-                <preset.icon
-                  className={cn('size-7', picked ? 'text-primary' : 'text-muted-foreground')}
-                />
-                <span className="text-xs leading-tight">{t(`events.presets.${preset.id}`)}</span>
-              </button>
-            )
-          })}
-        </div>
+        {/* By kind rather than one flat row: ten icons in a line make
+            finding "snow" a scan, and drizzle beside a blizzard implies a
+            scale the two are not on. The gap between groups is wider than
+            the one inside a group, so the grouping is visible without a
+            rule between the rows. */}
+        {PRESET_GROUPS.map((group) => (
+          <PresetGroupRow
+            key={group}
+            group={group}
+            chosen={chosen}
+            usable={usable}
+            onChoose={choose}
+          />
+        ))}
       </section>
 
+      {/* The card is wide enough for its widest step row rather than a
+          fixed two columns: a label, a slider, a number and its unit stop
+          fitting long before the page runs out of room. */}
       {chosen !== null && (
-        <section className="max-w-2xl space-y-3 rounded-md border p-4">
+        <section className="w-fit min-w-full space-y-3 rounded-md border p-4 xl:min-w-3xl">
           <SectionMark label={t('events.willDo')} state={t(`events.presets.${chosen.id}`)} />
 
           <div className="space-y-3">
@@ -187,7 +219,11 @@ export function WeatherPage() {
                 key={`${step.action}.${field ?? ''}`}
                 action={action}
                 actionId={step.action}
+                label={step.label}
                 field={field}
+                min={step.min}
+                max={step.max}
+                refused={refused[step.action]}
                 value={field === undefined ? undefined : values[`${step.action}.${field}`]}
                 onChange={(next) =>
                   setValues((previous) => ({ ...previous, [`${step.action}.${field}`]: next }))
@@ -212,6 +248,60 @@ export function WeatherPage() {
   )
 }
 
+/** One kind of weather, as a labelled row of its own presets. */
+function PresetGroupRow({
+  group,
+  chosen,
+  usable,
+  onChoose,
+}: {
+  group: PresetGroup
+  chosen: WeatherPreset | null
+  usable: (preset: WeatherPreset) => boolean
+  onChoose: (preset: WeatherPreset) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-1.5 pt-2 first:pt-0">
+      <p className="font-mono text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+        {t(`events.presetGroups.${group}`)}
+      </p>
+
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2">
+        {presetsOf(group).map((preset) => {
+          const enabled = usable(preset)
+          const picked = chosen?.id === preset.id
+
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              aria-pressed={picked}
+              disabled={!enabled}
+              title={enabled ? undefined : t('events.presetUnavailable')}
+              className={cn(
+                'pz-interactive flex flex-col items-center gap-2 rounded-md border p-3 text-center',
+                picked
+                  ? 'border-primary bg-primary/10'
+                  : enabled
+                    ? 'hover:bg-accent/50'
+                    : 'opacity-40',
+              )}
+              onClick={() => onChoose(preset)}
+            >
+              <preset.icon
+                className={cn('size-7', picked ? 'text-primary' : 'text-muted-foreground')}
+              />
+              <span className="text-xs leading-tight">{t(`events.presets.${preset.id}`)}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /**
  * One step of a preset: what it does, and the value it does it with.
  *
@@ -219,41 +309,84 @@ export function WeatherPage() {
  * a slider for something with no number would be a control that does
  * nothing. A step the server cannot do is struck through and says so
  * rather than vanishing: a preset that quietly drops half its work is
- * worse than one that admits it.
+ * worse than one that admits it. And a step the game *refused* — snow in
+ * July — carries the server's own answer, which is a different case from
+ * one that was never offered.
  */
 function StepRow({
   action,
   actionId,
+  label,
   field,
+  min: narrowedMin,
+  max: narrowedMax,
   value,
+  refused,
   onChange,
 }: {
   action?: EventAction
   actionId: string
+  label?: string
   field?: string
-  value?: number
+  /** The preset's own bounds, where they are narrower than the field's. */
+  min?: number
+  max?: number
+  value?: number | boolean
+  refused?: string
   onChange: (value: number) => void
 }) {
   const { t } = useTranslation()
 
-  const title = t(`events.actions.${actionId}.title`, { defaultValue: actionId })
+  // The preset's own wording wins where the command's name would mislead:
+  // "start rain" is the command, but on the snow preset what falls is snow.
+  const title =
+    label === undefined
+      ? t(`events.actions.${actionId}.title`, { defaultValue: actionId })
+      : t(`events.stepLabels.${label}`)
   const unavailable = action?.available === false
+  const declared = action?.fields.find((candidate) => candidate.name === field)
+
+  const note = refused === undefined ? null : <RefusedNote reason={refused} />
 
   if (field === undefined) {
     return (
-      <div className="flex items-center gap-2 text-sm">
-        <span className={cn('flex-1', unavailable && 'text-muted-foreground line-through')}>
-          {title}
-        </span>
-        {unavailable && <Badge variant="outline">{t('events.unavailable')}</Badge>}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span className={cn('flex-1', unavailable && 'text-muted-foreground line-through')}>
+            {title}
+          </span>
+          {unavailable && <Badge variant="outline">{t('events.unavailable')}</Badge>}
+        </div>
+        {note}
       </div>
     )
   }
 
-  const declared = action?.fields.find((candidate) => candidate.name === field)
-  const min = typeof declared?.min === 'number' ? declared.min : 0
-  const max = typeof declared?.max === 'number' ? declared.max : 100
-  const current = Math.min(max, Math.max(min, value ?? min))
+  // A yes-or-no step is stated, not offered: on the snow preset the
+  // precipitation type IS what "snow" means, so a switch that could turn
+  // it back to rain would undo the preset the operator just picked.
+  if (declared?.type === 'toggle') {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm">
+          <span className={cn('flex-1', unavailable && 'text-muted-foreground line-through')}>
+            {t(`events.toggleStates.${actionId}.${value === true}`, { defaultValue: title })}
+          </span>
+          {unavailable && <Badge variant="outline">{t('events.unavailable')}</Badge>}
+        </div>
+        {note}
+      </div>
+    )
+  }
+
+  // A preset may narrow the field's range but never widen it: the action
+  // declares what the server will accept.
+  const declaredMin = typeof declared?.min === 'number' ? declared.min : 0
+  const declaredMax = typeof declared?.max === 'number' ? declared.max : 100
+  const min = narrowedMin === undefined ? declaredMin : Math.max(declaredMin, narrowedMin)
+  const max = narrowedMax === undefined ? declaredMax : Math.min(declaredMax, narrowedMax)
+  const numeric = typeof value === 'number' ? value : min
+  const current = Math.min(max, Math.max(min, numeric))
 
   return (
     <div className={cn('space-y-2', unavailable && 'opacity-50')}>
@@ -264,7 +397,7 @@ function StepRow({
           <Badge variant="outline">{t('events.unavailable')}</Badge>
         ) : (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
-            {min}–{max}
+            {formatRange(min, max, declared?.unit)}
           </span>
         )}
       </div>
@@ -281,10 +414,11 @@ function StepRow({
         />
 
         {/* The number stays typable: aiming a slider at 80 is worse than
-            saying 80. */}
+            saying 80. Its unit is stated once, on the range above, rather
+            than on both. */}
         <Input
           inputMode="numeric"
-          aria-label={title}
+          aria-label={`${title} (${declared?.unit ?? ''})`.trim()}
           disabled={unavailable}
           className="w-16 shrink-0 text-center font-mono tabular-nums"
           value={String(current)}
@@ -295,6 +429,22 @@ function StepRow({
           }}
         />
       </div>
+
+      {note}
     </div>
+  )
+}
+
+/** What the server said when it would not do something. */
+function RefusedNote({ reason }: { reason: string }) {
+  const { t } = useTranslation()
+
+  return (
+    <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+      <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+      <span>
+        <span className="font-medium">{t('events.refused')}</span> {reason}
+      </span>
+    </p>
   )
 }

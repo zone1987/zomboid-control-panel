@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -11,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { Player } from '@/features/players/players'
+import { formatRange } from './units'
 import type { EventAction, EventField } from './events'
 
 export function EventForm({
@@ -22,7 +24,7 @@ export function EventForm({
   action: EventAction
   values: Record<string, string | number | boolean>
   players: Player[]
-  onChange: (name: string, value: string | number) => void
+  onChange: (name: string, value: string | number | boolean) => void
 }) {
   const { t } = useTranslation()
 
@@ -51,8 +53,8 @@ export function EventForm({
           />
 
           {field.type === 'number' && field.min !== undefined && field.max !== undefined && (
-            <p className="text-xs text-muted-foreground">
-              {t('events.range', { min: field.min, max: field.max })}
+            <p className="font-mono text-xs tabular-nums text-muted-foreground">
+              {formatRange(field.min, field.max)}
             </p>
           )}
         </div>
@@ -70,10 +72,22 @@ function FieldInput({
   field: EventField
   value: string | number | boolean | undefined
   players: Player[]
-  onChange: (value: string | number) => void
+  onChange: (value: string | number | boolean) => void
 }) {
   const { t } = useTranslation()
   const id = `event-${field.name}`
+
+  // A yes-or-no input: a kind, not an amount.
+  if (field.type === 'toggle') {
+    return (
+      <Switch
+        id={id}
+        checked={value === true}
+        aria-label={t(`events.fields.${field.name}`, { defaultValue: field.name })}
+        onCheckedChange={onChange}
+      />
+    )
+  }
 
   if (field.type === 'player') {
     const online = players.filter((player) => player.online)
@@ -141,25 +155,37 @@ function FieldInput({
             onValueChange={([next]) => onChange(next ?? field.min ?? 0)}
           />
 
-          <Input
-            id={id}
-            inputMode="numeric"
-            className="w-16 shrink-0 text-center font-mono tabular-nums"
-            value={String(value ?? '')}
-            onChange={(event) => onChange(event.target.value)}
-          />
+          <div className="flex shrink-0 items-center gap-1">
+            <Input
+              id={id}
+              inputMode="numeric"
+              className="w-16 text-center font-mono tabular-nums"
+              value={String(value ?? '')}
+              onChange={(event) => onChange(event.target.value)}
+            />
+
+            {field.unit !== undefined && (
+              <span className="w-9 font-mono text-xs text-muted-foreground">{field.unit}</span>
+            )}
+          </div>
         </div>
       )
     }
 
     return (
-      <Input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        value={String(value ?? '')}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <div className="flex items-center gap-1">
+        <Input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          value={String(value ?? '')}
+          onChange={(event) => onChange(event.target.value)}
+        />
+
+        {field.unit !== undefined && (
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">{field.unit}</span>
+        )}
+      </div>
     )
   }
 

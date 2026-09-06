@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Server\Events;
 
 use App\Server\Events\EventAction;
 use App\Server\Events\EventCatalogue;
+use App\Server\Events\EventField;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -110,5 +111,93 @@ final class EventCatalogueTest extends TestCase
                 self::assertSame([], $action->commands, $action->id);
             }
         }
+    }
+
+    /**
+     * Snow is a type rather than an amount, so it is the first toggle in
+     * the catalogue -- and the type has to reach the interface, which
+     * renders a switch from it rather than a slider between two states.
+     */
+    public function testSnowIsOfferedAsAToggleThroughTheBridge(): void
+    {
+        $snow = EventCatalogue::find('setSnow');
+
+        self::assertInstanceOf(EventAction::class, $snow);
+        self::assertSame(EventAction::CATEGORY_WEATHER, $snow->category);
+        self::assertSame(EventAction::CHANNEL_BRIDGE, $snow->channel);
+
+        self::assertCount(1, $snow->fields);
+        self::assertSame(EventField::TYPE_TOGGLE, $snow->fields[0]->type);
+        self::assertSame('snowing', $snow->fields[0]->name);
+    }
+
+    /**
+     * A toggle defaulting to false must survive toArray(), which filters
+     * out empties: false is an answer, and a default the panel never
+     * receives leaves the switch guessing.
+     */
+    public function testAToggleKeepsAFalseDefault(): void
+    {
+        self::assertSame(
+            false,
+            EventField::toggle('snowing')->toArray()['default'] ?? null,
+        );
+    }
+
+    public function testTheBlizzardIsABridgeActionWithNoInputs(): void
+    {
+        $blizzard = EventCatalogue::find('startBlizzard');
+
+        self::assertInstanceOf(EventAction::class, $blizzard);
+        self::assertSame(EventAction::CHANNEL_BRIDGE, $blizzard->channel);
+        self::assertSame([], $blizzard->fields);
+    }
+
+    /**
+     * A range reading "0-120" beside one reading "0-100" says nothing
+     * about which is km/h and which a percentage, so every bounded number
+     * states its unit -- from the field, once, rather than each page
+     * guessing it from the action's name.
+     */
+    public function testEveryBoundedNumberStatesItsUnit(): void
+    {
+        $units = [
+            EventField::UNIT_PERCENT,
+            EventField::UNIT_KPH,
+            EventField::UNIT_CELSIUS,
+            EventField::UNIT_HOURS,
+            EventField::UNIT_TILES,
+            EventField::UNIT_COUNT,
+        ];
+
+        foreach (EventCatalogue::all() as $action) {
+            foreach ($action->fields as $field) {
+                if ($field->type !== EventField::TYPE_NUMBER) {
+                    continue;
+                }
+
+                // A coordinate and a volume are bare numbers: there is no
+                // unit a reader would recognise for either.
+                if (\in_array($field->name, ['x', 'y', 'z', 'volume', 'day', 'month'], true)) {
+                    continue;
+                }
+
+                self::assertContains(
+                    $field->unit,
+                    $units,
+                    sprintf('%s.%s states no unit', $action->id, $field->name),
+                );
+            }
+        }
+    }
+
+    /** Wind is asked for in km/h, against the game's own ceiling. */
+    public function testWindIsDeclaredInKilometresPerHour(): void
+    {
+        $wind = EventCatalogue::find('setWind');
+
+        self::assertInstanceOf(EventAction::class, $wind);
+        self::assertSame(EventField::UNIT_KPH, $wind->fields[0]->unit);
+        self::assertSame((float) EventCatalogue::MAX_WIND_KPH, $wind->fields[0]->max);
     }
 }

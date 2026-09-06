@@ -87,7 +87,7 @@ export function ConnectionLights() {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 px-2"
+            className="h-6 gap-1.5 px-2"
             aria-label={t('connections.title')}
           >
             <Dot state={worstOf(data)} />
@@ -147,7 +147,9 @@ function Light({
       // A button rather than a link with an underline: it sits in a bar
       // of icon buttons, and matching them reads as a control instead of
       // as prose that happens to be clickable.
-      className={cn('h-7 gap-1.5 px-2 text-xs font-normal', showState && 'w-full justify-between')}
+      // Sized for the footer bar, which is deliberately shorter than the
+      // header: a control taller than its bar makes the bar grow.
+      className={cn('h-6 gap-1.5 px-2 text-xs font-normal', showState && 'w-full justify-between')}
     >
       <Link to={to} title={`${title} — ${t('connections.openSettings')}`}>
         <span className="flex items-center gap-1.5">

@@ -11,6 +11,8 @@ export type EventField = {
   default?: number | string | boolean
   choices?: string[]
   maxLength?: number
+  /** What the number means: '%', 'km/h', '°C', 'h', 'tiles', 'x'. */
+  unit?: string
 }
 
 /**
@@ -79,6 +81,8 @@ export function defaultsFor(action: EventAction): Record<string, string | number
       values[field.name] = field.default
     } else if (field.type === 'number') {
       values[field.name] = field.min ?? 0
+    } else if (field.type === 'toggle') {
+      values[field.name] = false
     } else {
       values[field.name] = ''
     }
@@ -100,6 +104,11 @@ export function isComplete(
     const value = values[field.name]
 
     if (field.required === false && String(value ?? '').trim() === '') {
+      return true
+    }
+
+    // A toggle is never incomplete: false is an answer, not a blank.
+    if (field.type === 'toggle') {
       return true
     }
 

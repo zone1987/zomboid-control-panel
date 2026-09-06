@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Server\Events;
 
+use App\Server\Bridge\BridgeCommand;
+
 /**
  * Every world-changing action the event console offers.
  *
@@ -22,6 +24,18 @@ final readonly class EventCatalogue
      * server.
      */
     public const MAX_WIND_KPH = 120;
+
+    /**
+     * The temperature the weather page offers.
+     *
+     * Narrower than the game's own -80..80, which ClimateFloat index 4
+     * declares: a weather preset is a plausible day, and a slider whose
+     * useful range is a tenth of its travel is a slider nobody can aim.
+     * The climate page offers the full range, because that is what it is
+     * for.
+     */
+    public const WEATHER_MIN_CELSIUS = -30;
+    public const WEATHER_MAX_CELSIUS = 40;
 
     /** @return list<EventAction> */
     public static function all(): array
@@ -50,13 +64,39 @@ final readonly class EventCatalogue
     {
         return [
             new EventAction('startRain', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_PREFERRED, ['startrain'], [
-                EventField::number('intensity', 1, 100, 50),
+                EventField::percent('intensity', 50, min: 1),
             ]),
             new EventAction('stopRain', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_PREFERRED, ['stoprain']),
             new EventAction('startStorm', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_RCON, ['startstorm'], [
-                EventField::number('duration', 1, 24, 2),
+                EventField::number('duration', 1, 24, 2, EventField::UNIT_HOURS),
             ]),
-            new EventAction('stopWeather', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_RCON, ['stopweather']),
+            new EventAction('stopWeather', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_PREFERRED, ['stopweather']),
+            // The game refuses snow outside a cold season, so the bridge
+            // reads the precipitation type back and the panel says which
+            // it got. RCON has no equivalent, hence bridge only.
+            new EventAction('setSnow', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::toggle('snowing', default: true),
+            ]),
+            new EventAction('startBlizzard', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
+            // Hands the snow flag back, which setSnow pins. Without it a
+            // server stays snowing into the next summer.
+            new EventAction('releaseSnow', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
+            // The route the game's own admin panel takes: a named stage
+            // with a duration, rather than a stack of climate values.
+            new EventAction('triggerWeatherStage', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::choice('stage', BridgeCommand::WEATHER_STAGES, 'storm'),
+                EventField::number('duration', 1, BridgeCommand::MAX_STAGE_HOURS, 4, EventField::UNIT_HOURS),
+            ]),
+            // Lets the simulation decide what arrives, which is how the
+            // world makes weather when nobody interferes.
+            new EventAction('generateWeather', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::percent('strength', 50, min: 10),
+                EventField::choice('front', ['warm', 'cold'], 'warm'),
+            ]),
+            // Hands the temperature back to the game rather than setting
+            // one: setClimateValue pins a value until something releases
+            // it, and only the game knows what the season should be.
+            new EventAction('releaseTemperature', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
             new EventAction('thunder', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['thunder'], [
                 EventField::player('player', required: false),
             ]),
@@ -89,43 +129,43 @@ final readonly class EventCatalogue
     {
         return [
             new EventAction('setTime', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('hour', 0, 24, 12),
+                EventField::number('hour', 0, 24, 12, EventField::UNIT_HOURS),
             ]),
             new EventAction('setDate', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('day', 1, 31, 1),
                 EventField::number('month', 1, 12, 7),
             ]),
             new EventAction('setFog', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, 100, 50),
+                EventField::percent('value', 50),
             ]),
             // In km/h rather than the climate value's 0..100, because the
             // panel displays km/h: a control reading 100 while the strip
             // beside it reads 120 is a control nobody can trust. The
             // ceiling is the game's own getMaxWindspeedKph().
             new EventAction('setWind', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, self::MAX_WIND_KPH, 40),
+                EventField::number('value', 0, self::MAX_WIND_KPH, 40, EventField::UNIT_KPH),
             ]),
             new EventAction('setTemperature', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', -30, 40, 20),
+                EventField::number('value', self::WEATHER_MIN_CELSIUS, self::WEATHER_MAX_CELSIUS, 20, EventField::UNIT_CELSIUS),
             ]),
             new EventAction('setClouds', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, 100, 50),
+                EventField::percent('value', 50),
             ]),
             new EventAction('setDaylight', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, 100, 100),
+                EventField::percent('value', 100),
             ]),
             new EventAction('setViewDistance', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, 100, 50),
+                EventField::percent('value', 50),
             ]),
             new EventAction('soundAtPlayer', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::player('player'),
-                EventField::number('radius', 1, 500, 100),
+                EventField::number('radius', 1, 500, 100, EventField::UNIT_TILES),
                 EventField::number('volume', 1, 500, 100),
             ]),
             new EventAction('soundAtPoint', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
-                EventField::number('radius', 1, 500, 100),
+                EventField::number('radius', 1, 500, 100, EventField::UNIT_TILES),
                 EventField::number('volume', 1, 500, 100),
             ]),
         ];
@@ -139,19 +179,19 @@ final readonly class EventCatalogue
                 EventField::text('message', 250),
             ]),
             new EventAction('hordeNearPlayer', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['createhorde'], [
-                EventField::number('count', 1, 500, 20),
+                EventField::number('count', 1, 500, 20, EventField::UNIT_COUNT),
                 EventField::player('player'),
             ], destructive: true),
             new EventAction('hordeAtPoint', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['createhorde2'], [
-                EventField::number('count', 1, 500, 20),
+                EventField::number('count', 1, 500, 20, EventField::UNIT_COUNT),
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
-                EventField::number('radius', 1, 200, 20),
+                EventField::number('radius', 1, 200, 20, EventField::UNIT_TILES),
             ], destructive: true),
             new EventAction('removeZombies', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['removezombies'], [
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
-                EventField::number('radius', 1, 500, 50),
+                EventField::number('radius', 1, 500, 50, EventField::UNIT_TILES),
             ], destructive: true),
         ];
     }

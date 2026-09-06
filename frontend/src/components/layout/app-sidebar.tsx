@@ -43,7 +43,6 @@ import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { BrandLogo } from '@/components/brand-logo'
-import { PanelVersionLine } from './panel-version-line'
 import { pagesOf, SERVER_SECTIONS } from './server-pages'
 
 export function AppSidebar() {
@@ -316,16 +315,6 @@ export function AppSidebar() {
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
-        <PanelVersionLine />
-
-        {/* The Indie Stone's terms ask for a visible notice, and the
-            panel shows the game's own art throughout. */}
-        <Link
-          to="/credits"
-          className="px-2 pb-1 text-xs text-muted-foreground hover:text-foreground hover:underline group-data-[collapsible=icon]:hidden"
-        >
-          {t('nav.credits')}
-        </Link>
       </SidebarFooter>
 
       <SidebarRail />

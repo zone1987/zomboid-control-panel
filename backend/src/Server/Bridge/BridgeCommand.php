@@ -19,6 +19,11 @@ enum BridgeCommand: string
     case StartRain = 'startRain';
     case StopRain = 'stopRain';
     case SetClimateValue = 'setClimateValue';
+    case ReleaseClimate = 'releaseClimate';
+    case ResetClimate = 'resetClimate';
+    case ReleaseSnow = 'releaseSnow';
+    case TriggerWeatherStage = 'triggerWeatherStage';
+    case GenerateWeather = 'generateWeather';
     case SetSnow = 'setSnow';
     case StartBlizzard = 'startBlizzard';
     case StopWeather = 'stopWeather';
@@ -58,6 +63,51 @@ enum BridgeCommand: string
     ];
 
     /**
+     * What each climate value accepts, by index.
+     *
+     * Read from ClimateManager::setup() in build 42: the ClimateFloat
+     * constructor sets max to 1 and leaves min at 0, and setup() then
+     * overrides three of them. setAdminValue clamps to these, so a value
+     * outside them is silently changed rather than refused — which the
+     * panel must not let happen unnoticed.
+     */
+    public const CLIMATE_BOUNDS = [
+        4 => [-80.0, 80.0],
+        7 => [-1.0, 1.0],
+        10 => [0.0, 100.0],
+    ];
+
+    /**
+     * The weather stages the game can be told to run, by its own name.
+     *
+     * From WeatherPeriod in build 42, which declares twelve; these are
+     * the eight a person would ask for. START, INTERMEZZO, MODDED and
+     * KATEBOB_STORM are the simulation's own bookkeeping.
+     */
+    public const WEATHER_STAGES = [
+        'showers',
+        'heavyPrecip',
+        'storm',
+        'clearing',
+        'moderate',
+        'drizzle',
+        'blizzard',
+        'tropical',
+    ];
+
+    /** The game's own admin panel offers 4 to 240 game hours. */
+    public const MAX_STAGE_HOURS = 240;
+
+    /** The one climate boolean the game keeps: BOOL_IS_SNOW. */
+    public const CLIMATE_BOOL_IS_SNOW = 0;
+
+    /** The climate colours: COLOR_GLOBAL_LIGHT and COLOR_NEW_FOG. */
+    public const CLIMATE_COLOURS = [
+        'globalLight' => 0,
+        'fog' => 1,
+    ];
+
+    /**
      * @param array<string, mixed> $arguments
      *
      * @return array<string, scalar>
@@ -66,7 +116,17 @@ enum BridgeCommand: string
     {
         return match ($this) {
             self::Ping, self::StopRain, self::StartBlizzard, self::StopWeather,
-            self::ReadClimate => [],
+            self::ReadClimate, self::ResetClimate, self::ReleaseSnow => [],
+            self::TriggerWeatherStage => [
+                'stage' => self::stage($arguments),
+                'duration' => self::number($arguments, 'duration', 1, self::MAX_STAGE_HOURS),
+            ],
+            self::GenerateWeather => [
+                'strength' => self::number($arguments, 'strength', 0.1, 1),
+                // Warm unless a cold front is asked for, which is what the
+                // game's own generator offers as its only two choices.
+                'front' => ($arguments['front'] ?? 'warm') === 'cold' ? 'cold' : 'warm',
+            ],
             self::SetSnow => ['snowing' => (bool) ($arguments['snowing'] ?? false)],
             self::SetTime => ['hour' => self::number($arguments, 'hour', 0, 24)],
             self::SetDate => array_filter([
@@ -74,10 +134,8 @@ enum BridgeCommand: string
                 'month' => isset($arguments['month']) ? self::number($arguments, 'month', 1, 12) : null,
             ], static fn (mixed $value): bool => $value !== null),
             self::StartRain => ['intensity' => self::number($arguments, 'intensity', 0, 100)],
-            self::SetClimateValue => [
-                'index' => self::climateIndex($arguments),
-                'value' => self::number($arguments, 'value', -100, 100),
-            ],
+            self::SetClimateValue => self::climateValue($arguments),
+            self::ReleaseClimate => ['index' => self::climateIndex($arguments)],
             self::PlaySound => self::sound($arguments),
             self::SetSafehouseRespawn => [
                 'title' => self::text($arguments, 'title'),
@@ -126,6 +184,42 @@ enum BridgeCommand: string
         }
 
         return [...$radius, 'player' => self::text($arguments, 'player')];
+    }
+
+    /**
+     * An index with a value the game will actually keep.
+     *
+     * setAdminValue clamps rather than refuses, so a value out of range
+     * would be applied as something else and reported as success.
+     *
+     * @param array<string, mixed> $arguments
+     *
+     * @return array<string, scalar>
+     */
+    private static function climateValue(array $arguments): array
+    {
+        $index = self::climateIndex($arguments);
+        [$min, $max] = self::CLIMATE_BOUNDS[$index] ?? [0.0, 1.0];
+
+        return [
+            'index' => $index,
+            'value' => self::number($arguments, 'value', $min, $max),
+        ];
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private static function stage(array $arguments): string
+    {
+        $stage = $arguments['stage'] ?? null;
+
+        if (!\is_string($stage) || !\in_array($stage, self::WEATHER_STAGES, true)) {
+            throw new InvalidBridgeCommand(sprintf(
+                '"stage" must be one of %s.',
+                implode(', ', self::WEATHER_STAGES),
+            ));
+        }
+
+        return $stage;
     }
 
     /** @param array<string, mixed> $arguments */

@@ -129,7 +129,7 @@
     "theWorld": "Welt"
   },
   "panel": {
-    "version": "Panelversion",
+    "version": "Panel",
     "updateAvailable": "Version {{version}} ist verfügbar",
     "upToDate": "Aktuell",
     "updateUnknown": "Nicht prüfbar",
@@ -662,7 +662,6 @@
     "recent": "Zuletzt ausgelöst",
     "noneYet": "Auf diesem Server wurde noch kein Event ausgelöst.",
     "optional": "(optional)",
-    "range": "{{min}} bis {{max}}",
     "choosePlayer": "Spieler wählen",
     "noPlayers": "Niemand online",
     "pickFromList": "Aus der Liste wählen",
@@ -694,7 +693,11 @@
       "hour": "Stunde",
       "day": "Tag",
       "month": "Monat",
-      "volume": "Lautstärke"
+      "volume": "Lautstärke",
+      "snowing": "Als Schnee",
+      "stage": "Phase",
+      "strength": "Stärke",
+      "front": "Front"
     },
     "actions": {
       "startRain": {
@@ -788,6 +791,30 @@
       "soundAtPoint": {
         "title": "Geräusch an einem Punkt",
         "description": "Erzeugt ein Geräusch an einer Stelle der Karte. Zombies laufen darauf zu."
+      },
+      "setSnow": {
+        "title": "Niederschlagsart",
+        "description": "Ob Niederschlag als Schnee oder als Regen fällt. Das Spiel lehnt Schnee außerhalb einer kalten Jahreszeit ab und nennt dann die Temperatur."
+      },
+      "startBlizzard": {
+        "title": "Schneesturm",
+        "description": "Löst den Wintersturm des Spiels aus, der Niederschlag, Wind und Temperatur gemeinsam setzt."
+      },
+      "releaseTemperature": {
+        "title": "Temperatur zurückgeben",
+        "description": "Hebt eine gesetzte Temperatur auf, damit das Spiel wieder den für die Jahreszeit üblichen Wert führt."
+      },
+      "releaseSnow": {
+        "title": "Schnee zurückgeben",
+        "description": "Hebt einen festgesetzten Niederschlagstyp auf, damit das Spiel wieder selbst entscheidet, ob es schneit."
+      },
+      "triggerWeatherStage": {
+        "title": "Wetterphase auslösen",
+        "description": "Löst eine der Wetterphasen des Spiels für eine gewählte Dauer aus — denselben Weg, den die Admin-Konsole des Spiels nimmt."
+      },
+      "generateWeather": {
+        "title": "Wetter erzeugen",
+        "description": "Lässt die Wettersimulation selbst entscheiden, was kommt. Eine warme oder kalte Front und deren Stärke sind die Vorgabe."
       }
     },
     "invalidInput": "Die Eingabe war nicht brauchbar.",
@@ -820,10 +847,45 @@
       "downpour": "Wolkenbruch",
       "thunderstorm": "Gewitter",
       "fog": "Nebel",
-      "wind": "Wind"
+      "wind": "Wind",
+      "snow": "Schnee",
+      "blizzard": "Schneesturm"
     },
     "willDo": "Wird ausgeführt",
-    "applyWeather": "Wetter setzen"
+    "applyWeather": "Wetter setzen",
+    "presetPartly_one": "„{{preset}}“ wurde gesetzt, ein Schritt wurde abgelehnt.",
+    "presetPartly_other": "„{{preset}}“ wurde gesetzt, {{count}} Schritte wurden abgelehnt.",
+    "presetGroups": {
+      "calm": "Trocken",
+      "rain": "Regen",
+      "snow": "Schnee",
+      "air": "Wind und Sicht"
+    },
+    "toggleStates": {
+      "setSnow": {
+        "true": "Niederschlag fällt als Schnee",
+        "false": "Niederschlag fällt als Regen"
+      }
+    },
+    "stepLabels": {
+      "startSnow": "Schnee starten"
+    },
+    "choices": {
+      "stage": {
+        "showers": "Schauer",
+        "heavyPrecip": "Starker Niederschlag",
+        "storm": "Sturm",
+        "clearing": "Aufklaren",
+        "moderate": "Mäßig",
+        "drizzle": "Nieselregen",
+        "blizzard": "Schneesturm",
+        "tropical": "Tropensturm"
+      },
+      "front": {
+        "warm": "Warmfront",
+        "cold": "Kaltfront"
+      }
+    }
   },
   "map": {
     "external": {
@@ -1152,7 +1214,8 @@
     "originalWording": "Wortlaut der Nutzungsbedingungen",
     "dataProtection": "Datenschutz",
     "dataProtectionBody": "Das Panel speichert Spielernamen, SteamIDs, Positionen und Fertigkeiten, weil ein Bann ohne SteamID und eine Karte ohne Positionen nicht funktionieren. Wie lange Spieler gespeichert bleiben, die niemand mehr gesehen hat, entscheidet der Betreiber — voreingestellt ist: unbegrenzt.",
-    "dataProtectionLink": "Aufbewahrung einstellen"
+    "dataProtectionLink": "Aufbewahrung einstellen",
+    "openPage": "Als eigene Seite öffnen"
   },
   "connections": {
     "title": "Verbindungen",

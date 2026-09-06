@@ -129,7 +129,7 @@
     "theWorld": "World"
   },
   "panel": {
-    "version": "Panel version",
+    "version": "Panel",
     "updateAvailable": "Version {{version}} is available",
     "upToDate": "Up to date",
     "updateUnknown": "Cannot be checked",
@@ -662,7 +662,6 @@
     "recent": "Recently triggered",
     "noneYet": "Nothing has been triggered on this server yet.",
     "optional": "(optional)",
-    "range": "{{min}} to {{max}}",
     "choosePlayer": "Choose a player",
     "noPlayers": "Nobody online",
     "pickFromList": "Pick from the list",
@@ -694,7 +693,11 @@
       "hour": "Hour",
       "day": "Day",
       "month": "Month",
-      "volume": "Volume"
+      "volume": "Volume",
+      "snowing": "As snow",
+      "stage": "Stage",
+      "strength": "Strength",
+      "front": "Front"
     },
     "actions": {
       "startRain": {
@@ -788,6 +791,30 @@
       "soundAtPoint": {
         "title": "Sound at a point",
         "description": "Makes a noise at a spot on the map. Zombies walk towards it."
+      },
+      "setSnow": {
+        "title": "Precipitation type",
+        "description": "Whether precipitation falls as snow or as rain. The game refuses snow outside a cold season and names the temperature when it does."
+      },
+      "startBlizzard": {
+        "title": "Blizzard",
+        "description": "Triggers the game's own winter storm, which sets the precipitation, the wind and the temperature together."
+      },
+      "releaseTemperature": {
+        "title": "Hand the temperature back",
+        "description": "Lifts a set temperature so the game runs the season's own again."
+      },
+      "releaseSnow": {
+        "title": "Hand the snow back",
+        "description": "Lifts a pinned precipitation type so the game decides for itself whether it snows."
+      },
+      "triggerWeatherStage": {
+        "title": "Trigger a weather stage",
+        "description": "Runs one of the game's own weather stages for a chosen duration — the same route the game's admin console takes."
+      },
+      "generateWeather": {
+        "title": "Generate weather",
+        "description": "Lets the weather simulation decide what arrives. A warm or cold front and its strength are what you give it."
       }
     },
     "invalidInput": "The input could not be used.",
@@ -820,10 +847,45 @@
       "downpour": "Downpour",
       "thunderstorm": "Thunderstorm",
       "fog": "Fog",
-      "wind": "Wind"
+      "wind": "Wind",
+      "snow": "Snow",
+      "blizzard": "Blizzard"
     },
     "willDo": "Will do",
-    "applyWeather": "Set the weather"
+    "applyWeather": "Set the weather",
+    "presetPartly_one": "\"{{preset}}\" was set; one step was refused.",
+    "presetPartly_other": "\"{{preset}}\" was set; {{count}} steps were refused.",
+    "presetGroups": {
+      "calm": "Dry",
+      "rain": "Rain",
+      "snow": "Snow",
+      "air": "Wind and visibility"
+    },
+    "toggleStates": {
+      "setSnow": {
+        "true": "Precipitation falls as snow",
+        "false": "Precipitation falls as rain"
+      }
+    },
+    "stepLabels": {
+      "startSnow": "Start the snow"
+    },
+    "choices": {
+      "stage": {
+        "showers": "Showers",
+        "heavyPrecip": "Heavy precipitation",
+        "storm": "Storm",
+        "clearing": "Clearing",
+        "moderate": "Moderate",
+        "drizzle": "Drizzle",
+        "blizzard": "Blizzard",
+        "tropical": "Tropical storm"
+      },
+      "front": {
+        "warm": "Warm front",
+        "cold": "Cold front"
+      }
+    }
   },
   "map": {
     "external": {
@@ -1152,7 +1214,8 @@
     "originalWording": "Wording from the terms",
     "dataProtection": "Data protection",
     "dataProtectionBody": "The panel stores player names, SteamIDs, positions and skills, because a ban without a SteamID and a map without positions do not work. How long players nobody has seen are kept is the operator’s decision — the default is indefinitely.",
-    "dataProtectionLink": "Configure retention"
+    "dataProtectionLink": "Configure retention",
+    "openPage": "Open as its own page"
   },
   "connections": {
     "title": "Connections",

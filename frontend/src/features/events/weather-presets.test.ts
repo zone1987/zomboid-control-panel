@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { actionsOf, WEATHER_PRESETS } from './weather-presets'
+import { actionsOf, PRESET_GROUPS, presetsOf, WEATHER_PRESETS } from './weather-presets'
 
 /**
  * A preset is a bundle of actions the catalogue already declares, so it
@@ -50,25 +50,54 @@ describe('the weather presets against the catalogue', () => {
         )
 
         for (const [field, value] of Object.entries(step.inputs ?? {})) {
-          // A bound may be a constant rather than a literal, so both
-          // shapes are read and a named one resolved from its own
-          // declaration.
-          const bounds = new RegExp(
-            `EventField::number\\('${field}', (-?\\d+), (self::[A-Z_]+|-?\\d+)`,
-          ).exec(block.slice(0, 400))
+          // A toggle is a kind, not an amount, and declares no bounds to
+          // stay inside.
+          if (typeof value === 'boolean') {
+            expect(
+              block.slice(0, 400),
+              `${step.action}.${field} is set as a boolean but is not a toggle`,
+            ).toContain(`EventField::toggle('${field}'`)
 
-          expect(bounds, `${step.action}.${field} declares no bounds`).not.toBeNull()
+            continue
+          }
 
-          const [, min, declaredMax] = bounds as RegExpExecArray
+          // Two shapes declare a bounded number: the general
+          // `number(name, min, max, default)` and the `percent()`
+          // shorthand, whose bounds are 0..100 unless it names others.
+          // A bound may also be a constant rather than a literal.
+          const declared = block.slice(0, 400)
 
-          const max = declaredMax.startsWith('self::')
-            ? (new RegExp(
-                `public const ${declaredMax.slice(6)} = (\\d+)`,
-              ).exec(catalogue) as RegExpExecArray)[1]
-            : declaredMax
+          const asNumber = new RegExp(
+            `EventField::number\\('${field}', (self::[A-Z_]+|-?\\d+), (self::[A-Z_]+|-?\\d+)`,
+          ).exec(declared)
+
+          const asPercent = new RegExp(
+            `EventField::percent\\('${field}', -?\\d+(?:, min: (-?\\d+))?(?:, max: (-?\\d+))?`,
+          ).exec(declared)
+
+          expect(
+            asNumber ?? asPercent,
+            `${step.action}.${field} declares no bounds`,
+          ).not.toBeNull()
+
+          const [min, declaredMax] =
+            asNumber !== null
+              ? [asNumber[1], asNumber[2]]
+              : [(asPercent as RegExpExecArray)[1] ?? '0', (asPercent as RegExpExecArray)[2] ?? '100']
+
+          // A bound may be a named constant on either side, so both are
+          // resolved from the catalogue's own declaration.
+          const resolve = (bound: string): string =>
+            bound.startsWith('self::')
+              ? (new RegExp(`public const ${bound.slice(6)} = (-?\\d+)`).exec(
+                  catalogue,
+                ) as RegExpExecArray)[1]
+              : bound
+
+          const max = resolve(declaredMax)
 
           expect(value, `${preset.id}: ${step.action}.${field}`).toBeGreaterThanOrEqual(
-            Number(min),
+            Number(resolve(min)),
           )
           expect(value, `${preset.id}: ${step.action}.${field}`).toBeLessThanOrEqual(Number(max))
         }
@@ -97,6 +126,92 @@ describe('the weather presets against the catalogue', () => {
       expect(de.events.presets[preset.id], `${preset.id} missing from de`).toBeTruthy()
       expect(en.events.presets[preset.id], `${preset.id} missing from en`).toBeTruthy()
     }
+  })
+
+
+  /**
+   * The groups decide four rows on the page, so a preset in no group or
+   * a group with nothing in it would be an empty heading.
+   */
+  it('puts every preset in a declared group', () => {
+    for (const preset of WEATHER_PRESETS) {
+      expect(PRESET_GROUPS, `${preset.id} is in no group`).toContain(preset.group)
+    }
+  })
+
+  it('leaves no group empty', () => {
+    for (const group of PRESET_GROUPS) {
+      expect(presetsOf(group), `${group} holds nothing`).not.toHaveLength(0)
+    }
+  })
+
+  it('labels every group in both locales', () => {
+    const de = JSON.parse(readFileSync('src/i18n/locales/de.json', 'utf8'))
+    const en = JSON.parse(readFileSync('src/i18n/locales/en.json', 'utf8'))
+
+    for (const group of PRESET_GROUPS) {
+      expect(de.events.presetGroups[group], `${group} missing from de`).toBeTruthy()
+      expect(en.events.presetGroups[group], `${group} missing from en`).toBeTruthy()
+    }
+  })
+
+  /**
+   * Snow is a type and a fall, and setting the type alone changes
+   * nothing visible — so the preset that offers snow has to do both.
+   */
+  it('makes the snow preset actually snow', () => {
+    const snow = WEATHER_PRESETS.find((preset) => preset.id === 'snow')
+
+    expect(snow).toBeDefined()
+    expect(actionsOf(snow as (typeof WEATHER_PRESETS)[number])).toContain('setSnow')
+    expect(actionsOf(snow as (typeof WEATHER_PRESETS)[number])).toContain('startRain')
+  })
+
+  /**
+   * The game refuses snow above freezing, so a preset asking for it
+   * before the temperature drops is a preset asking to be refused. The
+   * steps fire in order, so the cold has to be declared first.
+   */
+  it('cools below freezing before it asks for snow', () => {
+    for (const id of ['snow', 'blizzard']) {
+      const preset = WEATHER_PRESETS.find((candidate) => candidate.id === id)
+
+      expect(preset, `${id} is missing`).toBeDefined()
+
+      const steps = (preset as (typeof WEATHER_PRESETS)[number]).steps
+      const cold = steps.findIndex((step) => step.action === 'setTemperature')
+
+      expect(cold, `${id} never sets a temperature`).toBeGreaterThanOrEqual(0)
+      expect(
+        steps[cold]?.inputs?.value,
+        `${id} does not cool below freezing`,
+      ).toBeLessThan(0)
+
+      // Every snow-making step must come after the cold.
+      for (const [at, step] of steps.entries()) {
+        if (step.action === 'setSnow' || step.action === 'startBlizzard') {
+          expect(at, `${id} asks for snow before it cools`).toBeGreaterThan(cold)
+        }
+      }
+    }
+  })
+
+  /**
+   * The snow presets pin a temperature below freezing, and a pinned
+   * climate value stays pinned until something releases it — so clear
+   * has to hand the temperature back rather than leaving July at −12.
+   * It releases rather than setting a number because only the game knows
+   * what the season's own temperature is.
+   */
+  it('hands the temperature back to the game when clearing', () => {
+    const clear = WEATHER_PRESETS.find((preset) => preset.id === 'clear')
+
+    expect(clear).toBeDefined()
+    expect(actionsOf(clear as (typeof WEATHER_PRESETS)[number])).toContain('releaseTemperature')
+
+    // And never by setting one of its own, which would be a guess
+    // overriding the game's.
+    expect(actionsOf(clear as (typeof WEATHER_PRESETS)[number])).not.toContain('setTemperature')
   })
 
   /**

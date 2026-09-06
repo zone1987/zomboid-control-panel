@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpCircle } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import { getPanelVersion, hasUpdate } from '@/features/panel/panel-version'
 
 /** How long a release lookup is trusted in the browser. */
@@ -13,7 +14,14 @@ const STALE_MS = 3_600_000
  * Silent when the lookup fails: not knowing whether an update exists is
  * not a fault worth putting in front of an operator.
  */
-export function PanelVersionLine() {
+export function PanelVersionLine({
+  className,
+  labelled = false,
+}: {
+  className?: string
+  /** Prefixes "Panel version", so the label cannot outlive the value. */
+  labelled?: boolean
+}) {
   const { t } = useTranslation()
 
   const { data } = useQuery({
@@ -27,10 +35,12 @@ export function PanelVersionLine() {
     return null
   }
 
+  const label = labelled ? <span className="font-sans">{t('panel.version')} </span> : null
+
   if (!hasUpdate(data)) {
     return (
-      <p className="px-2 pb-1 font-mono text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-        v{data.current}
+      <p className={cn('font-mono text-xs text-muted-foreground', className)}>
+        {label}v{data.current}
       </p>
     )
   }
@@ -40,11 +50,14 @@ export function PanelVersionLine() {
       href={data.url ?? undefined}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-1.5 px-2 pb-1 font-mono text-xs text-primary hover:underline group-data-[collapsible=icon]:hidden"
+      className={cn(
+        'flex items-center gap-1.5 font-mono text-xs text-primary hover:underline',
+        className,
+      )}
       title={t('panel.updateAvailable', { version: data.latest })}
     >
       <ArrowUpCircle className="size-3" />
-      v{data.current} → v{data.latest}
+      {label}v{data.current} → v{data.latest}
     </a>
   )
 }

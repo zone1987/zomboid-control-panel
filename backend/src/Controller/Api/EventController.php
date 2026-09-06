@@ -191,6 +191,28 @@ final class EventController extends AbstractController
             ]],
             'startRain' => [BridgeCommand::StartRain, ['intensity' => $inputs['intensity'] ?? null]],
             'stopRain' => [BridgeCommand::StopRain, []],
+            // The bridge stops the thunder too, which RCON's stopweather
+            // leaves running -- so this one prefers the bridge.
+            'stopWeather' => [BridgeCommand::StopWeather, []],
+            'setSnow' => [BridgeCommand::SetSnow, ['snowing' => $inputs['snowing'] ?? true]],
+            'startBlizzard' => [BridgeCommand::StartBlizzard, []],
+            'releaseSnow' => [BridgeCommand::ReleaseSnow, []],
+            'triggerWeatherStage' => [BridgeCommand::TriggerWeatherStage, [
+                'stage' => $inputs['stage'] ?? null,
+                'duration' => $inputs['duration'] ?? null,
+            ]],
+            'generateWeather' => [BridgeCommand::GenerateWeather, [
+                // The catalogue asks for a percentage; the game takes a
+                // 0.1..1 strength.
+                'strength' => is_numeric($inputs['strength'] ?? null)
+                    ? ($inputs['strength'] + 0) / 100
+                    : null,
+                'front' => $inputs['front'] ?? 'warm',
+            ]],
+            // Not a temperature the panel picks: the game knows the
+            // season's own, and releasing the admin pin is what hands it
+            // back. Any number here would be a guess overriding it.
+            'releaseTemperature' => [BridgeCommand::ReleaseClimate, ['name' => 'temperature']],
             'soundAtPlayer', 'soundAtPoint' => [BridgeCommand::PlaySound, $inputs],
             default => [BridgeCommand::SetClimateValue, [
                 'name' => self::CLIMATE_ACTIONS[$actionId] ?? null,

@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.15.0"
+local BRIDGE_VERSION = "0.17.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -1261,29 +1261,78 @@ handlers.setClimateValue = function(command)
     )
 end
 
+--- Hands a climate value back to the game.
+--
+-- setClimateValue pins a value with setEnableAdmin(true), which holds it
+-- there until something releases it. There is no season-appropriate
+-- number the panel could set instead: the game already knows it, so
+-- releasing the pin is what "back to normal" means.
+handlers.releaseClimate = function(command)
+    local index = tonumber(command.index)
+
+    if index == nil or index < 0 or index > 12 then
+        return false, "index must be between 0 and 12"
+    end
+
+    local float = getClimateManager():getClimateFloat(math.floor(index))
+
+    if float == nil then
+        return false, "no climate value at that index"
+    end
+
+    float:setEnableAdmin(false)
+
+    return true, "climate value released", string.format(
+        '{"index":%d,"admin":%s,"value":%.4f}',
+        math.floor(index),
+        tostring(float:isEnableAdmin()),
+        float:getFinalValue()
+    )
+end
+
+--- Makes the precipitation snow, and makes it stay snow.
+--
+-- setPrecipitationIsSnow writes ClimateBool.finalValue and nothing else,
+-- and getPrecipitationIsSnow reads that same field back -- so a read-back
+-- there only proves the write happened, never that the game kept it. The
+-- next calculate() tick recomputes finalValue from the season and the
+-- snow is gone, which is exactly what a warm-season server showed: -6C
+-- and still raining.
+--
+-- The admin override is what holds. It is also the route the game's own
+-- admin panel takes (ISAdmPanelClimate.lua:418).
 handlers.setSnow = function(command)
     local snowing = command.snowing == true or command.snowing == "true"
     local climate = getClimateManager()
+    local isSnow = climate:getClimateBool(0)
 
+    if isSnow == nil then
+        return false, "the server has no snow flag"
+    end
+
+    isSnow:setEnableAdmin(true)
+    isSnow:setAdminValue(snowing)
+
+    -- finalValue too, so the current tick shows it rather than waiting
+    -- for the next climate update.
     climate:setPrecipitationIsSnow(snowing)
 
-    -- Read back rather than trusting the setter: the game refuses snow
-    -- outside a cold season, and an operator asking in July should be
-    -- told rather than left believing it worked.
-    local applied = climate:getPrecipitationIsSnow()
+    local kept = isSnow:getAdminValue()
 
-    if applied ~= snowing then
+    if kept ~= snowing then
         return false, "the server would not change the precipitation type", string.format(
             '{"asked":%s,"snowing":%s,"temperature":%.1f}',
             tostring(snowing),
-            tostring(applied),
+            tostring(kept),
             climate:getTemperature()
         )
     end
 
     return true, snowing and "precipitation is snow" or "precipitation is rain", string.format(
-        '{"snowing":%s}',
-        tostring(applied)
+        '{"snowing":%s,"pinned":%s,"temperature":%.1f}',
+        tostring(kept),
+        tostring(isSnow:isEnableAdmin()),
+        climate:getTemperature()
     )
 end
 
@@ -1316,37 +1365,210 @@ handlers.stopWeather = function()
     )
 end
 
+--- The panel's names for the thirteen climate floats, by index.
+--
+-- The game keeps its own names (getName() returns "TEMPERATURE"), but it
+-- offers no lookup by name -- getClimateFloat takes an index only -- so
+-- the pairing lives here and in BridgeCommand::CLIMATE_VALUES, which a
+-- test holds together.
+local CLIMATE_FLOATS = {
+    [0] = "desaturation", [1] = "globalLight", [2] = "nightStrength",
+    [3] = "precipitation", [4] = "temperature", [5] = "fog",
+    [6] = "wind", [7] = "windAngle", [8] = "clouds",
+    [9] = "ambient", [10] = "viewDistance", [11] = "daylight",
+    [12] = "humidity",
+}
+
 --- Every climate value at once, so the panel can show what it is about
 --- to change rather than only what it set last.
+--
+-- Each float reports its own min and max as well as its value: the game
+-- declares them (setup() overrides three of the thirteen), setAdminValue
+-- clamps to them silently, and a panel guessing them would offer a
+-- slider whose end does something other than it says.
 handlers.readClimate = function()
     local climate = getClimateManager()
     local parts = {}
 
-    for name, index in pairs({
-        desaturation = 0, globalLight = 1, nightStrength = 2, precipitation = 3,
-        temperature = 4, fog = 5, wind = 6, windAngle = 7, clouds = 8,
-        ambient = 9, viewDistance = 10, daylight = 11, humidity = 12,
-    }) do
+    for index = 0, 12 do
         local float = climate:getClimateFloat(index)
+        local name = CLIMATE_FLOATS[index]
 
-        if float ~= nil then
+        if float ~= nil and name ~= nil then
             table.insert(parts, string.format(
-                '"%s":{"value":%.4f,"admin":%s,"adminValue":%.4f}',
+                '"%s":{"index":%d,"value":%.4f,"admin":%s,"adminValue":%.4f,'
+                    .. '"min":%.4f,"max":%.4f}',
                 name,
+                index,
                 float:getFinalValue(),
                 tostring(float:isEnableAdmin()),
-                float:getAdminValue()
+                float:getAdminValue(),
+                float:getMin(),
+                float:getMax()
             ))
         end
     end
 
+    -- The one climate boolean the game keeps, and it carries its own
+    -- admin override like a float does.
+    local isSnow = climate:getClimateBool(0)
+    local snowPinned = "null"
+
+    if isSnow ~= nil then
+        snowPinned = string.format(
+            '{"value":%s,"admin":%s,"adminValue":%s}',
+            tostring(isSnow:getFinalValue()),
+            tostring(isSnow:isEnableAdmin()),
+            tostring(isSnow:getAdminValue())
+        )
+    end
+
     return true, "climate read", string.format(
-        '{"values":{%s},"windSpeedKph":%.1f,"maxWindSpeedKph":%.1f,"snowing":%s,"raining":%s}',
+        '{"values":{%s},"precipitationIsSnow":%s,"windSpeedKph":%.1f,'
+            .. '"maxWindSpeedKph":%.1f,"snowing":%s,"raining":%s,'
+            .. '"thunderStorming":%s,"season":"%s","seasonProgression":%.3f,'
+            .. '"airMass":%.3f,"frontStrength":%.3f}',
         table.concat(parts, ","),
+        snowPinned,
         climate:getWindspeedKph(),
         climate:getMaxWindspeedKph(),
         tostring(climate:isSnowing()),
-        tostring(climate:isRaining())
+        tostring(climate:isRaining()),
+        tostring(climate:getIsThunderStorming()),
+        escape(climate:getSeasonName()),
+        climate:getSeasonProgression(),
+        climate:getAirMass(),
+        climate:getFrontStrength()
+    )
+end
+
+--- Releases every pinned climate value at once.
+--
+-- resetAdmin() is the game's own "hand it all back", which the admin
+-- panel's own reset uses. Thirteen separate releases would leave the
+-- world half-pinned if one failed.
+handlers.resetClimate = function()
+    local climate = getClimateManager()
+
+    climate:resetAdmin()
+
+    local pinned = 0
+
+    for index = 0, 12 do
+        local float = climate:getClimateFloat(index)
+
+        if float ~= nil and float:isEnableAdmin() then
+            pinned = pinned + 1
+        end
+    end
+
+    return true, "climate reset", string.format('{"stillPinned":%d}', pinned)
+end
+
+--- Hands the snow flag back to the game.
+--
+-- setSnow pins it, and a pinned flag holds through the season change --
+-- so releasing it is how the world goes back to deciding for itself.
+handlers.releaseSnow = function()
+    local isSnow = getClimateManager():getClimateBool(0)
+
+    if isSnow == nil then
+        return false, "the server has no snow flag"
+    end
+
+    isSnow:setEnableAdmin(false)
+
+    return true, "snow flag released", string.format(
+        '{"admin":%s,"value":%s}',
+        tostring(isSnow:isEnableAdmin()),
+        tostring(isSnow:getFinalValue())
+    )
+end
+
+--- One of the game's own weather stages, with a duration in game hours.
+--
+-- This is the route the game's own admin panel takes
+-- (ISAdmPanelWeather.lua:174/181/188): triggerCustomWeatherStage with
+-- the stage constant. A blizzard, a tropical storm and a plain storm are
+-- the same call with a different stage, so they are one handler.
+--
+-- The stage numbers are read from WeatherPeriod when it is reachable and
+-- fall back to the values javap reports for build 42. A module-level
+-- WeatherPeriod.X would run at load time, and a missing class there
+-- would take the whole bridge down rather than one handler.
+local WEATHER_STAGES = {
+    showers = 1, heavyPrecip = 2, storm = 3, clearing = 4,
+    moderate = 5, drizzle = 6, blizzard = 7, tropical = 8,
+}
+
+local function stageNumber(name)
+    local constants = {
+        showers = "STAGE_SHOWERS", heavyPrecip = "STAGE_HEAVY_PRECIP",
+        storm = "STAGE_STORM", clearing = "STAGE_CLEARING",
+        moderate = "STAGE_MODERATE", drizzle = "STAGE_DRIZZLE",
+        blizzard = "STAGE_BLIZZARD", tropical = "STAGE_TROPICAL_STORM",
+    }
+
+    local ok, value = pcall(function()
+        return WeatherPeriod[constants[name]]
+    end)
+
+    if ok and type(value) == "number" then
+        return value
+    end
+
+    return WEATHER_STAGES[name]
+end
+
+handlers.triggerWeatherStage = function(command)
+    local stage = command.stage ~= nil and stageNumber(command.stage) or nil
+    local duration = tonumber(command.duration) or 4
+
+    if stage == nil then
+        return false, "unknown weather stage"
+    end
+
+    if duration < 1 or duration > 240 then
+        return false, "duration must be between 1 and 240 game hours"
+    end
+
+    local climate = getClimateManager()
+
+    if not climate:triggerCustomWeatherStage(stage, duration) then
+        return false, "the server refused the weather stage"
+    end
+
+    return true, "weather stage triggered", string.format(
+        '{"stage":"%s","duration":%.1f,"raining":%s,"snowing":%s,"windSpeed":%.1f}',
+        escape(tostring(command.stage)),
+        duration,
+        tostring(climate:isRaining()),
+        tostring(climate:isSnowing()),
+        climate:getWindspeedKph()
+    )
+end
+
+--- Generates a weather front, warm or cold, at a chosen strength.
+--
+-- The game's own "generate weather" (ISAdmPanelWeather.lua:196): unlike a
+-- stage this lets the simulation decide what actually arrives, which is
+-- how the world produces weather when nobody interferes.
+handlers.generateWeather = function(command)
+    local strength = tonumber(command.strength) or 0.5
+    local warm = command.front ~= "cold"
+
+    if strength < 0.1 or strength > 1 then
+        return false, "strength must be between 0.1 and 1"
+    end
+
+    if not getClimateManager():triggerCustomWeather(strength, warm) then
+        return false, "the server refused to generate weather"
+    end
+
+    return true, "weather generated", string.format(
+        '{"strength":%.2f,"front":"%s"}',
+        strength,
+        warm and "warm" or "cold"
     )
 end
 
