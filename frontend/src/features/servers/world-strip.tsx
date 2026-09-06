@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Clock, Cloud, CloudRain, Snowflake, Sun, Thermometer, Wind } from 'lucide-react'
 
+import { seasonKey } from './seasons'
 import { getWorld, type GameTime } from './world'
 
 const MONTHS_DE = 12
@@ -90,19 +91,6 @@ export function WorldStrip({ serverId }: { serverId: string }) {
       )}
     </div>
   )
-}
-
-/** "Early Summer" becomes "earlySummer". */
-function seasonKey(season: string): string {
-  const words = season.trim().split(/\s+/)
-
-  return words
-    .map((word, index) =>
-      index === 0
-        ? word.toLowerCase()
-        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-    )
-    .join('')
 }
 
 function weatherIcon(raining: boolean, snowing: boolean) {

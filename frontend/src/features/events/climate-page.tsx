@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
 import { SectionMark } from '@/components/layout/section-mark'
+import { seasonKey } from '@/features/servers/seasons'
 import { triggerEvent } from './events'
 import { formatRange, withUnit } from './units'
 import {
@@ -183,7 +184,13 @@ function Summary({ reading, serverId }: { reading: ClimateReading; serverId: str
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border p-3 text-sm">
         <Fact icon={Sun} label={t('climate.season')}>
-          {reading.season === '' ? '—' : reading.season}
+          {/* The game names seasons in English; anything unlisted falls
+              back to what the server said. */}
+          {reading.season === ''
+            ? '—'
+            : t(`world.seasonName.${seasonKey(reading.season)}`, {
+                defaultValue: reading.season,
+              })}
         </Fact>
 
         {temperature !== undefined && (
