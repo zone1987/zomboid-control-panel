@@ -236,6 +236,41 @@ which is what carries a run through it.
 `app:storage:test --diagnose` reports how a store refuses, if it
 returns.
 
+### The retry rounds fire on every batch, not on the odd one
+
+Measured on the run of 2026-09-06, over two 15-minute windows:
+**100 % of batches exhaust all four retry rounds.** Five of five, then
+four of four. It is not the opening hour settling down -- it is the
+steady state.
+
+`RETRY_ROUNDS = 4` with `sleep(2 << $round)` is 2+4+8+16 = **30 seconds
+a batch**, and a batch takes about 134 seconds. So roughly **22 % of the
+drawing time is spent waiting**, about 3 of 13 hours on a full run.
+
+Two things keep this from being urgent:
+
+- **Nothing is lost.** `tilesFailed` sat at 0 throughout; the mechanism
+  does what it was built for, and the store here really does refuse a
+  fraction of requests with a working key.
+- **The run got faster while it happened** -- 12.3, then 16.1, then
+  18.1 tiles/s against the 13 recorded earlier. Waiting a fifth of the
+  time still beat the documented rate.
+
+Worth changing before the next full render, not during one: four rounds
+of rising pauses assume a rare event. When it happens every time, the
+retry belongs at the end of a pass rather than inside every batch, or
+the pauses belong shorter. Interrupting a running render to save three
+hours is the worse trade.
+
+**A caution about diagnosing this.** Comparing the tiles held on disk
+against the store mid-run shows them all present and suggests `verify()`
+is wrong. It is not: that comparison catches the moment between an
+upload and its confirmation. Checking single files a moment later shows
+some genuinely absent -- freshly drawn, not yet sent. A fix for
+`isUnchanged()` was written on this false reading and reverted; the test
+written for it stayed green with and without the change, which was the
+tell.
+
 ### Ruled out, with reasons
 
 **projectzomboidmap.com's tiles.** Asked twice, refused twice. CORS is
