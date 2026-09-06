@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.13.1"
+local BRIDGE_VERSION = "0.13.2"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -715,25 +715,35 @@ local function describeVehicleScript(name, script)
 
     -- The textures decide what the renderer can draw and which body a
     -- vehicle belongs to: everything sharing a mask is one shell.
-    local gotCount, count = pcall(function() return script:getSkinCount() end)
+    --
+    -- getTextures(), not getSkin(0): VehicleScript keeps the script's own
+    -- "skin" block in a single "textures" field, while the "skins" list
+    -- getSkinCount() reports is a separate thing and empty on all 241
+    -- vehicles of a vanilla server. Measured, not assumed.
+    local gotSkin, skin = pcall(function() return script:getTextures() end)
 
-    if gotCount and type(count) == "number" and count > 0 then
-        local gotSkin, skin = pcall(function() return script:getSkin(0) end)
+    if not gotSkin or skin == nil then
+        local gotCount, count = pcall(function() return script:getSkinCount() end)
 
-        if gotSkin and skin ~= nil then
-            for _, entry in ipairs({
-                { "texture", "texture" },
-                { "mask", "textureMask" },
-                { "rust", "textureRust" },
-            }) do
-                local gotValue, value = pcall(function() return skin[entry[2]] end)
+        if gotCount and type(count) == "number" and count > 0 then
+            local gotFirst, first = pcall(function() return script:getSkin(0) end)
+            skin = gotFirst and first or nil
+        end
+    end
 
-                if gotValue and value ~= nil and tostring(value) ~= "" then
-                    table.insert(
-                        parts,
-                        string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
-                    )
-                end
+    if skin ~= nil then
+        for _, entry in ipairs({
+            { "texture", "texture" },
+            { "mask", "textureMask" },
+            { "rust", "textureRust" },
+        }) do
+            local gotValue, value = pcall(function() return skin[entry[2]] end)
+
+            if gotValue and value ~= nil and tostring(value) ~= "" then
+                table.insert(
+                    parts,
+                    string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
+                )
             end
         end
     end

@@ -84,14 +84,14 @@ final class VehicleCatalogueCommand extends Command
             ['Server' => $server->getName()],
             ['Bridge' => (string) ($payload['bridgeVersion'] ?? '?')],
             ['Vehicles' => (string) \count($vehicles)],
-            ['With liveries' => (string) \count(array_filter(
+            ['With a texture' => (string) \count(array_filter(
                 $vehicles,
-                static fn (array $v): bool => \count($v['skins'] ?? []) > 0,
+                static fn (array $v): bool => ($v['texture'] ?? null) !== null,
             ))],
-            ['Total liveries' => (string) array_sum(array_map(
-                static fn (array $v): int => \count($v['skins'] ?? []),
+            ['Distinct bodies' => (string) \count(array_unique(array_filter(array_map(
+                static fn (array $v): ?string => $v['mask'] ?? null,
                 $vehicles,
-            ))],
+            ))))],
         );
 
         $needle = $input->getOption('search');
@@ -106,19 +106,26 @@ final class VehicleCatalogueCommand extends Command
 
             $rows[] = [
                 $script,
-                (string) ($vehicle['model'] ?? '—'),
-                (string) \count($vehicle['skins'] ?? []),
+                self::tail((string) ($vehicle['model'] ?? '—')),
+                self::tail((string) ($vehicle['texture'] ?? '—')),
+                self::tail((string) ($vehicle['mask'] ?? '—')),
             ];
         }
 
         $limit = max(1, (int) $input->getOption('limit'));
-        $io->table(['Script', 'Model', 'Liveries'], \array_slice($rows, 0, $limit));
+        $io->table(['Script', 'Model', 'Texture', 'Mask'], \array_slice($rows, 0, $limit));
 
         if (\count($rows) > $limit) {
             $io->comment(sprintf('%d more not shown.', \count($rows) - $limit));
         }
 
         return Command::SUCCESS;
+    }
+
+    /** Textures arrive as "Vehicles/vehicle_vanmail"; the folder adds nothing. */
+    private static function tail(string $path): string
+    {
+        return str_contains($path, '/') ? substr($path, strrpos($path, '/') + 1) : $path;
     }
 
     private function resolve(?string $needle): ?GameServer

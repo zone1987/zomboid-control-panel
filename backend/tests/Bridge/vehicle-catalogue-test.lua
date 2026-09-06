@@ -51,25 +51,35 @@ local function describeVehicleScript(name, script)
 
     -- The textures decide what the renderer can draw and which body a
     -- vehicle belongs to: everything sharing a mask is one shell.
-    local gotCount, count = pcall(function() return script:getSkinCount() end)
+    --
+    -- getTextures(), not getSkin(0): VehicleScript keeps the script's own
+    -- "skin" block in a single "textures" field, while the "skins" list
+    -- getSkinCount() reports is a separate thing and empty on all 241
+    -- vehicles of a vanilla server. Measured, not assumed.
+    local gotSkin, skin = pcall(function() return script:getTextures() end)
 
-    if gotCount and type(count) == "number" and count > 0 then
-        local gotSkin, skin = pcall(function() return script:getSkin(0) end)
+    if not gotSkin or skin == nil then
+        local gotCount, count = pcall(function() return script:getSkinCount() end)
 
-        if gotSkin and skin ~= nil then
-            for _, entry in ipairs({
-                { "texture", "texture" },
-                { "mask", "textureMask" },
-                { "rust", "textureRust" },
-            }) do
-                local gotValue, value = pcall(function() return skin[entry[2]] end)
+        if gotCount and type(count) == "number" and count > 0 then
+            local gotFirst, first = pcall(function() return script:getSkin(0) end)
+            skin = gotFirst and first or nil
+        end
+    end
 
-                if gotValue and value ~= nil and tostring(value) ~= "" then
-                    table.insert(
-                        parts,
-                        string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
-                    )
-                end
+    if skin ~= nil then
+        for _, entry in ipairs({
+            { "texture", "texture" },
+            { "mask", "textureMask" },
+            { "rust", "textureRust" },
+        }) do
+            local gotValue, value = pcall(function() return skin[entry[2]] end)
+
+            if gotValue and value ~= nil and tostring(value) ~= "" then
+                table.insert(
+                    parts,
+                    string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
+                )
             end
         end
     end
@@ -90,8 +100,11 @@ local function script(fields)
             }
         end,
         getFullName = function() return fields.fullName end,
-        getSkinCount = function() return fields.skin and 1 or 0 end,
-        getSkin = function() return fields.skin end,
+        getTextures = function() return fields.skin end,
+        getSkinCount = function() return fields.extraSkins and #fields.extraSkins or 0 end,
+        getSkin = function(_, index)
+            return fields.extraSkins and fields.extraSkins[index + 1] or nil
+        end,
     }
 end
 
@@ -144,6 +157,16 @@ check("carries the texture", van:find('"texture":"Vehicles/vehicle_vanmail"', 1,
 -- groups 51 van liveries under one tile.
 check("carries the mask", van:find('"mask":"Vehicles/vehicle_van_mask"', 1, true) ~= nil)
 check("carries the rust overlay", van:find('"rust":"Vehicles/Veh_Rust"', 1, true) ~= nil)
+
+-- A modded vehicle may fill the skins list instead of the textures
+-- field, so the fallback has to work.
+local modded = describeVehicleScript("MyMod.Truck", script({
+    model = "Vehicles_MyTruck",
+    extraSkins = { { texture = "Vehicles/mymod_truck" } },
+}))
+
+check("falls back to the skins list when textures is empty",
+    modded:find('"texture":"Vehicles/mymod_truck"', 1, true) ~= nil)
 
 -- --------------------------------------------------------------------
 -- The fault this test exists for
