@@ -4003,146 +4003,103 @@ it once at mount.
 
 # TODO — the current list (supersedes every earlier one)
 
-## 1. The climate page — the next thing, and the bridge is ready
+## 1. Waiting on you, not on me
 
-Bridge 0.17.0 carries everything it needs and **none of it has been
-fired yet**. That is the first job: exercise `readClimate`,
-`releaseClimate`, `resetClimate`, `triggerWeatherStage` and
-`generateWeather` against the live server before building on them.
+- [ ] **Upload bridge 0.18.1 and restart the server.** 0.18.0 is live and
+      its two utility handlers are broken (`readUtilities`,
+      `setUtility`): Lua cannot index a public Java **field**, which is
+      what `elecShutModifier` is. 0.18.1 goes through
+      `getElecShutModifier()` and `SandboxOptions::set(String, Object)`
+      instead. Everything else in 0.18.0 was fired against the live
+      server and works.
+- [ ] **Then the power/water section on the world page starts answering**
+      — it is built, tested and polling the endpoint already.
+- [ ] **Vitals sliders and the heal button** need 0.18.1 **and a player
+      online**. The bridge side exists (`readPlayerStats`,
+      `setPlayerStat`, `setPlayerWeight`); the ids are verified against
+      `CharacterStat`'s constant pool. Generate the sliders from the
+      reported bounds, exactly as the climate page does.
+- [ ] **A real vehicle spawn** — needs a player online, never tried end
+      to end.
 
-- [ ] **Decide page vs. sixth category.** Thirteen sliders are not
-      thirteen events, so: a **page** at
-      `servers/:id/events/climate`, reading `readClimate` and writing
-      `setClimateValue` — plus an `EVENT_CHILDREN` entry and a sidebar
-      child, which is what makes it reachable.
-- [ ] **A `readClimate` endpoint.** There is none: the action is a
-      *write* channel and this is a read. Probably
-      `GET /api/servers/{id}/climate` beside `ConnectionStatusEndpoint`,
-      read-only and safe to poll.
-- [ ] **Bounds come from the reading, not a table.** Every float now
-      reports its own `min`/`max`; three differ from 0..1
-      (temperature −80…80, windAngle −1…1, viewDistance 0…100). Do not
-      hard-code them a second time in the frontend.
-- [ ] **Show the override state, and offer to release it.** A pinned
-      value reads "you have pinned this", an unpinned one "the game is
-      running this". `releaseClimate` (one) and `resetClimate` (all)
-      exist for exactly this.
-- [ ] **Units per 10e** — % for the 0..1 values shown as percentages,
-      °C, km/h against the 120 ceiling. `EventField::unit` is built;
-      this page does not go through `EventField`, so it needs the same
-      `withUnit`/`formatRange` from `features/events/units.ts`.
-- [ ] **The user asked for it graphically** — *"schön grafisch
-      aufbereitet auch vielleicht mit einem thermometer Icon usw"*.
-      A thermometer for temperature, a wind icon, a cloud, a sun; the
-      icons already used on the world strip (`world-strip.tsx`) are the
-      precedent, and lucide has `Thermometer`, `Wind`, `Cloud`,
-      `Sun`, `Droplets`, `Eye`, `Moon`, `Sparkles`.
-- [x] **The two `ClimateColor`s** — done: a colour picker each on the
-      climate page, indoors and out set together, verified live.
-- [x] **`triggerWeatherStage` has a control** — done on the weather
-      page, eight stages with a duration, verified live.
+## 2. The one thing I could not finish
 
-## 2. The remaining event pages — **done**
+- [ ] **Wheels do not draw**, though one real cause was found and fixed
+      (the mesh was saved under its internal name `Vehicle_Wheel` while
+      the catalogue asks for `Vehicles_Wheel.txt`). Every link is
+      verified separately — file served, catalogue reporting four
+      offsets, hook passing them through, parser yielding 52 vertices
+      with normals and UVs, mesh 0.316 m across matching the script's
+      radius. **Ruled out**: missing file, 404, null in the catalogue,
+      parser failure, wrong unit, stale render cache. **Next**:
+      instrument `draw()` to log `frame.children.length` and the wheels'
+      world positions after the rotations; check whether `bodyFrame()`
+      returns the node the body geometry actually hangs on for a
+      multi-mesh FBX; render one wheel with no body. Screenshots cannot
+      settle it.
 
-- [x] **Actions as directly-actionable cards** — `actions-page.tsx`.
-      Chopper verified live.
-- [x] **The day arc** — `world-page.tsx` + `day-arc.tsx`. The game has no
-      sunrise constant, so the band takes the **measured** daylight from
-      `readClimate` rather than drawing an assumed one. Verified live:
-      dusk → "time set" → 18:12 on the arc.
-- [x] **Sounds and Zombies** stay on the generic page, and Zombies keeps
-      its `AlertDialog`.
+## 3. Small and open
 
-## 3. The player dossier (plan phase 3)
+- [ ] **`llms.txt` is stale on versions** whenever the bridge moves —
+      `DocumentationTest` catches it, which is the intended behaviour.
+- [ ] **Lighthouse** — never run. Needs a browser against the built app.
+- [ ] **A retention notice on the credits page** — the horizon is
+      configurable and off by default; the page does not mention it.
+- [ ] **21 lint warnings**, all deliberate: 13 `only-export-components`
+      (a provider beside its hook, tables beside their component), 3
+      `set-state-in-effect` in vendored code, 5 others in the map and
+      vendored components.
 
-Unchanged, still the largest single piece. Capability research **done**;
-signatures in `~/.claude/plans/snug-stargazing-russell.md`. The points
-that decide the work:
+## 4. Deferred, and each needs a scope decision before starting
 
-- [x] **List left / dossier right** — done. `player-vitals.tsx` is the
-      old dialog body; `ban-dialog` and `teleport-dialog` stay modal.
-      `player-detail.tsx` has been deleted.
-- [ ] **God mode, invisible, noclip, XP, voice ban, SteamID ban and
-      whitelist are all plain RCON** — each takes `-true`/`-false`, so
-      the panel sets a state rather than toggling blind. **No bridge.**
-- [ ] **Healing needs the bridge**; the game does it server-side in
-      `ClientCommands.lua` (`RestoreToFullHealth()` per body part, then
-      `syncBodyPart`).
-- [ ] **Vitals sliders** — the bridge side is built (`readPlayerStats`,
-      `setPlayerStat`, `setPlayerWeight` in 0.18.x) and the ids are
-      verified against `CharacterStat`'s constant pool. Needs **0.18.1
-      uploaded** and a player online to exercise. Generate the sliders
-      from the reported bounds, exactly as the climate page does.
-- [ ] **A voice ban does not persist** — in-memory, lost on reconnect.
-- [ ] **Kill is unproven.** The API exists; no server-side call site
-      does. Test before shipping.
-- [x] **Notes and tags** — done: `PlayerNote`, a migration, clickable
-      tags from the suggestions plus what this server already uses.
-- [x] **The dossier log is filtered to the selected player** — done via
-      `forPlayer()` on the existing index.
-- [x] **Route `new ModerationAction(...)` through one recorder** — done:
-      `ModerationRecorder`, nine literals across eight files, with a test
-      that fails if anything bypasses it.
-- [x] **God mode, invisible, noclip, voice ban, XP, SteamID ban** — done
-      in `PlayerModerator` plus two endpoints; command names taken from
-      the live server's own `help`.
-- [ ] **The list-left / dossier-right rebuild is what remains** of this
-      item, plus the vitals sliders on `readPlayerStats`, the heal
-      button, notes/tags with a migration, and the per-player log.
+These were agreed as separate plans. I have not started any of them
+because each one's *size* is the first question, and that is yours.
 
-## 4. Deferred, agreed as separate plans
-
-- [ ] **Discord** — bot status, per-command permissions, two-way relay,
-      event notifications with **every message editable**; admin actions
-      individually switchable, default **off**, ideally to a separate
-      channel. `ChatLine.php:63` parses inbound Discord already;
-      **`ChatLine` does not parse the channel** (`main_tab_title_id`
-      ignored), which "General only" needs.
-- [ ] **Steam Workshop / mod management** — the user called this
-      especially valuable. `-mods` and `WorkshopItems` are in the INI.
-- [ ] **Server config editor** — INI, sandbox (183 values), spawn
-      points and regions.
-- [ ] **Scheduler** — cron tasks, restart warnings, preset broadcasts.
+- [ ] **Discord** — the strongest reference feature. Bot status,
+      per-command permissions, two-way chat relay, and event
+      notifications with **every message editable**. Beyond the
+      reference: admin actions individually switchable, default **off**,
+      ideally to a separate channel. `ChatLine.php:63` already parses
+      inbound Discord messages and `ChatBroadcaster` already sends;
+      **`ChatLine` does not parse the channel** (`main_tab_title_id` is
+      ignored), which "General only" versus "all public chat" needs.
+- [ ] **Steam Workshop / mod management** — called especially valuable.
+      `-mods` and `WorkshopItems` live in the INI, readable and writable
+      over FTP.
+- [ ] **Server config editor** — INI, sandbox (183 values), spawn points
+      and regions. All plain files; `upload`/`download` exist.
+- [ ] **Scheduler** — cron tasks, restart warnings with a countdown,
+      preset broadcasts. Symfony Scheduler is already a dependency.
       Caveat: **we can stop a server, never start one.**
-- [ ] **Statistics and charts.** `getZombieKills()`,
-      `getSurvivorKills()`, `getHoursSurvived()` are on
-      `IsoGameCharacter`. **`PlayerSnapshot` is one overwritten row per
-      player, not a time series** — "online over time" needs a sample
-      table. New dependency (no `recharts`), though `--chart-1`…`5`
-      exist in both themes.
-- [ ] **The notification bell** — content known: panel and bridge
-      updates, plus the join/leave and admin-action feed.
+- [ ] **Statistics and charts.** The bridge now reports `zombieKills` and
+      `survivorKills` per player (0.18), so a leaderboard is ready to
+      draw. **But `PlayerSnapshot` is one overwritten row per player,
+      not a time series**, so "players online over time" needs a new
+      sample table. Charts are a new dependency (no `recharts`), though
+      `--chart-1`…`5` already exist in both themes.
+- [ ] **The notification bell.** Its content is known: panel and bridge
+      updates, plus the join/leave and admin-action feed — and
+      `ModerationRecorder` is now the single seam it would hook into.
 - [ ] **Avatars** from the social login (`GetPlayerSummaries` already
       returns `avatarfull`) and uploadable **with cropping**. GD is
       installed and used this way in `IconExtractor::crop()`. **Proxy,
       never hotlink**, so `img-src 'self'` stays true.
-- [ ] **Lighthouse** — never run.
-- [ ] **Wheels on the map renderer** — the `bodyFrame()` fix is written
-      and **never seen working**. Force a fresh render; the cache is
-      keyed by model, texture, paint and heading, so editing code does
-      not invalidate it.
-- [x] **`ModerationAction`'s overloaded columns** — done: `inputs` and
-      `failed` added, both nullable because null is honest for the rows
-      that predate them. `username` still doubles as the action id for an
-      event, which is harmless and left alone.
-- [x] **Route-level permission guards** — done:
-      `RequirePagePermission` reads the same table the sidebar reads, so
-      the two cannot drift.
-- [ ] **A real vehicle spawn** against the live server — needs a player
-      online, never tried end to end.
-- [ ] **Coordinate-based thunder and lightning.** The engine takes
-      `(x, y, doStrike, doLightning, doRumble)`; RCON takes a player
-      name only. Would let a strike be placed on the map.
+- [ ] **Kill stays unbuilt, deliberately.** The methods exist
+      (`Kill`, `dieNetwork`, `setHealth`) but there is **no call on a
+      player anywhere in `media/lua/`** — only on animals. Nothing
+      unproven goes into a bridge that gets uploaded to a running
+      server.
 
-## Where the code is, for item 1
+## Where the code is, for the next few items
 
 | What | Where |
 |---|---|
-| Bridge climate handlers | `backend/resources/bridge/ZomboidControlBridge.lua` — `readClimate` ~1389, `resetClimate` ~1450, `releaseClimate` ~1270, `releaseSnow` ~1472, `triggerWeatherStage` ~1523, `generateWeather` ~1556 |
-| Indices, bounds, colours, stages | `BridgeCommand::CLIMATE_VALUES`, `CLIMATE_BOUNDS`, `CLIMATE_COLOURS`, `WEATHER_STAGES` |
+| Bridge handlers | `backend/resources/bridge/ZomboidControlBridge.lua`, `handlers.<name> = function` |
+| Bridge commands | `backend/src/Server/Bridge/BridgeCommand.php` — enum plus `validate()` |
 | Bridge→action mapping | `EventController::throughBridge()` |
-| A read-only pollable endpoint to copy | `backend/src/Controller/Api/ConnectionStatusEndpoint.php` |
+| The API guard | `backend/tests/Unit/Server/Bridge/BridgeClimateCallsTest.php` + `tests/Fixtures/climate-api.json` — **regenerate the fixture when the game's build changes** |
+| Fire one handler by hand | `php bin/console app:bridge:send <server> <action> -a name=value` |
+| The dossier | `frontend/src/features/players/player-dossier.tsx` and its four tabs |
+| One moderation seam | `backend/src/Server/Players/ModerationRecorder.php` |
+| Climate page | `frontend/src/features/events/climate-page.tsx` |
 | Units | `frontend/src/features/events/units.ts` |
-| Icons per condition, as a precedent | `frontend/src/features/servers/world-strip.tsx` |
-| Sidebar children | `frontend/src/components/layout/server-pages.ts`, `EVENT_CHILDREN` |
-| Category route (static above `:category`) | `frontend/src/routes/router.tsx` |
