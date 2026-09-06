@@ -1,12 +1,17 @@
 import {
   Car,
+  CloudRain,
+  Globe,
   MessagesSquare,
   Package,
   ScrollText,
   Map,
+  Skull,
   Sparkles,
   Terminal,
   Users,
+  Volume2,
+  Zap,
 } from 'lucide-react'
 
 import type { Permission } from '@/features/auth/types'
@@ -21,6 +26,18 @@ import type { Permission } from '@/features/auth/types'
  */
 export type ServerSection = 'live' | 'world' | 'content' | 'diagnostics'
 
+/**
+ * A page nested under another, for the event categories.
+ *
+ * No permission of its own: there is one event permission and the
+ * parent's filter already gates the whole subtree.
+ */
+export type ServerChildPage = {
+  path: string
+  label: string
+  icon: typeof Users
+}
+
 /** One entry per page under a server, with what it takes to see it. */
 export type ServerPage = {
   path: string
@@ -28,7 +45,22 @@ export type ServerPage = {
   icon: typeof Users
   permission: Permission
   section: ServerSection
+  children?: ServerChildPage[]
 }
+
+/**
+ * The five event categories as pages of their own.
+ *
+ * The labels are the catalogue's own -- `events.categories.<id>` -- so
+ * one string serves the nav entry, the breadcrumb and the page heading.
+ */
+export const EVENT_CHILDREN: ServerChildPage[] = [
+  { path: 'weather', label: 'events.categories.weather', icon: CloudRain },
+  { path: 'sounds', label: 'events.categories.sounds', icon: Volume2 },
+  { path: 'actions', label: 'events.categories.actions', icon: Zap },
+  { path: 'zombies', label: 'events.categories.zombies', icon: Skull },
+  { path: 'world', label: 'events.categories.world', icon: Globe },
+]
 
 export const SERVER_PAGES: ServerPage[] = [
   {
@@ -52,6 +84,7 @@ export const SERVER_PAGES: ServerPage[] = [
     icon: Sparkles,
     permission: 'events.trigger',
     section: 'world',
+    children: EVENT_CHILDREN,
   },
   { path: 'map', label: 'nav.map', icon: Map, permission: 'players.view', section: 'world' },
   {

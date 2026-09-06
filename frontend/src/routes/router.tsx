@@ -98,6 +98,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/events/events-page'), 'EventsPage'),
                     },
                     {
+                      // A static segment would match before this one, so a
+                      // category with a page of its own can be added here
+                      // later without touching the catalogue.
+                      path: 'servers/:id/events/:category',
+                      lazy: lazyRoute(() => import('@/features/events/category-page'), 'CategoryPage'),
+                    },
+                    {
                       path: 'servers/:id/console',
                       lazy: lazyRoute(() => import('@/features/console/console-page'), 'ConsolePage'),
                     },

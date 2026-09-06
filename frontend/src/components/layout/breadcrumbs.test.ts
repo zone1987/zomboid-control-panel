@@ -30,6 +30,29 @@ describe('deriving breadcrumbs from a path', () => {
     ])
   })
 
+  it('reads three levels on an event category', () => {
+    expect(crumbsFor(`/servers/${SERVER_ID}/events/weather`)).toEqual([
+      { label: 'nav.servers', to: '/servers' },
+      { label: 'nav.events', to: `/servers/${SERVER_ID}/events` },
+      { label: 'events.categories.weather' },
+    ])
+  })
+
+  /** A page with no children must not grow a third crumb from a stray path. */
+  it('ignores a fourth segment under a page with no children', () => {
+    expect(crumbsFor(`/servers/${SERVER_ID}/players/anything`)).toEqual([
+      { label: 'nav.servers', to: '/servers' },
+      { label: 'nav.players' },
+    ])
+  })
+
+  it('ignores a fourth segment that is not a known child', () => {
+    expect(crumbsFor(`/servers/${SERVER_ID}/events/nowhere`)).toEqual([
+      { label: 'nav.servers', to: '/servers' },
+      { label: 'nav.events' },
+    ])
+  })
+
   it('falls back to the dashboard label for an unknown root', () => {
     expect(crumbsFor('/nowhere')).toEqual([{ label: 'nav.dashboard' }])
   })

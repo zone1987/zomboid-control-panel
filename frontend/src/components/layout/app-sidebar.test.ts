@@ -66,3 +66,37 @@ describe('the sidebar sections', () => {
     }
   })
 })
+
+describe('the child pages', () => {
+  const withChildren = SERVER_PAGES.filter((page) => page.children !== undefined)
+
+  it('has at least one page with children', () => {
+    expect(withChildren.length).toBeGreaterThan(0)
+  })
+
+  it('labels every child in both locales', () => {
+    const de = JSON.parse(readFileSync('src/i18n/locales/de.json', 'utf8'))
+    const en = JSON.parse(readFileSync('src/i18n/locales/en.json', 'utf8'))
+
+    const lookup = (bundle: Record<string, unknown>, key: string) =>
+      key.split('.').reduce<unknown>((held, part) => (held as Record<string, unknown>)?.[part], bundle)
+
+    for (const page of withChildren) {
+      for (const child of page.children ?? []) {
+        expect(lookup(de, child.label), `${child.label} missing from de`).toBeTruthy()
+        expect(lookup(en, child.label), `${child.label} missing from en`).toBeTruthy()
+      }
+    }
+  })
+
+  /** A child path must be reachable, which means the router has a route. */
+  it('is served by a route in the router', () => {
+    const router = readFileSync('src/routes/router.tsx', 'utf8')
+
+    for (const page of withChildren) {
+      expect(router, `${page.path} has no child route`).toContain(
+        `servers/:id/${page.path}/:`,
+      )
+    }
+  })
+})

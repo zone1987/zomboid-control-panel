@@ -27,6 +27,15 @@ const SUB_PAGE_LABELS: Record<string, string> = Object.fromEntries(
   SERVER_PAGES.map((page) => [page.path, page.label]),
 )
 
+// A fourth segment under a page that declares children, keyed by the
+// parent so two parents could use the same child path.
+const CHILD_LABELS: Record<string, Record<string, string>> = Object.fromEntries(
+  SERVER_PAGES.filter((page) => page.children !== undefined).map((page) => [
+    page.path,
+    Object.fromEntries((page.children ?? []).map((child) => [child.path, child.label])),
+  ]),
+)
+
 export type Crumb = {
   label: string
   to?: string
@@ -42,7 +51,18 @@ export function crumbsFor(pathname: string): Crumb[] {
     return [{ label: rootKey }]
   }
 
-  return [{ label: rootKey, to: `/${root}` }, { label: subKey }]
+  const sub = segments[2] ?? ''
+  const childKey = segments.length >= 4 ? CHILD_LABELS[sub]?.[segments[3]] : undefined
+
+  if (childKey === undefined) {
+    return [{ label: rootKey, to: `/${root}` }, { label: subKey }]
+  }
+
+  return [
+    { label: rootKey, to: `/${root}` },
+    { label: subKey, to: `/${segments.slice(0, 3).join('/')}` },
+    { label: childKey },
+  ]
 }
 
 export function Breadcrumbs() {

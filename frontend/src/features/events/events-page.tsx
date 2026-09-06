@@ -44,7 +44,14 @@ const CATEGORY_ICONS: Record<EventCategory, typeof CloudRain> = {
   world: Globe,
 }
 
-export function EventsPage() {
+/**
+ * The event console, optionally narrowed to one category.
+ *
+ * One component rather than five: the search, the form, the trigger and
+ * the confirmation are the same everywhere, and a category page differs
+ * only in which actions it lists and what it calls itself.
+ */
+export function EventsPage({ only }: { only?: EventCategory } = {}) {
   const { t } = useTranslation()
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
@@ -131,10 +138,12 @@ export function EventsPage() {
     },
   })
 
-  const grouped = EVENT_CATEGORIES.map((category) => ({
-    category,
-    entries: matches.filter((entry) => entry.category === category),
-  })).filter((section) => section.entries.length > 0)
+  const grouped = EVENT_CATEGORIES.filter((category) => only === undefined || category === only)
+    .map((category) => ({
+      category,
+      entries: matches.filter((entry) => entry.category === category),
+    }))
+    .filter((section) => section.entries.length > 0)
 
   const ready = action !== null && isComplete(action, values)
 
@@ -155,9 +164,15 @@ export function EventsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">{t('events.title')}</h1>
+        <h1 className="text-2xl font-semibold">
+          {only === undefined ? t('events.title') : t(`events.categories.${only}`)}
+        </h1>
         <p className="text-muted-foreground">
-          {server ? t('events.descriptionFor', { server: server.name }) : t('events.description')}
+          {only === undefined
+            ? server
+              ? t('events.descriptionFor', { server: server.name })
+              : t('events.description')
+            : t(`events.categoryDescriptions.${only}`)}
         </p>
       </div>
 

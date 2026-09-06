@@ -104,7 +104,8 @@
     "sectionLive": "Betrieb",
     "sectionWorld": "Welt",
     "sectionContent": "Inhalte",
-    "sectionDiagnostics": "Diagnose"
+    "sectionDiagnostics": "Diagnose",
+    "toggleSection": "{{section}} ein- oder ausklappen"
   },
   "dashboard": {
     "subtitle": "Was auf diesem Server gerade los ist.",
@@ -793,6 +794,13 @@
       "actions": "Aktionen",
       "zombies": "Zombies",
       "world": "Welt"
+    },
+    "categoryDescriptions": {
+      "weather": "Regen, Gewitter, Nebel und Wind — Zustände, die anhalten.",
+      "sounds": "Geräusche, die Zombies anlocken. Donner ist nur das Grollen.",
+      "actions": "Einmalige Ereignisse: der Blitz mit Einschlag, ein Hubschrauber, eine Durchsage.",
+      "zombies": "Horden herbeirufen oder Zombies entfernen. Alles hier greift tief ein.",
+      "world": "Der Rahmen, in dem die Welt läuft: Uhrzeit, Datum, Helligkeit, Sichtweite."
     }
   },
   "map": {

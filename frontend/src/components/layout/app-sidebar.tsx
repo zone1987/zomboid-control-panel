@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import {
+  ChevronRight,
   ChevronsUpDown,
   LayoutDashboard,
   LogOut,
@@ -21,7 +22,11 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarMenuAction,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
 import {
@@ -36,6 +41,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/features/auth/auth-context'
 import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { BrandLogo } from '@/components/brand-logo'
 import { PanelVersionLine } from './panel-version-line'
 import { pagesOf, SERVER_SECTIONS } from './server-pages'
@@ -57,6 +63,11 @@ export function AppSidebar() {
 
   const isActive = (path: string) =>
     path === '/' ? pathname === '/' : pathname.startsWith(path)
+
+  // A child needs exact matching: /events/weather must not light up
+  // /events as well as itself, and the parent keeps the prefix match so
+  // it stays lit while a child is open.
+  const isExactly = (path: string) => pathname === path || pathname === `${path}/`
 
   return (
     <Sidebar collapsible="icon">
@@ -152,27 +163,91 @@ export function AppSidebar() {
             <SidebarGroup key={section.id}>
               <SidebarGroupLabel>{t(section.label)}</SidebarGroupLabel>
               <SidebarMenu>
-                {pages.map((page) => (
-                  <SidebarMenuItem key={page.path}>
-                    {activeServer === undefined ? (
-                      <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
-                        <page.icon />
-                        <span>{t(page.label)}</span>
-                      </SidebarMenuButton>
-                    ) : (
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive(`/servers/${activeServer.id}/${page.path}`)}
-                        tooltip={t(page.label)}
-                      >
-                        <Link to={`/servers/${activeServer.id}/${page.path}`}>
+                {pages.map((page) => {
+                  if (activeServer === undefined) {
+                    return (
+                      <SidebarMenuItem key={page.path}>
+                        <SidebarMenuButton disabled tooltip={t('nav.noServerYet')}>
                           <page.icon />
                           <span>{t(page.label)}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    )}
-                  </SidebarMenuItem>
-                ))}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  }
+
+                  const base = `/servers/${activeServer.id}/${page.path}`
+
+                  if (page.children === undefined) {
+                    return (
+                      <SidebarMenuItem key={page.path}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive(base)}
+                          tooltip={t(page.label)}
+                        >
+                          <Link to={base}>
+                            <page.icon />
+                            <span>{t(page.label)}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  }
+
+                  return (
+                    <Collapsible
+                      key={page.path}
+                      asChild
+                      // Open on arrival when a child is showing, so a deep
+                      // link does not land with its own entry hidden.
+                      defaultOpen={isActive(base)}
+                      className="group/collapsible"
+                    >
+                      <SidebarMenuItem>
+                        {/* The label still navigates and the chevron still
+                            toggles: two jobs, two controls, rather than a
+                            label that only opens a list. */}
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isExactly(base)}
+                          tooltip={t(page.label)}
+                        >
+                          <Link to={base}>
+                            <page.icon />
+                            <span>{t(page.label)}</span>
+                          </Link>
+                        </SidebarMenuButton>
+
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuAction
+                            aria-label={t('nav.toggleSection', { section: t(page.label) })}
+                            className="data-[state=open]:rotate-90"
+                          >
+                            <ChevronRight />
+                          </SidebarMenuAction>
+                        </CollapsibleTrigger>
+
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {page.children.map((child) => (
+                              <SidebarMenuSubItem key={child.path}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isExactly(`${base}/${child.path}`)}
+                                >
+                                  <Link to={`${base}/${child.path}`}>
+                                    <child.icon />
+                                    <span>{t(child.label)}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )
+                })}
               </SidebarMenu>
             </SidebarGroup>
           )

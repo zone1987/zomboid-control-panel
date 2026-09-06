@@ -104,7 +104,8 @@
     "sectionLive": "Live",
     "sectionWorld": "World",
     "sectionContent": "Content",
-    "sectionDiagnostics": "Diagnostics"
+    "sectionDiagnostics": "Diagnostics",
+    "toggleSection": "Expand or collapse {{section}}"
   },
   "dashboard": {
     "subtitle": "What is happening on this server right now.",
@@ -793,6 +794,13 @@
       "actions": "Actions",
       "zombies": "Zombies",
       "world": "World"
+    },
+    "categoryDescriptions": {
+      "weather": "Rain, storms, fog and wind — conditions that persist.",
+      "sounds": "Noises that draw zombies. Thunder is the rumble alone.",
+      "actions": "One-shot events: lightning with its strike, a helicopter, a broadcast.",
+      "zombies": "Summon a horde or clear zombies. Everything here reaches deep.",
+      "world": "The frame the world runs in: time, date, daylight, view distance."
     }
   },
   "map": {
