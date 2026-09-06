@@ -2902,3 +2902,97 @@ The categories exist; the **pages** do not. Still open from plan phase 4:
 - [ ] The weather page itself: icon presets, `WorldStrip` at the top,
       slider rows, the day arc for the world page, actions as
       directly-actionable cards.
+
+---
+
+# 2026-09-06 (evening) — Event categories became pages — `a2a3243`
+
+The categories existed as data since `46adf8c`; now each is a page.
+
+## The sidebar sub-level
+
+`SERVER_PAGES` gained `children?: ServerChildPage[]`, and `EVENT_CHILDREN`
+lists the five with the catalogue's own labels
+(`events.categories.<id>`), so **one string serves the nav entry, the
+breadcrumb and the page heading**. A child carries no permission of its
+own: there is one event permission and the parent's filter already gates
+the subtree.
+
+**Built from shadcn's own arrangement rather than by hand**, on the
+user's prompt: `Collapsible` wrapping `SidebarMenuItem`, with
+`SidebarMenuAction` as the chevron trigger. Two things that matters for:
+
+- **The label still navigates and the chevron still toggles** — two jobs,
+  two controls. A label that only opened a list would take the overview
+  away.
+- `SidebarMenuAction` already carries
+  `group-data-[collapsible=icon]:hidden`, so the icon rail needed no
+  special case. Same for `SidebarMenuSub`.
+
+`defaultOpen={isActive(base)}` opens it on arrival when a child is
+showing, so a deep link does not land with its own entry hidden.
+
+A first attempt showed the children only while the parent was active,
+with no chevron and no way to collapse — the user pointed out that shadcn
+had already solved it.
+
+## One page, not five
+
+`EventsPage` takes an optional `only?: EventCategory`. The search, the
+form, the trigger and the confirmation are identical across categories;
+only the listed actions and the heading differ. `CategoryPage` reads the
+`:category` segment and **redirects to the overview when it is not a
+category** — an empty list would read as "this category has nothing"
+rather than "there is no such category".
+
+Route: `servers/:id/events/:category`. A static segment matches before a
+dynamic one, so a category that later wants a page of its own (weather,
+with presets and a live band) is added above this line without touching
+the catalogue.
+
+## Exact matching, and the third breadcrumb
+
+`isExactly(path)` sits beside `isActive(path)`: a child needs exact
+matching or `/events/weather` lights up `/events` too, while the parent
+keeps its prefix match so it stays lit while a child is open.
+
+`crumbsFor()` reads three levels and **refuses to grow a third from a
+stray path** — a page with no children, or a fourth segment naming no
+known child, still reads two. Both pinned.
+
+## Tests
+
+- `breadcrumbs.test.ts`: three levels on a category; a fourth segment
+  ignored under a childless page; an unknown child ignored.
+- `app-sidebar.test.ts`: every child labelled in both locales, and every
+  page with children served by a route in `router.tsx` — so a child
+  cannot be added to the nav without being reachable.
+- `events.test.ts`: the category drift guard against
+  `EventAction::CATEGORIES`, proven to fail when the two are reordered
+  apart.
+
+## Verification
+
+| | |
+|---|---|
+| Backend tests | **516, green** |
+| Frontend tests | **213, green** across 19 files |
+| Linter | 0 errors, 29 warnings (all pre-existing) |
+| Typecheck / build | clean |
+| Pushed | `origin/main` at `a2a3243` |
+| Checked in a browser | the chevron opening and closing, the five children, "Wetter" active, the breadcrumb reading Server › Events › Wetter, the page showing only its eight weather actions |
+
+## Still open on the events work
+
+- [ ] **The weather page proper**: icon presets (frontend bundles of
+      existing actions fired sequentially with one toast), `WorldStrip`
+      at the top for the live state, slider rows behind a disclosure for
+      fog/clouds/wind/temperature. Icons verified present in lucide:
+      `Sun`, `Cloudy`, `CloudDrizzle`, `CloudRain`, `CloudRainWind`,
+      `CloudLightning`, `CloudFog`, `SunDim`.
+- [ ] **The day arc** for the world page — chosen over an analogue clock,
+      which is ambiguous across 24 hours.
+- [ ] **Actions as large directly-actionable cards** rather than
+      list-and-detail: with three entries, select-then-fill is friction.
+- [ ] **Bridge 0.14** for fog, clouds, thunderstorm and precipitation in
+      the world state. **Needs an upload and a game-server restart.**
