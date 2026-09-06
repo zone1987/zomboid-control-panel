@@ -3467,6 +3467,131 @@ the bundle from 345 kB to 1.18 MB.
 
 ---
 
+## Power, water, one moderation recorder, and the abilities (2026-09-06)
+
+### Bridge 0.18.0 fired against the live server, and 0.18.1 fixes what it found
+
+The habit from the snow bug held: every new handler was fired at the
+running server before anything was built on it.
+
+| Handler | Result |
+|---|---|
+| `readClimateColours`, `setClimateColour`, `releaseClimateColour` | **work** — RGBA indoors and out |
+| `strikeLightning` | **works** — struck at 10778,9770 |
+| `healPlayer`, `readPlayerStats` | refuse an absent player rather than throwing; the rest needs somebody online |
+| `readUtilities`, `setUtility` | **failed** — see below |
+
+**The failure**: `attempted index: getValueAsObject of non-table: null`.
+`elecShutModifier` is a public *field* on `SandboxOptions`, and **Lua
+cannot index a Java field** — it gets null. The methods work, so 0.18.1
+goes through `getElecShutModifier()` to read and
+`SandboxOptions::set(String, Object)` to write, with the option names
+from the constant pool: **`ElecShutModifier`**, capital E, not the
+field's spelling.
+
+That is the fourth trap of this kind (after `ClimateBool::getFinalValue`,
+`Color::getA` and `ORDERED_STATS`), and the pattern is now clear enough
+to be a rule: **a public field is not reachable from Lua; only methods
+are.** Recorded in CLAUDE.md.
+
+### Power and water, which the game has no switch for
+
+The operator asked for toggles. There is no on/off flag: from the game's
+own code (`ISVehicleMenu.lua:1089`) a utility runs while
+
+```
+getWorldAgeHours() / 24 + (getTimeSinceApo() - 1) * 30  <  <its>ShutModifier
+```
+
+So **off** sets that day to today's floor and **on** sets `-1`, the
+game's own "never shuts off" — and both read back. The panel says which
+state it is in *and* how many days are left, because "on" cannot say
+until when; a countdown appears only where there is one, never as
+"−4 days remaining".
+
+`UtilityReading` (+6 tests) owns that arithmetic, `UtilityEndpoint`
+serves it read-only under `ViewServers`, and switching goes through the
+event catalogue as `setPower`/`setWater` under `TriggerEvents` — looking
+is not setting.
+
+### One moderation recorder
+
+Nine `new ModerationAction(...)` literals across eight files became one
+`ModerationRecorder`, ahead of the dossier adding several more and a
+notification feed later wanting to see every action go past.
+
+**Two shapes, because the callers differ.** `record()` persists and
+flushes, which is what a controller wants after acting. `add()` only
+queues: `ExpiredBanLifter` and `RosterWatcher` flush **once at the end**
+(`:70` and `:52`), and turning their single transaction into one per row
+would have been a regression nobody notices until a busy server slows
+down. That distinction was checked in the sources, not assumed.
+
+`ModerationRecorderTest` walks `src/` and asserts nothing else builds one
+directly — reverting a single call site fails it by filename.
+
+Four new action types on the entity: `ABILITY`, `EXPERIENCE`, `HEAL`,
+`STATISTIC`.
+
+### The abilities, from the server's own help
+
+`PlayerModerator` gained god mode, invisibility, noclip, the voice ban,
+XP and the SteamID ban/unban. Every command name was read from the live
+server's `help` rather than from documentation, which mattered:
+
+- **`godmodplayer`**, not `godmodeplayer` — the server's own help text
+  documents the second spelling in its *example* and accepts the first.
+- `invisibleplayer`, `noclip`, `voiceban`, `addxp`, `banid`, `unbanid`.
+
+Each ability takes `-true`/`-false`, so the panel sets a state rather
+than toggling one nobody read.
+
+**Both unquoted arguments are pinned to a shape.** The perk and the
+SteamID appear without quotes in their commands, so a semicolon would
+start a second command: letters only and digits only, refused at the
+endpoint *and* in the moderator, with tests firing
+`'Woodwork=1 -true; quit'` and `'7656119800000000; quit'` at both. XP is
+capped at 100000 so a typo cannot max a skill.
+
+Endpoints: `POST /players/{username}/ability` under `KickPlayers` —
+somebody who may remove a player may also make them invincible — and
+`POST /players/{username}/experience` under `GiveItems`, because granting
+XP is giving something out. Seven new cases in
+`PermissionEnforcementTest`.
+
+### Files
+
+| File | Change |
+|---|---|
+| `backend/resources/bridge/ZomboidControlBridge.lua` | **0.18.1**; utilities by method rather than field |
+| `backend/src/Server/Bridge/UtilityReading.php` | **new** |
+| `backend/src/Controller/Api/UtilityEndpoint.php` | **new** |
+| `backend/src/Server/Players/ModerationRecorder.php` | **new** |
+| `backend/src/Server/Players/PlayerModerator.php` | abilities, XP, SteamID bans |
+| `backend/src/Entity/ModerationAction.php` | four new types |
+| `backend/src/Controller/Api/PlayerController.php` | ability and experience endpoints |
+| 6 controllers + `RosterWatcher` + `ExpiredBanLifter` | route through the recorder |
+| `frontend/src/features/events/utilities.ts` | **new** |
+| `frontend/src/features/events/world-page.tsx` | the utility section |
+| `backend/tests/…/UtilityReadingTest.php` | **new**, 6 |
+| `backend/tests/…/ModerationRecorderTest.php` | **new**, 3 |
+| `backend/tests/…/PlayerModeratorTest.php` | +9 |
+| `backend/tests/Functional/PermissionEnforcementTest.php` | +7 |
+
+### Verification
+
+| What | State |
+|---|---|
+| Backend | **562 tests, 5527 assertions green** |
+| Frontend | **248 tests, 23 files green** |
+| Container | `lint:container` clean |
+| Lua | `luac -p` clean |
+| Live | the colours, the lightning and the player refusals verified against 0.18.0 |
+| **Waiting on an upload** | 0.18.1 — the utilities cannot work until it is up |
+| Guards proven by reverting | the recorder bypass, the perk injection, the SteamID shape |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3549,9 +3674,15 @@ that decide the work:
 - [ ] Notes and tags need a `PlayerNote` entity and a migration.
 - [ ] The dossier log is **filtered to the selected player**;
       `moderation_action` already has `idx_server_username`.
-- [ ] Route `new ModerationAction(...)` through one recorder while
-      adding the dossier actions — six literals today, and that seam is
-      where notifications later hook in.
+- [x] **Route `new ModerationAction(...)` through one recorder** — done:
+      `ModerationRecorder`, nine literals across eight files, with a test
+      that fails if anything bypasses it.
+- [x] **God mode, invisible, noclip, voice ban, XP, SteamID ban** — done
+      in `PlayerModerator` plus two endpoints; command names taken from
+      the live server's own `help`.
+- [ ] **The list-left / dossier-right rebuild is what remains** of this
+      item, plus the vitals sliders on `readPlayerStats`, the heal
+      button, notes/tags with a migration, and the per-player log.
 
 ## 4. Deferred, agreed as separate plans
 

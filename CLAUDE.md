@@ -321,6 +321,14 @@ mod is uploaded by hand — so a mismatch surfaces on a live server as
   `setAdminValue` **clamps silently** rather than refusing, and that
   three of the thirteen climate floats do not run 0..1. A silent clamp
   applies something other than what was asked and reports success.
+- **A public Java field is not reachable from Lua; only methods are.**
+  `elecShutModifier` is `public` on `SandboxOptions`, and indexing it
+  returned null — the live server answered "attempted index:
+  getValueAsObject of non-table: null". `getElecShutModifier()` and
+  `set(String, Object)` work. This is the fourth trap of the same family
+  (after `ClimateBool::getFinalValue`, `Color::getA` and the
+  `ORDERED_STATS` array), so the rule is: **`javap` the member, and if
+  it is a field rather than a method, find the method.**
 - **Nothing at module level touches an exposed game class.** A
   `local X = WeatherPeriod.STAGE_STORM` runs when the mod loads, and a
   class not yet reachable there takes the **whole bridge** down rather

@@ -358,6 +358,82 @@ final class PlayerController extends AbstractController
         );
     }
 
+    /**
+     * God mode, invisibility, noclip and the voice ban.
+     *
+     * A state rather than a toggle: each command takes `-true`/`-false`,
+     * so the panel says what it wants instead of flipping a flag nobody
+     * read. The server keeps none of these where the panel can see them,
+     * which is why the interface shows a third state -- unknown -- rather
+     * than claiming "off".
+     */
+    #[Route('/{username}/ability', name: 'api_players_ability', methods: ['POST'])]
+    #[IsGranted(Permission::KickPlayers->value)]
+    public function setAbility(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
+    {
+        $payload = $this->payloadOf($request);
+        $ability = $payload['ability'] ?? null;
+
+        if (!\is_string($ability) || !isset(PlayerModerator::ABILITIES[$ability])) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['ability' => 'validation.invalid'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $on = ($payload['on'] ?? null) === true;
+
+        return $this->moderate(
+            $serverId,
+            fn (GameServer $server): string => $this->moderator->setAbility($server, $username, $ability, $on),
+            ModerationAction::ABILITY,
+            $username,
+            $actor,
+            sprintf('%s=%s', $ability, $on ? 'true' : 'false'),
+        );
+    }
+
+    /** Experience in one skill, optionally through the server's multiplier. */
+    #[Route('/{username}/experience', name: 'api_players_experience', methods: ['POST'])]
+    #[IsGranted(Permission::GiveItems->value)]
+    public function grantExperience(string $serverId, string $username, Request $request, #[CurrentUser] User $actor): JsonResponse
+    {
+        $payload = $this->payloadOf($request);
+        $perk = $payload['perk'] ?? null;
+        $amount = $payload['amount'] ?? null;
+
+        if (!\is_string($perk) || preg_match('/^[A-Za-z]+$/', $perk) !== 1) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['perk' => 'validation.invalid'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!\is_int($amount) || $amount < 1 || $amount > PlayerModerator::MAX_XP) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'errors' => ['amount' => 'validation.invalid'],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $withMultiplier = ($payload['withMultiplier'] ?? null) === true;
+
+        return $this->moderate(
+            $serverId,
+            fn (GameServer $server): string => $this->moderator->grantExperience(
+                $server,
+                $username,
+                $perk,
+                $amount,
+                $withMultiplier,
+            ),
+            ModerationAction::EXPERIENCE,
+            $username,
+            $actor,
+            sprintf('%s=%d', $perk, $amount),
+        );
+    }
+
     private function moderate(
         string $serverId,
         \Closure $action,

@@ -57,6 +57,104 @@ final class PermissionEnforcementTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+
+    /**
+     * The abilities sit behind the kick permission: a moderator who may
+     * remove somebody may also make them invincible, and neither reaches
+     * the access levels.
+     */
+    public function testTheAbilitiesFollowTheKickPermission(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::KickPlayers]);
+
+        $this->request('POST', $this->url($server).'/bob/ability', ['ability' => 'god', 'on' => true]);
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testSomeoneWhoMayOnlyLookCannotSetAnAbility(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers]);
+
+        $this->request('POST', $this->url($server).'/bob/ability', ['ability' => 'god', 'on' => true]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    /** An ability the server has no command for is refused, not guessed. */
+    public function testAnUnknownAbilityIsRefused(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::KickPlayers]);
+
+        $this->request('POST', $this->url($server).'/bob/ability', ['ability' => 'fly', 'on' => true]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    /** Granting XP is giving something out, so it follows that permission. */
+    public function testExperienceFollowsTheGivePermission(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::GiveItems]);
+
+        $this->request(
+            'POST',
+            $this->url($server).'/bob/experience',
+            ['perk' => 'Woodwork', 'amount' => 200],
+        );
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAModeratorWithoutTheGivePermissionCannotGrantExperience(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::KickPlayers]);
+
+        $this->request(
+            'POST',
+            $this->url($server).'/bob/experience',
+            ['perk' => 'Woodwork', 'amount' => 200],
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    /**
+     * The perk is unquoted in the RCON command, so the endpoint refuses
+     * anything but a plain name before the moderator ever sees it.
+     */
+    public function testAPerkCarryingACommandIsRefused(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::GiveItems]);
+
+        $this->request(
+            'POST',
+            $this->url($server).'/bob/experience',
+            ['perk' => 'Woodwork=1 -true; quit', 'amount' => 1],
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testAnAmountBeyondTheCapIsRefused(): void
+    {
+        $server = $this->server();
+        $this->signInWith([Permission::ViewPlayers, Permission::GiveItems]);
+
+        $this->request(
+            'POST',
+            $this->url($server).'/bob/experience',
+            ['perk' => 'Woodwork', 'amount' => 999999999],
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
     /** Without it the list itself is closed, not merely the buttons on it. */
     public function testSomeoneWithoutTheViewPermissionCannotSeeTheListAtAll(): void
     {

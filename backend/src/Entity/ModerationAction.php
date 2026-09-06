@@ -46,6 +46,18 @@ class ModerationAction
     /** A player went offline. Nobody in the panel did this, so performedBy is null. */
     public const LEAVE = 'leave';
 
+    /** An ability set from the dossier: god mode, invisibility, noclip. */
+    public const ABILITY = 'ability';
+
+    /** Experience granted in one skill. */
+    public const EXPERIENCE = 'experience';
+
+    /** A player healed through the bridge. */
+    public const HEAL = 'heal';
+
+    /** One of the character statistics set through the bridge. */
+    public const STATISTIC = 'statistic';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;
