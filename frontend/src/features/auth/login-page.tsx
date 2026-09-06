@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -41,11 +41,10 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { signIn, refresh } = useAuth()
   const [twoFactorPending, setTwoFactorPending] = useState(false)
-  const [passkeysSupported, setPasskeysSupported] = useState(false)
-
-  useEffect(() => {
-    setPasskeysSupported(browserSupportsWebAuthn())
-  }, [])
+  // Read once at mount rather than set in an effect: whether the browser
+  // has WebAuthn is a fact about the browser, not state that changes —
+  // and an effect meant the button flickered in on the second render.
+  const [passkeysSupported] = useState(browserSupportsWebAuthn)
 
   useRedirectNotice()
 

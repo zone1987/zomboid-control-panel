@@ -32,12 +32,10 @@ import {
 export function PasskeyManager() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const [supported, setSupported] = useState(false)
+  // A fact about the browser, read once, rather than state set in an
+  // effect — see login-page.tsx for the same reasoning.
+  const [supported] = useState(browserSupportsWebAuthn)
   const [pendingRename, setPendingRename] = useState<Passkey | null>(null)
-
-  useEffect(() => {
-    setSupported(browserSupportsWebAuthn())
-  }, [])
 
   const { data, isPending } = useQuery({
     queryKey: ['passkeys'],
