@@ -85,9 +85,9 @@ export function defaultsFor(action: EventAction): Record<string, string | number
 }
 
 /**
- * Whether every required input has a usable value. Numbers are checked
- * against the range the action declared, so an impossible request never
- * reaches the server.
+ * Whether every required input has a usable value. Any number that carries
+ * a value is checked against the range the action declared, so an
+ * impossible request never reaches the server.
  */
 export function isComplete(
   action: EventAction,
@@ -95,6 +95,10 @@ export function isComplete(
 ): boolean {
   return action.fields.every((field) => {
     const value = values[field.name]
+
+    if (field.required === false && String(value ?? '').trim() === '') {
+      return true
+    }
 
     if (field.type === 'number') {
       const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10)
