@@ -14,6 +14,37 @@ and what remains open. Never shorten it to save space — mark things done
 rather than deleting them. Rewrite it completely at 90%, 95% and 98% context
 usage, so nothing is lost to compression.
 
+## 0b. Context runs out; write CONTEXT.md as you go
+
+**What is not possible, stated plainly so this rule is not built on a
+wish:** the assistant cannot read its own context usage — there is no
+percentage available to it and no tool that reports one — and it cannot
+run `/compact`, which is a command of the interface rather than a tool.
+So "start wrapping up at 90%" cannot be self-triggered. Any rule that
+depends on it would silently never fire.
+
+What works instead, and is therefore the rule:
+
+- **Write the CONTEXT.md entry when a piece of work is finished, not at
+  the end of the session.** One commit's worth of work, one entry. The
+  state is then safe whenever compression happens, which is the whole
+  point — and auto-compact is on in this project, so it happens without
+  warning.
+- **Every entry says what remains, to the smallest detail**: the exact
+  file, the exact line, the value that was tried, the value to try next.
+  "Verify the heading" is useless after a compact; "`CATALOGUE_HEADING =
+  285` in `vehicle-preview.tsx`, alternatives 267/277/297, the arithmetic
+  is `(wanted − 243.4) mod 360`" survives it.
+- **Keep the TODO list at the end of the file**, and supersede the old
+  one rather than editing it — what was planned stays readable beside
+  what happened.
+- **Ask for a compact when a long session reaches a natural break.** The
+  assistant cannot run it, but it can say the state is written and now is
+  a good moment. Do that rather than pressing on into a compression
+  nobody prepared for.
+- **After a compact, read CONTEXT.md before anything else.** Section 0
+  already says this; it is the other half of the same rule.
+
 ## 1. All code is English
 
 Identifiers, file names, comments, commit messages, test names and

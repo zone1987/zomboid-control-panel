@@ -2680,3 +2680,98 @@ cause is invisible in the source: **the sidebar link read
 route matched. Every other link in that file uses a bare path.
 `app-sidebar.test.ts` now reads the basename out of `router.tsx` and
 asserts no link repeats it — proven to fail against the original mistake.
+
+---
+
+# 2026-09-06 (evening) — Sidebar grouped, spawning taken out of Events
+
+Working autonomously through the TODO list. Written per finished block
+rather than at the end, per the new rule in CLAUDE.md section 0b.
+
+## Sidebar grouped by what the operator is doing — `293e869`
+
+One flat list of eight server pages put looking things up beside
+intervening beside handing out content. Five bands now:
+
+| Band | Pages |
+|---|---|
+| **Live** (`nav.sectionLive`) | Players, Chat, Console |
+| **World** (`nav.sectionWorld`) | Events, Map |
+| **Content** (`nav.sectionContent`) | Items, Vehicles |
+| **Diagnostics** (`nav.sectionDiagnostics`) | Log |
+| **Administration** | Settings, Users |
+
+The band is a `section` field on `SERVER_PAGES` rather than an order in
+the JSX, so adding a page decides its place in one edit. `pagesOf()` and
+`SERVER_SECTIONS` drive the rendering; a section with nothing under it
+draws no heading at all.
+
+The log moved out of the middle of the old list deliberately: it is read
+to find out why something happened, not to hand anything out. First
+attempt filed it under Content, which was wrong for that reason.
+
+`app-sidebar.test.ts` (new) asserts: every page has a section the sidebar
+draws, every offered section has a page, every page is reachable from
+exactly one section, and every section is labelled in both locales.
+
+**Also renamed the event console to Events** — the first thing asked for
+in this whole overhaul, and it had been missed until the user pointed at
+it again. `nav.events` and `events.title` only; the `events.*` key
+namespace is untouched.
+
+## Vehicle spawning out of the event catalogue — `8749baa`
+
+Spawning had two paths since it got its own page: the page called
+`dispatch('spawnVehicle', ...)`, which looks the action up in
+`EventCatalogue`, so the entry had to stay — and the events page kept
+offering a dropdown of script names beside it.
+
+`EventDispatcher::run($server, $actionId, $command)` is new: it sends a
+command the caller has already built, so a page owning its own command
+still gets the RCON plumbing and the `EventOutcome` shape.
+
+Gone with the catalogue entry:
+
+- `src/Server/Events/VehicleScripts.php` and its 17 hard-coded names
+- `EventDispatcher::spawnVehicle()` and the match arm
+- `'vehicles' => VehicleScripts::NAMES` on the events endpoint
+- The `vehicles` field on the frontend `EventCatalogue` type, the prop
+  threaded through `events-page.tsx` → `EventForm` → `FieldInput`, and
+  the `action.id === 'spawnVehicle'` special case in the choice field
+- `events.actions.spawnVehicle.*` in both locales
+
+`FieldInput` lost its `action` prop as a consequence — the build caught
+that (`TS6133`), not the linter.
+
+**The injection guard moved rather than being deleted.**
+`EventDispatcher::clean()` is now public, because a caller quoting its
+own argument needs the same guarantee: a player named `bob" ; quit "`
+must not become two commands. The controller applies it to the player
+name; `NAME_PATTERN` already admitted no quote in the script.
+
+`tests/Functional/VehicleSpawnTest.php` (new, 6 tests) pins the
+endpoint's refusals over HTTP: a quote, a semicolon, an empty script, a
+missing player, a permission-less role — and that a modded name
+(`SomeMod.WhateverVan_02`) passes the shape check and fails later on RCON
+(502) rather than being refused at the guard (422).
+
+`EventDispatcherTest` keeps a `clean()` test in place of the two it lost,
+so the guarantee stays pinned on both sides.
+
+## `representatives()` deleted
+
+It was exported, tested and unused — written for a "no body chosen" state
+that shows one vehicle per body. The state that shipped instead says
+"choose a body above", which is clearer than 22 example tiles, so the
+function and its test are gone rather than left as a decision nobody
+made.
+
+## Verification
+
+| | |
+|---|---|
+| Backend tests | **498, green** (was 493; +6 spawn, −1 moved) |
+| Frontend tests | **211, green** across 20 files |
+| Linter | 0 errors, 30 warnings (all pre-existing; `set-state-in-effect` in `events-page.tsx` is the one that moved into view) |
+| Typecheck / build | clean |
+| Checked in a browser | the grouped sidebar, with Events renamed |

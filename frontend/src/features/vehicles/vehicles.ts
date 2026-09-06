@@ -102,22 +102,6 @@ export function matches(vehicle: SpawnableVehicle, needle: string): boolean {
   )
 }
 
-/**
- * One representative per body, for the state before a body is chosen.
- *
- * Prefers a drawable member so the grid is not a wall of fallback icons
- * on a server whose artwork is only partly uploaded.
- */
-export function representatives(catalogue: VehicleCatalogue): SpawnableVehicle[] {
-  return catalogue.bodies
-    .map((body) => {
-      const members = catalogue.items.filter((item) => item.body === body.id)
-
-      return members.find((member) => member.drawable) ?? members[0]
-    })
-    .filter((member): member is SpawnableVehicle => member !== undefined)
-}
-
 export type Selection = {
   needle: string
   body: string | null

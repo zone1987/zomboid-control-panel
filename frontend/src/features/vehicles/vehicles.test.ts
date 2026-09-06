@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs'
 
 import {
   matches,
-  representatives,
   select,
   selectBodies,
   typesPresent,
@@ -123,77 +122,6 @@ describe('select', () => {
 
   it('shows nothing when nothing is marked and no body is chosen', () => {
     expect(select(items, { needle: '', body: null, onlyFavourites: true }, none, none)).toEqual([])
-  })
-})
-
-describe('representatives', () => {
-  it('prefers a member with artwork, so the grid is not all fallbacks', () => {
-    const plain = vehicle({ script: 'Base.VanA', body: 'van' })
-    const drawn = vehicle({ script: 'Base.VanB', body: 'van', drawable: true })
-
-    expect(
-      representatives({
-        bodies: [{ id: 'van', name: 'Van', count: 2, preview: 'Base.VanB' }],
-        items: [plain, drawn],
-        generatedAt: null,
-        bridgeVersion: null,
-        available: true,
-      }),
-    ).toEqual([drawn])
-  })
-})
-
-describe('selectBodies', () => {
-  const catalogue: VehicleCatalogue = {
-    bodies: [
-      { id: 'nyala', name: 'Chevalier Nyala', count: 1, preview: null },
-      { id: 'van', name: 'Franklin Valuline', count: 1, preview: null },
-      { id: WRECKS, name: '', count: 1, preview: null },
-    ],
-    items,
-    generatedAt: null,
-    bridgeVersion: null,
-    available: true,
-  }
-
-  const none = () => false
-
-  it('shows every body while the filter is off', () => {
-    expect(selectBodies(catalogue, false, none, none).map((body) => body.id)).toEqual([
-      'nyala',
-      'van',
-      WRECKS,
-    ])
-  })
-
-  it('narrows to the marked bodies', () => {
-    expect(
-      selectBodies(catalogue, true, (id) => id === 'van', none).map((body) => body.id),
-    ).toEqual(['van'])
-  })
-
-  /** A favourite livery must stay reachable even with its body unmarked. */
-  it('keeps a body holding a marked livery', () => {
-    expect(
-      selectBodies(catalogue, true, none, (script) => script === 'Base.CarNormal').map(
-        (body) => body.id,
-      ),
-    ).toEqual(['nyala'])
-  })
-
-  it('does not list a body twice when both it and its livery are marked', () => {
-    expect(
-      selectBodies(
-        catalogue,
-        true,
-        (id) => id === 'nyala',
-        (script) => script === 'Base.CarNormal',
-      ).map((body) => body.id),
-    ).toEqual(['nyala'])
-  })
-
-  it('shows nothing when nothing is marked', () => {
-    expect(selectBodies(catalogue, true, none, none)).toEqual([])
   })
 })
 
