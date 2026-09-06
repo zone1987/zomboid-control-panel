@@ -110,10 +110,34 @@ recorded here earlier, was wrong: measured at 236 KB a tile
 
 **Those figures are for `omit_levels: 0`, which is no longer what runs.**
 The survey is one of two levers and was the only one in use; the second
-is the pyramid depth, and it had never reached the renderer. At the
-default of 2 the same world is **197 k tiles and 45 GB, about four hours
-each way**. Both savings multiply: the survey skips 96 % of the passes,
-and dropping two levels quarters what the rest produce twice over.
+is the pyramid depth, and it had never reached the renderer. Both
+savings multiply: the survey skips 96 % of the passes, and dropping two
+levels quarters what the rest produce twice over.
+
+**Measured from the run of 2026-09-06, not projected:**
+
+| | Value |
+|---|---|
+| Survey | 40 min, 4,992 cells |
+| Passes skipped as empty | 183,917 -- 96 % |
+| Passes to draw | 7,140 |
+| Floors the world has | **47**, -17 to +29 |
+| Tiles the run estimates | **~590,000** |
+| Storage at 241 KB a tile | **~135 GB** |
+| Runtime | **~12 h** |
+
+A projection of 197 k tiles and 45 GB was recorded here first and was
+wrong by a factor of three. It assumed the five floors of
+`FLOOR_ORDER`, which is only the starting assumption for the progress
+display; the survey finds 47, because Louisville reaches 29 and a
+bunker sits at -17. The run's own estimate comes from the tile rate of
+the cells already drawn and is the one to trust.
+
+**All 47 floors are rendered deliberately.** `layer_range` would cut
+this sharply, and it is the wrong saving: buildings really do reach 29
+and bunkers -17, and a panel blind at those heights is blind exactly
+where players build. If 135 GB ever presses, `omit_levels: 3` gives
+~34 GB and ~3 h and costs one zoom step rather than a floor.
 
 ### The defect that ruined two runs
 
@@ -1043,6 +1067,18 @@ store, ~13 tiles/s rendered):
 
 Brief 08 already named 2 as the number to plan around. The setting had
 simply never reached the renderer.
+
+**That last row was wrong by a factor of three, and the run said so.**
+It assumed five floors -- `FLOOR_ORDER`, which is only the progress
+display's starting guess. The survey finds 47. The run's own estimate,
+taken from the tile rate of the cells already drawn, is **~590,000
+tiles, ~135 GB, ~12 h**. Still a fifth of what `omit_levels: 0` cost,
+and it fits the 1 TB bucket with room.
+
+Keep every floor: buildings reach 29 and bunkers -17, and `layer_range`
+would blind the panel exactly where players build. `omit_levels: 3` is
+the lever if storage ever presses -- ~34 GB, one zoom step, no floor
+lost.
 
 `DEFAULT_OMIT_LEVELS = 2`, overridable through `PZMAP_OMIT_LEVELS`.
 **Verified against a real cell:** `map_info.json` reports `skip: 2` and
