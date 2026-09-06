@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import type { LucideIcon } from 'lucide-react'
+import { CircleAlert, CircleCheck, type LucideIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -23,7 +23,7 @@ export function SectionTile({
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 rounded-md border p-3 transition-colors hover:border-primary/40 hover:bg-accent/50"
+      className="pz-interactive flex items-center gap-3 rounded-md border p-3 hover:bg-accent/50"
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
 
@@ -31,13 +31,17 @@ export function SectionTile({
         <p className="truncate text-sm font-medium">{label}</p>
         <p
           className={cn(
-            'truncate font-mono text-xs',
+            'flex items-center gap-1 truncate font-mono text-xs',
             tone === 'good' && 'text-primary',
             tone === 'warn' && 'text-amber-600 dark:text-amber-500',
             tone === 'neutral' && 'text-muted-foreground',
           )}
         >
-          {state}
+          {/* A shape as well as a hue: red against green is the most
+              common form of colour blindness. */}
+          {tone === 'warn' && <CircleAlert className="size-3 shrink-0" aria-hidden />}
+          {tone === 'good' && <CircleCheck className="size-3 shrink-0" aria-hidden />}
+          <span className="truncate">{state}</span>
         </p>
       </div>
     </Link>

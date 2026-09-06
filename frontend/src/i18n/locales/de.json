@@ -116,7 +116,8 @@
     "rconReady": "RCON bereit",
     "rconMissing": "RCON fehlt",
     "bridgeStale": "Antwortet nicht",
-    "bridgeUnknown": "Unbekannt"
+    "bridgeUnknown": "Unbekannt",
+    "theWorld": "Welt"
   },
   "panel": {
     "version": "Panelversion",

@@ -19,7 +19,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border p-4',
+        'pz-interactive flex items-center gap-3 rounded-md border p-4',
         accent && 'border-l-2 border-l-primary',
       )}
     >

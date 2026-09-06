@@ -281,3 +281,91 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* --------------------------------------------------------------------
+   Motion and surface
+   -------------------------------------------------------------------- */
+
+/* Motion is decoration everywhere in the panel, so it goes when asked.
+   The map is the exception: it is an interactive graphic whose panning,
+   zooming and label reveals carry the information itself, and freezing
+   them would leave it unusable rather than calmer. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.pz-map *):not(.pz-map),
+  *:not(.pz-map *):not(.pz-map)::before,
+  *:not(.pz-map *):not(.pz-map)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes pz-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+/* Each routed page fades up once on arrival. Short enough that a fast
+   navigation never feels held back. */
+.pz-page {
+  animation: pz-page-in 180ms ease-out;
+}
+
+@keyframes pz-row-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.pz-row-in {
+  animation: pz-row-in 220ms ease-out;
+}
+
+/* A card that can be reached lifts very slightly and warms its border,
+   so "clickable" is legible without a pointer. */
+.pz-interactive {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.pz-interactive:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 16px -8px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+.pz-interactive:active {
+  transform: translateY(0);
+}
+
+/* The panel's own backdrop: a barely-there wash of the primary from the
+   top left, so a full-width page is not a flat slab. Fixed rather than
+   scrolling, so it reads as the surface the content sits on. */
+.pz-surface {
+  position: relative;
+}
+
+.pz-surface::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      60rem 40rem at 0% 0%,
+      color-mix(in oklab, var(--primary) 7%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      50rem 35rem at 100% 0%,
+      color-mix(in oklab, var(--primary) 4%, transparent),
+      transparent 65%
+    );
+  pointer-events: none;
+}

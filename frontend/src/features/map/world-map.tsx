@@ -145,7 +145,7 @@ export function WorldMap({
   const levels = source.layers.map((layer) => layer.level)
 
   return (
-    <div ref={frame} className="relative size-full overflow-hidden rounded-md bg-muted/30">
+    <div ref={frame} className="pz-map relative size-full overflow-hidden rounded-md bg-muted/30">
       <div
         ref={(node) => {
           viewer.containerRef(node)

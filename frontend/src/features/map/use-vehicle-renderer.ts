@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { apiFetch } from '@/lib/api'
-import { VehicleRenderer, type VehicleArtwork } from './vehicle-renderer'
+import type { VehicleArtwork, VehicleRenderer } from './vehicle-renderer'
 
 type Catalogue = { drawable: Record<string, VehicleArtwork> }
 
@@ -12,6 +12,10 @@ type Catalogue = { drawable: Record<string, VehicleArtwork> }
  * Held here rather than built per marker: it keeps one WebGL context
  * and a cache of rendered bodies, and rebuilding it on every roster
  * change -- three seconds -- would throw both away.
+ *
+ * The module is imported dynamically because it pulls in three.js, which
+ * is most of the map page's weight and is needed only once artwork has
+ * been uploaded.
  */
 export function useVehicleRenderer(): VehicleRenderer | null {
   const [renderer, setRenderer] = useState<VehicleRenderer | null>(null)
@@ -32,20 +36,31 @@ export function useVehicleRenderer(): VehicleRenderer | null {
       return
     }
 
-    const made = new VehicleRenderer(
-      // Served by the panel's own API, so the session cookie applies.
-      (name) => `/api/vehicle-models/${encodeURIComponent(name)}`,
-      (script) => {
-        const bare = script.includes('.') ? script.slice(script.lastIndexOf('.') + 1) : script
+    let made: VehicleRenderer | null = null
+    let abandoned = false
 
-        return drawable[bare] ?? null
-      },
-    )
+    void import('./vehicle-renderer').then(({ VehicleRenderer: Renderer }) => {
+      // The map may have closed while three.js was still loading.
+      if (abandoned) {
+        return
+      }
 
-    setRenderer(made)
+      made = new Renderer(
+        // Served by the panel's own API, so the session cookie applies.
+        (name) => `/api/vehicle-models/${encodeURIComponent(name)}`,
+        (script) => {
+          const bare = script.includes('.') ? script.slice(script.lastIndexOf('.') + 1) : script
+
+          return drawable[bare] ?? null
+        },
+      )
+
+      setRenderer(made)
+    })
 
     return () => {
-      made.dispose()
+      abandoned = true
+      made?.dispose()
       setRenderer(null)
     }
   }, [drawable])

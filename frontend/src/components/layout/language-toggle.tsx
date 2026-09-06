@@ -28,7 +28,7 @@ export function LanguageToggle() {
           return (
             <DropdownMenuItem
               key={language}
-              onClick={() => changeLanguage(language as SupportedLanguage)}
+              onClick={() => void changeLanguage(language as SupportedLanguage)}
             >
               <span className="w-4 text-center text-xs font-medium">
                 {language.toUpperCase()}

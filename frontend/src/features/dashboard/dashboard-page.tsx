@@ -148,15 +148,16 @@ export function DashboardPage() {
                     key={`${entry.performedAt}-${index}`}
                     className="flex items-baseline gap-3 px-4 py-2.5 text-sm"
                   >
-                    <time className="font-mono text-xs text-muted-foreground">
-                      {new Date(entry.performedAt).toLocaleTimeString(i18n.language, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                    <time
+                      className="shrink-0 font-mono text-xs text-muted-foreground"
+                      dateTime={entry.performedAt}
+                      title={new Date(entry.performedAt).toLocaleString(i18n.language)}
+                    >
+                      {formatWhen(entry.performedAt, i18n.language)}
                     </time>
 
                     <span className="min-w-0 flex-1 truncate">
-                      <span className="font-medium">{entry.username}</span>
+                      <span className="font-medium">{describeSubject(entry, t)}</span>
                       {entry.performedBy !== null && (
                         <span className="text-muted-foreground">
                           {' · '}
@@ -166,7 +167,7 @@ export function DashboardPage() {
                     </span>
 
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                      {t(`players.actionName.${entry.action}`, { defaultValue: entry.action })}
+                      {describeAction(entry, t)}
                     </span>
                   </li>
                 ))}
@@ -247,6 +248,36 @@ export function DashboardPage() {
 
 type Translate = (key: string, options?: Record<string, unknown>) => string
 
+type Entry = { action: string; username: string }
+
+/** Always dated: a bare "05:39" reads as this morning whatever day it was. */
+function formatWhen(iso: string, locale: string): string {
+  const at = new Date(iso)
+
+  return `${at.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+  })} ${at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`
+}
+
+/**
+ * A triggered event stores its action id in the username column, so
+ * showing that column as "who" would read "lightning" where a player
+ * belongs. For those rows the subject is the server itself.
+ */
+function describeSubject(entry: Entry, t: Translate): string {
+  return entry.action === 'event' ? t('dashboard.theWorld') : entry.username
+}
+
+/** For an event the useful label is which event, not the word "event". */
+function describeAction(entry: Entry, t: Translate): string {
+  if (entry.action === 'event') {
+    return t(`events.actions.${entry.username}.title`, { defaultValue: entry.username })
+  }
+
+  return t(`players.actionName.${entry.action}`, { defaultValue: entry.action })
+}
+
 /** What the bridge tile says, in order of what the operator can act on. */
 function bridgeState(
   bridge: { installed: boolean; installedVersion: string | null; upToDate: boolean } | undefined,
@@ -295,11 +326,8 @@ function updateState(panel: PanelVersion | undefined, bridge: BridgeShape, t: Tr
     return t('servers.bridgeUpdateAvailable')
   }
 
-  if (panel?.upToDate === null) {
-    return t('panel.updateUnknown')
-  }
-
-  return t('panel.upToDate')
+  // No release to compare against is not a fault: show what runs.
+  return panel === undefined ? t('panel.upToDate') : `v${panel.current}`
 }
 
 function updateTone(panel: PanelVersion | undefined, bridge: BridgeShape): 'neutral' | 'good' | 'warn' {
