@@ -358,6 +358,22 @@ convenient thing rather than the true one.
   `php bin/console cache:clear`, which cost fifteen minutes of debugging
   correct code.
 
+## 10h. Doctrine, migrations and the test database
+
+- **`messenger_messages` is not ours.** Every `migrations:diff` proposed
+  dropping its three indexes — the ones that keep the queue fast — until
+  `doctrine.yaml` grew `schema_filter: ~^(?!messenger_messages)~`. Read
+  a generated migration before running it; the generator describes the
+  whole schema, not the change that was asked for.
+- **Migrate the test database as well.** `--env=test` is a separate
+  database, and forgetting it turns one new column into twenty-one
+  errors that look like a code fault.
+- **A new column on an existing table is nullable, and null means
+  unknown.** `failed` could not be `false` for rows written before
+  anybody recorded it: that would be inventing history, and a list
+  claiming every past action succeeded is worse than one admitting it
+  does not know.
+
 ## 11. Delegating to subagents
 
 Permitted and encouraged, with rules learnt the hard way:

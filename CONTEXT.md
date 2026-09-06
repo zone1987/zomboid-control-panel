@@ -3781,6 +3781,52 @@ and that paths outside a server are left alone.
 
 ---
 
+## What was asked for, and whether it worked (2026-09-06)
+
+`ModerationAction`'s overloaded columns, from the deferred list. The
+history could say "rain" but never **"rain at 70"**: the inputs were
+dropped on the way in, so the log recorded which action ran and not what
+it ran with. And a list that cannot tell a refusal from a success reads
+as though everything worked.
+
+Two nullable columns — `inputs` (json) and `failed` (bool) — plus
+migration `Version20260906195157`. **Null is honest for every existing
+row**: nobody recorded those things, so claiming `false` would be
+inventing history. Non-scalars are dropped rather than serialised, since
+the point is "rain at 70" and not a faithful copy of a request body.
+
+The event history and the dossier log both show them: the inputs as
+`value=80` in monospace, and a refused action as a destructive badge
+rather than an outline one.
+
+**Verified against the database**: firing the fog preset recorded
+`{"value":80}` with `failed = f`.
+
+### And a repeated annoyance ended
+
+Every generated migration proposed dropping three `messenger_messages`
+indexes — the ones that keep the queue fast — and they had to be removed
+by hand **twice** (the `player_note` migration and this one).
+`doctrine.yaml` now carries
+
+```yaml
+schema_filter: ~^(?!messenger_messages)~
+```
+
+because that table belongs to the transport rather than to any entity.
+The next `migrations:diff` is clean by construction.
+
+**One thing to remember**: the test database needs migrating too
+(`--env=test`), which cost 21 errors before it was run.
+
+| What | State |
+|---|---|
+| Backend | **576 tests green** |
+| Frontend | **260 tests green** |
+| Live | the fog preset's inputs read back out of the database |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3906,9 +3952,10 @@ that decide the work:
       and **never seen working**. Force a fresh render; the cache is
       keyed by model, texture, paint and heading, so editing code does
       not invalidate it.
-- [ ] **`ModerationAction`'s overloaded columns** — `username` holds the
-      action id, `reason` the command, inputs are dropped, no `failed`
-      flag, so the recent list cannot say "rain at 70".
+- [x] **`ModerationAction`'s overloaded columns** — done: `inputs` and
+      `failed` added, both nullable because null is honest for the rows
+      that predate them. `username` still doubles as the action id for an
+      event, which is harmless and left alone.
 - [x] **Route-level permission guards** — done:
       `RequirePagePermission` reads the same table the sidebar reads, so
       the two cannot drift.
