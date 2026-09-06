@@ -6,6 +6,7 @@ import {
   CloudRain,
   CloudRainWind,
   Sun,
+  Wind,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -33,15 +34,23 @@ export type WeatherPreset = {
 /**
  * Ordered from clear to worst, so the row reads as a scale.
  *
- * The intensities are the game's own 0..100, and the fog and cloud steps
- * go through the bridge — a preset that includes them does more on a
- * server with the bridge installed and still does its rain without one.
+ * The intensities are the game's own 0..100 except the wind, which is
+ * km/h against the game's own 120 ceiling. The fog, cloud and wind steps
+ * go through the bridge — a preset including them does more on a server
+ * with the bridge installed and still does its rain without one.
  */
 export const WEATHER_PRESETS: WeatherPreset[] = [
   {
     id: 'clear',
     icon: Sun,
-    steps: [{ action: 'stopWeather' }, { action: 'setClouds', inputs: { value: 0 } }],
+    steps: [
+      { action: 'stopWeather' },
+      { action: 'setClouds', inputs: { value: 0 } },
+      // stopWeather ends the precipitation and leaves the wind where the
+      // last downpour put it, which is not what "clear" means.
+      { action: 'setWind', inputs: { value: 0 } },
+      { action: 'setFog', inputs: { value: 0 } },
+    ],
   },
   {
     id: 'cloudy',
@@ -70,7 +79,7 @@ export const WEATHER_PRESETS: WeatherPreset[] = [
     steps: [
       { action: 'startRain', inputs: { intensity: 100 } },
       { action: 'setClouds', inputs: { value: 100 } },
-      { action: 'setWind', inputs: { value: 70 } },
+      { action: 'setWind', inputs: { value: 85 } },
     ],
   },
   {
@@ -82,6 +91,11 @@ export const WEATHER_PRESETS: WeatherPreset[] = [
     id: 'fog',
     icon: CloudFog,
     steps: [{ action: 'setFog', inputs: { value: 80 } }],
+  },
+  {
+    id: 'wind',
+    icon: Wind,
+    steps: [{ action: 'setWind', inputs: { value: 95 } }],
   },
 ]
 

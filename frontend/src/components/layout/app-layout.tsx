@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import { ActiveServerProvider } from '@/features/servers/active-server'
+import { ConnectionLights } from '@/features/servers/connection-lights'
 import { AppSidebar } from './app-sidebar'
 import { Breadcrumbs } from './breadcrumbs'
 import { AppUpdateBanner } from './app-update-banner'
@@ -22,6 +23,8 @@ export function AppLayout() {
             <Breadcrumbs />
 
             <div className="ml-auto flex items-center gap-1">
+              <ConnectionLights />
+              <Separator orientation="vertical" className="mx-1 h-4" />
               <AppUpdateBanner />
               <LanguageToggle />
               <ThemeToggle />

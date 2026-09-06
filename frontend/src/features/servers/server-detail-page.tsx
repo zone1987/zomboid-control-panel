@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Users } from 'lucide-react'
@@ -35,6 +35,12 @@ import {
 export function ServerDetailPage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
+  const [search, setSearch] = useSearchParams()
+
+  // The tab lives in the URL so a status light can link at it, and so a
+  // reload lands where the operator was rather than back on General.
+  const tab = search.get('tab') ?? 'general'
+  const setTab = (next: string) => setSearch({ tab: next }, { replace: true })
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<ServerDraft>({})
@@ -211,7 +217,7 @@ export function ServerDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="general">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="general">{t('servers.generalTab')}</TabsTrigger>
           <TabsTrigger value="ftp">{t('servers.transferTab')}</TabsTrigger>
@@ -451,7 +457,10 @@ export function ServerDetailPage() {
         </TabsContent>
       </Tabs>
 
-      <BridgeCard server={server} />
+      {/* Addressable, so a link can scroll it into view. */}
+      <div id="bridge">
+        <BridgeCard server={server} />
+      </div>
 
       <div className="flex gap-2">
         <Button

@@ -417,7 +417,11 @@
     "pathTraversal": "Dieser Pfad ist nicht erlaubt."
   },
   "bridge": {
-    "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt."
+    "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt.",
+    "notInstalled": "Nicht installiert",
+    "outdated": "Neuere Fassung verfügbar",
+    "stale": "Keine aktuelle Meldung",
+    "noReading": "Noch nichts gelesen"
   },
   "users": {
     "description": "Wer Zugang zu dieser Anwendung hat.",
@@ -815,7 +819,8 @@
       "rain": "Regen",
       "downpour": "Wolkenbruch",
       "thunderstorm": "Gewitter",
-      "fog": "Nebel"
+      "fog": "Nebel",
+      "wind": "Wind"
     },
     "willDo": "Wird ausgeführt",
     "applyWeather": "Wetter setzen"
@@ -1148,5 +1153,20 @@
     "dataProtection": "Datenschutz",
     "dataProtectionBody": "Das Panel speichert Spielernamen, SteamIDs, Positionen und Fertigkeiten, weil ein Bann ohne SteamID und eine Karte ohne Positionen nicht funktionieren. Wie lange Spieler gespeichert bleiben, die niemand mehr gesehen hat, entscheidet der Betreiber — voreingestellt ist: unbegrenzt.",
     "dataProtectionLink": "Aufbewahrung einstellen"
+  },
+  "connections": {
+    "title": "Verbindungen",
+    "game": "Server",
+    "rcon": "RCON",
+    "ftp": "FTP",
+    "bridge": "Bridge",
+    "states": {
+      "up": "verbunden",
+      "down": "nicht erreichbar",
+      "stale": "veraltet",
+      "unconfigured": "nicht eingerichtet",
+      "unknown": "unbekannt"
+    },
+    "openSettings": "Einstellungen öffnen"
   }
 }

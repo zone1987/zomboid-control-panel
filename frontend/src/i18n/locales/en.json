@@ -417,7 +417,11 @@
     "pathTraversal": "That path is not allowed."
   },
   "bridge": {
-    "pathMissing": "This server has no media/lua/server path configured."
+    "pathMissing": "This server has no media/lua/server path configured.",
+    "notInstalled": "Not installed",
+    "outdated": "A newer version is available",
+    "stale": "No recent reading",
+    "noReading": "Nothing read yet"
   },
   "users": {
     "description": "Who has access to this application.",
@@ -815,7 +819,8 @@
       "rain": "Rain",
       "downpour": "Downpour",
       "thunderstorm": "Thunderstorm",
-      "fog": "Fog"
+      "fog": "Fog",
+      "wind": "Wind"
     },
     "willDo": "Will do",
     "applyWeather": "Set the weather"
@@ -1148,5 +1153,20 @@
     "dataProtection": "Data protection",
     "dataProtectionBody": "The panel stores player names, SteamIDs, positions and skills, because a ban without a SteamID and a map without positions do not work. How long players nobody has seen are kept is the operator’s decision — the default is indefinitely.",
     "dataProtectionLink": "Configure retention"
+  },
+  "connections": {
+    "title": "Connections",
+    "game": "Server",
+    "rcon": "RCON",
+    "ftp": "FTP",
+    "bridge": "Bridge",
+    "states": {
+      "up": "connected",
+      "down": "unreachable",
+      "stale": "outdated",
+      "unconfigured": "not set up",
+      "unknown": "unknown"
+    },
+    "openSettings": "Open the settings"
   }
 }

@@ -50,13 +50,22 @@ describe('the weather presets against the catalogue', () => {
         )
 
         for (const [field, value] of Object.entries(step.inputs ?? {})) {
-          const bounds = new RegExp(`EventField::number\\('${field}', (-?\\d+), (-?\\d+)`).exec(
-            block.slice(0, 400),
-          )
+          // A bound may be a constant rather than a literal, so both
+          // shapes are read and a named one resolved from its own
+          // declaration.
+          const bounds = new RegExp(
+            `EventField::number\\('${field}', (-?\\d+), (self::[A-Z_]+|-?\\d+)`,
+          ).exec(block.slice(0, 400))
 
           expect(bounds, `${step.action}.${field} declares no bounds`).not.toBeNull()
 
-          const [, min, max] = bounds as RegExpExecArray
+          const [, min, declaredMax] = bounds as RegExpExecArray
+
+          const max = declaredMax.startsWith('self::')
+            ? (new RegExp(
+                `public const ${declaredMax.slice(6)} = (\\d+)`,
+              ).exec(catalogue) as RegExpExecArray)[1]
+            : declaredMax
 
           expect(value, `${preset.id}: ${step.action}.${field}`).toBeGreaterThanOrEqual(
             Number(min),
@@ -90,12 +99,26 @@ describe('the weather presets against the catalogue', () => {
     }
   })
 
-  /** Clear is how the weather is stopped, so it has to actually stop it. */
-  it('offers a way to end the weather', () => {
+  /**
+   * Clear is how the weather is ended, so it has to end all of it.
+   * stopWeather stops the precipitation and leaves the wind, the clouds
+   * and the fog where the last downpour put them — which is not clear.
+   */
+  it('clears everything, not only the precipitation', () => {
     const clear = WEATHER_PRESETS.find((preset) => preset.id === 'clear')
 
     expect(clear).toBeDefined()
-    expect(actionsOf(clear as (typeof WEATHER_PRESETS)[number])).toContain('stopWeather')
+
+    const steps = clear as (typeof WEATHER_PRESETS)[number]
+
+    expect(actionsOf(steps)).toContain('stopWeather')
+
+    for (const dial of ['setWind', 'setClouds', 'setFog']) {
+      const step = steps.steps.find((candidate) => candidate.action === dial)
+
+      expect(step, `clear does not reset ${dial}`).toBeDefined()
+      expect(Object.values(step?.inputs ?? {})).toEqual([0])
+    }
   })
 })
 

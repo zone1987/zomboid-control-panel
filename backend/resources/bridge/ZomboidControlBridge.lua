@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.14.0"
+local BRIDGE_VERSION = "0.15.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -421,11 +421,16 @@ local function writeServerInfo()
     if climate ~= nil then
         local ok, value = pcall(function()
             return string.format(
-                "\"weather\":{\"temperature\":%.1f,\"raining\":%s,\"snowing\":%s,\"windSpeed\":%.1f,\"season\":\"%s\"}",
+                "\"weather\":{\"temperature\":%.1f,\"raining\":%s,\"snowing\":%s,"
+                    .. "\"windSpeed\":%.1f,\"maxWindSpeed\":%.1f,\"season\":\"%s\"}",
                 climate:getTemperature(),
                 tostring(climate:isRaining()),
                 tostring(climate:isSnowing()),
                 climate:getWindspeedKph(),
+                -- The game's own ceiling, so the panel's wind control can
+                -- speak km/h instead of an abstract 0..100 that reads as a
+                -- different number than the one it then displays.
+                climate:getMaxWindspeedKph(),
                 escape(climate:getSeasonName())
             )
         end)
@@ -1253,6 +1258,95 @@ handlers.setClimateValue = function(command)
         math.floor(index),
         applied,
         value
+    )
+end
+
+handlers.setSnow = function(command)
+    local snowing = command.snowing == true or command.snowing == "true"
+    local climate = getClimateManager()
+
+    climate:setPrecipitationIsSnow(snowing)
+
+    -- Read back rather than trusting the setter: the game refuses snow
+    -- outside a cold season, and an operator asking in July should be
+    -- told rather than left believing it worked.
+    local applied = climate:getPrecipitationIsSnow()
+
+    if applied ~= snowing then
+        return false, "the server would not change the precipitation type", string.format(
+            '{"asked":%s,"snowing":%s,"temperature":%.1f}',
+            tostring(snowing),
+            tostring(applied),
+            climate:getTemperature()
+        )
+    end
+
+    return true, snowing and "precipitation is snow" or "precipitation is rain", string.format(
+        '{"snowing":%s}',
+        tostring(applied)
+    )
+end
+
+handlers.startBlizzard = function()
+    local climate = getClimateManager()
+
+    -- The game's own winter storm rather than a stack of climate values:
+    -- it sets the precipitation, the wind and the temperature together,
+    -- the way the season does.
+    climate:triggerWinterIsComingStorm()
+
+    return true, "winter storm triggered", string.format(
+        '{"snowing":%s,"windSpeed":%.1f}',
+        tostring(climate:isSnowing()),
+        climate:getWindspeedKph()
+    )
+end
+
+handlers.stopWeather = function()
+    local climate = getClimateManager()
+
+    -- stopWeatherAndThunder, not transmitServerStopRain: the RCON
+    -- stopweather leaves the thunder running, and "stop" should stop it.
+    climate:stopWeatherAndThunder()
+
+    return true, "weather stopped", string.format(
+        '{"raining":%s,"snowing":%s}',
+        tostring(climate:isRaining()),
+        tostring(climate:isSnowing())
+    )
+end
+
+--- Every climate value at once, so the panel can show what it is about
+--- to change rather than only what it set last.
+handlers.readClimate = function()
+    local climate = getClimateManager()
+    local parts = {}
+
+    for name, index in pairs({
+        desaturation = 0, globalLight = 1, nightStrength = 2, precipitation = 3,
+        temperature = 4, fog = 5, wind = 6, windAngle = 7, clouds = 8,
+        ambient = 9, viewDistance = 10, daylight = 11, humidity = 12,
+    }) do
+        local float = climate:getClimateFloat(index)
+
+        if float ~= nil then
+            table.insert(parts, string.format(
+                '"%s":{"value":%.4f,"admin":%s,"adminValue":%.4f}',
+                name,
+                float:getFinalValue(),
+                tostring(float:isEnableAdmin()),
+                float:getAdminValue()
+            ))
+        end
+    end
+
+    return true, "climate read", string.format(
+        '{"values":{%s},"windSpeedKph":%.1f,"maxWindSpeedKph":%.1f,"snowing":%s,"raining":%s}',
+        table.concat(parts, ","),
+        climate:getWindspeedKph(),
+        climate:getMaxWindspeedKph(),
+        tostring(climate:isSnowing()),
+        tostring(climate:isRaining())
     )
 end
 

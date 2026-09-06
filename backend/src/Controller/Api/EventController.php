@@ -226,7 +226,14 @@ final class EventController extends AbstractController
             return null;
         }
 
-        return $actionId === 'setTemperature' ? $value + 0 : ($value + 0) / 100;
+        // Temperature is degrees on both sides; wind is asked for in km/h
+        // and set as a fraction of the game's ceiling; everything else is
+        // a percentage of a 0..1 climate value.
+        return match ($actionId) {
+            'setTemperature' => $value + 0,
+            'setWind' => ($value + 0) / EventCatalogue::MAX_WIND_KPH,
+            default => ($value + 0) / 100,
+        };
     }
 
     /** What this page has done lately, newest first. */

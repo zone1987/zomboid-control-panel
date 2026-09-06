@@ -16,6 +16,13 @@ namespace App\Server\Events;
  */
 final readonly class EventCatalogue
 {
+    /**
+     * The game's own wind ceiling, from getMaxWindspeedKph(), which the
+     * bridge reports as maxWindSpeed and which measured 120 on the live
+     * server.
+     */
+    public const MAX_WIND_KPH = 120;
+
     /** @return list<EventAction> */
     public static function all(): array
     {
@@ -91,8 +98,12 @@ final readonly class EventCatalogue
             new EventAction('setFog', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 50),
             ]),
+            // In km/h rather than the climate value's 0..100, because the
+            // panel displays km/h: a control reading 100 while the strip
+            // beside it reads 120 is a control nobody can trust. The
+            // ceiling is the game's own getMaxWindspeedKph().
             new EventAction('setWind', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('value', 0, 100, 50),
+                EventField::number('value', 0, self::MAX_WIND_KPH, 40),
             ]),
             new EventAction('setTemperature', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', -30, 40, 20),

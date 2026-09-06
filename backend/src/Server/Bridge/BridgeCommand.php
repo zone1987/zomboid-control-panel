@@ -19,6 +19,10 @@ enum BridgeCommand: string
     case StartRain = 'startRain';
     case StopRain = 'stopRain';
     case SetClimateValue = 'setClimateValue';
+    case SetSnow = 'setSnow';
+    case StartBlizzard = 'startBlizzard';
+    case StopWeather = 'stopWeather';
+    case ReadClimate = 'readClimate';
     case PlaySound = 'playSound';
     case SetSafehouseRespawn = 'setSafehouseRespawn';
 
@@ -61,7 +65,9 @@ enum BridgeCommand: string
     public function validate(array $arguments): array
     {
         return match ($this) {
-            self::Ping, self::StopRain => [],
+            self::Ping, self::StopRain, self::StartBlizzard, self::StopWeather,
+            self::ReadClimate => [],
+            self::SetSnow => ['snowing' => (bool) ($arguments['snowing'] ?? false)],
             self::SetTime => ['hour' => self::number($arguments, 'hour', 0, 24)],
             self::SetDate => array_filter([
                 'day' => isset($arguments['day']) ? self::number($arguments, 'day', 1, 31) : null,
