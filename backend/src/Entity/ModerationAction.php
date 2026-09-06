@@ -40,6 +40,12 @@ class ModerationAction
     /** Something done to the world from the event console. */
     public const EVENT = 'event';
 
+    /** A player came online. Nobody in the panel did this, so performedBy is null. */
+    public const JOIN = 'join';
+
+    /** A player went offline. Nobody in the panel did this, so performedBy is null. */
+    public const LEAVE = 'leave';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

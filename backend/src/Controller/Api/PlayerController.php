@@ -20,6 +20,7 @@ use App\Server\Bridge\BridgeCommandFailed;
 use App\Server\Bridge\BridgeCommandSender;
 use App\Server\Bridge\InvalidBridgeCommand;
 use App\Server\Players\PlayerModerator;
+use App\Server\Players\RosterWatcher;
 use App\Server\Rcon\RconException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -43,6 +44,7 @@ final class PlayerController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         private readonly BridgeInstaller $bridgeInstaller,
         private readonly BridgeCommandSender $commands,
+        private readonly RosterWatcher $roster,
     ) {
     }
 
@@ -61,11 +63,24 @@ final class PlayerController extends AbstractController
         // Refreshing on read keeps the list current without a worker; the
         // bridge file is small, so the cost is a single SFTP round trip.
         if ($request->query->getBoolean('refresh', true)) {
+            // Read before the refresh overwrites it; the transition is only
+            // visible between the two states.
+            $wasOnline = $this->onlineUsernames($server);
+
             try {
                 $status = $this->bridge->refresh($server);
             } catch (BridgeUnavailable $exception) {
                 $error = $exception->messageKey();
             }
+
+            $this->roster->record(
+                $server,
+                $wasOnline,
+                $this->onlineUsernames($server),
+                // A missing file, or one too old to be evidence, says
+                // nothing about who is playing.
+                answered: $status !== null && !$status['stale'],
+            );
         }
 
         $players = $this->snapshots->findForServer($server, $request->query->getBoolean('onlineOnly'));
@@ -396,6 +411,15 @@ final class PlayerController extends AbstractController
             'lastSeenAt' => $player->getLastSeenAt()->format(\DateTimeInterface::ATOM),
             'firstSeenAt' => $player->getFirstSeenAt()->format(\DateTimeInterface::ATOM),
         ];
+    }
+
+    /** @return list<string> */
+    private function onlineUsernames(GameServer $server): array
+    {
+        return array_map(
+            static fn (PlayerSnapshot $p): string => $p->getUsername(),
+            $this->snapshots->findForServer($server, onlineOnly: true),
+        );
     }
 
     private function requireServer(string $serverId): ?GameServer

@@ -158,7 +158,7 @@ export function DashboardPage() {
 
                     <span className="min-w-0 flex-1 truncate">
                       <span className="font-medium">{describeSubject(entry, t)}</span>
-                      {entry.performedBy !== null && (
+                      {entry.performedBy !== null && !isPlayerOwn(entry.action) && (
                         <span className="text-muted-foreground">
                           {' · '}
                           {entry.performedBy}
@@ -175,8 +175,6 @@ export function DashboardPage() {
             )}
           </div>
 
-          {/* Joins and leaves are not recorded yet, so the timeline must
-              not imply it saw everything that happened. */}
           <p className="text-xs text-muted-foreground">{t('dashboard.activityScope')}</p>
         </section>
 
@@ -267,6 +265,11 @@ function formatWhen(iso: string, locale: string): string {
  */
 function describeSubject(entry: Entry, t: Translate): string {
   return entry.action === 'event' ? t('dashboard.theWorld') : entry.username
+}
+
+/** A join or leave was nobody's doing but the player's. */
+function isPlayerOwn(action: string): boolean {
+  return action === 'join' || action === 'leave'
 }
 
 /** For an event the useful label is which event, not the word "event". */

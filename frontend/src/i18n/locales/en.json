@@ -98,6 +98,7 @@
     "logs": "Log",
     "chat": "Chat",
     "items": "Items",
+    "vehicles": "Vehicles",
     "map": "Map"
   },
   "dashboard": {
@@ -109,7 +110,7 @@
     "activity": "Activity",
     "live": "live",
     "noActivity": "Nothing has been recorded on this server yet.",
-    "activityScope": "Shows admin actions taken from the panel. Joins and leaves are not recorded yet.",
+    "activityScope": "Shows joins, leaves and admin actions. Transitions are recorded while the player list is being read.",
     "sections": "Sections",
     "onlineCount_one": "{{count}} online",
     "onlineCount_other": "{{count}} online",
@@ -564,7 +565,9 @@
       "broadcast": "Broadcast",
       "items": "Items",
       "teleport": "Teleport",
-      "event": "Event"
+      "event": "Event",
+      "join": "Joined",
+      "leave": "Left"
     },
     "bridgeOutdated": "The server is running an older bridge",
     "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards.",
@@ -932,6 +935,30 @@
     "rconFailed": "The server could not be reached. Is RCON answering?",
     "noCatalogue": "No item list yet",
     "noCatalogueHint": "The bridge writes the list when the server starts. Restart the Zomboid server and it will appear here."
+  },
+  "vehicles": {
+    "title": "Vehicles",
+    "description": "Spawn a vehicle beside a player.",
+    "descriptionFor": "Spawn a vehicle beside a player on {{server}}.",
+    "search": "Search vehicles — name or script",
+    "bodies": "Body",
+    "allBodies": "All",
+    "filtered": "filtered",
+    "noMatch": "No vehicle found.",
+    "showMore_one": "Show {{count}} more",
+    "showMore_other": "Show {{count}} more",
+    "chosen": "Chosen",
+    "chooseOne": "Choose a vehicle on the left.",
+    "notDrawable": "No picture — model not uploaded",
+    "spawn": "Spawn",
+    "spawned": "\"{{name}}\" was spawned.",
+    "refused": "The server refused the spawn.",
+    "needsAPlayer": "The vehicle appears beside a player, so somebody has to be online.",
+    "wrecks": "Wrecks",
+    "noCatalogue": "The vehicle list has not been read yet",
+    "noCatalogueHint": "The bridge writes the list when the server starts. Upload bridge 0.13 or newer and restart the server.",
+    "invalidScript": "That vehicle name cannot be used.",
+    "playerRequired": "Choose a player for the vehicle to appear beside."
   },
   "icons": {
     "uploadFailed": "The upload failed.",

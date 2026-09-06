@@ -98,6 +98,7 @@
     "logs": "Log",
     "chat": "Chat",
     "items": "Items",
+    "vehicles": "Fahrzeuge",
     "map": "Karte"
   },
   "dashboard": {
@@ -109,7 +110,7 @@
     "activity": "Aktivität",
     "live": "live",
     "noActivity": "Auf diesem Server wurde noch nichts protokolliert.",
-    "activityScope": "Zeigt Admin-Aktionen aus dem Panel. Beitritte und Abgänge werden noch nicht aufgezeichnet.",
+    "activityScope": "Zeigt Beitritte, Abgänge und Admin-Aktionen. Beitritte werden aufgezeichnet, während die Spielerliste gelesen wird.",
     "sections": "Bereiche",
     "onlineCount_one": "{{count}} online",
     "onlineCount_other": "{{count}} online",
@@ -564,7 +565,9 @@
       "broadcast": "Durchsage",
       "items": "Items",
       "teleport": "Teleport",
-      "event": "Event"
+      "event": "Event",
+      "join": "Beigetreten",
+      "leave": "Verlassen"
     },
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
     "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu.",
@@ -932,6 +935,30 @@
     "rconFailed": "Der Server war nicht erreichbar. Antwortet RCON?",
     "noCatalogue": "Noch keine Itemliste vorhanden",
     "noCatalogueHint": "Die Bridge schreibt die Liste beim Serverstart. Starte den Zomboid-Server neu, dann erscheint sie hier."
+  },
+  "vehicles": {
+    "title": "Fahrzeuge",
+    "description": "Fahrzeuge bei einem Spieler spawnen.",
+    "descriptionFor": "Fahrzeuge bei einem Spieler auf {{server}} spawnen.",
+    "search": "Fahrzeug suchen — Name oder Skript",
+    "bodies": "Karosserie",
+    "allBodies": "Alle",
+    "filtered": "gefiltert",
+    "noMatch": "Kein Fahrzeug gefunden.",
+    "showMore_one": "{{count}} weiteres anzeigen",
+    "showMore_other": "{{count}} weitere anzeigen",
+    "chosen": "Ausgewählt",
+    "chooseOne": "Wähle links ein Fahrzeug aus.",
+    "notDrawable": "Kein Bild — Modell nicht hochgeladen",
+    "spawn": "Spawnen",
+    "spawned": "„{{name}}“ wurde gespawnt.",
+    "refused": "Der Server hat das Spawnen abgelehnt.",
+    "needsAPlayer": "Das Fahrzeug erscheint neben einem Spieler, also muss jemand online sein.",
+    "wrecks": "Wracks",
+    "noCatalogue": "Fahrzeugliste noch nicht gelesen",
+    "noCatalogueHint": "Die Bridge schreibt die Liste beim Serverstart. Lade Bridge 0.13 oder neuer hoch und starte den Server neu.",
+    "invalidScript": "Der Fahrzeugname ist nicht brauchbar.",
+    "playerRequired": "Wähle einen Spieler aus, neben dem das Fahrzeug erscheinen soll."
   },
   "icons": {
     "uploadFailed": "Der Upload ist fehlgeschlagen.",
