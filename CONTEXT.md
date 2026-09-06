@@ -3827,6 +3827,74 @@ The next `migrations:diff` is clean by construction.
 
 ---
 
+## The wheels: one real cause found, the drawing still not working (2026-09-06)
+
+Tried, and **partly** solved — recorded honestly because the next person
+should not repeat the search.
+
+### What was actually wrong, and is now fixed
+
+`ModelStore::has('Vehicles_Wheel.txt')` returned **false**, so the
+catalogue sent `wheelMesh: null` and `wheelsFor()` returned `[]` — with
+no error anywhere, exactly as its docblock promises ("leaves a vehicle
+sitting on nothing rather than failing to draw at all").
+
+The reason: the game names the model `Vehicles_Wheel` (plural) in
+`media/scripts/generated/vehicles/models_vehicles.txt`, and the file
+lives at `media/models/Vehicles_Wheel.txt` — but the extraction had
+saved it under its **internal** "Model Name" header, `Vehicle_Wheel`,
+singular. `Vehicles_Wheel02/03/04` were all present; only 01 was
+misnamed, because only its internal name differs from its file name.
+
+**This is the same class of mistake that once left all 241 vehicles
+undrawable** (the catalogue held model-*block* names instead of mesh file
+names). The lesson repeats: a Zomboid model has three names — the block,
+the mesh file, and the header inside the file — and they are not
+interchangeable.
+
+Copied to `backend/var/vehicle-models/Vehicles_Wheel.txt`, and
+`wheel-mesh.test.ts` (3) now pins that it exists under the name the
+catalogue asks for, parses into geometry with normals and UVs, and is
+0.316 units across — metres, matching the script's radius of 0.15, which
+confirms `setScalar(100)` beside offsets multiplied by 100 is consistent.
+
+### What is verified working
+
+| Link in the chain | State |
+|---|---|
+| The file exists and is served | `GET /api/vehicle-models/Vehicles_Wheel.txt` → 200, 5799 bytes |
+| The catalogue reports it | `wheelMesh: "Vehicles_Wheel.txt"` plus four offsets, confirmed in the browser |
+| The hook passes it through | `use-vehicle-renderer.ts` hands catalogue entries straight to the renderer |
+| The parser reads it | 52 vertices, normals, UVs — asserted |
+| The size is right | 0.316 in metres, so the scaling is consistent |
+
+### What still does not work
+
+**No wheels appear in the preview**, after clearing the service-worker
+cache, `localStorage`, `sessionStorage` and reloading. Every link above
+checks out individually, so the fault is in the scene assembly —
+`bodyFrame()`, the `frame.add(wheel)`, or the interaction with the
+`upright` group's rotation.
+
+**What has been ruled out**: a missing file, a 404, a null in the
+catalogue, a parser failure, a wrong unit, and a stale render cache.
+
+**What to try next**, in order:
+1. Instrument `draw()` to log `frame.children.length` before and after
+   the loop, and the wheels' world positions after the rotations — the
+   camera framing uses the *body's* bounds, so a wheel placed correctly
+   but outside them would be off-screen rather than invisible.
+2. Check whether `bodyFrame()` returns a node that the later
+   `upright`/heading rotations move differently from the body: it walks
+   to the last mesh's parent, which for a multi-mesh FBX may not be the
+   node the body geometry hangs on.
+3. Render one wheel alone, with no body, to see whether it draws at all.
+
+Screenshots cannot settle any of those, which is why this stops here
+rather than guessing at a fourth fix.
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
