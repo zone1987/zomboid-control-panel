@@ -43,6 +43,7 @@ import type { Permission } from '@/features/auth/types'
 import { useAuth } from '@/features/auth/auth-context'
 import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
+import { BrandLogo } from '@/components/brand-logo'
 import { PanelVersionLine } from './panel-version-line'
 
 /** One entry per page under a server, with what it takes to see it. */
@@ -88,9 +89,7 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg" tooltip={activeServer?.name ?? t('servers.noneSelected')}>
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <Server className="size-4" />
-                  </div>
+                  <BrandLogo variant="mark" priority className="size-8 shrink-0" />
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">
                       {activeServer?.name ?? t('common.appName')}

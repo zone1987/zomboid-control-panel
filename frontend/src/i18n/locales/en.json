@@ -62,7 +62,9 @@
     "passwordChanged": "Password changed. You can sign in now.",
     "resetLinkInvalid": "This link is invalid or has expired.",
     "resetLinkInvalidHint": "Links last one hour and work only once.",
-    "requestNewLink": "Request a new link"
+    "requestNewLink": "Request a new link",
+    "signInHint": "Sign in to manage your servers.",
+    "controlPanel": "Control Panel"
   },
   "setup": {
     "title": "First-run setup",

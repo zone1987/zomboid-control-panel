@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { BrandLogo } from '@/components/brand-logo'
 import { useAuth } from './auth-context'
 import { browserSupportsWebAuthn, isUserCancellation, signInWithPasskey } from './passkeys'
 import { TwoFactorPrompt } from './two-factor-prompt'
@@ -93,9 +94,20 @@ export function LoginPage() {
   return (
     <div className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{t('auth.signIn')}</CardTitle>
-          <CardDescription>{t('common.appName')}</CardDescription>
+        <CardHeader className="flex flex-col items-center text-center">
+          <BrandLogo priority variant="badge" className="mb-3 h-24 w-auto" />
+
+          {/* The name is text, not part of the image: it stays sharp at
+              every size and a screen reader can read it. */}
+          <p className="font-mono text-2xl font-bold uppercase tracking-widest">
+            Zomboid<span className="text-primary">Control</span>
+          </p>
+          <p className="-mt-1 font-mono text-[0.65rem] uppercase tracking-[0.3em] text-primary">
+            {t('auth.controlPanel')}
+          </p>
+
+          <CardTitle className="mt-4 sr-only">{t('auth.signIn')}</CardTitle>
+          <CardDescription className="mt-3">{t('auth.signInHint')}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">

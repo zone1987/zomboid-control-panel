@@ -62,7 +62,9 @@
     "passwordChanged": "Passwort geändert. Du kannst dich jetzt anmelden.",
     "resetLinkInvalid": "Dieser Link ist ungültig oder abgelaufen.",
     "resetLinkInvalidHint": "Links sind eine Stunde gültig und funktionieren nur einmal.",
-    "requestNewLink": "Neuen Link anfordern"
+    "requestNewLink": "Neuen Link anfordern",
+    "signInHint": "Melde dich an, um deine Server zu verwalten.",
+    "controlPanel": "Control Panel"
   },
   "setup": {
     "title": "Ersteinrichtung",
