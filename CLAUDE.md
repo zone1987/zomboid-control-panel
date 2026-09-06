@@ -257,6 +257,53 @@ curl -sk https://zomboidcontrol.ddev.site:5173/app/src/<path> | grep <symbol>
 If it is stale, restart with `ddev dev` — and note that `pkill -f vite`
 does **not** reliably bring it back.
 
+## 10e. A control speaks the unit its display speaks
+
+The wind control set a climate value from 0 to 100 while the strip
+beside it showed km/h, so asking for 100 displayed 120. Neither number
+was wrong; the pair was unusable.
+
+- **Ask the game for its own bounds.** `getMaxWindspeedKph()` exists, so
+  120 is read rather than assumed. `EventCatalogue::MAX_WIND_KPH` holds
+  it, the field declares the range in km/h, and the controller divides
+  by the ceiling on the way to the bridge.
+- **Convert at the boundary, not in the interface.** The panel says km/h
+  end to end; `EventController::climateValue()` is the single place the
+  0..1 climate value appears.
+- **Prove the round trip.** Asking for 95 and measuring 95 back from the
+  bridge is the test; a slider that merely moves proves nothing.
+- **Every number on screen carries its unit.** A range reading "0–120"
+  beside one reading "0–100" tells nobody that the first is km/h and the
+  second a percentage — which is the same confusion the wind control
+  had, moved from the value to its label. Write **"0–120 km/h"**,
+  **"0–100 %"**, **"−30–40 °C"**, and put the unit on the field's own
+  value too. A bare range is a range in unknown units.
+- **The unit belongs to the field, not to the page.** `EventField`
+  should carry it so the catalogue states it once and every renderer
+  shows it, rather than each page guessing from the action's name.
+  Currently unbuilt: `event-form.tsx` and `weather-page.tsx` both print
+  `{min}–{max}` with nothing after it.
+
+## 10f. The bridge and the panel are two files uploaded apart
+
+A command exists in `BridgeCommand` and a handler in the Lua, and the
+mod is uploaded by hand — so a mismatch surfaces on a live server as
+"unknown action", long after the change.
+
+- **`BridgeCommandCoverageTest` asserts both directions**: every command
+  has a handler, every handler has a command. Do not add one without the
+  other.
+- **Bump `BRIDGE_VERSION` for any handler change.** Otherwise an
+  operator running the older mod is told they are up to date while the
+  panel sends commands it cannot answer.
+- **Say plainly when an upload and a restart are needed**, in the commit
+  and to the user. Only they can do it.
+- **`DocumentationTest` will fail** until `llms.txt` names the new
+  version. That is the intended behaviour, not an obstacle.
+- **Read back rather than trusting a setter.** The game refuses snow
+  outside a cold season, so `setSnow` returns what it actually applied
+  and the panel can say so instead of claiming success.
+
 ## 11. Delegating to subagents
 
 Permitted and encouraged, with rules learnt the hard way:

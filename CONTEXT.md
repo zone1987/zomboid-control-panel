@@ -2996,3 +2996,352 @@ known child, still reads two. Both pinned.
       list-and-detail: with three entries, select-then-fill is friction.
 - [ ] **Bridge 0.14** for fog, clouds, thunderstorm and precipitation in
       the world state. **Needs an upload and a game-server restart.**
+
+---
+
+# 2026-09-06 (late evening) — Weather page, connection lights, bridge 0.15
+
+Written before a compact. Everything below is committed and pushed
+(`origin/main` at `56082ec`).
+
+## The weather page — `df3a03e`
+
+`features/events/weather-page.tsx`, reached at
+`servers/:id/events/weather` — a static route listed **above** the
+generic `:category` one, which is why it takes precedence.
+
+**Choosing a preset does not fire it.** It opens the steps it is about to
+take with their values, so "rain at 100, clouds at 100, wind at 85" is
+readable before anything happens and each number can be changed, then
+one button fires them. Fired **sequentially**, because the game applies
+these to one world and "stop the weather, then set the clouds" only
+means what it says in that order.
+
+Presets live in `weather-presets.ts` as **frontend bundles of existing
+catalogue actions** — they add no capability and cannot drift from the
+backend. Eight: clear, cloudy, drizzle, rain, downpour, thunderstorm,
+fog, wind.
+
+**Clear resets everything**, not only the precipitation: `stopWeather`
+ends the rain and leaves the wind, clouds and fog where the last
+downpour put them, which is not clear. Pinned by a test that checks all
+three dials go to 0.
+
+`WorldStrip` sits at the top as the live state — the reference panel has
+neither icons nor any live reading, so it presses "start rain" and hopes.
+
+A bounded number field gets a **slider beside its number**, here and in
+the generic `event-form.tsx`. `components/ui/slider.tsx` is new, a
+wrapper over `radix-ui`, which was already a dependency.
+
+## Wind now speaks km/h — `56082ec`
+
+The control set a 0..100 climate value while the strip displayed km/h,
+so asking for 100 showed 120. Fixed properly rather than relabelled:
+
+- `getMaxWindspeedKph()` exists in the game. Bridge 0.15 reports it as
+  `maxWindSpeed`; it measured **120** on the live server.
+- `EventCatalogue::MAX_WIND_KPH = 120`, and `setWind`'s field declares
+  `(0, MAX_WIND_KPH, 40)`.
+- `EventController::climateValue()` divides by that ceiling for
+  `setWind`, by 100 for the other climate values, and not at all for
+  temperature.
+- **Measured: asked 95, read back 95.**
+
+The preset wind values were converted with it (85 for downpour, 95 for
+the wind preset), and `weather-presets.test.ts` learnt to resolve a
+named bound (`self::MAX_WIND_KPH`) from its own declaration.
+
+## Four connection lights — `56082ec`
+
+`features/servers/connection-lights.tsx` in the header, over the new
+read-only `GET /api/servers/{id}/connections`
+(`ConnectionStatusEndpoint`).
+
+| Light | How it is decided |
+|---|---|
+| **Server** | The bridge's own `generatedAt`, fresh within 35 s |
+| **RCON** | `RconClientInterface::probe()` |
+| **FTP** | `FileBrowserInterface::listDirectory()` |
+| **Bridge** | `BridgeInstaller::status()`; installed-but-behind is `stale`, not `down` |
+
+Decisions worth keeping:
+
+- **A read-only endpoint, not the existing tests.** `ftp/test` and
+  `rcon/test` are POST and record a verification on the entity; a light
+  polling every fifteen seconds must not write to the database.
+- **`unconfigured` is not red.** Nothing is broken, it was never set up,
+  and a light that cannot tell those apart sends somebody hunting for a
+  fault.
+- **"Server running" comes from the bridge, not from RCON.** RCON
+  answering proves the server is up, but the reverse does not follow and
+  without RCON configured there would be nothing to go on. The bridge
+  writes from inside the running game.
+- **Polling is 15 s** because the endpoint measured **~860 ms**: it opens
+  an FTP connection and an RCON socket.
+- **Each light is a button** linking at its own settings —
+  `settingsFor()` maps to `?tab=ftp`, `?tab=rcon`, `#bridge`. The server
+  detail page's tab now lives in the URL (`useSearchParams`) so a link
+  can address it. First attempt used underlined links, which the user
+  rightly called ugly.
+- Desktop shows all four labelled; below `md` one summary dot
+  (`worstOf()`) opens a menu.
+
+## Bridge 0.14 → 0.15
+
+**0.14** split the slow write in two. Time and weather are two object
+reads (`getGameTime`, `getClimateManager`) and were on the same
+sixty-second interval as three list walks, one covering every vehicle in
+the world:
+
+- `SECONDS_BETWEEN_WORLD_WRITES = 10` — time and weather
+- `SECONDS_BETWEEN_SLOW_WRITES = 60` — safehouses, vehicles, factions
+
+**Measured after the restart: exactly 10 seconds between readings.**
+`world-strip.tsx` polls at 15 s to match, and a drift guard in
+`weather-presets.test.ts` asserts the page's mirrored constant against
+the Lua's own.
+
+**0.15** added what the climate page will need — all four verified
+present in the game's API before writing them:
+
+| Handler | Game call | Note |
+|---|---|---|
+| `setSnow` | `setPrecipitationIsSnow(boolean)` | **Reads back**: the game refuses snow outside a cold season, so it reports what it actually applied plus the temperature |
+| `startBlizzard` | `triggerWinterIsComingStorm()` | The game's own winter storm, which sets precipitation, wind and temperature together |
+| `stopWeather` | `stopWeatherAndThunder()` | RCON's `stopweather` leaves the thunder running |
+| `readClimate` | `getClimateFloat(0..12)` | All thirteen values with `getFinalValue`, `isEnableAdmin`, `getAdminValue`, plus wind speed, its ceiling, and the raining/snowing flags |
+
+`BridgeCommandCoverageTest` is new and asserts **both directions**: every
+`BridgeCommand` has a `handlers.<name> = function` in the Lua, and every
+handler has a command. The two are separate files uploaded by hand, so a
+mismatch otherwise surfaces live as "unknown action". Proven to fail
+against a command with no handler.
+
+**Bridge 0.15.0 is uploaded and the server restarted** — verified:
+`installedVersion: 0.15.0`, `upToDate: true`, all four lights green.
+
+## Everything else this stretch
+
+| Commit | What |
+|---|---|
+| `293e869` | Sidebar in five bands; event console renamed to **Events** |
+| `8749baa` | Vehicle spawning out of the event catalogue; `VehicleScripts.php` deleted; `EventDispatcher::run()` added; injection guard moved to `VehicleSpawnTest` |
+| `038f7b5` | CLAUDE.md 0b — write CONTEXT.md per block, and what is not possible; `representatives()` deleted |
+| `d45c48e` | `llms.txt` written; `AGENTS.md` became a pointer; `DocumentationTest` |
+| `b131fc5`, `a7b7079` | Retention horizon settable, minimum 7 days; settings tabs became a vertical rail |
+| `46adf8c` | Events into five categories; rain merged onto `CHANNEL_PREFERRED` |
+| `a2a3243` | Each category a page; sidebar children via `Collapsible` + `SidebarMenuAction` |
+
+## Verification at the end of this stretch
+
+| | |
+|---|---|
+| Backend tests | **519, green** |
+| Frontend tests | **222, green** across 20 files |
+| Lua checks | **25, green**; `luac -p` clean |
+| Linter | 0 errors, 29 warnings (all pre-existing) |
+| Typecheck / build | clean |
+| Pushed | `origin/main` at `56082ec` |
+| Bridge on the server | **0.15.0**, matching what ships |
+| Verified live | bridge writes at 10 s; wind 95 asked → 95 read; all four lights green; the weather page, its presets and the step editor in a browser |
+| Still not verified | a real vehicle spawn (needs a player online); Lighthouse |
+
+---
+
+# TODO — the current list (supersedes every earlier one)
+
+The user set the order explicitly: **snow and blizzard first, then all
+the climate settings, then the rest.**
+
+## 1. Snow and a snowstorm as weather events
+
+The bridge can already do this — 0.15 is live. What is missing is the
+panel side.
+
+- [ ] **A `setSnow` action in `EventCatalogue`**, category `weather`,
+      `CHANNEL_BRIDGE`, with a boolean input. **The `toggle` field type
+      does not exist yet**: `EventField` has `player`, `text`, `choice`
+      and `number`. Adding it means the factory, the type in
+      `events.ts`, and a branch in `event-form.tsx`'s `FieldInput`.
+- [ ] **A `startBlizzard` action**, category `weather`,
+      `CHANNEL_BRIDGE`, no inputs.
+- [ ] **Map both in `EventController::throughBridge()`** —
+      `'setSnow' => [BridgeCommand::SetSnow, ['snowing' => ...]]` and
+      `'startBlizzard' => [BridgeCommand::StartBlizzard, []]`.
+- [ ] **Two presets** in `weather-presets.ts`: `snow`
+      (`setSnow` true, `startRain` for the intensity) and `blizzard`
+      (`startBlizzard`). Icons verified present in lucide:
+      **`Snowflake`**, **`CloudSnow`**.
+- [ ] **Say when it will not work.** `setSnow` reads back and fails with
+      the temperature when the game refuses — the panel must show that
+      reason rather than a success toast. The existing `StepRow` already
+      renders an unavailable step struck through; a *refused* step is a
+      different case and needs its own message.
+- [ ] Labels in both locales under `events.presets.*` and
+      `events.actions.*`.
+
+## 2. All the climate settings — a Klima page under Events
+
+The user's words: "unter Events ein weiteres untermenü Klima wo wir alle
+auf dem server herrschenden Klimabedingungen anpassen können".
+
+- [ ] **`readClimate` is the foundation and already exists** in bridge
+      0.15. It returns, for each of the thirteen values: `value`
+      (`getFinalValue`), `admin` (`isEnableAdmin`), `adminValue`
+      (`getAdminValue`) — plus `windSpeedKph`, `maxWindSpeedKph`,
+      `snowing`, `raining`.
+- [ ] **A `climate` category** — a sixth in `EventAction::CATEGORIES`,
+      or a page of its own outside the catalogue. Decide which:
+      the catalogue drives the nav and the routes, but thirteen sliders
+      are not thirteen "events". **Probably a page, reading `readClimate`
+      and writing through `setClimateValue`**, which already exists and
+      takes an index plus a value.
+- [ ] The thirteen values, with their indices confirmed from
+      `ClimateManager`'s constant pool: `0 desaturation, 1 globalLight,
+      2 nightStrength, 3 precipitation, 4 temperature (−80…80), 5 fog,
+      6 wind, 7 windAngle, 8 clouds, 9 ambient, 10 viewDistance (…100),
+      11 daylight, 12 humidity`. Six are exposed today; seven are not.
+- [ ] **Show the admin override state.** A climate float has
+      `setEnableAdmin(true)` and an admin value that overrides the
+      game's own — so the page must say "the game is running this" versus
+      "you have pinned this", and offer a way to release it
+      (`setEnableAdmin(false)`, which needs a bridge handler).
+- [ ] **Units, per section 10e.** Temperature is degrees; wind is km/h
+      against the 120 ceiling; the rest are 0..1 shown as percentages.
+      Do not put a raw 0..1 in front of anybody.
+- [ ] A sidebar child under Events, a label in both locales, and an
+      entry in `EVENT_CHILDREN`.
+
+## 2b. Units are missing from every range and value
+
+Spotted by the user on the weather page: the step rows read **"1–100"**,
+**"0–100"** and **"0–120"** with nothing after them, so nothing says the
+first two are percentages and the third km/h. The same confusion the
+wind control had, moved from the value to its label.
+
+- [ ] **Add a `unit` to `EventField`** so the catalogue states it once
+      and every renderer shows it — rather than each page guessing from
+      the action's name. `EventField.php` has `player`, `text`,
+      `choice`, `number`; the factories are all in that one file.
+- [ ] **Print it in both renderers.** `weather-page.tsx`'s `StepRow` and
+      `event-form.tsx` both output `{min}–{max}`; the number field's own
+      value should carry it too.
+- [ ] The units in play: **%** for the 0..100 climate values, **km/h**
+      for wind, **°C** for temperature, **h** for the storm duration and
+      the hour, **tiles** for a horde radius.
+- [ ] While there: `events.range` currently formats "1 bis 100". It
+      needs the unit as a parameter rather than a second key per unit.
+
+## 3. The remaining event pages
+
+- [ ] **Actions as large directly-actionable cards** rather than
+      list-and-detail: with three entries (lightning, chopper,
+      broadcast), select-then-fill is pure friction. Lightning and
+      chopper are one click; broadcast carries its field in its own card.
+- [ ] **The day arc for the world page** — a horizontal band from
+      midnight to midnight with sunrise and sunset marked and night
+      shaded, the current hour highlighted, plus quick picks for dawn,
+      noon, dusk, midnight. Chosen over an analogue clock, which is
+      ambiguous across 24 hours. Daylight sits beneath it, because the
+      two interact.
+- [ ] **Sounds and Zombies** already work through the generic page. The
+      Zombies page must keep its `AlertDialog` confirmation.
+
+## 4. The player dossier (plan phase 3)
+
+Unchanged and still the largest single piece. Capability research is
+**done**; the findings with signatures are in the plan at
+`~/.claude/plans/snug-stargazing-russell.md`. The points that decide the
+work:
+
+- [ ] List left / dossier right. `player-detail.tsx` stops being a
+      `Dialog` and becomes the Vitals tab. `ban-dialog` and
+      `teleport-dialog` stay modal — short confirmed input is what a
+      dialog is for.
+- [ ] **God mode, invisible, noclip, XP, voice ban, SteamID ban and
+      whitelist are all plain RCON** — `godmodplayer`, `invisibleplayer`,
+      `noclip <user>`, each taking `-true`/`-false` so the panel sets a
+      state rather than toggling blind. **No bridge needed for that tab.**
+- [ ] **Healing needs the bridge**, and is proven possible: the game
+      does it server-side in `ClientCommands.lua`
+      (`RestoreToFullHealth()` per body part, then `syncBodyPart`).
+- [ ] **Vitals**: build 42 replaced the old `Stats` setters with
+      `set(CharacterStat, float)`; the 24 stats carry their own
+      `getMinimumValue()`/`getMaximumValue()`, so generate the sliders
+      from the game's bounds. Weight is
+      `IsoPlayer.getNutrition().setWeight(double)`.
+- [ ] **A voice ban does not persist** — in-memory only, lost on
+      reconnect. The row must say so.
+- [ ] **Kill is the one unproven item.** The API exists (`Kill`,
+      `dieNetwork`, `setHealth(0)`) but no server-side call site exists
+      in the game's own Lua. Test before shipping.
+- [ ] Notes and tags need a `PlayerNote` entity and a migration.
+- [ ] **The dossier log is filtered to the selected player** — the
+      reference panel shows everybody's and then needs a second search
+      box inside a view already scoped to one player.
+      `moderation_action` already has `idx_server_username`.
+- [ ] Route `new ModerationAction(...)` through one recorder service
+      while adding the dossier actions. It appears in **six** places
+      today; that seam is where notifications later hook in.
+
+## 5. Deferred, agreed as separate plans
+
+- [ ] **Discord** — the strongest reference feature. Bot status,
+      per-command permissions, two-way chat relay, and **event
+      notifications with every message editable**. Beyond the reference:
+      **admin actions individually switchable**, default **off**, ideally
+      to a separate channel. `ChatLine.php:63` already parses inbound
+      Discord messages and `ChatBroadcaster` already sends; **`ChatLine`
+      does not parse the channel** (`main_tab_title_id` is ignored),
+      which "General only" versus "all public chat" needs.
+- [ ] **Steam Workshop / mod management** — the user called this
+      especially valuable. `-mods` and `WorkshopItems` live in the INI,
+      readable and writable over FTP.
+- [ ] **Server config editor** — INI, sandbox (183 values), spawn points
+      and regions.
+- [ ] **Scheduler** — cron tasks, restart warnings with a countdown,
+      preset broadcasts. Caveat: **we can stop a server, never start
+      one.**
+- [ ] **Statistics and charts.** `getZombieKills()`,
+      `getSurvivorKills()`, `getHoursSurvived()` are on
+      `IsoGameCharacter` — three lines of Lua. **But `PlayerSnapshot` is
+      one overwritten row per player, not a time series**, so "players
+      online over time" needs a new sample table. Charts are a new
+      dependency (no `recharts`), though `--chart-1`…`5` tokens already
+      exist in both themes.
+- [ ] **The notification bell.** Its content is now known: panel and
+      bridge updates, plus the join/leave and admin-action feed.
+- [ ] **Avatars** from the social login (`SteamProfileFetcher` already
+      calls `GetPlayerSummaries`, whose response carries `avatarfull`)
+      and uploadable **with cropping and scaling**. GD is installed and
+      already used this way in `IconExtractor::crop()`. **Proxy rather
+      than hotlink**, so `img-src 'self'` stays true.
+- [ ] **Lighthouse measurement** — never actually run.
+- [ ] **Wheels on the map renderer** — the `bodyFrame()` fix is written
+      and still **never seen working**. Force a fresh render; the cache
+      is keyed by model, texture, paint and heading, so editing code does
+      not invalidate it.
+- [ ] **`ModerationAction`'s overloaded columns** — `username` holds the
+      action id, `reason` the command, inputs are dropped and there is no
+      `failed` flag, so the recent list cannot say "rain at 70".
+- [ ] **Route-level permission guards** — per-page permissions are
+      enforced only in the sidebar today.
+- [ ] **A real vehicle spawn against the live server** — needs a player
+      online, never tried end to end.
+- [ ] **Coordinate-based thunder and lightning**, tropical storm, and the
+      seven unexposed climate values (covered by item 2 above).
+
+## Where the code is, for the two next items
+
+| What | Where |
+|---|---|
+| Bridge handlers | `backend/resources/bridge/ZomboidControlBridge.lua`, `handlers.<name> = function` from ~line 1200 |
+| Bridge commands | `backend/src/Server/Bridge/BridgeCommand.php` — enum plus `validate()` |
+| Bridge→action mapping | `backend/src/Controller/Api/EventController.php::throughBridge()` |
+| Climate indices | `BridgeCommand::CLIMATE_VALUES`, and `CLIMATE_ACTIONS` in `EventController` |
+| Event catalogue | `backend/src/Server/Events/EventCatalogue.php`; field types in `EventField.php` |
+| Weather page | `frontend/src/features/events/weather-page.tsx` |
+| Presets | `frontend/src/features/events/weather-presets.ts` |
+| Sidebar children | `frontend/src/components/layout/server-pages.ts`, `EVENT_CHILDREN` |
+| Category route | `frontend/src/routes/router.tsx` — static above `:category` |
