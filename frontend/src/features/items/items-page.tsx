@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -42,7 +42,6 @@ export function ItemsPage() {
   // Arriving from a player's context menu picks them straight away.
   const [search] = useSearchParams()
   const [player, setPlayer] = useState<string | null>(search.get('player'))
-  const [visible, setVisible] = useState(PAGE_SIZE)
   const sentinel = useRef<HTMLDivElement>(null)
 
   const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
@@ -73,7 +72,25 @@ export function ItemsPage() {
   )
 
   // A new search starts at the top rather than deep in the previous list.
-  useEffect(() => setVisible(PAGE_SIZE), [needle, view])
+  // The page size resets when the list changes underneath it, derived
+  // rather than set in an effect: an effect renders the long list once
+  // with the old count and again with the new one.
+  const [paging, setPaging] = useState({ from: `${needle}|${view}`, shown: PAGE_SIZE })
+  const visible = paging.from === `${needle}|${view}` ? paging.shown : PAGE_SIZE
+
+  // Updated from the previous value rather than from `visible`, because
+  // the observer's effect captures whatever it closed over and would
+  // otherwise keep adding to the same stale count. Stable across
+  // renders, so the effect below can depend on it without re-observing
+  // on every keystroke.
+  const showMore = useCallback(() => {
+    setPaging((previous) => {
+      const key = `${needle}|${view}`
+      const shown = previous.from === key ? previous.shown : PAGE_SIZE
+
+      return { from: key, shown: shown + PAGE_SIZE }
+    })
+  }, [needle, view])
 
   useEffect(() => {
     const element = sentinel.current
@@ -84,14 +101,14 @@ export function ItemsPage() {
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0]?.isIntersecting === true) {
-        setVisible((previous) => previous + PAGE_SIZE)
+        showMore()
       }
     })
 
     observer.observe(element)
 
     return () => observer.disconnect()
-  }, [matches.length])
+  }, [matches.length, showMore])
 
   const online = (players?.items ?? []).filter((entry) => entry.online)
   const chosen = Object.entries(selection).filter(([, count]) => count > 0)
