@@ -77,6 +77,7 @@ class RoleRepository extends ServiceEntityRepository
                 Permission::SendChat,
                 Permission::UseConsole,
                 Permission::TriggerEvents,
+                Permission::ViewVehicles,
                 Permission::ViewServers,
                 Permission::EditServers,
                 Permission::ManageBridge,

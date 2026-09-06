@@ -24,6 +24,7 @@ enum Permission: string
     case SendChat = 'chat.send';
     case UseConsole = 'console.use';
     case TriggerEvents = 'events.trigger';
+    case ViewVehicles = 'vehicles.view';
     case ViewServers = 'servers.view';
     case EditServers = 'servers.edit';
     case ManageBridge = 'servers.bridge';
@@ -50,6 +51,7 @@ enum Permission: string
             'world' => [
                 self::TriggerEvents,
                 self::UseConsole,
+                self::ViewVehicles,
             ],
             'communication' => [
                 self::ReadChat,

@@ -231,6 +231,7 @@
     "testKey": "Test the key",
     "mailTab": "Email",
     "iconsTab": "Item icons",
+    "vehiclesTab": "Vehicles",
     "steamTitle": "Steam Web API",
     "steamDescription": "Optional. Steam sign-in works without a key, but linked accounts then show a SteamID instead of a player name.",
     "steamApiKey": "API key",
@@ -329,7 +330,20 @@
       "drop": "Drop texture packs here",
       "dropHint": "or click to choose them — .pack files"
     },
-    "mapTab": "Map"
+    "vehicleModels": {
+      "title": "Vehicle models from the game",
+      "description": "The map draws each vehicle from its real 3D model. A rented server does not have these files — they come from a game installation.",
+      "have": "{{models}} models and {{textures}} textures present",
+      "haveNone": "No vehicle models yet",
+      "ready": "Vehicles are drawn on the map. Upload again only after a game update.",
+      "where": "Found in the game installation under:",
+      "drop": "Drag models and textures here",
+      "dropHint": "or click to choose them — .fbx and .png files",
+      "working": "Uploading … {{done}} of {{total}}",
+      "done": "{{count}} files uploaded",
+      "noneWorked": "None of the files could be stored.",
+      "tooLarge": "{{name}} is too large — 8 MB per file."
+    }
   },
   "rcon": {
     "authenticationFailed": "The RCON password was refused.",
@@ -728,9 +742,7 @@
   "map": {
     "external": {
       "unavailable": "Map images are currently unavailable. You can check the source here:",
-      "title": "Map from projectzomboidmap.com",
-      "description": "Build 42.20.2 base map with live server markers. Player-built structures and modded areas are not included in the map images.",
-      "noRender": "Only the visible map images are loaded from projectzomboidmap.com. No rendering, texture pack upload or object storage is needed. The panel provides the controls."
+      "description": "Build 42.20.2 base map with live server markers. Player-built structures and modded areas are not included in the map images."
     },
     "title": "World map",
     "description": "The map of the game world with the players on it.",
@@ -768,7 +780,13 @@
     "layer": {
       "players": "Players",
       "safehouses": "Safehouses",
-      "vehicles": "Vehicles"
+      "vehicles": "Vehicles",
+      "places": "Place names"
+    },
+    "layerForbidden": {
+      "players": "not allowed to see players",
+      "safehouses": "not allowed to see safehouses",
+      "vehicles": "not allowed to see vehicles"
     },
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."
   },
@@ -939,6 +957,10 @@
       "events.trigger": {
         "title": "Trigger events",
         "description": "Set off weather, sounds, hordes and vehicles in the world."
+      },
+      "vehicles.view": {
+        "title": "See vehicles",
+        "description": "Every vehicle in the world on the map, with its position, facing and condition."
       },
       "servers.view": {
         "title": "See servers",

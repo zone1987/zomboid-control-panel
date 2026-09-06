@@ -231,6 +231,7 @@
     "testKey": "Schlüssel prüfen",
     "mailTab": "E-Mail",
     "iconsTab": "Item-Icons",
+    "vehiclesTab": "Fahrzeuge",
     "steamTitle": "Steam Web API",
     "steamDescription": "Optional. Ohne Schlüssel funktioniert die Steam-Anmeldung, verknüpfte Konten zeigen dann aber nur ihre SteamID statt des Spielernamens.",
     "steamApiKey": "API-Schlüssel",
@@ -329,7 +330,20 @@
       "drop": "Texturpakete hierher ziehen",
       "dropHint": "oder klicken, um sie auszuwählen — .pack-Dateien"
     },
-    "mapTab": "Karte"
+    "vehicleModels": {
+      "title": "Fahrzeugmodelle aus dem Spiel",
+      "description": "Die Karte zeichnet jedes Fahrzeug aus seinem echten 3D-Modell. Ein gemieteter Server hat diese Dateien nicht — sie stammen aus einer Spielinstallation.",
+      "have": "{{models}} Modelle und {{textures}} Texturen vorhanden",
+      "haveNone": "Noch keine Fahrzeugmodelle vorhanden",
+      "ready": "Die Fahrzeuge werden auf der Karte gezeichnet. Ein erneuter Upload ist nur nach einem Spiel-Update nötig.",
+      "where": "Zu finden in der Spielinstallation unter:",
+      "drop": "Modelle und Texturen hierher ziehen",
+      "dropHint": "oder klicken, um sie auszuwählen — .fbx- und .png-Dateien",
+      "working": "Wird übertragen … {{done}} von {{total}}",
+      "done": "{{count}} Dateien übertragen",
+      "noneWorked": "Keine der Dateien konnte übernommen werden.",
+      "tooLarge": "{{name}} ist zu groß — je Datei sind 8 MB möglich."
+    }
   },
   "rcon": {
     "authenticationFailed": "Das RCON-Passwort wurde abgelehnt.",
@@ -728,9 +742,7 @@
   "map": {
     "external": {
       "unavailable": "Die Kartenbilder sind derzeit nicht erreichbar. Hier kannst du die Quelle prüfen:",
-      "title": "Karte von projectzomboidmap.com",
-      "description": "Grundkarte für Build 42.20.2 mit Live-Markierungen des Servers. Spielerbauten und Mod-Karten sind in den Kartenbildern nicht enthalten.",
-      "noRender": "Nur die sichtbaren Kartenbilder werden von projectzomboidmap.com geladen. Rendering, Textur-Uploads und Objektspeicher sind nicht erforderlich. Die Bedienfelder stellt das Panel bereit."
+      "description": "Grundkarte für Build 42.20.2 mit Live-Markierungen des Servers. Spielerbauten und Mod-Karten sind in den Kartenbildern nicht enthalten."
     },
     "title": "Weltkarte",
     "description": "Die Karte der Spielwelt mit den Spielern darauf.",
@@ -768,7 +780,13 @@
     "layer": {
       "players": "Spieler",
       "safehouses": "Safehouses",
-      "vehicles": "Fahrzeuge"
+      "vehicles": "Fahrzeuge",
+      "places": "Ortsnamen"
+    },
+    "layerForbidden": {
+      "players": "keine Berechtigung, Spieler zu sehen",
+      "safehouses": "keine Berechtigung, Safehouses zu sehen",
+      "vehicles": "keine Berechtigung, Fahrzeuge zu sehen"
     },
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."
   },
@@ -939,6 +957,10 @@
       "events.trigger": {
         "title": "Events auslösen",
         "description": "Wetter, Geräusche, Horden und Fahrzeuge in der Welt auslösen."
+      },
+      "vehicles.view": {
+        "title": "Fahrzeuge sehen",
+        "description": "Alle Fahrzeuge der Welt auf der Karte sehen, mit Position, Ausrichtung und Zustand."
       },
       "servers.view": {
         "title": "Server sehen",

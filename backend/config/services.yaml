@@ -67,6 +67,23 @@ services:
             # language is one file rather than a list in two places.
             $localeDirectory: '%kernel.project_dir%/../frontend/src/i18n/locales'
 
+    App\Server\Vehicles\Models\ModelStore:
+        arguments:
+            # Out of git and outside the document root: the models are
+            # The Indie Stone's, from the operator's own installation.
+            $directory: '%kernel.project_dir%/var/vehicle-models'
+
+    App\Server\Vehicles\VehicleOverlay:
+        arguments:
+            $saved: '@App\Server\Vehicles\SavedVehicleStore'
+            $bridge: '@App\Server\Vehicles\BridgeVehicleSource'
+
+    App\Server\Vehicles\SavedVehicleStore:
+        arguments:
+            # The save database is fetched here, read and deleted again;
+            # nothing of the server's own data is kept.
+            $workingDirectory: '%kernel.project_dir%/var/vehicles'
+
     App\Server\Bridge\BridgeInstaller:
         arguments:
             $bridgeSourcePath: '%kernel.project_dir%/resources/bridge/ZomboidControlBridge.lua'

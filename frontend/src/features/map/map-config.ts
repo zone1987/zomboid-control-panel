@@ -79,26 +79,41 @@ export type MapGeometry = {
 }
 
 /**
- * Places worth jumping to.
+ * The named places, where the game itself puts their names.
  *
- * Taken from the game's own map.info files -- every start area records
- * a zoomX and zoomY, which is where the game centres when it shows that
- * town. More accurate than any list written by hand.
+ * Read from the game's own worldmap-annotations.lua: each town has an
+ * addUntranslatedText("MapLabel_<name>", "text-town", x, y) entry, which
+ * is the position the game draws that label at on its in-game map.
  *
- * Louisville has no start area of its own, so its coordinate is the
- * centre of the city rather than a value the game supplies.
+ * Not map.info's zoomX/zoomY, which this list used to hold. Those are
+ * the camera position of a start area -- a spawn point, not a town --
+ * and they sit far enough off that Muldraugh's name landed in the woods
+ * east of the town and every jump target missed.
  */
 export const QUICK_TARGETS = [
-  { id: 'muldraugh', x: 11181, y: 9725 },
-  { id: 'westPoint', x: 11581, y: 6916 },
-  { id: 'riverside', x: 6300, y: 5668 },
-  { id: 'rosewood', x: 8446, y: 11556 },
-  { id: 'marchRidge', x: 9921, y: 12603 },
-  { id: 'louisville', x: 12800, y: 2000 },
-  { id: 'valleyStation', x: 13056, y: 6031 },
-  { id: 'echoCreek', x: 4235, y: 11069 },
-  { id: 'brandenburg', x: 2314, y: 6253 },
-  { id: 'irvington', x: 2729, y: 13797 },
-  { id: 'ekron', x: 1020, y: 9838 },
-  { id: 'fallasLake', x: 7348, y: 8371 },
-] as const
+  { id: 'muldraugh', x: 10754, y: 9926 },
+  { id: 'westPoint', x: 11654, y: 6864 },
+  { id: 'riverside', x: 6450, y: 5430 },
+  { id: 'rosewood', x: 8159, y: 11661 },
+  { id: 'marchRidge', x: 10130, y: 12801 },
+  { id: 'louisville', x: 13077, y: 2238 },
+  { id: 'valleyStation', x: 13447, y: 5278 },
+  { id: 'echoCreek', x: 3589, y: 10952 },
+  { id: 'brandenburg', x: 2056, y: 6070 },
+  { id: 'irvington', x: 2427, y: 14185 },
+  { id: 'ekron', x: 634, y: 9746 },
+  { id: 'fallasLake', x: 7253, y: 8279 },
+] as const satisfies readonly MapPlace[]
+
+/**
+ * A named place on the map.
+ *
+ * Every name is drawn the same size and at every zoom. The game varies
+ * its own label scale, but transferred straight into CSS that made
+ * Louisville tower over the map, and the user asked for one size.
+ */
+export type MapPlace = {
+  id: string
+  x: number
+  y: number
+}

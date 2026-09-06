@@ -10,7 +10,7 @@
         players.json    who is connected, with position and condition
         server.json     time, weather and how long the server has been up
         safehouses.json claimed safehouses and their members
-        vehicles.json   where the loaded vehicles are, and their state
+        vehicles.json   loaded vehicles: position, facing, paint and wear
         factions.json   factions and who belongs to them
 
     Since 0.8.0 it also reads. The panel writes numbered command files
@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.10.0"
+local BRIDGE_VERSION = "0.12.1"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -679,36 +679,99 @@ end
 
 --- Wraps a write so a fault in one file cannot stop the others.
 
+--- The list of loaded vehicles, from whichever source answers.
+--- Calls a getter and keeps the answer only if it is a number.
+---
+--- Through pcall rather than "if vehicle.getX then": a Java method is
+--- not a truthy Lua field, and guarding that way reported a live server
+--- with 21 vehicles as having none.
+local function number(object, getter)
+    local ok, value = pcall(getter, object)
+
+    return (ok and type(value) == "number") and value or nil
+end
+
+--- A number for JSON, or the literal null.
+local function decimal(value, places)
+    if value == nil then
+        return "null"
+    end
+
+    return string.format("%." .. places .. "f", value)
+end
+
+local function indexable(list)
+    -- Usable if it answers size(). The game's own code iterates a
+    -- cell's vehicles with size() and get(i-1) -- see
+    -- client/Vehicles/ISUI/ISVehicleBloodUI.lua -- so answering size()
+    -- is what marks a source this build exposes to Lua.
+    --
+    -- get() is deliberately not probed. An empty list has no element 0,
+    -- so probing it threw and the source was thrown away: with nobody
+    -- near a vehicle every source looked broken and the panel was told
+    -- "none" rather than "none loaded".
+    if list == nil then
+        return false
+    end
+
+    local ok, size = pcall(function() return list:size() end)
+
+    return ok and type(size) == "number"
+end
+
+--- The vehicles this server has loaded, and where they came from.
+---
+--- Three sources, because which of them a dedicated server exposes to
+--- Lua is not settled: no shipped Lua file enumerates vehicles
+--- server-side at all, and VehicleManager appears nowhere in media/lua.
+--- The source is reported to the panel so an empty list can be told
+--- apart from an unreadable one.
+local function vehicleList()
+    local tried = {}
+
+    for _, ask in ipairs({
+        { "cell", function() return getCell():getVehicles() end },
+        { "manager", function() return VehicleManager.instance:getVehicles() end },
+        { "world", function() return getWorld():getCell():getVehicles() end },
+    }) do
+        local ok, list = pcall(ask[2])
+
+        if ok and indexable(list) then
+            return list, ask[1], tried
+        end
+
+        tried[#tried + 1] = string.format(
+            "%s:%s",
+            ask[1],
+            ok and (list == nil and "nil" or "not-indexable") or "threw"
+        )
+    end
+
+    return nil, "none", tried
+end
+
 --- Every vehicle the server currently has loaded.
 ---
---- Position comes from getSquare() rather than getX(): the square is
---- what the game's own server code reads (Vehicles.lua does exactly
---- that), and a vehicle without one is not in the world right now.
+--- Position prefers the square and falls back to the vehicle's own
+--- coordinates, so a loaded vehicle is never dropped for want of one.
 ---
 --- Written on the slow interval with the rest of the world state:
 --- vehicles move, but not so fast that three seconds would show
 --- anything the panel could not read a minute later.
 local function writeVehicles()
-    local cell = getCell()
     local entries = {}
+    local vehicles, from, tried = vehicleList()
 
-    if cell ~= nil then
-        local vehicles = cell:getVehicles()
-
+    if vehicles ~= nil then
         for i = 0, vehicles:size() - 1 do
             local vehicle = vehicles:get(i)
-            local square = vehicle:getSquare()
 
-            if square ~= nil then
+            if vehicle ~= nil then
+                local square = vehicle:getSquare()
                 -- Read back rather than assumed: a script name is not
                 -- guaranteed, and neither is a readable fuel level.
                 local script = vehicle:getScriptName()
-                local fuel = nil
-                local ok, value = pcall(vehicle.getRemainingFuelPercentage, vehicle)
-
-                if ok and type(value) == "number" then
-                    fuel = value
-                end
+                local fuel = number(vehicle, vehicle.getRemainingFuelPercentage)
 
                 local running = false
                 local engineOk, engineValue = pcall(vehicle.isEngineRunning, vehicle)
@@ -717,26 +780,68 @@ local function writeVehicles()
                     running = engineValue == true
                 end
 
+                -- getAngleY, not getAngleZ: the physics transform puts
+                -- world height on its y axis, so rotation about y is
+                -- the way the vehicle faces on the ground. x and z are
+                -- pitch and roll.
+                --
+                -- Wrapped into 0..360 so it matches what the panel
+                -- computes from the save file's quaternion; getAngleY
+                -- itself returns a signed Euler angle.
+                local angle = number(vehicle, vehicle.getAngleY)
+
+                if angle ~= nil then
+                    angle = (angle % 360 + 360) % 360
+                end
+
+                -- The paint. Only the live object has it: in the save
+                -- file it sits behind the part list, whose entries
+                -- carry nested inventory items of variable length.
+                local hue = number(vehicle, vehicle.getColorHue)
+                local saturation = number(vehicle, vehicle.getColorSaturation)
+                local value = number(vehicle, vehicle.getColorValue)
+                local rust = number(vehicle, vehicle.getRust)
+                local skin = number(vehicle, vehicle.getSkinIndex)
+
+                -- getX/getY on the vehicle itself when it has no
+                -- square: a loaded vehicle would otherwise be dropped
+                -- without a word.
+                local x = square ~= nil and square:getX() or vehicle:getX()
+                local y = square ~= nil and square:getY() or vehicle:getY()
+                local z = square ~= nil and square:getZ() or vehicle:getZ()
+
                 entries[#entries + 1] = string.format(
                     '{"id":%d,"script":"%s","x":%d,"y":%d,"z":%d,'
-                    .. '"fuel":%s,"engineRunning":%s}',
+                    .. '"angle":%s,"fuel":%s,"engineRunning":%s,'
+                    .. '"hue":%s,"saturation":%s,"value":%s,'
+                    .. '"rust":%s,"skin":%s}',
                     vehicle:getId() or 0,
                     escape(script or "unknown"),
-                    square:getX(),
-                    square:getY(),
-                    square:getZ(),
-                    fuel ~= nil and string.format("%.1f", fuel) or "null",
-                    running and "true" or "false"
+                    x or 0,
+                    y or 0,
+                    z or 0,
+                    decimal(angle, 1),
+                    decimal(fuel, 1),
+                    running and "true" or "false",
+                    decimal(hue, 4),
+                    decimal(saturation, 4),
+                    decimal(value, 4),
+                    decimal(rust, 4),
+                    skin ~= nil and string.format("%d", skin) or "null"
                 )
             end
         end
     end
 
     writeFile(VEHICLES_FILE, string.format(
-        '{"bridgeVersion":"%s","sessionId":"%s","generatedAt":%d,"vehicles":[%s]}',
+        '{"bridgeVersion":"%s","sessionId":"%s","generatedAt":%d,'
+        .. '"source":"%s","loaded":%d,"tried":"%s","vehicles":[%s]}',
         BRIDGE_VERSION,
         SESSION_ID,
         getTimestamp(),
+        from,
+        vehicles ~= nil and vehicles:size() or -1,
+        escape(table.concat(tried, ",")),
         table.concat(entries, ",")
     ))
 end

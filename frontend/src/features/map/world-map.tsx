@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { WorldPoint } from './coordinates'
-import type { MapSource } from './map-config'
+import { QUICK_TARGETS, type MapSource } from './map-config'
 import type { MapPlayer, MapSafehouse, MapVehicle } from './map'
 import { LayerToggles, type LayerVisibility, type MapLayerId } from './layer-toggles'
 import { encodeViewState, isSameView, type MapViewState } from './map-url-state'
 import { useMapViewer } from './use-map-viewer'
 import { useMapMarkers } from './use-map-markers'
+import { useVehicleRenderer } from './use-vehicle-renderer'
 import { FloorControl } from './floor-control'
 import { MapControls } from './map-controls'
 
@@ -66,6 +67,20 @@ export function WorldMap({
     }, URL_DEBOUNCE_MS)
   }, [])
 
+  const placeName = useCallback((id: string) => t(`players.landmarks.${id}`), [t])
+
+  // "Base.PickUpVan" reads badly on a map; the script name is the key
+  // and the bare name is the fallback for anything a mod added.
+  const vehicleName = useCallback(
+    (script: string) =>
+      t(`map.vehicle.${script.replace(/^Base\./, '')}`, {
+        defaultValue: script.replace(/^Base\./, ''),
+      }),
+    [t],
+  )
+
+  const vehicles3d = useVehicleRenderer()
+
   const viewer = useMapViewer({ source, initial, onViewChanged, onContextMenu })
 
   useMapMarkers({
@@ -78,6 +93,9 @@ export function WorldMap({
     vehicles,
     visible,
     onPlayerClick,
+    placeName,
+    vehicleName,
+    vehicles3d,
   })
 
   useEffect(() => {
@@ -153,6 +171,7 @@ export function WorldMap({
           players: players.length,
           safehouses: safehouses.length,
           vehicles: vehicles.length,
+          places: QUICK_TARGETS.length,
         }}
         onChange={onLayerChange}
       />

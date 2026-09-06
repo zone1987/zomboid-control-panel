@@ -11,6 +11,7 @@ export type Permission =
   | 'chat.send'
   | 'console.use'
   | 'events.trigger'
+  | 'vehicles.view'
   | 'servers.view'
   | 'servers.edit'
   | 'servers.bridge'

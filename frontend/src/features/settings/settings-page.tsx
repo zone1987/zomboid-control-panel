@@ -19,6 +19,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
+import { VehicleModelsCard } from './vehicle-models-card'
 import { IconPacksCard } from './icon-packs-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
@@ -33,10 +34,14 @@ import {
 
 type Draft = Partial<Record<SettingKey, string>>
 
+/** The tabs that hold editable fields; the rest upload files instead. */
+const SAVABLE_TABS = ['steam', 'google', 'mail']
+
 export function SettingsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>({})
+  const [tab, setTab] = useState('steam')
 
   const { data, isPending } = useQuery({
     queryKey: ['settings'],
@@ -105,6 +110,10 @@ export function SettingsPage() {
   })
 
   const hasChanges = Object.keys(draft).length > 0
+  // Only the credential tabs have fields to save. On the file tabs an
+  // upload happens as soon as a file is dropped, so a save button there
+  // would suggest the transfer still needed confirming.
+  const savable = SAVABLE_TABS.includes(tab)
   const redirectUri = data?.googleRedirectUri ?? ''
 
   if (isPending) {
@@ -118,13 +127,13 @@ export function SettingsPage() {
         <p className="text-muted-foreground">{t('settings.description')}</p>
       </div>
 
-      <Tabs defaultValue="steam">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="steam">Steam</TabsTrigger>
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
-          <TabsTrigger value="map">{t('settings.mapTab')}</TabsTrigger>
+          <TabsTrigger value="vehicles">{t('settings.vehiclesTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steam">
@@ -305,34 +314,25 @@ export function SettingsPage() {
           <IconPacksCard />
         </TabsContent>
 
-        <TabsContent value="map" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('map.external.title')}</CardTitle>
-              <CardDescription>{t('map.external.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <p>{t('map.external.noRender')}</p>
-              <a href="https://projectzomboidmap.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                projectzomboidmap.com
-              </a>
-            </CardContent>
-          </Card>
+        <TabsContent value="vehicles">
+          <VehicleModelsCard />
         </TabsContent>
 
       </Tabs>
 
-      <div className="flex gap-2">
-        <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>
-          {save.isPending ? t('common.loading') : t('common.save')}
-        </Button>
-
-        {hasChanges && (
-          <Button variant="ghost" onClick={() => setDraft({})}>
-            {t('common.cancel')}
+      {savable && (
+        <div className="flex gap-2">
+          <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>
+            {save.isPending ? t('common.loading') : t('common.save')}
           </Button>
-        )}
-      </div>
+
+          {hasChanges && (
+            <Button variant="ghost" onClick={() => setDraft({})}>
+              {t('common.cancel')}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

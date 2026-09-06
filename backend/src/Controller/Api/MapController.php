@@ -12,6 +12,7 @@ use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
+use App\Server\Vehicles\VehicleOverlay;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +28,7 @@ final class MapController extends AbstractController
         private readonly BridgeStatusReader $bridge,
         private readonly PlayerSnapshotRepository $snapshots,
         private readonly ServerInfoReader $info,
+        private readonly VehicleOverlay $vehicles,
     ) {
     }
 
@@ -49,14 +51,22 @@ final class MapController extends AbstractController
         try {
             $this->bridge->refresh($server);
         } catch (BridgeUnavailable $exception) {
+            // The vehicle database is read over FTP and does not need
+            // the bridge, so an unreachable bridge still leaves a map
+            // with vehicles on it.
+            $vehicles = $this->vehiclesFor($server);
+
             return new JsonResponse([
                 'players' => [],
                 'safehouses' => [],
-                'vehicles' => [],
+                'vehicles' => $vehicles['items'],
+                'vehicleSource' => $vehicles['source'],
                 'factions' => [],
                 'error' => $exception->messageKey(),
             ]);
         }
+
+        $vehicles = $this->vehiclesFor($server);
 
         // Every layer the panel can draw. The interface decides which
         // ones to show; the answer carries them all, because they come
@@ -64,10 +74,26 @@ final class MapController extends AbstractController
         return new JsonResponse([
             'players' => $this->playersOf($server),
             'safehouses' => $this->info->safehouses($server) ?? [],
-            'vehicles' => $this->info->vehicles($server) ?? [],
+            'vehicles' => $vehicles['items'],
+            'vehicleSource' => $vehicles['source'],
             'factions' => $this->info->factions($server) ?? [],
             'error' => null,
         ]);
+    }
+
+    /**
+     * Vehicles are a layer of their own, so a role can be given the
+     * player roster without the whereabouts of every car.
+     *
+     * @return array{items: list<array<string, mixed>>, source: string, loaded: int}
+     */
+    private function vehiclesFor(GameServer $server): array
+    {
+        if (!$this->isGranted(Permission::ViewVehicles->value)) {
+            return ['items' => [], 'source' => 'none', 'loaded' => 0];
+        }
+
+        return $this->vehicles->of($server);
     }
 
     /** @return list<array<string, mixed>> */

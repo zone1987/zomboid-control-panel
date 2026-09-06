@@ -1521,3 +1521,248 @@ Additional final verification: `docker run --rm --entrypoint php
 zomboidcontrol:renderer-cleanup bin/console lint:container --no-debug` passes
 inside the built production image as well. Final frontend rebuild after removing
 the unused layer DZI field also passes.
+
+### 2026-09-06 — Vehicles on the map, place names, and a permission of their own
+
+Three requests in one session: show vehicles on the map (the layer switch
+existed but nothing was ever drawn), label the towns, and give both a
+switch. The vehicle work grew into reading the server's save files and
+rendering the game's own 3D models.
+
+#### Vehicles: where they come from
+
+**The bridge alone cannot answer this.** Zomboid only keeps chunks in
+memory where a player stands, so with nobody online `getCell():getVehicles()`
+returns nothing — not an error, simply an empty world. The panel needs
+every vehicle, always.
+
+**`Saves/Multiplayer/<world>/vehicles.db` is the answer.** A real SQLite
+database, one row per vehicle, written by `zombie.vehicles.VehiclesDB2`.
+Verified against the user's server: 125 vehicles with world coordinates,
+readable over FTP with no player online. Vehicles in never-visited
+regions are genuinely absent — `IsoChunk.AddVehicles()` generates them
+the first time a chunk loads and writes them straight to this file, so
+nothing exists to read before that. `map_meta.bin` holds no vehicle data
+(checked in `IsoMetaGrid.load()`).
+
+**The `data` BLOB was decoded from the decompiled `BaseVehicle.save()`
+and verified byte for byte against real rows:**
+
+| Offset | Field | Checked against a real taxi |
+|---|---|---|
+| 0 | serialise flag | 1 |
+| 1 | class id | 33 = `IsoObject.factoryGetClassID("Vehicle")` |
+| 2, 6 | offsetX, offsetY | 64.0, 192.0 |
+| 10, 14, 18 | x, y, z | identical to the row's own columns |
+| 22 | `IsoDirections` ordinal | agrees with the quaternion |
+| 26 | mod-data flag | 0; a 1 here makes the rest unreadable, so such a row is refused |
+| 27 | physics height | |
+| 31 | rotation quaternion x,y,z,w | **all 125 headings readable** |
+| 47 | script name, uint16 + UTF-8 | `Base.PickUpVan` etc. |
+| then | skin, engine, four durabilities | |
+
+`App\Server\Vehicles\SavedVehicleReader` parses this forwards rather than
+by fixed offsets, because the mod-data flag can shift everything after
+it. 12 unit tests use real bytes from the user's save; synthesised ones
+would only prove the reader agrees with itself.
+
+**Heading is taken as it stands, with no offset.** An identity quaternion
+means unrotated and must read as zero — verified against the taxi in the
+save, which carries the identity and stands unturned in the game. The
+row's own eight-way `IsoDirections` field looks half a circle out against
+this; an offset to match it was tried and reverted, because that field is
+measured from the game's north rather than the model's front and matching
+it put every vehicle back to front.
+
+**Paint cannot be read from the file.** `colorHue`/`colorSaturation`/
+`colorValue` sit behind the part list, and every part can carry nested
+inventory items of variable length — skipping it would mean
+reimplementing the game's item serialisation. The bridge reads them off
+the live object instead (`getColorHue()` and siblings are public), so the
+two sources are combined: the database supplies every vehicle, the bridge
+fills in paint, rust and skin for the ones it can see. `VehicleOverlay`
+merges them, keyed by the id both carry.
+
+#### The bridge
+
+`vehicles.json` was always empty, and the reason was not what it looked
+like. Three separate faults, in order:
+
+1. `IsoCell.getVehicles()` returns a `java.util.Set`. It was **not** the
+   problem — the game's own `ISVehicleBloodUI.lua` iterates exactly that
+   with `size()`/`get(i-1)`, so Kahlua does expose it. An earlier
+   diagnosis blaming the Set was wrong and is recorded here so it is not
+   repeated.
+2. The real fault: the bridge's own `indexable()` guard probed
+   `list:get(0)` to decide whether a source was usable. An **empty** list
+   has no element zero, so the probe threw and every source was thrown
+   away — with nobody near a vehicle the panel was told "none" rather
+   than "none loaded". Now it accepts anything answering `size()`.
+3. The bridge reports which source answered (`cell`, `manager`, `world`,
+   `none`) and why the others were rejected, so an empty list can be told
+   from an unreadable one. That diagnostic is what found fault 2, live.
+
+Bridge 0.12.1 also writes `angle`, `hue`, `saturation`, `value`, `rust`
+and `skin`. **The server still runs 0.12.0 — until 0.12.1 is uploaded
+every vehicle draws grey, because the paint never arrives.**
+
+#### Rendering the real models
+
+The map draws each vehicle from the game's own FBX with its own texture,
+in three.js. What that cost, and what is settled:
+
+- **The map is the 2:1 projection 2D games use.** Its ground plane is
+  squashed to half but height is drawn at full scale — its own geometry
+  proves it: a storey is 192 px and a Zomboid storey is three metres, so
+  64 px a metre, the same as along the ground. A camera cannot do both,
+  so the body is stretched by `1/cos(30°)` to put back what the tilt
+  takes away.
+- **The heading is turned in the scene, not on the finished image.**
+  Equal steps of heading are unequal steps on screen — 0, 45, 90 degrees
+  land at 63.4, 90, 116.6 — because a turning vehicle traces an ellipse
+  on a squashed plane. A CSS rotation turns on a circle and cannot
+  express that. Each heading is therefore its own render, bucketed to 15
+  degrees, which caps a vehicle type at 24 cached images.
+- **Camera yaw 225°, elevation 30°.** The elevation follows from the map's
+  vertical squash (`asin(0.5)`). Two yaws satisfy the geometry, one
+  viewing the vehicle's front and one its back, and the arithmetic cannot
+  tell them apart; 225 was settled in a browser against the same taxi
+  seen in the game.
+- **Size comes from the model, not from `extents`.** The script's
+  `extents` is the physics collision box and runs anywhere from 15 % small
+  to 15 % large against a real body, so it cannot be corrected by a
+  factor — it is only the fallback for the 188 catalogue entries that
+  ship no model file. The 53 that do are measured and scaled by the
+  script's own `scale`.
+- **`FBXLoader` already converts the axes.** After loading, length is on
+  z and height on y. An extra quarter turn to "stand the model up" laid
+  every vehicle back down; it is not needed.
+- **Rendered at 512 square.** A five-metre car spans about 250 screen
+  pixels at the closest useful zoom, and the shell textures are 512, so
+  anything smaller is upscaled and looks smeared.
+
+`VehicleCatalogue` (generated, 241 entries) maps a script name to its
+model, shell texture, paint mask, scale, measured size and wheel
+positions, with `template!` inheritance resolved — most vehicles declare
+only their model and inherit the rest.
+
+#### Wheels: not finished
+
+Wheels ship only as `media/models/Vehicles_Wheel.txt`, the game's own
+text mesh format. `frontend/src/features/map/zomboid-mesh.ts` reads it —
+7 tests against the real file, and the format's v axis is flipped on the
+way in because three.js reads it the other way.
+
+**They are still in the wrong place, and the cause is identified but the
+fix is unverified.** What was established:
+
+- `VehicleScript.Loaded()` multiplies every wheel offset by the body
+  model's scale once at load; `BaseVehicle.updateTransform()` divides the
+  same scale straight back out (`scriptWheel.offset.x / scale`). The net
+  multiplier on a file's offset is therefore **exactly one**. Four
+  factors were tried by eye first — 1.82, 0.91, 0.83, 1.0 — and each put
+  either the front or the rear wheels right.
+- `updateTransform()` **negates x** (`offset.x / scale * -1.0f`). Without
+  that every wheel sits on the side of the car with no arch.
+- `radius` and `width` are **not used for drawing at all**. The render
+  path never reads them; their only uses are a ground-clearance test, a
+  collision distance and a debug wireframe. Scaling the mesh to them gave
+  wheels taller than the car. The mesh keeps its own size.
+- `models_vehicles.txt` and `template_tire.txt` declare **no** offset,
+  scale or rotation for wheels — all defaults, so no script value is
+  missing.
+- **The likely remaining cause:** `FBXLoader` puts `rotation.x = -1.571`
+  on the node holding the body geometry, and the wheels were being added
+  to the group *around* that node, so they kept the file's axes while the
+  body had already been turned. A fix attaching them to that node is in
+  `vehicle-renderer.ts` (`bodyFrame()`), written but **never seen
+  working** — the browser kept serving a cached render and ddev was
+  restarted before it could be confirmed.
+
+Next step for whoever picks this up: force a fresh render (the cache is
+keyed by type, paint and heading, so a code change alone does not
+invalidate it), then look at one vehicle at close zoom and check all four
+wheels sit in their arches.
+
+#### Places
+
+Town names are drawn from the game's own `worldmap-annotations.lua`
+(`addUntranslatedText("MapLabel_<name>", "text-town", x, y)`), which is
+where the game itself puts them. The list previously used `map.info`'s
+`zoomX`/`zoomY` — a start area's camera point, not a town — which drew
+Muldraugh's name in the woods east of the town and made every jump target
+miss by the same distance.
+
+All names are drawn the same size and at every zoom: the game's own
+`setScale` runs 4 to 10 and every label carries `setMinZoom(0)`, but
+carried straight into CSS that made Louisville tower over the map, and
+the user asked for one size.
+
+Labels and vehicles are both pinned to floor 0. They stand on the ground,
+and following the selected floor's offset lifted them off the road when
+an operator looked at an upper storey.
+
+#### Permissions, switches, settings
+
+- New `vehicles.view` permission. `Version20260906060000` grants it to
+  every role that already had `players.view`, so existing administrators
+  keep the layer. The map endpoint returns no vehicles without it.
+- A layer switch whose permission is missing is disabled rather than
+  hidden, with a tooltip saying why — a control that vanished would read
+  as a fault. Applies to players and safehouses as well.
+- Vehicle models and textures are uploaded through the settings, like the
+  item icons: 146 models and 399 textures, in batches of 15 (PHP's
+  `max_file_uploads` is 20 here and silently drops the rest). They live
+  in `backend/var/vehicle-models`, out of git, because the artwork is The
+  Indie Stone's.
+- The map tab in the settings is gone — the credits are on the map
+  itself. The save button now appears only on the tabs that hold fields;
+  on the upload tabs a file is transferred the moment it is dropped, so a
+  save button there suggested the transfer still needed confirming.
+
+#### A crash fixed on the way
+
+The player page died with "Cannot read properties of undefined (reading
+'month')". `WorldStrip` checked `gameTime !== null`, which lets
+`undefined` through: the bridge rewrites its file in place, so a read can
+catch it mid-write and return an object whose fields are absent. It now
+checks every field it reads. The regression test fails on the old guard
+in three of five cases.
+
+#### Files
+
+Backend: `src/Server/Vehicles/{SavedVehicleReader,SavedVehicleStore,
+VehicleRecord,VehicleCondition,VehicleOverlay,BridgeVehicleSource,
+VehicleSourceInterface}.php`, `src/Server/Vehicles/Models/{ModelStore,
+VehicleCatalogue}.php`, `src/Controller/Api/VehicleModelController.php`,
+`src/Command/VehicleListCommand.php`, `migrations/Version20260906060000.php`,
+`resources/bridge/ZomboidControlBridge.lua` (0.12.1).
+
+Frontend: `features/map/{vehicle-renderer,vehicle-marker,zomboid-mesh,
+use-vehicle-renderer}.ts`, `features/settings/{vehicle-models,
+vehicle-models-card}.{ts,tsx}`, plus changes to `use-map-markers.ts`,
+`layer-toggles.tsx`, `map-config.ts`, `map.ts`, `world-map.tsx`,
+`world-strip.tsx`, `settings-page.tsx`, `index.css` and both locales.
+
+#### Verification
+
+418 backend tests, 137 frontend tests, 14 Lua checks, production build and
+linter (0 errors) all green. The reader was additionally run against all
+125 rows of the user's live database: every row parsed, every heading
+readable. Vehicle position, size, rotation, texture and paint were checked
+in a browser against a screenshot of the same taxi in the game.
+
+Not verified: the wheel fix described above, and bridge 0.12.1 on the
+server. Damage textures, rust and broken windows are not started — the
+textures exist (`Veh_Damage1/2`, `Veh_Rust`, `_damaged_01/02` per vehicle)
+and the scripts declare them, and `VehicleWindow.isDestroyed()` is
+readable per part through the bridge, but nothing reads any of it yet.
+There are no separate door, bonnet or boot models in the game: only two
+vehicles declare them and even those ship no file, so the arches and
+openings in the body are the model as authored.
+
+### Next task, asked for on 2026-09-06
+
+**The server name cannot be edited.** A server's name is set when it is
+created and there is no way to change it afterwards. The user asked for
+this first, ahead of the unfinished vehicle work above.

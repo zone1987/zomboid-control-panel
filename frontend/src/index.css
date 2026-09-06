@@ -199,18 +199,62 @@
   opacity: 1;
 }
 
+/* A vehicle carries three things at once: which way it faces, what
+   colour it was painted, and whether it is wrecked.
+
+   Sized by the map, not by CSS: the overlay is a rectangle in map
+   coordinates, so the marker scales with the view. */
 .pz-vehicle {
-  width: 0.6rem;
-  height: 0.6rem;
-  border: 1.5px solid oklch(1 0 0 / 0.85);
-  border-radius: 0.15rem;
-  background: var(--color-amber-500, #f59e0b);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+  --pz-vehicle-unknown: oklch(0.62 0.02 260);
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+}
+
+.pz-vehicle__body,
+.pz-vehicle__model {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: center;
+}
+
+/* The vehicle's own model, rendered from the game's files. */
+.pz-vehicle__model {
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pz-vehicle__paint {
+  stroke: oklch(1 0 0 / 0.7);
+  stroke-width: 1;
+  paint-order: stroke;
+}
+
+/* Read from the save file rather than the running world: the paint is
+   unknown, so the body stays neutral and slightly recedes. */
+.pz-vehicle--stored .pz-vehicle__paint {
+  stroke: oklch(1 0 0 / 0.45);
+  opacity: 0.85;
 }
 
 /* A running engine is worth spotting: somebody is in it, or left it on. */
-.pz-vehicle--running {
-  background: var(--color-sky-400, #38bdf8);
+.pz-vehicle--running .pz-vehicle__paint {
+  stroke: var(--color-sky-300, #7dd3fc);
+  stroke-width: 1.5;
+}
+
+.pz-vehicle--damaged .pz-vehicle__paint {
+  stroke: var(--color-amber-400, #fbbf24);
+  stroke-width: 1.5;
+}
+
+.pz-vehicle--wrecked .pz-vehicle__paint {
+  stroke: var(--destructive);
+  stroke-width: 1.5;
+  opacity: 0.7;
 }
 
 .pz-safehouse {
@@ -218,4 +262,22 @@
   border-radius: 0.15rem;
   background: color-mix(in oklab, var(--primary) 20%, transparent);
   pointer-events: none;
+}
+
+/* Place names read over whatever is under them -- grass, roofs, tarmac
+   -- so they carry their own outline rather than a background box, the
+   way a printed map labels a town. */
+.pz-place {
+  font-size: 0.68rem;
+  color: oklch(1 0 0);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px rgb(0 0 0 / 0.9),
+    0 0 5px rgb(0 0 0 / 0.75),
+    0 1px 2px rgb(0 0 0 / 0.9);
+  pointer-events: none;
+  user-select: none;
 }

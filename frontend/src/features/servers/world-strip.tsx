@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Clock, Cloud, CloudRain, Snowflake, Sun, Thermometer, Wind } from 'lucide-react'
 
-import { getWorld } from './world'
+import { getWorld, type GameTime } from './world'
 
 const MONTHS_DE = 12
 
@@ -23,11 +23,16 @@ export function WorldStrip({ serverId }: { serverId: string }) {
     placeholderData: (previous) => previous,
   })
 
-  if (data == null || (data.gameTime === null && data.weather === null)) {
+  // Checked field by field, not merely against null: the bridge file is
+  // rewritten in place, so a read that catches it mid-write returns an
+  // object whose fields are absent. Reading time.month off one of those
+  // took the whole page down.
+  const gameTime = isGameTime(data?.gameTime) ? data.gameTime : null
+  const weather = data?.weather ?? null
+
+  if (gameTime === null && weather === null) {
     return null
   }
-
-  const { gameTime, weather } = data
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border bg-muted/30 px-4 py-3 text-sm">
@@ -136,3 +141,15 @@ function formatDate(time: GameTimeShape, locale: string): string {
 }
 
 type GameTimeShape = { year: number; month: number; day: number }
+
+/** Every field the strip reads, present and numeric. */
+export function isGameTime(time: GameTime | null | undefined): time is GameTime {
+  return (
+    time != null &&
+    Number.isFinite(time.year) &&
+    Number.isFinite(time.month) &&
+    Number.isFinite(time.day) &&
+    Number.isFinite(time.hour) &&
+    Number.isFinite(time.minute)
+  )
+}

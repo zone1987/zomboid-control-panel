@@ -50,7 +50,15 @@ final readonly class ServerInfoReader
      * cell, so an empty list means nobody is near one rather than that
      * the world has none.
      *
-     * @return list<array{id: int, script: string, x: int, y: int, z: int, fuel: float|null, engineRunning: bool}>|null
+     * Paint, wear and facing come from bridge 0.12.0 and are null on
+     * an older one, which is why every one of them is optional.
+     *
+     * @return list<array{
+     *     id: int, script: string, x: int, y: int, z: int,
+     *     fuel: float|null, engineRunning: bool, angle: float|null,
+     *     hue: float|null, saturation: float|null, value: float|null,
+     *     rust: float|null, skin: int|null
+     * }>|null
      */
     public function vehicles(GameServer $server): ?array
     {
@@ -73,14 +81,26 @@ final readonly class ServerInfoReader
                 'x' => (int) ($entry['x'] ?? 0),
                 'y' => (int) ($entry['y'] ?? 0),
                 'z' => (int) ($entry['z'] ?? 0),
-                'fuel' => isset($entry['fuel']) && is_numeric($entry['fuel'])
-                    ? (float) $entry['fuel']
-                    : null,
+                'fuel' => self::decimal($entry['fuel'] ?? null),
                 'engineRunning' => ($entry['engineRunning'] ?? false) === true,
+                'angle' => self::decimal($entry['angle'] ?? null),
+                'hue' => self::decimal($entry['hue'] ?? null),
+                'saturation' => self::decimal($entry['saturation'] ?? null),
+                'value' => self::decimal($entry['value'] ?? null),
+                'rust' => self::decimal($entry['rust'] ?? null),
+                'skin' => isset($entry['skin']) && is_numeric($entry['skin'])
+                    ? (int) $entry['skin']
+                    : null,
             ];
         }
 
         return $vehicles;
+    }
+
+    /** Null rather than zero, so a missing value is not a real reading. */
+    private static function decimal(mixed $value): ?float
+    {
+        return is_numeric($value) ? (float) $value : null;
     }
 
     /**
