@@ -11,6 +11,7 @@ export const SETTING_KEYS = {
   mailEncryption: 'mailer.encryption',
   mailFromAddress: 'mailer.from_address',
   mailFromName: 'mailer.from_name',
+  playerRetentionDays: 'players.retention_days',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]

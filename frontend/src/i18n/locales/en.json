@@ -390,7 +390,19 @@
       "done": "{{count}} files uploaded",
       "noneWorked": "None of the files could be stored.",
       "tooLarge": "{{name}} is too large — 8 MB per file."
-    }
+    },
+    "groupPrivacy": "Data protection",
+    "privacyTab": "Data",
+    "retentionTitle": "Player data retention",
+    "retentionDescription": "How long players nobody has seen are kept.",
+    "retentionDays": "Retention in days",
+    "retentionOff": "empty = off",
+    "retentionIsOff": "Off — nothing is deleted. This is the default.",
+    "retentionIsOn_one": "Players not seen for {{count}} day are removed daily.",
+    "retentionIsOn_other": "Players not seen for {{count}} days are removed daily.",
+    "retentionTooShort": "At least {{count}} days — shorter catches players who are merely on holiday.",
+    "retentionWhatGoes": "Removed: those players' name, SteamID, position, health and skills.",
+    "retentionWhatStays": "The ban list and the moderation log are untouched — a ban that expires on its own is not a ban."
   },
   "rcon": {
     "authenticationFailed": "The RCON password was refused.",
@@ -1113,6 +1125,9 @@
     "thanks": "Thanks to The Indie Stone for creating Project Zomboid, which made this possible.",
     "unofficial": "This is an unofficial fan production for non-commercial purposes made under the Indie Stone Terms.",
     "copyright": "Project Zomboid and its assets are © The Indie Stone Ltd. This project is not affiliated with or endorsed by The Indie Stone.",
-    "originalWording": "Wording from the terms"
+    "originalWording": "Wording from the terms",
+    "dataProtection": "Data protection",
+    "dataProtectionBody": "The panel stores player names, SteamIDs, positions and skills, because a ban without a SteamID and a map without positions do not work. How long players nobody has seen are kept is the operator’s decision — the default is indefinitely.",
+    "dataProtectionLink": "Configure retention"
   }
 }

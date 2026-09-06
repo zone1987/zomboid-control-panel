@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink } from 'lucide-react'
 
@@ -12,8 +13,9 @@ const INDIE_STONE_TERMS = 'https://theindiestone.com/forums/index.php?/tos/'
  *
  * A page rather than a footnote: the terms ask for a visible notice, and
  * the panel shows the game's own vehicle models, textures and map tiles
- * throughout. The English wording below is the one the terms give, so it
- * is not translated.
+ * throughout. The notice is translated, because one nobody understands
+ * does not do its job; the terms' own English wording is kept verbatim
+ * in a foldout so it is still on the page.
  */
 export function CreditsPage() {
   const { t } = useTranslation()
@@ -105,6 +107,16 @@ export function CreditsPage() {
         {/* Mod assets belong to their authors, and the terms are explicit
             that their permission is a separate matter. */}
         <p className="text-xs text-muted-foreground">{t('credits.mods')}</p>
+      </section>
+
+      <section className="max-w-2xl space-y-3 rounded-md border p-4">
+        <SectionMark label={t('credits.dataProtection')} />
+
+        <p className="text-sm text-muted-foreground">{t('credits.dataProtectionBody')}</p>
+
+        <Link to="/settings" className="inline-block text-sm text-primary hover:underline">
+          {t('credits.dataProtectionLink')}
+        </Link>
       </section>
 
       <section className="max-w-2xl space-y-3 rounded-md border p-4">

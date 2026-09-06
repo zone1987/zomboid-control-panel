@@ -390,7 +390,19 @@
       "done": "{{count}} Dateien übertragen",
       "noneWorked": "Keine der Dateien konnte übernommen werden.",
       "tooLarge": "{{name}} ist zu groß — je Datei sind 8 MB möglich."
-    }
+    },
+    "groupPrivacy": "Datenschutz",
+    "privacyTab": "Daten",
+    "retentionTitle": "Aufbewahrung von Spielerdaten",
+    "retentionDescription": "Wie lange Spieler gespeichert bleiben, die niemand mehr gesehen hat.",
+    "retentionDays": "Aufbewahrung in Tagen",
+    "retentionOff": "leer = aus",
+    "retentionIsOff": "Aus — es wird nichts gelöscht. Das ist die Voreinstellung.",
+    "retentionIsOn_one": "Spieler, die seit {{count}} Tag nicht gesehen wurden, werden täglich entfernt.",
+    "retentionIsOn_other": "Spieler, die seit {{count}} Tagen nicht gesehen wurden, werden täglich entfernt.",
+    "retentionTooShort": "Mindestens {{count}} Tage — kürzer trifft es Spieler, die nur im Urlaub sind.",
+    "retentionWhatGoes": "Entfernt werden Name, SteamID, Position, Gesundheit und Fertigkeiten dieser Spieler.",
+    "retentionWhatStays": "Bannliste und Moderationsprotokoll bleiben unangetastet — ein Bann, der von selbst abläuft, ist kein Bann."
   },
   "rcon": {
     "authenticationFailed": "Das RCON-Passwort wurde abgelehnt.",
@@ -1113,6 +1125,9 @@
     "thanks": "Dank an The Indie Stone für Project Zomboid, das dies möglich gemacht hat.",
     "unofficial": "Dies ist ein unoffizielles Fan-Projekt zu nicht-kommerziellen Zwecken, erstellt unter den Nutzungsbedingungen von The Indie Stone.",
     "copyright": "Project Zomboid und seine Inhalte sind © The Indie Stone Ltd. Dieses Projekt steht in keiner Verbindung zu The Indie Stone und wird von dort nicht unterstützt.",
-    "originalWording": "Wortlaut der Nutzungsbedingungen"
+    "originalWording": "Wortlaut der Nutzungsbedingungen",
+    "dataProtection": "Datenschutz",
+    "dataProtectionBody": "Das Panel speichert Spielernamen, SteamIDs, Positionen und Fertigkeiten, weil ein Bann ohne SteamID und eine Karte ohne Positionen nicht funktionieren. Wie lange Spieler gespeichert bleiben, die niemand mehr gesehen hat, entscheidet der Betreiber — voreingestellt ist: unbegrenzt.",
+    "dataProtectionLink": "Aufbewahrung einstellen"
   }
 }

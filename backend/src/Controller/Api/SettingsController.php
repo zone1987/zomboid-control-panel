@@ -19,6 +19,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(Permission::EditSettings->value)]
 final class SettingsController extends AbstractController
 {
+    /**
+     * Below this a purge would delete players who are merely on holiday.
+     * Empty still means off, which is the default.
+     */
+    private const RETENTION_MINIMUM_DAYS = 7;
+
     private const EDITABLE = [
         AppSetting::STEAM_API_KEY,
         AppSetting::GOOGLE_CLIENT_ID,
@@ -33,6 +39,7 @@ final class SettingsController extends AbstractController
         // Still accepted for anyone who would rather paste one, but the
         // interface asks for the individual fields.
         AppSetting::MAILER_DSN,
+        AppSetting::PLAYER_RETENTION_DAYS,
     ];
 
     public function __construct(
@@ -104,7 +111,22 @@ final class SettingsController extends AbstractController
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
-            $this->settings->set($name, $value);
+            // A retention horizon deletes data when it comes round, so a
+            // value that does not mean what the operator thinks it means
+            // is refused here rather than silently read as "off".
+            if (
+                $name === AppSetting::PLAYER_RETENTION_DAYS
+                && \is_string($value)
+                && trim($value) !== ''
+                && (!ctype_digit(trim($value)) || (int) trim($value) < self::RETENTION_MINIMUM_DAYS)
+            ) {
+                return new JsonResponse([
+                    'status' => 'failed',
+                    'errors' => [$name => 'settings.retentionTooShort'],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $this->settings->set($name, $value === null ? null : (trim($value) === '' ? null : $value));
         }
 
         return $this->list();

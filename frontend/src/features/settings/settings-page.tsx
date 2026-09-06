@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabGroupLabel } from '@/components/ui/tab-group-label'
+import { RetentionCard } from './retention-card'
 import {
   Select,
   SelectContent,
@@ -36,7 +37,7 @@ import {
 type Draft = Partial<Record<SettingKey, string>>
 
 /** The tabs that hold editable fields; the rest upload files instead. */
-const SAVABLE_TABS = ['steam', 'google', 'mail']
+const SAVABLE_TABS = ['steam', 'google', 'mail', 'privacy']
 
 export function SettingsPage() {
   const { t } = useTranslation()
@@ -138,7 +139,14 @@ export function SettingsPage() {
           <TabGroupLabel className="ml-2">{t('settings.groupGameContent')}</TabGroupLabel>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
           <TabsTrigger value="vehicles">{t('settings.vehiclesTab')}</TabsTrigger>
+
+          <TabGroupLabel className="ml-2">{t('settings.groupPrivacy')}</TabGroupLabel>
+          <TabsTrigger value="privacy">{t('settings.privacyTab')}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="privacy">
+          <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
+        </TabsContent>
 
         <TabsContent value="steam">
           <Card>

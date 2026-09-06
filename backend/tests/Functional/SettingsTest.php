@@ -144,6 +144,58 @@ final class SettingsTest extends FunctionalTestCase
         ));
     }
 
+    public function testOffersTheRetentionHorizon(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('GET', '/api/settings');
+
+        self::assertArrayHasKey(AppSetting::PLAYER_RETENTION_DAYS, $this->payload()['items']);
+    }
+
+    public function testStoresARetentionHorizon(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::PLAYER_RETENTION_DAYS => '90']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('90', $this->payload()['items'][AppSetting::PLAYER_RETENTION_DAYS]['value']);
+    }
+
+    /**
+     * A purge deletes data when it comes round, so a horizon short enough
+     * to catch somebody on holiday is refused rather than accepted.
+     */
+    public function testRefusesARetentionHorizonThatIsTooShort(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::PLAYER_RETENTION_DAYS => '3']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSame(
+            'settings.retentionTooShort',
+            $this->payload()['errors'][AppSetting::PLAYER_RETENTION_DAYS],
+        );
+    }
+
+    public function testRefusesARetentionHorizonThatIsNotANumber(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::PLAYER_RETENTION_DAYS => 'forever']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    /** Empty is how an operator turns the purge off again. */
+    public function testAnEmptyRetentionHorizonMeansOff(): void
+    {
+        $this->signInAsAdmin();
+        $this->request('PATCH', '/api/settings', [AppSetting::PLAYER_RETENTION_DAYS => '90']);
+        $this->request('PATCH', '/api/settings', [AppSetting::PLAYER_RETENTION_DAYS => '']);
+
+        self::assertResponseIsSuccessful();
+        self::assertFalse($this->payload()['items'][AppSetting::PLAYER_RETENTION_DAYS]['configured']);
+    }
+
     private function signInAsAdmin(): void
     {
         $this->createUser('admin@example.com', [User::ROLE_ADMIN]);
