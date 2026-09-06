@@ -79,6 +79,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/items/items-page'), 'ItemsPage'),
                     },
                     {
+                      path: 'servers/:id/vehicles',
+                      lazy: lazyRoute(
+                        () => import('@/features/vehicles/vehicles-page'),
+                        'VehiclesPage',
+                      ),
+                    },
+                    {
                       path: 'servers/:id/chat',
                       lazy: lazyRoute(() => import('@/features/chat/chat-page'), 'ChatPage'),
                     },
