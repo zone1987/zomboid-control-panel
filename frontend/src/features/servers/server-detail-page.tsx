@@ -164,6 +164,7 @@ export function ServerDetailPage() {
   const setRcon = (key: keyof NonNullable<ServerDraft['rcon']>, value: string | number) =>
     setDraft((prev) => ({ ...prev, rcon: { ...prev.rcon, [key]: value } }))
 
+  const nameIsBlank = draft.name !== undefined && draft.name.trim() === ''
   const hasChanges = Object.keys(draft).length > 0
 
   // A test is possible as soon as host, user and a secret exist, whether
@@ -210,11 +211,46 @@ export function ServerDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="ftp">
+      <Tabs defaultValue="general">
         <TabsList>
+          <TabsTrigger value="general">{t('servers.generalTab')}</TabsTrigger>
           <TabsTrigger value="ftp">{t('servers.transferTab')}</TabsTrigger>
           <TabsTrigger value="rcon">RCON</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('servers.generalTitle')}</CardTitle>
+              <CardDescription>{t('servers.generalDescription')}</CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="server-name">{t('servers.name')}</Label>
+                <Input
+                  id="server-name"
+                  value={draft.name ?? server.name}
+                  maxLength={100}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+                />
+                {nameIsBlank && (
+                  <p className="text-sm text-destructive">{t('servers.nameRequired')}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="server-description">{t('servers.description')}</Label>
+                <Input
+                  id="server-description"
+                  value={draft.description ?? server.description ?? ''}
+                  placeholder={t('servers.descriptionPlaceholder')}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="ftp">
           <Card>
@@ -418,7 +454,10 @@ export function ServerDetailPage() {
       <BridgeCard server={server} />
 
       <div className="flex gap-2">
-        <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>
+        <Button
+          disabled={!hasChanges || nameIsBlank || save.isPending}
+          onClick={() => save.mutate(draft)}
+        >
           {save.isPending ? t('common.loading') : t('common.save')}
         </Button>
 

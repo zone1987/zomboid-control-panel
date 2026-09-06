@@ -92,8 +92,17 @@ final class ServerController extends AbstractController
 
         $payload = $request->toArray();
 
-        if (isset($payload['name']) && \is_string($payload['name']) && trim($payload['name']) !== '') {
-            $server->setName(trim($payload['name']));
+        if (\array_key_exists('name', $payload)) {
+            $name = \is_string($payload['name']) ? trim($payload['name']) : '';
+
+            if ($name === '') {
+                return new JsonResponse([
+                    'status' => 'failed',
+                    'errors' => ['name' => 'validation.required'],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $server->setName($name);
         }
 
         if (\array_key_exists('description', $payload)) {

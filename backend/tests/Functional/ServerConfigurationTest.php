@@ -70,6 +70,45 @@ final class ServerConfigurationTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
+    public function testRenamesAServer(): void
+    {
+        $this->signInAsServerAdmin();
+        $id = $this->createServer();
+
+        $this->request('PATCH', "/api/servers/$id", ['name' => '  Louisville  ']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('Louisville', $this->payload()['name']);
+    }
+
+    public function testChangesAndClearsTheDescription(): void
+    {
+        $this->signInAsServerAdmin();
+        $id = $this->createServer();
+
+        $this->request('PATCH', "/api/servers/$id", ['description' => 'PVE, no respawn']);
+
+        self::assertSame('PVE, no respawn', $this->payload()['description']);
+
+        $this->request('PATCH', "/api/servers/$id", ['description' => '']);
+
+        self::assertNull($this->payload()['description']);
+    }
+
+    public function testKeepsTheNameWhenTheNewOneIsBlank(): void
+    {
+        $this->signInAsServerAdmin();
+        $id = $this->createServer();
+
+        $this->request('PATCH', "/api/servers/$id", ['name' => '   ']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+
+        $this->request('GET', "/api/servers/$id");
+
+        self::assertSame('Test Server', $this->payload()['name']);
+    }
+
     public function testStoresTransferCredentials(): void
     {
         $this->signInAsServerAdmin();
