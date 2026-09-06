@@ -153,6 +153,33 @@ final class BridgeClimateCallsTest extends TestCase
         self::assertSame($api['_characterStatIds'], BridgeCommand::CHARACTER_STATS);
     }
 
+
+    /**
+     * The sandbox options are reached by method, never by field.
+     *
+     * `elecShutModifier` is `public` on `SandboxOptions`, and indexing a
+     * Java field from Lua returns null — the live server answered
+     * "attempted index: getValueAsObject of non-table". It took two
+     * uploads to fix, because a scripted edit left one call site on the
+     * old shape while the other moved.
+     */
+    public function testTheSandboxOptionsAreReadByMethod(): void
+    {
+        $lua = self::lua();
+
+        foreach (['elecShutModifier', 'waterShutModifier'] as $field) {
+            self::assertStringNotContainsString(
+                '.'.$field,
+                $lua,
+                sprintf('%s is a Java field and cannot be indexed from Lua', $field),
+            );
+        }
+
+        // The methods that work, so this fails if the reads vanish too.
+        self::assertStringContainsString('getElecShutModifier', $lua);
+        self::assertStringContainsString('getWaterShutModifier', $lua);
+    }
+
     /** @return array<string, list<string>> */
     private static function api(): array
     {

@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.18.2"
+local BRIDGE_VERSION = "0.18.3"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -2106,9 +2106,16 @@ end
 
 --- What the utilities are doing, and when they are due to stop.
 handlers.readUtilities = function()
-    local sandbox = getSandboxOptions()
-    local powerOn, powerShutAt, day = utilityState(sandbox.elecShutModifier)
-    local waterOn, waterShutAt = utilityState(sandbox.waterShutModifier)
+    -- By name, not by field: indexing SandboxOptions' public
+    -- elecShutModifier from Lua returns null, which is what "attempted
+    -- index: getValueAsObject of non-table" was. utilityState goes
+    -- through getElecShutModifier() instead.
+    local powerOn, powerShutAt, day = utilityState("power")
+    local waterOn, waterShutAt = utilityState("water")
+
+    if powerOn == nil or waterOn == nil then
+        return false, "the server would not report its utilities"
+    end
 
     return true, "utilities read", string.format(
         '{"day":%.1f,"power":{"on":%s,"shutAt":%s},"water":{"on":%s,"shutAt":%s}}',
