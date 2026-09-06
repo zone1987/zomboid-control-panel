@@ -3895,6 +3895,58 @@ rather than guessing at a fourth fix.
 
 ---
 
+## The last two bridge capabilities reach the panel (2026-09-06)
+
+Bridge 0.18 shipped more than the panel could use. Both gaps are closed.
+
+### Weather stages, run for a duration
+
+A preset sets values and lets them stand; a **stage** hands the weather
+to the simulation for a number of game hours and lets it run its own
+course — which is how the world makes weather when nobody interferes,
+and the route the game's own admin console takes
+(`ISAdmPanelWeather.lua:174`).
+
+**Eight stages rather than the three the plan named**: the game declares
+twelve and four are its own bookkeeping (`START`, `INTERMEZZO`,
+`MODDED`, `KATEBOB_STORM`), so showers, clearing, moderate and drizzle
+came along for free.
+
+`weather-stages.ts` mirrors `BridgeCommand::WEATHER_STAGES` and a test
+asserts the two lists are identical — the bridge refuses anything else,
+so a name that drifted here would be a control that always fails.
+
+**Verified live**: a four-hour storm answered `weather stage triggered`.
+
+### The two climate colours
+
+One colour picker each for the global light and the fog, set for indoors
+and out **together**. The game holds eight channels — four in, four out —
+but "the light is too blue" is one thought, and a panel offering eight
+sliders for it would be a panel nobody uses. Anyone who needs them apart
+has the console.
+
+Each row says who decided it and offers to hand it back, exactly as the
+thirteen values above it do. The channels stay 0..1 end to end; hex
+conversion happens at the interface's own edge, where a colour input
+needs it.
+
+**The unit guard earned its keep here**: it refused `r`/`g`/`b` for
+having no unit, which was the right question — a channel is shown as a
+swatch and never as a figure, so they are exempt with that reason
+recorded beside the exemption.
+
+**Verified live**: the global light reads `#958f90` and the fog
+`#e6e6f2`, both from the running game.
+
+| What | State |
+|---|---|
+| Backend | **576 tests, 5553 assertions green** |
+| Frontend | **265 tests, 27 files green** |
+| Live | a storm triggered; both colours read from the game |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3931,15 +3983,10 @@ fired yet**. That is the first job: exercise `readClimate`,
       icons already used on the world strip (`world-strip.tsx`) are the
       precedent, and lucide has `Thermometer`, `Wind`, `Cloud`,
       `Sun`, `Droplets`, `Eye`, `Moon`, `Sparkles`.
-- [ ] **The two `ClimateColor`s are not exposed** —
-      `COLOR_GLOBAL_LIGHT = 0`, `COLOR_NEW_FOG = 1`, each with
-      exterior/interior RGBA and its own admin override
-      (`setAdminValueExterior/-Interior`). No bridge handler yet. The
-      game's own panel offers them as colour pickers
-      (`ISAdmPanelClimate.lua:363-371`).
-- [ ] **`triggerWeatherStage` deserves a control** — 8 named stages with
-      a duration is more than the presets express, and it is what the
-      game's own admin panel offers.
+- [x] **The two `ClimateColor`s** — done: a colour picker each on the
+      climate page, indoors and out set together, verified live.
+- [x] **`triggerWeatherStage` has a control** — done on the weather
+      page, eight stages with a duration, verified live.
 
 ## 2. The remaining event pages — **done**
 
