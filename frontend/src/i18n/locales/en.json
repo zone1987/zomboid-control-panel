@@ -890,7 +890,16 @@
     },
     "actionsAvailable": "What can be triggered",
     "anyPlayer": "A random player",
-    "broadcastPlaceholder": "A message to every player"
+    "broadcastPlaceholder": "A message to every player",
+    "dayMarks": {
+      "dawn": "Dawn",
+      "noon": "Noon",
+      "dusk": "Dusk",
+      "midnight": "Midnight"
+    },
+    "daylightNow": "Measured daylight strength",
+    "timeSet": "The clock now reads {{hour}}:00.",
+    "currently": "currently {{value}}"
   },
   "map": {
     "external": {

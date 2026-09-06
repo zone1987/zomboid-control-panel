@@ -119,6 +119,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/events/actions-page'), 'ActionsPage'),
                     },
                     {
+                      // The hour is a shape, not a number: a band from
+                      // midnight to midnight, with daylight beneath it
+                      // because the two interact.
+                      path: 'servers/:id/events/world',
+                      lazy: lazyRoute(() => import('@/features/events/world-page'), 'WorldPage'),
+                    },
+                    {
                       path: 'servers/:id/events/:category',
                       lazy: lazyRoute(() => import('@/features/events/category-page'), 'CategoryPage'),
                     },

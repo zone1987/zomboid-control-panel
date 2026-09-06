@@ -890,7 +890,16 @@
     },
     "actionsAvailable": "Was ausgelöst werden kann",
     "anyPlayer": "Zufälliger Spieler",
-    "broadcastPlaceholder": "Nachricht an alle Spieler"
+    "broadcastPlaceholder": "Nachricht an alle Spieler",
+    "dayMarks": {
+      "dawn": "Morgengrauen",
+      "noon": "Mittag",
+      "dusk": "Abenddämmerung",
+      "midnight": "Mitternacht"
+    },
+    "daylightNow": "Gemessene Tageslichtstärke",
+    "timeSet": "Die Uhr steht jetzt auf {{hour}}:00.",
+    "currently": "derzeit {{value}}"
   },
   "map": {
     "external": {
