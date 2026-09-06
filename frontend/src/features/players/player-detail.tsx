@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { Copyable } from '@/components/ui/copyable'
 import {
   Dialog,
   DialogContent,
@@ -34,8 +35,13 @@ export function PlayerDetail({
           <DialogTitle>{player.username}</DialogTitle>
           <DialogDescription>
             {player.online ? t('players.online') : t('players.offline')}
-            {player.steamId && ` · ${player.steamId}`}
           </DialogDescription>
+
+          {/* Outside the description: a ban needs the id, and the id is
+              pasted rather than read. */}
+          {player.steamId !== null && player.steamId !== '' && (
+            <Copyable value={player.steamId} />
+          )}
         </DialogHeader>
 
         <div className="space-y-5">

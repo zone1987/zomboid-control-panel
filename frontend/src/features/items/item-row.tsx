@@ -2,6 +2,7 @@ import { Minus, Plus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Copyable } from '@/components/ui/copyable'
 import { ItemIcon } from './item-icon'
 import { displayName, type Item } from './items'
 
@@ -28,7 +29,7 @@ export function ItemRow({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm">{name}</p>
-        <p className="truncate font-mono text-xs text-muted-foreground">{item.type}</p>
+        <Copyable value={item.type} className="max-w-full" />
       </div>
 
       {item.category !== undefined && (

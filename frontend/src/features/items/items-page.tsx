@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Copyable } from '@/components/ui/copyable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getServer } from '@/features/servers/servers'
@@ -316,9 +317,12 @@ export function ItemsPage() {
                       <Badge variant="secondary" className="shrink-0 tabular-nums">
                         {count}
                       </Badge>
-                      <span className="min-w-0 flex-1 truncate" title={type}>
-                        {byType.has(type) ? displayName(byType.get(type) as Item) : type}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate">
+                          {byType.has(type) ? displayName(byType.get(type) as Item) : type}
+                        </p>
+                        <Copyable value={type} className="max-w-full" />
+                      </div>
                       <button
                         type="button"
                         className="shrink-0 text-muted-foreground hover:text-destructive"

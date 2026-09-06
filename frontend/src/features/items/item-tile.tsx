@@ -2,6 +2,7 @@ import { Minus, Plus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Copyable } from '@/components/ui/copyable'
 import { ItemIcon } from './item-icon'
 import { displayName, type Item } from './items'
 
@@ -38,6 +39,10 @@ export function ItemTile({
 
         <span className="line-clamp-2 text-xs leading-tight">{name}</span>
       </button>
+
+      {/* The type is what a console command takes, so it is shown and
+          copyable rather than hidden in a tooltip. */}
+      <Copyable value={item.type} className="mt-0.5 justify-center text-[0.65rem]" />
 
       {/* A fixed three-column grid: justify-between shifts the buttons
           outward as soon as the count grows a digit. */}

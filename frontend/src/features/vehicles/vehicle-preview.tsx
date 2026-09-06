@@ -21,10 +21,13 @@ const CATALOGUE_HEADING = 285
 export function VehiclePreview({
   script,
   renderer,
+  ground = false,
   className,
 }: {
   script: string
   renderer: VehicleRenderer | null
+  /** Draw a patch of road under it, for the large preview. */
+  ground?: boolean
   className?: string
 }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -49,7 +52,7 @@ export function VehiclePreview({
         heading: CATALOGUE_HEADING,
         skin: null,
         engineRunning: false,
-      })
+      }, { ground })
       .then((rendered) => {
         if (!abandoned) {
           setUrl(rendered?.url ?? null)
@@ -59,7 +62,7 @@ export function VehiclePreview({
     return () => {
       abandoned = true
     }
-  }, [script, renderer])
+  }, [script, renderer, ground])
 
   if (url === null) {
     return (
@@ -77,7 +80,7 @@ export function VehiclePreview({
       alt=""
       loading="lazy"
       decoding="async"
-      className={cn('object-contain', className)}
+      className={cn('object-contain object-center', className)}
     />
   )
 }

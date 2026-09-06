@@ -9,6 +9,7 @@ import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Copyable } from '@/components/ui/copyable'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SectionMark } from '@/components/layout/section-mark'
@@ -165,7 +166,7 @@ export function VehiclesPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-3">
           <div className="flex gap-2">
             <div className="relative h-9 flex-1">
@@ -304,16 +305,21 @@ export function VehiclesPage() {
               </p>
             ) : (
               <div className="space-y-2">
-                <VehiclePreview
-                  script={chosen.script}
-                  renderer={renderer}
-                  className="h-24 w-full"
-                />
+                {/* Larger than a tile: this is where the livery is
+                    checked before spawning. */}
+                <div className="flex aspect-square items-center justify-center">
+                  <VehiclePreview
+                    script={chosen.script}
+                    renderer={renderer}
+                    ground
+                    className="max-h-full w-full"
+                  />
+                </div>
 
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium">{chosen.name}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{chosen.script}</p>
+                    <Copyable value={chosen.script} />
                   </div>
 
                   <Button
