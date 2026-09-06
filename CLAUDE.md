@@ -358,6 +358,34 @@ convenient thing rather than the true one.
   `php bin/console cache:clear`, which cost fifteen minutes of debugging
   correct code.
 
+## 10g2. Never copy server data into state with an effect
+
+Five of these existed and two were hiding real bugs, so this is a rule
+rather than a lint preference.
+
+An effect that copies a query's result into state renders twice — once
+with the old value, once with the new — and **overwrites whatever
+somebody is typing** whenever the query refetches. The shape that works
+holds the edit against the thing it belongs to and derives the rest:
+
+```ts
+const [edit, setEdit] = useState<{ from: X; value: V } | null>(null)
+const shown = edit !== null && edit.from === current ? edit.value : current
+```
+
+- **A fallback selection is derived, not set.** `chosen ?? list[0] ?? null`
+  during render. An effect doing it renders once with nothing selected.
+- **Narrow the fallback to what the page actually shows.** The events
+  page fell back to `matches[0]`, which filtered only by search term
+  while the category was applied later — so the sounds page opened on a
+  weather action.
+- **An observer's callback updates from the previous value.** An effect
+  depending on one thing keeps whatever else it closed over; the items
+  page added to a stale count forever.
+- **A fact about the browser is not state.** `useState(browserSupportsWebAuthn)`
+  reads once at mount; an effect made the passkey button flicker in on
+  the second render.
+
 ## 10h. Doctrine, migrations and the test database
 
 - **`messenger_messages` is not ours.** Every `migrations:diff` proposed

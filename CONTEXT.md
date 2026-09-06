@@ -3947,6 +3947,60 @@ recorded beside the exemption.
 
 ---
 
+## The setState-in-effect warnings, and two bugs behind them (2026-09-06)
+
+29 warnings down to **21**, and the interesting part is that two of the
+five effects were hiding real faults.
+
+### The pattern, and why it is a bug and not a style question
+
+An effect copying server data into state renders twice — once with the
+old value, once with the new — and, worse, **overwrites whatever
+somebody was typing** whenever the query refetches. The replacement is
+always the same shape: hold the edit against the thing it belongs to, and
+derive the shown value during render.
+
+```ts
+const [edit, setEdit] = useState<{from: X, ...} | null>(null)
+const shown = edit !== null && edit.from === current ? edit.value : current
+```
+
+Applied to `role-list.tsx`, `events-page.tsx`, `items-page.tsx`, and
+earlier to `climate-page.tsx` and `notes-card.tsx`.
+
+### The two real bugs
+
+**The events page landed in the wrong category.** Its fallback took
+`matches[0]`, and `matches` filters only by the **search term** — the
+category was applied later, when rendering the list. So the sounds page
+opened on a weather action and the zombies page on whatever came first in
+the catalogue. Now narrowed to the page's own category, and verified: the
+sounds page lands on *Donner* with its optional player chooser, not on
+"start rain" with an intensity field.
+
+**The items page could stop paging.** Its observer effect depended only
+on `matches.length`, so the callback kept whatever `visible` it had
+closed over and added to a stale count. Now an updater form and a
+`useCallback`, so the effect can name it as a dependency honestly.
+Verified: 400 tiles → 800 → 1200 as the sentinel comes into view.
+
+### And one flicker
+
+`browserSupportsWebAuthn()` was read in an effect on both the login page
+and the passkey manager, so the passkey button appeared on the *second*
+render. It is a fact about the browser, not state: `useState(fn)` reads
+it once at mount.
+
+### What is left, deliberately
+
+| Kind | Count | Why it stays |
+|---|---|---|
+| `only-export-components` | 13 | A provider beside its own hook, and tables beside the component that uses them. The three that were genuinely a pattern (`DAY_MARKS`, `permissionForPath`, `WEATHER_STAGES`) moved to their own files. |
+| `set-state-in-effect` | 3 | All in vendored components (`reui/badge`, `ui/button`) — they stay as they came. |
+| `refs`, `exhaustive-deps`, `purity` | 5 | One each in the map and vendored code; none is a data-into-state copy. |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
