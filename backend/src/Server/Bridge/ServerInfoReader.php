@@ -20,11 +20,17 @@ final readonly class ServerInfoReader
     }
 
     /**
+     * The bridge version reported here is the one actually **running**,
+     * which is not the same as the one on disk: the mod is loaded at
+     * server start, so a fresh upload changes the file and nothing else
+     * until a restart.
+     *
      * @return array{
      *     generatedAt: int|null,
      *     gameTime: array<string, int>|null,
      *     weather: array<string, mixed>|null,
-     *     maxPlayers: int|null
+     *     maxPlayers: int|null,
+     *     bridgeVersion: string|null
      * }|null
      */
     public function serverInfo(GameServer $server): ?array
@@ -40,6 +46,9 @@ final readonly class ServerInfoReader
             'gameTime' => \is_array($payload['gameTime'] ?? null) ? $payload['gameTime'] : null,
             'weather' => \is_array($payload['weather'] ?? null) ? $payload['weather'] : null,
             'maxPlayers' => isset($payload['maxPlayers']) ? (int) $payload['maxPlayers'] : null,
+            'bridgeVersion' => \is_string($payload['bridgeVersion'] ?? null)
+                ? $payload['bridgeVersion']
+                : null,
         ];
     }
 

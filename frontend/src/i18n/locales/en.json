@@ -421,7 +421,8 @@
     "notInstalled": "Not installed",
     "outdated": "A newer version is available",
     "stale": "No recent reading",
-    "noReading": "Nothing read yet"
+    "noReading": "Nothing read yet",
+    "restartNeeded": "Uploaded but not loaded — the game server needs a restart."
   },
   "users": {
     "description": "Who has access to this application.",

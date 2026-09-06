@@ -421,7 +421,8 @@
     "notInstalled": "Nicht installiert",
     "outdated": "Neuere Fassung verfügbar",
     "stale": "Keine aktuelle Meldung",
-    "noReading": "Noch nichts gelesen"
+    "noReading": "Noch nichts gelesen",
+    "restartNeeded": "Hochgeladen, aber noch nicht geladen — der Spielserver muss neu gestartet werden."
   },
   "users": {
     "description": "Wer Zugang zu dieser Anwendung hat.",

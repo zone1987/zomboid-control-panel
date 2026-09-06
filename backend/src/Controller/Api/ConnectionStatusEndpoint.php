@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
 use App\Server\Bridge\BridgeInstaller;
+use App\Server\Bridge\BridgeVersionVerdict;
 use App\Server\Bridge\ServerInfoReader;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
@@ -111,21 +112,40 @@ final class ConnectionStatusEndpoint extends AbstractController
         return ['state' => 'up', 'detail' => null];
     }
 
-    /** @return array{state: string, detail: string|null, version: string|null} */
+    /**
+     * @return array{
+     *     state: string, detail: string|null,
+     *     version: string|null, installedVersion: string|null
+     * }
+     */
     private function bridgeState(GameServer $server): array
     {
         $status = $this->bridge->status($server);
 
         if ($status['installed'] !== true) {
-            return ['state' => 'down', 'detail' => 'bridge.notInstalled', 'version' => null];
+            return [
+                'state' => 'down',
+                'detail' => 'bridge.notInstalled',
+                'version' => null,
+                'installedVersion' => null,
+            ];
         }
 
+        // The file on disk and the mod in the running game are two
+        // different things, and only one of them answers commands.
+        $verdict = BridgeVersionVerdict::of(
+            $this->info->serverInfo($server)['bridgeVersion'] ?? null,
+            $status['installedVersion'],
+            $status['availableVersion'],
+        );
+
         return [
-            // Installed but outdated is not "down": it works, it is just
-            // behind, and a red light would overstate that.
-            'state' => $status['upToDate'] === true ? 'up' : 'stale',
-            'detail' => $status['upToDate'] === true ? null : 'bridge.outdated',
-            'version' => $status['installedVersion'],
+            // Behind is not "down": it works, it is just old, and a red
+            // light would overstate that.
+            'state' => $verdict->state,
+            'detail' => $verdict->detail,
+            'version' => $verdict->version,
+            'installedVersion' => $status['installedVersion'],
         ];
     }
 
