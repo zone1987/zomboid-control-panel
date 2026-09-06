@@ -612,15 +612,20 @@ const FLOOR_GRASS = 'floor_grass.png'
 const SCENERY_BUSH = 'scenery_bush.png'
 
 /**
- * A stretch of road with a grass verge and a few bushes, behind the
- * vehicle.
+ * Ground the vehicle stands on: a road with a grass verge and bushes.
  *
- * The tiles and the bush are the game's own sprites, so the surface
- * matches what the map shows. They are *already drawn* in the map's 2:1
- * isometric projection, which is why they are not laid on the ground
- * plane: tilting them would apply that projection a second time and the
- * diamonds would come out skewed. Instead each faces the camera square
- * on, the way the game itself composites them.
+ * The tiles are the game's own, and each pictures one world square seen
+ * from this very angle -- the map's 2:1 projection is sin(30 degrees),
+ * which is the elevation the camera already uses. So a tile goes on the
+ * ground plane as a plain square and comes back out as the diamond it
+ * was drawn as, with no distortion and no rotation.
+ *
+ * That is why the vehicle stands *on* the road rather than in front of
+ * it: the tiles are in the world, at the height the wheels rest on, not
+ * pinned to the camera.
+ *
+ * The bushes stay camera-facing, because a bush sprite is drawn facing
+ * the viewer in the game too.
  */
 function sceneryUnder(
   body: Object3D,
@@ -631,28 +636,34 @@ function sceneryUnder(
 ): Object3D[] {
   const bounds = new Box3().setFromObject(body)
   const size = bounds.getSize(new Vector3())
-  const reach = Math.hypot(size.x, size.z)
+
+  // One tile is one world square, and a vehicle is a few squares long.
+  const tile = Math.max(size.x, size.z) / 2.2
+  const centre = new Vector3(
+    (bounds.min.x + bounds.max.x) / 2,
+    bounds.min.y,
+    (bounds.min.z + bounds.max.z) / 2,
+  )
 
   const pieces: Object3D[] = []
 
   /**
-   * A sprite placed in the camera's own plane, given in fractions of the
-   * vehicle's reach: x to the right, y up, and behind by depth.
+   * One ground tile, at world square (column, row) from the centre.
+   *
+   * The tile pictures a diamond with transparent corners, but a plane's
+   * texture is mapped onto its square -- so the picture is 45 degrees out
+   * of step with the projection, which is what left a chequerboard of
+   * holes. Turning the plane by 45 degrees about the vertical and growing
+   * it by root two puts the diamond's points on the square's edges, where
+   * they meet the neighbours'.
    */
-  const sprite = (
-    texture: Texture | null,
-    width: number,
-    aspect: number,
-    x: number,
-    y: number,
-    depth: number,
-  ) => {
+  const ground = (texture: Texture | null, column: number, row: number, drop: number) => {
     if (texture === null) {
       return
     }
 
     const plane = new Mesh(
-      new PlaneGeometry(reach * width, reach * width * aspect),
+      new PlaneGeometry(tile * Math.SQRT2, tile * Math.SQRT2),
       new MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -661,63 +672,69 @@ function sceneryUnder(
       }),
     )
 
-    plane.quaternion.copy(camera.quaternion)
-    plane.position
-      .copy(new Vector3((bounds.min.x + bounds.max.x) / 2, bounds.min.y, (bounds.min.z + bounds.max.z) / 2))
-      .add(new Vector3(reach * x, reach * y, 0).applyQuaternion(camera.quaternion))
-      .add(camera.getWorldDirection(new Vector3()).multiplyScalar(reach * depth))
+    plane.rotation.x = -Math.PI / 2
+    plane.rotation.z = Math.PI / 4
+    plane.position.set(
+      centre.x + column * tile,
+      // Stacked by a hair, so the road covers the verge it overlaps
+      // rather than flickering against it.
+      centre.y - drop * tile,
+      centre.z + row * tile,
+    )
 
     pieces.push(plane)
   }
 
-  /**
-   * A row of tiles at their own proportion rather than one stretched
-   * sprite: the game builds its ground out of repeated diamonds, and a
-   * stretched one distorts the grain and the kerb line.
-   *
-   * Diamonds tessellate offset by half a tile, so odd rows are shifted.
-   */
-  const course = (
-    texture: Texture | null,
-    tiles: number,
-    rows: number,
-    width: number,
-    y: number,
-    depth: number,
-  ) => {
-    const height = width * (64 / 126)
+  // Grass over the whole field, road on the squares under and around the
+  // vehicle. A road running along one world axis would cut diagonally
+  // across the picture, because a vehicle is drawn turned within its
+  // square -- so the tarmac is a patch, and the grass is its verge.
+  for (let column = -3; column <= 3; column += 1) {
+    for (let row = -3; row <= 3; row += 1) {
+      ground(grass, column, row, 0.004)
+    }
+  }
 
-    for (let row = 0; row < rows; row += 1) {
-      const shift = row % 2 === 0 ? 0 : width / 2
-      const span = (tiles - 1) * width
-
-      for (let column = 0; column < tiles; column += 1) {
-        sprite(
-          texture,
-          width,
-          64 / 126,
-          column * width - span / 2 + shift,
-          y + row * (height / 2),
-          depth,
-        )
+  for (let column = -2; column <= 2; column += 1) {
+    for (let row = -2; row <= 2; row += 1) {
+      if (Math.abs(column) + Math.abs(row) <= 3) {
+        ground(street, column, row, 0.002)
       }
     }
   }
 
-  // All behind the vehicle, the verge deepest. The vehicle itself sits at
-  // depth zero, so everything here is pushed away from the camera.
-  course(grass, 5, 3, 0.52, -0.4, 0.55)
-  course(street, 3, 2, 0.52, -0.34, 0.5)
+  /** A camera-facing sprite standing on the ground at a world position. */
+  const standing = (
+    texture: Texture | null,
+    column: number,
+    row: number,
+    height: number,
+  ) => {
+    if (texture === null) {
+      return
+    }
+
+    const plane = new Mesh(
+      new PlaneGeometry(tile * height, tile * height),
+      new MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.5 }),
+    )
+
+    plane.quaternion.copy(camera.quaternion)
+    plane.position.set(
+      centre.x + column * tile,
+      centre.y + (tile * height) / 2.4,
+      centre.z + row * tile,
+    )
+
+    pieces.push(plane)
+  }
 
   // Fixed positions rather than random ones, so a vehicle's preview does
-  // not change between renders.
-  for (const [x, y, width] of [
-    [-0.62, -0.02, 0.24],
-    [0.58, -0.04, 0.19],
-    [0.78, -0.1, 0.14],
-  ] as const) {
-    sprite(bush, width, 1, x, y, 0.52)
-  }
+  // not change between renders. The camera sits at negative x and z, so
+  // the far verge is the positive corner and no bush stands in front.
+  standing(bush, 2.6, 1.4, 1.1)
+  standing(bush, 1.5, 2.6, 0.85)
+  standing(bush, 2.9, 2.7, 0.65)
 
   return pieces
 }
