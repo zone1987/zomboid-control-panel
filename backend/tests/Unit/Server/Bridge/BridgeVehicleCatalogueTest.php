@@ -61,17 +61,21 @@ final class BridgeVehicleCatalogueTest extends TestCase
         self::assertStringContainsString('{\\"script\\":\\"%s\\"}', $writer);
     }
 
-    /** The liveries come from the script, never from the name. */
-    public function testTheLiveriesAreReadFromTheScript(): void
+    /**
+     * Only what the server alone knows. The textures are already held by
+     * the panel, keyed by script name, and their artwork is uploaded by
+     * the operator either way -- asking the server for them added a
+     * second source of truth for no gain.
+     */
+    public function testItReportsTheModelButNotTheTextures(): void
     {
         $describe = $this->functionIn(self::BRIDGE, self::SIGNATURE);
 
-        self::assertStringContainsString('getSkinCount', $describe);
-        self::assertStringContainsString('getSkin', $describe);
-        self::assertStringContainsString('textureMask', $describe);
         // getModel() returns an object, so the file name has to be read
         // off it: printing the object gave a Java identity hash.
         self::assertStringContainsString('getFile', $describe);
+        self::assertStringNotContainsString('getTextures', $describe);
+        self::assertStringNotContainsString('textureMask', $describe);
     }
 
     private function functionIn(string $path, string $signature): string

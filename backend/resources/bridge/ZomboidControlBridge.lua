@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.13.2"
+local BRIDGE_VERSION = "0.13.3"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -681,11 +681,13 @@ local function writeItems()
     print("[ZomboidControl] Wrote " .. written .. " items.")
 end
 
---- One spawnable vehicle: its model, scale and the textures it wears.
+--- One spawnable vehicle: which script it is and which model it uses.
 ---
---- A script carries exactly one skin -- the 51 van liveries are 51
---- separate scripts, not skins of one -- so the panel groups them by
---- shared model rather than reading a list from any single script.
+--- Deliberately not its textures. The panel already holds those, keyed
+--- by script name, generated from the game's own vehicle scripts -- and
+--- the artwork they name has to be uploaded by the operator anyway,
+--- since it is The Indie Stone's. What only the server knows is which
+--- vehicles exist, mods included, and that is what this reports.
 local function describeVehicleScript(name, script)
     local parts = { string.format("\"script\":\"%s\"", escape(name)) }
 
@@ -711,41 +713,6 @@ local function describeVehicleScript(name, script)
 
     if gotName and full ~= nil and tostring(full) ~= "" then
         table.insert(parts, string.format("\"fullName\":\"%s\"", escape(tostring(full))))
-    end
-
-    -- The textures decide what the renderer can draw and which body a
-    -- vehicle belongs to: everything sharing a mask is one shell.
-    --
-    -- getTextures(), not getSkin(0): VehicleScript keeps the script's own
-    -- "skin" block in a single "textures" field, while the "skins" list
-    -- getSkinCount() reports is a separate thing and empty on all 241
-    -- vehicles of a vanilla server. Measured, not assumed.
-    local gotSkin, skin = pcall(function() return script:getTextures() end)
-
-    if not gotSkin or skin == nil then
-        local gotCount, count = pcall(function() return script:getSkinCount() end)
-
-        if gotCount and type(count) == "number" and count > 0 then
-            local gotFirst, first = pcall(function() return script:getSkin(0) end)
-            skin = gotFirst and first or nil
-        end
-    end
-
-    if skin ~= nil then
-        for _, entry in ipairs({
-            { "texture", "texture" },
-            { "mask", "textureMask" },
-            { "rust", "textureRust" },
-        }) do
-            local gotValue, value = pcall(function() return skin[entry[2]] end)
-
-            if gotValue and value ~= nil and tostring(value) ~= "" then
-                table.insert(
-                    parts,
-                    string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
-                )
-            end
-        end
     end
 
     return "{" .. table.concat(parts, ",") .. "}"
