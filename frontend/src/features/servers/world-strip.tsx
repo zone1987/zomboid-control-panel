@@ -18,7 +18,10 @@ export function WorldStrip({ serverId }: { serverId: string }) {
     queryKey: ['world', serverId],
     queryFn: () => getWorld(serverId),
     retry: false,
-    refetchInterval: 30_000,
+    // The bridge writes time and weather every ten seconds (0.14), so
+    // polling slower than that is what makes a change look like it did
+    // not happen.
+    refetchInterval: 15_000,
     refetchIntervalInBackground: true,
     placeholderData: (previous) => previous,
   })

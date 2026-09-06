@@ -665,7 +665,7 @@
     "onlineCount_one": "{{count}} player online",
     "onlineCount_other": "{{count}} players online",
     "destructive": "Intervention",
-    "unavailable": "This server does not offer the action",
+    "unavailable": "Unavailable",
     "unavailableHint": "The account is missing these commands: {{commands}}. An account with admin rights can run them.",
     "commandsUnknown": "Command list unreadable",
     "commandsUnknownHint": "The server did not report its command list. Every action is offered; only the reply will show whether it landed.",
@@ -801,7 +801,24 @@
       "actions": "One-shot events: lightning with its strike, a helicopter, a broadcast.",
       "zombies": "Summon a horde or clear zombies. Everything here reaches deep.",
       "world": "The frame the world runs in: time, date, daylight, view distance."
-    }
+    },
+    "weatherNow": "Weather now",
+    "weatherSet": "Set the weather",
+    "live": "live",
+    "apply": "Apply",
+    "presetApplied": "\"{{preset}}\" was set.",
+    "presetUnavailable": "This server does not know the commands it needs.",
+    "presets": {
+      "clear": "Clear",
+      "cloudy": "Cloudy",
+      "drizzle": "Drizzle",
+      "rain": "Rain",
+      "downpour": "Downpour",
+      "thunderstorm": "Thunderstorm",
+      "fog": "Fog"
+    },
+    "willDo": "Will do",
+    "applyWeather": "Set the weather"
   },
   "map": {
     "external": {

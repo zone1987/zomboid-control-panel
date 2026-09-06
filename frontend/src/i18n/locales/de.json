@@ -665,7 +665,7 @@
     "onlineCount_one": "{{count}} Spieler online",
     "onlineCount_other": "{{count}} Spieler online",
     "destructive": "Eingriff",
-    "unavailable": "Dieser Server bietet die Aktion nicht an",
+    "unavailable": "Nicht verfügbar",
     "unavailableHint": "Dem Konto fehlen die Befehle: {{commands}}. Ein Konto mit Adminrechten kann sie ausführen.",
     "commandsUnknown": "Befehlsliste nicht lesbar",
     "commandsUnknownHint": "Der Server hat seine Befehlsliste nicht geliefert. Alle Aktionen werden angeboten; ob sie ankommen, zeigt erst die Antwort.",
@@ -801,7 +801,24 @@
       "actions": "Einmalige Ereignisse: der Blitz mit Einschlag, ein Hubschrauber, eine Durchsage.",
       "zombies": "Horden herbeirufen oder Zombies entfernen. Alles hier greift tief ein.",
       "world": "Der Rahmen, in dem die Welt läuft: Uhrzeit, Datum, Helligkeit, Sichtweite."
-    }
+    },
+    "weatherNow": "Wetter jetzt",
+    "weatherSet": "Wetter setzen",
+    "live": "live",
+    "apply": "Setzen",
+    "presetApplied": "„{{preset}}“ wurde gesetzt.",
+    "presetUnavailable": "Dieser Server kennt die nötigen Befehle nicht.",
+    "presets": {
+      "clear": "Klar",
+      "cloudy": "Bewölkt",
+      "drizzle": "Nieselregen",
+      "rain": "Regen",
+      "downpour": "Wolkenbruch",
+      "thunderstorm": "Gewitter",
+      "fog": "Nebel"
+    },
+    "willDo": "Wird ausgeführt",
+    "applyWeather": "Wetter setzen"
   },
   "map": {
     "external": {

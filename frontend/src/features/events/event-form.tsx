@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -123,13 +124,39 @@ function FieldInput({
   }
 
   if (field.type === 'number') {
+    // A bounded number gets a slider beside its field: an intensity is
+    // "a bit more rain" as often as it is a figure somebody knows, and
+    // aiming a slider at 70 is worse than typing 70.
+    if (field.min !== undefined && field.max !== undefined) {
+      const current = Number.parseInt(String(value ?? ''), 10)
+      const settled = Number.isNaN(current) ? field.min : current
+
+      return (
+        <div className="flex items-center gap-3">
+          <Slider
+            min={field.min}
+            max={field.max}
+            value={[Math.min(field.max, Math.max(field.min, settled))]}
+            aria-label={t(`events.fields.${field.name}`, { defaultValue: field.name })}
+            onValueChange={([next]) => onChange(next ?? field.min ?? 0)}
+          />
+
+          <Input
+            id={id}
+            inputMode="numeric"
+            className="w-16 shrink-0 text-center font-mono tabular-nums"
+            value={String(value ?? '')}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        </div>
+      )
+    }
+
     return (
       <Input
         id={id}
         type="number"
         inputMode="numeric"
-        min={field.min}
-        max={field.max}
         value={String(value ?? '')}
         onChange={(event) => onChange(event.target.value)}
       />

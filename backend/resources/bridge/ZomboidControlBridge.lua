@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.13.3"
+local BRIDGE_VERSION = "0.14.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -81,9 +81,20 @@ local MAX_COMMANDS_PER_TICK = 20
 -- Every* events hang off the same in-game clock -- neither is usable for
 -- a real-time interval.
 local SECONDS_BETWEEN_FULL_WRITES = 3
+
+-- Time and weather are two object reads -- getGameTime and
+-- getClimateManager -- so they cost about what the roster costs and are
+-- written often enough that the panel shows a change it just made rather
+-- than the state from a minute ago.
+local SECONDS_BETWEEN_WORLD_WRITES = 10
+
+-- Safehouses, vehicles and factions each walk a list, and the vehicle
+-- walk covers the whole world. They change slowly and are worth the
+-- longer interval.
 local SECONDS_BETWEEN_SLOW_WRITES = 60
 
 local lastPlayerWrite = 0
+local lastWorldWrite = 0
 local lastSlowWrite = 0
 local lastRoster = ""
 
@@ -1579,11 +1590,17 @@ local function onTick()
         attempt("commands", readCommands)
     end
 
-    -- Time, weather and safehouses move slowly, and reading them is more
-    -- expensive than reading the roster.
+    -- Time and weather on their own interval: the panel sets the weather
+    -- and then shows it, so a minute of staleness reads as the command
+    -- having failed.
+    if now - lastWorldWrite >= SECONDS_BETWEEN_WORLD_WRITES then
+        lastWorldWrite = now
+        attempt("server info", writeServerInfo)
+    end
+
+    -- The list walks, which are what actually cost something.
     if now - lastSlowWrite >= SECONDS_BETWEEN_SLOW_WRITES then
         lastSlowWrite = now
-        attempt("server info", writeServerInfo)
         attempt("safehouses", writeSafehouses)
         attempt("vehicles", writeVehicles)
         attempt("factions", writeFactions)

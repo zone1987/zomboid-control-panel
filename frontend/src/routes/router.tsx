@@ -98,9 +98,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/events/events-page'), 'EventsPage'),
                     },
                     {
-                      // A static segment would match before this one, so a
-                      // category with a page of its own can be added here
-                      // later without touching the catalogue.
+                      // Static before dynamic: weather has a page of its
+                      // own, with presets and the live state, so it is
+                      // listed above the generic category route.
+                      path: 'servers/:id/events/weather',
+                      lazy: lazyRoute(() => import('@/features/events/weather-page'), 'WeatherPage'),
+                    },
+                    {
                       path: 'servers/:id/events/:category',
                       lazy: lazyRoute(() => import('@/features/events/category-page'), 'CategoryPage'),
                     },
