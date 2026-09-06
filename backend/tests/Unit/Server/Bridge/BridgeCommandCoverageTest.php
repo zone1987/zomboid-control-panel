@@ -65,6 +65,62 @@ final class BridgeCommandCoverageTest extends TestCase
         self::assertNotSame('0.0.0', $found[1]);
     }
 
+
+    /**
+     * Nothing touches `handlers` before it exists.
+     *
+     * A handler that ended up above `local handlers = {}` threw
+     * "attempted index of non-table" the moment the game loaded the
+     * file, so the whole bridge never started: no files written, every
+     * command timing out. **`luac -p` does not catch this** — it checks
+     * syntax, not whether a name is in scope — which is why it needs a
+     * test of its own.
+     */
+    public function testNoHandlerIsDefinedBeforeTheTableExists(): void
+    {
+        $lua = self::lua();
+        $lines = explode("\n", $lua);
+
+        $declaredAt = null;
+
+        foreach ($lines as $number => $line) {
+            if (preg_match('/^local handlers = \{\}/', $line) === 1) {
+                $declaredAt = $number;
+
+                break;
+            }
+        }
+
+        self::assertNotNull($declaredAt, 'the bridge no longer declares a handlers table');
+
+        foreach ($lines as $number => $line) {
+            if (preg_match('/^handlers\.(\w+) = function/', $line, $found) === 1) {
+                self::assertGreaterThan(
+                    $declaredAt,
+                    $number,
+                    sprintf(
+                        'handlers.%s is defined on line %d, before the table exists on line %d',
+                        $found[1],
+                        $number + 1,
+                        $declaredAt + 1,
+                    ),
+                );
+            }
+        }
+    }
+
+    /** And none is defined twice, which would silently shadow the first. */
+    public function testNoHandlerIsDefinedTwice(): void
+    {
+        preg_match_all('/^handlers\.(\w+) = function/m', self::lua(), $found);
+
+        $counts = array_count_values($found[1]);
+
+        foreach ($counts as $name => $count) {
+            self::assertSame(1, $count, sprintf('handlers.%s is defined %d times', $name, $count));
+        }
+    }
+
     private static function lua(): string
     {
         $contents = file_get_contents(self::LUA);

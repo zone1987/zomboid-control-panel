@@ -1,21 +1,3 @@
-handlers.readUtilities = function()
-    local powerOn, powerShutAt, day = utilityState("power")
-    local waterOn, waterShutAt = utilityState("water")
-
-    if powerOn == nil or waterOn == nil then
-        return false, "the server would not report its utilities"
-    end
-
-    return true, "utilities read", string.format(
-        '{"day":%.1f,"power":{"on":%s,"shutAt":%s},"water":{"on":%s,"shutAt":%s}}',
-        day,
-        tostring(powerOn),
-        tostring(powerShutAt),
-        tostring(waterOn),
-        tostring(waterShutAt)
-    )
-end
-
 --[[
     ZomboidControl bridge — server side.
 
@@ -40,7 +22,7 @@ end
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.18.1"
+local BRIDGE_VERSION = "0.18.2"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
