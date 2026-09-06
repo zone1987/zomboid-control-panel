@@ -3592,6 +3592,159 @@ XP is giving something out. Seven new cases in
 
 ---
 
+## The player dossier: a column, notes, and a log about one player (2026-09-06)
+
+### The dossier is beside the list now, not on top of it
+
+`PlayerDetail` was a `Dialog`, so inspecting somebody covered the list
+and moving to the next one meant close, find, open — while comparing two
+players is the job often enough to shape the page around.
+
+- `players-page.tsx` is `grid xl:grid-cols-[1fr_26rem]`: the list keeps
+  the room its five columns need, the dossier takes a fixed share beside
+  it. Below `xl` they stack.
+- `player-table.tsx` reports its selection upward (`onSelect`) instead of
+  opening a dialog, and marks the chosen row — nothing else says which
+  player the column is showing.
+- `player-vitals.tsx` is the old dialog body, unchanged in content: it
+  moved, it was not rewritten.
+- The tabs stay visible with nothing selected, each naming the missing
+  choice rather than rendering blank.
+
+**Kick and ban are deliberately not repeated in the dossier header.**
+They are one click away on the row already, and two places to ban
+somebody from is one place too many to keep in step.
+
+### The abilities have three states, not two
+
+God mode, invisibility, noclip and the voice ban, all plain RCON — and
+the command names came from the **live server's own `help`**, which
+matters: it is **`godmodplayer`**, not `godmodeplayer`; the server's help
+text documents the second spelling in its example and accepts the first.
+
+The server keeps none of these anywhere the panel can read back, so a
+switch showing "off" would claim something nobody checked — two admins
+fighting over one flag is what that produces. Each row therefore starts
+**unknown** and only claims a state once this panel set it, which is also
+why it is two buttons rather than a switch: a switch has no third
+position. The voice ban says plainly that it does not survive a
+reconnect.
+
+### Both unquoted arguments are pinned to a shape
+
+The perk and the SteamID appear **without quotes** in their RCON
+commands, so a semicolon would start a second command. Letters only and
+digits only, refused at the endpoint *and* in `PlayerModerator`, with
+tests firing `'Woodwork=1 -true; quit'` and `'7656119800000000; quit'` at
+both. XP is capped at 100000 so a typo cannot max a skill.
+
+**The XP chooser is built from the skills the bridge reports for this
+character**, not from a table of the game's 47 perk names: it then offers
+exactly what exists on this server, mods included, cannot drift, and
+shows each skill's level so a grant is aimed rather than guessed.
+
+### One moderation recorder
+
+Nine `new ModerationAction(...)` literals across eight files became
+`ModerationRecorder`. **Two shapes, because the callers differ**:
+`record()` persists and flushes, `add()` only queues —
+`ExpiredBanLifter:70` and `RosterWatcher:52` flush **once at the end**,
+and turning their single transaction into one per row would have been a
+regression nobody notices until a busy server slows down. That was
+checked in the sources, not assumed.
+
+`ModerationRecorderTest` walks `src/` and fails if anything constructs
+one directly.
+
+### Notes and tags: the one thing the dossier stores
+
+`PlayerNote` + migration `Version20260906193959`. One row per player per
+server, updated in place.
+
+- **Tags are clicked, not typed**, from the fixed suggestions *and*
+  whatever this server already uses (`tagsInUse`) — which is what stops
+  "greifer" and "griefer" becoming two tags. Lower-cased and
+  deduplicated for the same reason.
+- Capped at ten of 24 characters, so a paste cannot turn a dossier into
+  a wall of chips; commas and newlines inside a tag are flattened,
+  because a comma means somebody meant several and typed one.
+- **An emptied note leaves no row behind**: the absence is the state, and
+  a dossier full of blank notes is one nobody trusts.
+- Writing needs `KickPlayers` rather than a permission of its own —
+  somebody trusted to remove a player is trusted to write down why, and
+  a tenth permission for a text field would be governance nobody asked
+  for.
+
+The generated migration also wanted to **drop three
+`messenger_messages` indexes**; they belong to the transport rather than
+to this change and are what keep the queue fast, so they were left in
+place and the omission is noted in the migration itself.
+
+### The log, asked the right question
+
+`ModerationActionRepository::forPlayer()` — one indexed lookup on
+`idx_server_username`, which already existed. This is where the
+reference panel goes wrong: it shows every player's activity inside a
+view already scoped to one, and then needs a second search box to make
+that usable.
+
+### Two bugs found by looking at the result
+
+- **Four action types had no label.** `ability`, `experience`, `heal`
+  and `statistic` would have shown as raw identifiers, which reads as a
+  bug rather than as a missing translation. `action-names.test.ts` reads
+  the entity's own constants and fails when one is unnamed.
+- **The reason column showed `players.joined` verbatim** — and that
+  predated this work. The backend records some reasons as translation
+  keys (`players.joined`, `banExpired`) and others as typed prose, in the
+  same column. `reason.ts` tells them apart: a dotted lower-camel path is
+  a key, and `banExpired` is named explicitly because a pattern loose
+  enough to catch a lone word would also catch typed prose.
+  `reason.test.ts` asserts both, plus that every key resolves in both
+  locales, plus that a new bare reason in the backend is named here.
+
+### Files
+
+| File | Change |
+|---|---|
+| `frontend/src/features/players/players-page.tsx` | list and dossier side by side |
+| `frontend/src/features/players/player-table.tsx` | reports selection instead of opening a dialog |
+| `frontend/src/features/players/player-dossier.tsx` | **new** — four tabs |
+| `frontend/src/features/players/player-vitals.tsx` | **new** — the old dialog body |
+| `frontend/src/features/players/ability-rows.tsx` | **new** — three states |
+| `frontend/src/features/players/experience-card.tsx` | **new** |
+| `frontend/src/features/players/notes-card.tsx` | **new** |
+| `frontend/src/features/players/player-history.tsx` | **new** |
+| `frontend/src/features/players/reason.ts` + test | **new** |
+| `frontend/src/features/players/action-names.test.ts` | **new** |
+| `backend/src/Entity/PlayerNote.php` | **new** |
+| `backend/src/Repository/PlayerNoteRepository.php` | **new** |
+| `backend/src/Controller/Api/PlayerNoteController.php` | **new** — 3 routes |
+| `backend/migrations/Version20260906193959.php` | **new** |
+| `backend/src/Repository/ModerationActionRepository.php` | `forPlayer()` |
+
+### Verification
+
+| What | State |
+|---|---|
+| Backend | **576 tests, 5547 assertions green** |
+| Frontend | **255 tests, 25 files green** |
+| Lint | 0 errors, 29 warnings |
+| Container, migration | clean; migration ran |
+| Live | a note saved and re-read after a reload, tag kept, the per-player log showing real joins, an item and a teleport, no raw keys left on the page |
+| Guards proven by reverting | the recorder bypass, a missing action label, the perk and SteamID injections |
+
+### Still open on this item
+
+- ~~`player-detail.tsx`~~ deleted: nothing imported it, and its content
+  lives on in `player-vitals.tsx`.
+- The **vitals sliders** need bridge 0.18.1 (`readPlayerStats`,
+  `setPlayerStat`) and a player online; the heal button likewise.
+- **Kill stays unbuilt** — no server-side Lua call exists anywhere in
+  the game for a player, only for animals.
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3655,25 +3808,27 @@ Unchanged, still the largest single piece. Capability research **done**;
 signatures in `~/.claude/plans/snug-stargazing-russell.md`. The points
 that decide the work:
 
-- [ ] List left / dossier right. `player-detail.tsx` stops being a
-      `Dialog` and becomes the Vitals tab. `ban-dialog` and
-      `teleport-dialog` stay modal.
+- [x] **List left / dossier right** — done. `player-vitals.tsx` is the
+      old dialog body; `ban-dialog` and `teleport-dialog` stay modal.
+      `player-detail.tsx` has been deleted.
 - [ ] **God mode, invisible, noclip, XP, voice ban, SteamID ban and
       whitelist are all plain RCON** — each takes `-true`/`-false`, so
       the panel sets a state rather than toggling blind. **No bridge.**
 - [ ] **Healing needs the bridge**; the game does it server-side in
       `ClientCommands.lua` (`RestoreToFullHealth()` per body part, then
       `syncBodyPart`).
-- [ ] **Vitals**: build 42 replaced the `Stats` setters with
-      `set(CharacterStat, float)`; the 24 stats carry their own
-      `getMinimumValue()`/`getMaximumValue()` — generate the sliders from
-      the game's bounds, exactly as the climate page now does.
+- [ ] **Vitals sliders** — the bridge side is built (`readPlayerStats`,
+      `setPlayerStat`, `setPlayerWeight` in 0.18.x) and the ids are
+      verified against `CharacterStat`'s constant pool. Needs **0.18.1
+      uploaded** and a player online to exercise. Generate the sliders
+      from the reported bounds, exactly as the climate page does.
 - [ ] **A voice ban does not persist** — in-memory, lost on reconnect.
 - [ ] **Kill is unproven.** The API exists; no server-side call site
       does. Test before shipping.
-- [ ] Notes and tags need a `PlayerNote` entity and a migration.
-- [ ] The dossier log is **filtered to the selected player**;
-      `moderation_action` already has `idx_server_username`.
+- [x] **Notes and tags** — done: `PlayerNote`, a migration, clickable
+      tags from the suggestions plus what this server already uses.
+- [x] **The dossier log is filtered to the selected player** — done via
+      `forPlayer()` on the existing index.
 - [x] **Route `new ModerationAction(...)` through one recorder** — done:
       `ModerationRecorder`, nine literals across eight files, with a test
       that fails if anything bypasses it.
