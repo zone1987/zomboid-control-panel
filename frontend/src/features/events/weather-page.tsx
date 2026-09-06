@@ -13,9 +13,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { SectionMark } from '@/components/layout/section-mark'
 import { WorldStrip } from '@/features/servers/world-strip'
 import { formatRange } from './units'
+import { WEATHER_STAGES } from './weather-stages'
 import { listEvents, triggerEvent, type EventAction } from './events'
 import {
   actionsOf,
@@ -206,6 +214,11 @@ export function WeatherPage() {
         ))}
       </section>
 
+      {/* The game's own weather stages, which a preset cannot express:
+          a stage runs for a duration and the simulation drives it, where
+          a preset sets values and lets them stand. */}
+      <StageSection serverId={id} available={byId.get('triggerWeatherStage')?.available !== false} />
+
       {/* The card is wide enough for its widest step row rather than a
           fixed two columns: a label, a slider, a number and its unit stop
           fitting long before the page runs out of room. */}
@@ -245,6 +258,106 @@ export function WeatherPage() {
         </section>
       )}
     </div>
+  )
+}
+
+/**
+ * A weather stage, run for a duration.
+ *
+ * What a preset cannot express: a preset sets values and lets them
+ * stand, while a stage hands the weather to the simulation for a number
+ * of game hours and lets it run its own course — which is how the world
+ * makes weather when nobody interferes. This is the route the game's own
+ * admin console takes.
+ */
+function StageSection({ serverId, available }: { serverId: string; available: boolean }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+
+  const [stage, setStage] = useState<string>('storm')
+  const [hours, setHours] = useState(4)
+
+  const run = useMutation({
+    mutationFn: () => triggerEvent(serverId, 'triggerWeatherStage', { stage, duration: hours }),
+    onSuccess: (result) => {
+      if (result.failed) {
+        toast.warning(result.reply === '' ? t('events.refused') : result.reply)
+
+        return
+      }
+
+      toast.success(t('events.stageStarted', { stage: t(`events.choices.stage.${stage}`) }))
+
+      window.setTimeout(
+        () => void queryClient.invalidateQueries({ queryKey: ['world', serverId] }),
+        BRIDGE_WORLD_WRITE_SECONDS * 1000,
+      )
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof ApiError
+          ? (errorField(error, 'detail') ?? t('errors.generic'))
+          : t('errors.generic'),
+      ),
+  })
+
+  if (!available) {
+    return null
+  }
+
+  return (
+    <section className="w-fit min-w-full max-w-3xl space-y-3 rounded-md border p-4">
+      <SectionMark label={t('events.actions.triggerWeatherStage.title')} />
+
+      <p className="text-sm text-muted-foreground">
+        {t('events.actions.triggerWeatherStage.description')}
+      </p>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="weather-stage">{t('events.fields.stage')}</Label>
+
+          <Select value={stage} onValueChange={setStage}>
+            <SelectTrigger id="weather-stage" className="w-52">
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              {WEATHER_STAGES.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {t(`events.choices.stage.${name}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="weather-hours">{t('events.fields.duration')}</Label>
+
+          <div className="flex items-center gap-2">
+            <Input
+              id="weather-hours"
+              inputMode="numeric"
+              className="w-20 text-center font-mono tabular-nums"
+              value={String(hours)}
+              onChange={(event) => {
+                const typed = Number.parseInt(event.target.value, 10)
+
+                setHours(Number.isNaN(typed) ? 4 : Math.min(240, Math.max(1, typed)))
+              }}
+            />
+
+            <span className="font-mono text-xs text-muted-foreground">h</span>
+          </div>
+        </div>
+
+        <Button disabled={run.isPending} onClick={() => run.mutate()}>
+          <Play className="size-4" />
+          {run.isPending ? t('common.loading') : t('events.startStage')}
+        </Button>
+      </div>
+    </section>
   )
 }
 

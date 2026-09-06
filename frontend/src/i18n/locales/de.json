@@ -969,7 +969,9 @@
     "running": "Läuft",
     "shutOff": "Abgeschaltet",
     "daysLeft_one": "Noch ein Tag",
-    "daysLeft_other": "Noch {{count}} Tage"
+    "daysLeft_other": "Noch {{count}} Tage",
+    "stageStarted": "„{{stage}}“ wurde gestartet.",
+    "startStage": "Phase starten"
   },
   "map": {
     "external": {

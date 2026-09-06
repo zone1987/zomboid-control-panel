@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { actionsOf, PRESET_GROUPS, presetsOf, WEATHER_PRESETS } from './weather-presets'
+import { WEATHER_STAGES } from './weather-stages'
 
 /**
  * A preset is a bundle of actions the catalogue already declares, so it
@@ -269,5 +270,36 @@ describe('the world write interval against the bridge', () => {
     )
 
     expect(polls).toBeLessThanOrEqual(writes * 2 * 1000)
+  })
+})
+
+/**
+ * The stages the panel offers must be the ones the bridge accepts: it
+ * refuses anything else, so a name that drifted would be a control that
+ * always fails.
+ */
+describe('the weather stages against the bridge', () => {
+  it('names exactly what BridgeCommand declares', () => {
+    const php = readFileSync('../backend/src/Server/Bridge/BridgeCommand.php', 'utf8')
+
+    const block = /public const WEATHER_STAGES = \[(.*?)\];/s.exec(php)
+
+    expect(block, 'the bridge no longer declares its stages').not.toBeNull()
+
+    const declared = [...(block as RegExpExecArray)[1].matchAll(/'(\w+)'/g)].map(
+      (match) => match[1],
+    )
+
+    expect([...WEATHER_STAGES]).toEqual(declared)
+  })
+
+  it('labels every stage in both locales', () => {
+    const de = JSON.parse(readFileSync('src/i18n/locales/de.json', 'utf8'))
+    const en = JSON.parse(readFileSync('src/i18n/locales/en.json', 'utf8'))
+
+    for (const stage of WEATHER_STAGES) {
+      expect(de.events.choices.stage[stage], `${stage} missing from de`).toBeTruthy()
+      expect(en.events.choices.stage[stage], `${stage} missing from en`).toBeTruthy()
+    }
   })
 })

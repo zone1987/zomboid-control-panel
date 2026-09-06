@@ -969,7 +969,9 @@
     "running": "Running",
     "shutOff": "Shut off",
     "daysLeft_one": "One day left",
-    "daysLeft_other": "{{count}} days left"
+    "daysLeft_other": "{{count}} days left",
+    "stageStarted": "\"{{stage}}\" was started.",
+    "startStage": "Start the stage"
   },
   "map": {
     "external": {
