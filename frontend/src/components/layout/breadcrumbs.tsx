@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -9,6 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { SERVER_PAGES } from './server-pages'
 
 const TITLES: Record<string, string> = {
   '': 'nav.dashboard',
@@ -20,46 +22,51 @@ const TITLES: Record<string, string> = {
 }
 
 // Segments that follow a server id and name a page of their own.
-const SUB_PAGES: Record<string, string> = {
-  players: 'nav.players',
-  console: 'nav.console',
-  logs: 'nav.logs',
-  chat: 'nav.chat',
-  items: 'nav.items',
-  events: 'nav.events',
-  map: 'nav.map',
+const SUB_PAGE_LABELS: Record<string, string> = Object.fromEntries(
+  SERVER_PAGES.map((page) => [page.path, page.label]),
+)
+
+export type Crumb = {
+  label: string
+  to?: string
+}
+
+export function crumbsFor(pathname: string): Crumb[] {
+  const segments = pathname.replace(/^\//, '').split('/')
+  const root = segments[0] ?? ''
+  const rootKey = TITLES[root] ?? 'nav.dashboard'
+  const subKey = segments.length >= 3 ? SUB_PAGE_LABELS[segments[2]] : undefined
+
+  if (subKey === undefined) {
+    return [{ label: rootKey }]
+  }
+
+  return [{ label: rootKey, to: `/${root}` }, { label: subKey }]
 }
 
 export function Breadcrumbs() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
 
-  const segments = pathname.replace(/^\//, '').split('/')
-  const root = segments[0] ?? ''
-  const rootKey = TITLES[root] ?? 'nav.dashboard'
-  const subKey = segments.length >= 3 ? SUB_PAGES[segments[2]] : undefined
+  const crumbs = crumbsFor(pathname)
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        <BreadcrumbItem>
-          {subKey === undefined ? (
-            <BreadcrumbPage>{t(rootKey)}</BreadcrumbPage>
-          ) : (
-            <BreadcrumbLink asChild>
-              <Link to={`/${root}`}>{t(rootKey)}</Link>
-            </BreadcrumbLink>
-          )}
-        </BreadcrumbItem>
-
-        {subKey !== undefined && (
-          <>
-            <BreadcrumbSeparator />
+        {crumbs.map((crumb, index) => (
+          <Fragment key={crumb.label}>
+            {index > 0 && <BreadcrumbSeparator />}
             <BreadcrumbItem>
-              <BreadcrumbPage>{t(subKey)}</BreadcrumbPage>
+              {crumb.to === undefined ? (
+                <BreadcrumbPage>{t(crumb.label)}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink asChild>
+                  <Link to={crumb.to}>{t(crumb.label)}</Link>
+                </BreadcrumbLink>
+              )}
             </BreadcrumbItem>
-          </>
-        )}
+          </Fragment>
+        ))}
       </BreadcrumbList>
     </Breadcrumb>
   )
