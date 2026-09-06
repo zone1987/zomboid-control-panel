@@ -4,10 +4,12 @@ import { PROJECT_ZOMBOID_MAP } from './map-config'
 import type { MapVehicle } from './map'
 import {
   bucketedHeading,
+  cacheKey,
   ELEVATION_DEGREES,
   HEIGHT_CORRECTION,
   YAW_DEGREES,
 } from './vehicle-renderer'
+import type { VehicleArtwork } from './vehicle-renderer'
 
 /**
  * A vehicle rendered straight down would lie flat on a world drawn at
@@ -114,5 +116,51 @@ describe('bucketing the heading for the cache', () => {
     }
 
     expect(buckets.size).toBe(24)
+  })
+})
+
+describe('the key a rendered vehicle is cached under', () => {
+  const vehicle = (overrides: Partial<MapVehicle> = {}): MapVehicle =>
+    ({ id: 0, script: 'Base.RaceCar12', x: 0, y: 0, z: 0, heading: 0, skin: null, engineRunning: false, ...overrides }) as MapVehicle
+
+  const artwork = (overrides: Partial<VehicleArtwork> = {}): VehicleArtwork =>
+    ({
+      model: 'vehicle_racecar.fbx',
+      texture: 'vehicle_racecar1.png',
+      mask: null,
+      scale: 1.4,
+      length: 4.635,
+      width: 1.873,
+      wheelMesh: null,
+      wheelTexture: null,
+      wheels: [],
+      ...overrides,
+    }) as VehicleArtwork
+
+  /**
+   * Three race cars share one model and differ only in their shell, so
+   * keying on the model alone served the first one's render for all
+   * three -- one livery shown under three names.
+   */
+  it('separates two liveries of one model', () => {
+    expect(cacheKey(vehicle(), artwork({ texture: 'vehicle_racecar1.png' }))).not.toBe(
+      cacheKey(vehicle(), artwork({ texture: 'vehicle_racecar3.png' })),
+    )
+  })
+
+  it('reuses the render when model and texture both match', () => {
+    expect(cacheKey(vehicle(), artwork())).toBe(cacheKey(vehicle({ id: 7 }), artwork()))
+  })
+
+  it('separates two models', () => {
+    expect(cacheKey(vehicle(), artwork({ model: 'a.fbx' }))).not.toBe(
+      cacheKey(vehicle(), artwork({ model: 'b.fbx' })),
+    )
+  })
+
+  it('separates a vehicle with no texture from one with a texture', () => {
+    expect(cacheKey(vehicle(), artwork({ texture: null }))).not.toBe(
+      cacheKey(vehicle(), artwork()),
+    )
   })
 })

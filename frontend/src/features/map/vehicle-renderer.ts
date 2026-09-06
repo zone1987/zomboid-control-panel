@@ -8,7 +8,9 @@ import {
   LoadingManager,
   Mesh,
   Object3D,
+  MeshBasicMaterial,
   MeshLambertMaterial,
+  PlaneGeometry,
   OrthographicCamera,
   Scene,
   Texture,
@@ -55,6 +57,17 @@ export type VehicleArtwork = {
   wheelMesh: string | null
   wheelTexture: string | null
   wheels: VehicleWheel[]
+}
+
+/** Per-render choices that do not belong to the vehicle itself. */
+export type DrawOptions = {
+  /**
+   * Draw a patch of road under the vehicle.
+   *
+   * For the catalogue preview, where a vehicle on nothing reads as
+   * floating. The map does not want it: the map is the ground.
+   */
+  ground?: boolean
 }
 
 /** What the map needs to draw one vehicle. */
@@ -128,7 +141,7 @@ export class VehicleRenderer {
    * WebGL. The caller falls back to a plain marker rather than showing
    * a gap.
    */
-  draw(vehicle: MapVehicle): Promise<RenderedVehicle | null> {
+  draw(vehicle: MapVehicle, options: DrawOptions = {}): Promise<RenderedVehicle | null> {
     const artwork = this.artworkFor(vehicle.script)
 
     // Without its shell texture a model renders as a white block, which
@@ -138,14 +151,14 @@ export class VehicleRenderer {
       return Promise.resolve(null)
     }
 
-    const key = cacheKey(vehicle, artwork)
+    const key = cacheKey(vehicle, artwork, options)
     const known = this.rendered.get(key)
 
     if (known !== undefined) {
       return known
     }
 
-    const pending = this.render(vehicle, artwork).catch(() => null)
+    const pending = this.render(vehicle, artwork, options).catch(() => null)
     this.rendered.set(key, pending)
 
     return pending
@@ -177,6 +190,7 @@ export class VehicleRenderer {
   private async render(
     vehicle: MapVehicle,
     artwork: VehicleArtwork,
+    options: DrawOptions = {},
   ): Promise<RenderedVehicle | null> {
     const [model, renderer] = await Promise.all([this.model(artwork.model), this.gl()])
 
@@ -248,7 +262,21 @@ export class VehicleRenderer {
     scene.add(sun)
     scene.add(turned)
 
-    const camera = isometricCamera(turned)
+    const camera = isometricCamera(turned, options.ground === true ? SCENERY_MARGIN : 1)
+
+    // After the camera: the tiles are placed in its own plane.
+    if (options.ground === true) {
+      const [street, grass, bush] = await Promise.all([
+        this.texture(FLOOR_STREET),
+        this.texture(FLOOR_GRASS),
+        this.texture(SCENERY_BUSH),
+      ])
+
+      for (const piece of sceneryUnder(turned, street, grass, bush, camera)) {
+        scene.add(piece)
+      }
+    }
+
     const canvas = renderer.domElement
 
     renderer.setSize(RENDER_SIZE, RENDER_SIZE, false)
@@ -513,7 +541,7 @@ export const HEIGHT_CORRECTION = 1 / Math.cos((ELEVATION_DEGREES * Math.PI) / 18
  */
 export const YAW_DEGREES = 225
 
-function isometricCamera(body: Group): OrthographicCamera {
+function isometricCamera(body: Group, margin = 1): OrthographicCamera {
   const box = new Box3().setFromObject(body)
   const size = box.getSize(new Vector3())
 
@@ -530,12 +558,13 @@ function isometricCamera(body: Group): OrthographicCamera {
     (box.min.z + box.max.z) / 2,
   )
 
-  // Framed to the body's own extent with no margin: the marker sizes
-  // the picture by the vehicle's real length, and padding here would
-  // draw every vehicle short.
   const ground = Math.hypot(size.x, size.z)
   const raised = size.y * Math.cos(degrees(ELEVATION_DEGREES)) * HEIGHT_CORRECTION
-  const half = Math.max(ground, raised) / 2
+
+  // No margin by default: the map's marker sizes the picture by the
+  // vehicle's real length, so padding here would draw every vehicle
+  // short. The catalogue preview asks for room, to fit its road.
+  const half = (Math.max(ground, raised) / 2) * margin
 
   const camera = new OrthographicCamera(-half, half, half, -half, 0.1, ground * 6 + size.y * 4)
   const distance = ground * 3 + size.y * 2
@@ -569,6 +598,128 @@ function bodyFrame(body: Group): Object3D {
   })
 
   return frame
+}
+
+/**
+ * How much wider the preview is framed when it carries a road, so the
+ * verge and bushes have somewhere to be.
+ */
+const SCENERY_MARGIN = 1.55
+
+/** The game's own tiles and props, extracted from its texture packs. */
+const FLOOR_STREET = 'floor_street.png'
+const FLOOR_GRASS = 'floor_grass.png'
+const SCENERY_BUSH = 'scenery_bush.png'
+
+/**
+ * A stretch of road with a grass verge and a few bushes, behind the
+ * vehicle.
+ *
+ * The tiles and the bush are the game's own sprites, so the surface
+ * matches what the map shows. They are *already drawn* in the map's 2:1
+ * isometric projection, which is why they are not laid on the ground
+ * plane: tilting them would apply that projection a second time and the
+ * diamonds would come out skewed. Instead each faces the camera square
+ * on, the way the game itself composites them.
+ */
+function sceneryUnder(
+  body: Object3D,
+  street: Texture | null,
+  grass: Texture | null,
+  bush: Texture | null,
+  camera: OrthographicCamera,
+): Object3D[] {
+  const bounds = new Box3().setFromObject(body)
+  const size = bounds.getSize(new Vector3())
+  const reach = Math.hypot(size.x, size.z)
+
+  const pieces: Object3D[] = []
+
+  /**
+   * A sprite placed in the camera's own plane, given in fractions of the
+   * vehicle's reach: x to the right, y up, and behind by depth.
+   */
+  const sprite = (
+    texture: Texture | null,
+    width: number,
+    aspect: number,
+    x: number,
+    y: number,
+    depth: number,
+  ) => {
+    if (texture === null) {
+      return
+    }
+
+    const plane = new Mesh(
+      new PlaneGeometry(reach * width, reach * width * aspect),
+      new MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        alphaTest: 0.05,
+        depthWrite: false,
+      }),
+    )
+
+    plane.quaternion.copy(camera.quaternion)
+    plane.position
+      .copy(new Vector3((bounds.min.x + bounds.max.x) / 2, bounds.min.y, (bounds.min.z + bounds.max.z) / 2))
+      .add(new Vector3(reach * x, reach * y, 0).applyQuaternion(camera.quaternion))
+      .add(camera.getWorldDirection(new Vector3()).multiplyScalar(reach * depth))
+
+    pieces.push(plane)
+  }
+
+  /**
+   * A row of tiles at their own proportion rather than one stretched
+   * sprite: the game builds its ground out of repeated diamonds, and a
+   * stretched one distorts the grain and the kerb line.
+   *
+   * Diamonds tessellate offset by half a tile, so odd rows are shifted.
+   */
+  const course = (
+    texture: Texture | null,
+    tiles: number,
+    rows: number,
+    width: number,
+    y: number,
+    depth: number,
+  ) => {
+    const height = width * (64 / 126)
+
+    for (let row = 0; row < rows; row += 1) {
+      const shift = row % 2 === 0 ? 0 : width / 2
+      const span = (tiles - 1) * width
+
+      for (let column = 0; column < tiles; column += 1) {
+        sprite(
+          texture,
+          width,
+          64 / 126,
+          column * width - span / 2 + shift,
+          y + row * (height / 2),
+          depth,
+        )
+      }
+    }
+  }
+
+  // All behind the vehicle, the verge deepest. The vehicle itself sits at
+  // depth zero, so everything here is pushed away from the camera.
+  course(grass, 5, 3, 0.52, -0.4, 0.55)
+  course(street, 3, 2, 0.52, -0.34, 0.5)
+
+  // Fixed positions rather than random ones, so a vehicle's preview does
+  // not change between renders.
+  for (const [x, y, width] of [
+    [-0.62, -0.02, 0.24],
+    [0.58, -0.04, 0.19],
+    [0.78, -0.1, 0.14],
+  ] as const) {
+    sprite(bush, width, 1, x, y, 0.52)
+  }
+
+  return pieces
 }
 
 function degrees(value: number): number {
@@ -605,12 +756,26 @@ function tintOf(vehicle: MapVehicle, artwork: VehicleArtwork): Color | null {
  * HEADING_STEP_DEGREES, which caps a type at 24 renders however many
  * vehicles of it the world holds.
  */
-function cacheKey(vehicle: MapVehicle, artwork: VehicleArtwork): string {
+export function cacheKey(
+  vehicle: MapVehicle,
+  artwork: VehicleArtwork,
+  options: DrawOptions = {},
+): string {
   const paint = [vehicle.hue, vehicle.saturation, vehicle.value]
     .map((part) => (typeof part === 'number' ? part.toFixed(2) : '-'))
     .join(',')
 
-  return `${artwork.model}|${vehicle.skin ?? 0}|${paint}|${bucketedHeading(vehicle)}`
+  // The texture belongs in the key: three race cars share one model and
+  // differ only in their shell, so keying on the model alone served the
+  // first one's render for all three.
+  return [
+    artwork.model,
+    artwork.texture ?? '-',
+    vehicle.skin ?? 0,
+    paint,
+    bucketedHeading(vehicle),
+    options.ground === true ? 'ground' : '-',
+  ].join('|')
 }
 
 /** The heading rounded to the step the cache is keyed by. */
