@@ -5,6 +5,8 @@ import { Separator } from '@/components/ui/separator'
 import { ActiveServerProvider } from '@/features/servers/active-server'
 import { AppSidebar } from './app-sidebar'
 import { Breadcrumbs } from './breadcrumbs'
+import { LanguageToggle } from './language-toggle'
+import { ThemeToggle } from './theme-toggle'
 
 export function AppLayout() {
   return (
@@ -17,6 +19,11 @@ export function AppLayout() {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumbs />
+
+            <div className="ml-auto flex items-center gap-1">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
           </header>
 
           {/* min-h-0 so a page that wants the full height can have it:

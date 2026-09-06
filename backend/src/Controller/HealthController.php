@@ -7,11 +7,18 @@ namespace App\Controller;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class HealthController extends AbstractController
 {
+    public function __construct(
+        #[Autowire('%app.version%')]
+        private readonly string $version,
+    ) {
+    }
+
     #[Route('/api/health', name: 'api_health', methods: ['GET'])]
     public function __invoke(Connection $connection, UserRepository $users): JsonResponse
     {
@@ -29,6 +36,7 @@ final class HealthController extends AbstractController
 
         return new JsonResponse([
             'status' => $database === 'ok' ? 'ok' : 'degraded',
+            'version' => $this->version,
             'database' => $database,
             'setupComplete' => $setupComplete,
             'time' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),

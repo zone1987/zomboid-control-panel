@@ -6,6 +6,13 @@
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # The one place the panel's own version is declared.
+    app.version: '1.0.0'
+    app.repository: '%env(default:app.default_repository:GITHUB_REPOSITORY)%'
+    app.default_repository: 'zone1987/zomboid-control-panel'
+    app.https_default: true
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -23,6 +30,15 @@ services:
     App\Security\Encryption\CredentialCipher:
         arguments:
             $hexKey: '%env(CREDENTIALS_ENCRYPTION_KEY)%'
+
+    App\Panel\PanelUpdateChecker:
+        arguments:
+            $version: '%app.version%'
+            $repository: '%app.repository%'
+
+    App\EventSubscriber\SecurityHeadersSubscriber:
+        arguments:
+            $https: '%env(bool:default:app.https_default:PANEL_HTTPS)%'
 
     App\Security\Encryption\EncryptedTypeConfigurator:
         tags:

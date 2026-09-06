@@ -1,0 +1,4 @@
+# An administration panel belongs in no search index, and the login page
+# should not advertise that this installation exists.
+User-agent: *
+Disallow: /

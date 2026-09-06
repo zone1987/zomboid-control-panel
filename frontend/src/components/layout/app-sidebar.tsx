@@ -7,14 +7,12 @@ import {
   MessagesSquare,
   Package,
   LogOut,
-  Moon,
   Plus,
   ScrollText,
   Server,
   Map,
   Settings,
   Sparkles,
-  Sun,
   Terminal,
   User,
   Users,
@@ -43,10 +41,9 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { Permission } from '@/features/auth/types'
 import { useAuth } from '@/features/auth/auth-context'
-import { useTheme } from '@/components/theme-provider'
-import { changeLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
+import { PanelVersionLine } from './panel-version-line'
 
 /** One entry per page under a server, with what it takes to see it. */
 const SERVER_PAGES: {
@@ -66,10 +63,9 @@ const SERVER_PAGES: {
 
 
 export function AppSidebar() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { pathname } = useLocation()
   const { user, signOut, can } = useAuth()
-  const { theme, setTheme } = useTheme()
   const { activeServerId, setActiveServerId } = useActiveServer()
 
   const { data: servers } = useQuery({
@@ -246,26 +242,6 @@ export function AppSidebar() {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                  {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-                  {theme === 'dark' ? t('nav.lightTheme') : t('nav.darkTheme')}
-                </DropdownMenuItem>
-
-                {SUPPORTED_LANGUAGES.map((language) => (
-                  <DropdownMenuItem
-                    key={language}
-                    disabled={i18n.language.startsWith(language)}
-                    onClick={() => changeLanguage(language as SupportedLanguage)}
-                  >
-                    <span className="w-4 text-center text-xs font-medium">
-                      {language.toUpperCase()}
-                    </span>
-                    {t(`nav.language_${language}`)}
-                  </DropdownMenuItem>
-                ))}
-
-                <DropdownMenuSeparator />
-
                 <DropdownMenuItem onClick={() => void signOut()}>
                   <LogOut className="size-4" />
                   {t('auth.signOut')}
@@ -274,6 +250,7 @@ export function AppSidebar() {
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
+        <PanelVersionLine />
       </SidebarFooter>
 
       <SidebarRail />
