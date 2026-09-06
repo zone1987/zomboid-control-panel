@@ -108,9 +108,17 @@ final class BridgeSendCommand extends Command
     }
 
     /**
+     * Arguments, with the types a JSON body would have carried.
+     *
+     * The shell hands everything over as a string, and several commands
+     * check `=== true` — so `-a on=true` arrived as the string "true"
+     * and validated to false, switching a utility off when asked to
+     * switch it on. A test tool that cannot express the values the panel
+     * sends proves the wrong thing, which is worse than having none.
+     *
      * @param list<string> $pairs
      *
-     * @return array<string, string>
+     * @return array<string, scalar>
      */
     private static function parse(array $pairs): array
     {
@@ -119,7 +127,13 @@ final class BridgeSendCommand extends Command
         foreach ($pairs as $pair) {
             [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
 
-            $arguments[$name] = $value;
+            $arguments[$name] = match (strtolower($value)) {
+                'true' => true,
+                'false' => false,
+                // Numbers stay numbers, since a bound check compares
+                // them; anything else is the string it was typed as.
+                default => is_numeric($value) ? $value + 0 : $value,
+            };
         }
 
         return $arguments;
