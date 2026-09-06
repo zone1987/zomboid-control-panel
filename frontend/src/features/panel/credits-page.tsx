@@ -28,19 +28,36 @@ export function CreditsPage() {
       <section className="max-w-2xl space-y-3 rounded-md border p-4">
         <SectionMark label="Project Zomboid" />
 
-        <p className="text-sm leading-relaxed">
-          Thanks to The Indie Stone for creating Project Zomboid, which made this possible.
-        </p>
+        <p className="text-sm leading-relaxed">{t('credits.thanks')}</p>
 
-        <p className="text-sm leading-relaxed">
-          This is an unofficial fan production for non-commercial purposes made under the Indie
-          Stone Terms.
-        </p>
+        <p className="text-sm leading-relaxed">{t('credits.unofficial')}</p>
 
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Project Zomboid and its assets are © The Indie Stone Ltd. This project is not
-          affiliated with or endorsed by The Indie Stone.
+          {t('credits.copyright')}
         </p>
+
+        {/* The terms specify their own wording, so it is kept verbatim
+            alongside the translation rather than replaced by it. */}
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+            {t('credits.originalWording')}
+          </summary>
+
+          <div className="mt-2 space-y-2 border-l-2 border-muted pl-3 text-muted-foreground">
+            <p>
+              Thanks to The Indie Stone for creating Project Zomboid, which made this
+              possible.
+            </p>
+            <p>
+              This is an unofficial fan production for non-commercial purposes made under the
+              Indie Stone Terms.
+            </p>
+            <p>
+              Project Zomboid and its assets are © The Indie Stone Ltd. This project is not
+              affiliated with or endorsed by The Indie Stone.
+            </p>
+          </div>
+        </details>
 
         <div className="flex flex-wrap gap-4 pt-1">
           <a

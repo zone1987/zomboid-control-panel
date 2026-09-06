@@ -1109,6 +1109,10 @@
     "iconsWhere": "Aus den Sprite-Atlanten des Spiels, gezeigt auf der Item-Seite.",
     "mods": "Inhalte aus Mods gehören ihren jeweiligen Autoren. Wer Mod-Grafiken in dieses Panel lädt, braucht deren Erlaubnis — die Bedingungen von The Indie Stone deckten das nicht ab.",
     "mapTiles": "Kartenkacheln",
-    "mapTilesWhere": "Die Weltkarte wird von projectzomboidmap.com geladen. Beim Öffnen der Karte erreicht die IP-Adresse des Browsers diesen Dienst."
+    "mapTilesWhere": "Die Weltkarte wird von projectzomboidmap.com geladen. Beim Öffnen der Karte erreicht die IP-Adresse des Browsers diesen Dienst.",
+    "thanks": "Dank an The Indie Stone für Project Zomboid, das dies möglich gemacht hat.",
+    "unofficial": "Dies ist ein unoffizielles Fan-Projekt zu nicht-kommerziellen Zwecken, erstellt unter den Nutzungsbedingungen von The Indie Stone.",
+    "copyright": "Project Zomboid und seine Inhalte sind © The Indie Stone Ltd. Dieses Projekt steht in keiner Verbindung zu The Indie Stone und wird von dort nicht unterstützt.",
+    "originalWording": "Wortlaut der Nutzungsbedingungen"
   }
 }

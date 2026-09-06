@@ -231,7 +231,7 @@ export function AppSidebar() {
         {/* The Indie Stone's terms ask for a visible notice, and the
             panel shows the game's own art throughout. */}
         <Link
-          to="/app/credits"
+          to="/credits"
           className="px-2 pb-1 text-xs text-muted-foreground hover:text-foreground hover:underline group-data-[collapsible=icon]:hidden"
         >
           {t('nav.credits')}

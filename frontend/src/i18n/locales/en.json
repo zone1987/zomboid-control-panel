@@ -1109,6 +1109,10 @@
     "iconsWhere": "From the game's sprite atlases, shown on the items page.",
     "mods": "Mod content belongs to its authors. Uploading a mod's artwork into this panel needs their permission — the Indie Stone Terms do not cover it.",
     "mapTiles": "Map tiles",
-    "mapTilesWhere": "The world map is loaded from projectzomboidmap.com. Opening the map reveals the browser's IP address to that service."
+    "mapTilesWhere": "The world map is loaded from projectzomboidmap.com. Opening the map reveals the browser's IP address to that service.",
+    "thanks": "Thanks to The Indie Stone for creating Project Zomboid, which made this possible.",
+    "unofficial": "This is an unofficial fan production for non-commercial purposes made under the Indie Stone Terms.",
+    "copyright": "Project Zomboid and its assets are © The Indie Stone Ltd. This project is not affiliated with or endorsed by The Indie Stone.",
+    "originalWording": "Wording from the terms"
   }
 }
