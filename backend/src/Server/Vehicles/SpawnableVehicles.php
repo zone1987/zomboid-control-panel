@@ -194,18 +194,12 @@ final readonly class SpawnableVehicles
     public const WRECKS = 'wrecks';
 
     /**
-     * Damage state, the no-random marker and the lights fitting name a
-     * variant rather than a shell; "Normal" is a qualifier on the plainest
-     * member. Stripping them leaves the shell a person recognises.
+     * The one mask covering two shells: vehicle_pickuptruck_mask paints
+     * both the Chevalier D6 (PickUpTruck) and the Dash Bulldriver
+     * (PickUpVan), so the mask alone puts 45 unrelated liveries in one
+     * group. Every other mask covers exactly one shell.
      */
-    private const MODEL_VARIANTS = [
-        'SmashedFront',
-        'SmashedLeft',
-        'SmashedRear',
-        'SmashedRight',
-        '_NoRandom',
-        'Lights',
-    ];
+    private const SPLIT_MASKS = ['vehicle_pickuptruck_mask' => ['PickUpVan', 'PickUpTruck']];
 
     /** @param array<string, mixed>|null $artwork */
     private static function bodyOf(string $script, ?array $artwork): string
@@ -219,40 +213,25 @@ final readonly class SpawnableVehicles
         }
 
         $body = pathinfo($mask, PATHINFO_FILENAME);
-        $model = $artwork['model'] ?? null;
+        $shells = self::SPLIT_MASKS[$body] ?? null;
 
-        // One mask covers two shells: vehicle_pickuptruck_mask paints both
-        // the Chevalier D6 and the Dash Bulldriver, so the mask alone puts
-        // 45 unrelated liveries in one group.
-        return \is_string($model) ? $body.'.'.self::shellOf($model) : $body;
-    }
-
-    /** The shell a model belongs to, with its variant suffixes removed. */
-    public static function shellOf(string $model): string
-    {
-        // The catalogue hands back a file name, not a bare model name.
-        $bare = pathinfo($model, PATHINFO_FILENAME);
-        $shell = preg_replace('/^Vehicles?_/', '', $bare) ?? $bare;
-
-        do {
-            $before = $shell;
-
-            foreach (self::MODEL_VARIANTS as $suffix) {
-                if (str_ends_with($shell, $suffix) && \strlen($shell) > \strlen($suffix)) {
-                    $shell = substr($shell, 0, -\strlen($suffix));
-
-                    break;
-                }
-            }
-        } while ($shell !== $before);
-
-        $shell = rtrim($shell, '_');
-
-        if (str_ends_with($shell, 'Normal') && \strlen($shell) > 6) {
-            $shell = substr($shell, 0, -6);
+        if ($shells === null) {
+            return $body;
         }
 
-        return $shell === '' ? $bare : $shell;
+        // Deliberately the script name and not the model: a model name is
+        // a mesh file whose damage and lighting variants are spelled four
+        // different ways, and chasing those spellings split one shell into
+        // a group per wreck.
+        $name = str_contains($script, '.') ? substr($script, strrpos($script, '.') + 1) : $script;
+
+        foreach ($shells as $shell) {
+            if (str_starts_with($name, $shell)) {
+                return $body.'.'.$shell;
+            }
+        }
+
+        return $body;
     }
 
     /**
