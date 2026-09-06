@@ -23,6 +23,16 @@ conversation in the terminal, not of the codebase.
 Translation files (`frontend/src/i18n/locales/*.json`) hold the respective
 language, and are the only place German appears in the repository.
 
+## 1b. Commit messages follow Conventional Commits
+
+`type(scope): summary`, with the type from `feat`, `fix`, `docs`, `style`,
+`refactor`, `perf`, `test`, `build`, `ci` or `chore`, and a `!` before the
+colon for a breaking change. The summary is lower case, imperative and
+without a trailing full stop.
+
+The body explains *why*, not what the diff already shows. Commits before
+this rule was adopted are left as they are.
+
 ## 2. No prose comments
 
 Multi-line explanatory blocks are not wanted. Reasoning belongs in

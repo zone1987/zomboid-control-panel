@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TabGroupLabel } from '@/components/ui/tab-group-label'
 import {
   Select,
   SelectContent,
@@ -128,10 +129,13 @@ export function SettingsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start gap-1">
+          <TabGroupLabel>{t('settings.groupAccess')}</TabGroupLabel>
           <TabsTrigger value="steam">Steam</TabsTrigger>
           <TabsTrigger value="google">Google</TabsTrigger>
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
+
+          <TabGroupLabel className="ml-2">{t('settings.groupGameContent')}</TabGroupLabel>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
           <TabsTrigger value="vehicles">{t('settings.vehiclesTab')}</TabsTrigger>
         </TabsList>
