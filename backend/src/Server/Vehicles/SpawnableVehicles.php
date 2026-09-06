@@ -193,18 +193,66 @@ final readonly class SpawnableVehicles
     /** Wrecks and burnt-out hulls, which carry no paint to group by. */
     public const WRECKS = 'wrecks';
 
+    /**
+     * Damage state, the no-random marker and the lights fitting name a
+     * variant rather than a shell; "Normal" is a qualifier on the plainest
+     * member. Stripping them leaves the shell a person recognises.
+     */
+    private const MODEL_VARIANTS = [
+        'SmashedFront',
+        'SmashedLeft',
+        'SmashedRear',
+        'SmashedRight',
+        '_NoRandom',
+        'Lights',
+    ];
+
     /** @param array<string, mixed>|null $artwork */
     private static function bodyOf(string $script, ?array $artwork): string
     {
         $mask = $artwork['mask'] ?? null;
 
-        if (\is_string($mask)) {
-            return pathinfo($mask, PATHINFO_FILENAME);
+        if (!\is_string($mask)) {
+            // Twenty unmasked entries would otherwise be twenty groups of
+            // one. They are all wrecks, so they belong together.
+            return self::WRECKS;
         }
 
-        // Twenty unmasked entries would otherwise be twenty groups of
-        // one. They are all wrecks, so they belong together.
-        return self::WRECKS;
+        $body = pathinfo($mask, PATHINFO_FILENAME);
+        $model = $artwork['model'] ?? null;
+
+        // One mask covers two shells: vehicle_pickuptruck_mask paints both
+        // the Chevalier D6 and the Dash Bulldriver, so the mask alone puts
+        // 45 unrelated liveries in one group.
+        return \is_string($model) ? $body.'.'.self::shellOf($model) : $body;
+    }
+
+    /** The shell a model belongs to, with its variant suffixes removed. */
+    public static function shellOf(string $model): string
+    {
+        // The catalogue hands back a file name, not a bare model name.
+        $bare = pathinfo($model, PATHINFO_FILENAME);
+        $shell = preg_replace('/^Vehicles?_/', '', $bare) ?? $bare;
+
+        do {
+            $before = $shell;
+
+            foreach (self::MODEL_VARIANTS as $suffix) {
+                if (str_ends_with($shell, $suffix) && \strlen($shell) > \strlen($suffix)) {
+                    $shell = substr($shell, 0, -\strlen($suffix));
+
+                    break;
+                }
+            }
+        } while ($shell !== $before);
+
+        $shell = rtrim($shell, '_');
+
+        if (str_ends_with($shell, 'Normal') && \strlen($shell) > 6) {
+            $shell = substr($shell, 0, -6);
+        }
+
+        return $shell === '' ? $bare : $shell;
     }
 
     /**
@@ -253,12 +301,15 @@ final readonly class SpawnableVehicles
     }
 
     /**
-     * A readable qualifier from a mask name: "vehicle_vanseats_mask"
-     * becomes "vanseats", which at least tells the two Valulines apart.
+     * A readable qualifier for a body whose name is not unique: the shell
+     * from "vehicle_van_mask.VanSeats" tells the two Valulines apart.
      */
     private static function describeBody(string $id): string
     {
-        return trim(str_replace(['vehicle_', '_mask', '_'], ['', '', ' '], $id));
+        $shell = strrchr($id, '.');
+        $part = $shell === false ? $id : substr($shell, 1);
+
+        return trim(str_replace(['vehicle_', '_mask', '_'], ['', '', ' '], $part));
     }
 
     /**
