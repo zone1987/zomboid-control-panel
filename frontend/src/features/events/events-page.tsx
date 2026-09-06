@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { AlertTriangle, CloudRain, History, Search, Users, Volume2, Zap } from 'lucide-react'
+import { AlertTriangle, CloudRain, Globe, History, Search, Skull, Volume2, Zap } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/lib/api'
@@ -27,20 +27,21 @@ import { listPlayers } from '@/features/players/players'
 import { EventForm } from './event-form'
 import {
   defaultsFor,
-  GROUP_ORDER,
+  EVENT_CATEGORIES,
   isComplete,
   listEvents,
   listRecentEvents,
   triggerEvent,
   type EventAction,
-  type EventActionGroup,
+  type EventCategory,
 } from './events'
 
-const GROUP_ICONS: Record<EventActionGroup, typeof CloudRain> = {
+const CATEGORY_ICONS: Record<EventCategory, typeof CloudRain> = {
   weather: CloudRain,
   sounds: Volume2,
-  players: Users,
-  world: Zap,
+  actions: Zap,
+  zombies: Skull,
+  world: Globe,
 }
 
 export function EventsPage() {
@@ -130,9 +131,9 @@ export function EventsPage() {
     },
   })
 
-  const grouped = GROUP_ORDER.map((group) => ({
-    group,
-    entries: matches.filter((entry) => entry.group === group),
+  const grouped = EVENT_CATEGORIES.map((category) => ({
+    category,
+    entries: matches.filter((entry) => entry.category === category),
   })).filter((section) => section.entries.length > 0)
 
   const ready = action !== null && isComplete(action, values)
@@ -185,13 +186,13 @@ export function EventsPage() {
               <p className="p-3 text-center text-sm text-muted-foreground">{t('events.noMatch')}</p>
             ) : (
               grouped.map((section) => {
-                const Icon = GROUP_ICONS[section.group]
+                const Icon = CATEGORY_ICONS[section.category]
 
                 return (
-                  <div key={section.group} className="space-y-1">
+                  <div key={section.category} className="space-y-1">
                     <div className="flex items-center gap-2 px-2 pt-1 text-xs font-medium text-muted-foreground">
                       <Icon className="size-3.5" />
-                      {t(`events.groups.${section.group}`)}
+                      {t(`events.categories.${section.category}`)}
                     </div>
 
                     {section.entries.map((entry) => (

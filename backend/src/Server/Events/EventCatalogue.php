@@ -42,18 +42,18 @@ final readonly class EventCatalogue
     private static function weather(): array
     {
         return [
-            new EventAction('startRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['startrain'], [
+            new EventAction('startRain', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_PREFERRED, ['startrain'], [
                 EventField::number('intensity', 1, 100, 50),
             ]),
-            new EventAction('stopRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['stoprain']),
-            new EventAction('startStorm', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['startstorm'], [
+            new EventAction('stopRain', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_PREFERRED, ['stoprain']),
+            new EventAction('startStorm', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_RCON, ['startstorm'], [
                 EventField::number('duration', 1, 24, 2),
             ]),
-            new EventAction('stopWeather', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['stopweather']),
-            new EventAction('thunder', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['thunder'], [
+            new EventAction('stopWeather', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_RCON, ['stopweather']),
+            new EventAction('thunder', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['thunder'], [
                 EventField::player('player', required: false),
             ]),
-            new EventAction('lightning', EventAction::GROUP_WEATHER, EventAction::CHANNEL_RCON, ['lightning'], [
+            new EventAction('lightning', EventAction::CATEGORY_ACTIONS, EventAction::CHANNEL_RCON, ['lightning'], [
                 EventField::player('player', required: false),
             ]),
         ];
@@ -63,9 +63,9 @@ final readonly class EventCatalogue
     private static function sounds(): array
     {
         return [
-            new EventAction('chopper', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['chopper']),
-            new EventAction('gunshot', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['gunshot']),
-            new EventAction('alarm', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_RCON, ['alarm']),
+            new EventAction('chopper', EventAction::CATEGORY_ACTIONS, EventAction::CHANNEL_RCON, ['chopper']),
+            new EventAction('gunshot', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['gunshot']),
+            new EventAction('alarm', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['alarm']),
         ];
     }
 
@@ -81,41 +81,37 @@ final readonly class EventCatalogue
     private static function world(): array
     {
         return [
-            new EventAction('setTime', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setTime', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('hour', 0, 24, 12),
             ]),
-            new EventAction('setDate', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setDate', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('day', 1, 31, 1),
                 EventField::number('month', 1, 12, 7),
             ]),
-            new EventAction('bridgeStartRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
-                EventField::number('intensity', 0, 100, 50),
-            ]),
-            new EventAction('bridgeStopRain', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE),
-            new EventAction('setFog', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setFog', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 50),
             ]),
-            new EventAction('setWind', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setWind', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 50),
             ]),
-            new EventAction('setTemperature', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setTemperature', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', -30, 40, 20),
             ]),
-            new EventAction('setClouds', EventAction::GROUP_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setClouds', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 50),
             ]),
-            new EventAction('setDaylight', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setDaylight', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 100),
             ]),
-            new EventAction('setViewDistance', EventAction::GROUP_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('setViewDistance', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('value', 0, 100, 50),
             ]),
-            new EventAction('soundAtPlayer', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('soundAtPlayer', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::player('player'),
                 EventField::number('radius', 1, 500, 100),
                 EventField::number('volume', 1, 500, 100),
             ]),
-            new EventAction('soundAtPoint', EventAction::GROUP_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
+            new EventAction('soundAtPoint', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
                 EventField::number('radius', 1, 500, 100),
@@ -128,20 +124,20 @@ final readonly class EventCatalogue
     private static function players(): array
     {
         return [
-            new EventAction('broadcast', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['servermsg'], [
+            new EventAction('broadcast', EventAction::CATEGORY_ACTIONS, EventAction::CHANNEL_RCON, ['servermsg'], [
                 EventField::text('message', 250),
             ]),
-            new EventAction('hordeNearPlayer', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['createhorde'], [
+            new EventAction('hordeNearPlayer', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['createhorde'], [
                 EventField::number('count', 1, 500, 20),
                 EventField::player('player'),
             ], destructive: true),
-            new EventAction('hordeAtPoint', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['createhorde2'], [
+            new EventAction('hordeAtPoint', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['createhorde2'], [
                 EventField::number('count', 1, 500, 20),
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
                 EventField::number('radius', 1, 200, 20),
             ], destructive: true),
-            new EventAction('removeZombies', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['removezombies'], [
+            new EventAction('removeZombies', EventAction::CATEGORY_ZOMBIES, EventAction::CHANNEL_RCON, ['removezombies'], [
                 EventField::number('x', 0, 20000, 10778),
                 EventField::number('y', 0, 20000, 9770),
                 EventField::number('radius', 1, 500, 50),

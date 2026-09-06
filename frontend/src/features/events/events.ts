@@ -13,12 +13,19 @@ export type EventField = {
   maxLength?: number
 }
 
-export type EventActionGroup = 'weather' | 'sounds' | 'players' | 'world'
+/**
+ * The five categories the backend sorts actions into. Mirrored from
+ * `EventAction::CATEGORIES` and asserted against it by a test, because
+ * this list decides an icon, a route and a label.
+ */
+export const EVENT_CATEGORIES = ['weather', 'sounds', 'actions', 'zombies', 'world'] as const
+
+export type EventCategory = (typeof EVENT_CATEGORIES)[number]
 
 export type EventAction = {
   id: string
-  group: EventActionGroup
-  channel: 'rcon' | 'bridge'
+  category: EventCategory
+  channel: 'rcon' | 'bridge' | 'preferred'
   commands: string[]
   destructive: boolean
   fields: EventField[]
@@ -63,9 +70,6 @@ export function triggerEvent(
 export function listRecentEvents(serverId: string): Promise<{ items: RecentEvent[] }> {
   return apiFetch(`/servers/${serverId}/events/recent/actions`)
 }
-
-/** The order the groups appear in; anything unlisted sorts to the end. */
-export const GROUP_ORDER: EventActionGroup[] = ['weather', 'sounds', 'players', 'world']
 
 export function defaultsFor(action: EventAction): Record<string, string | number | boolean> {
   const values: Record<string, string | number | boolean> = {}

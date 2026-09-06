@@ -672,13 +672,8 @@
     "confirmBody": "This changes the world for every player and cannot be undone.",
     "channel": {
       "rcon": "RCON",
-      "bridge": "Bridge"
-    },
-    "groups": {
-      "weather": "Weather",
-      "sounds": "Sounds",
-      "players": "Players and world",
-      "world": "World"
+      "bridge": "Bridge",
+      "preferred": "Bridge, else RCON"
     },
     "fields": {
       "intensity": "Intensity",
@@ -757,14 +752,6 @@
         "title": "Set the date",
         "description": "Sets the day and month. The season follows from it."
       },
-      "bridgeStartRain": {
-        "title": "Start rain (bridge)",
-        "description": "Like the RCON command, but it reports back whether it is actually raining."
-      },
-      "bridgeStopRain": {
-        "title": "Stop rain (bridge)",
-        "description": "Stops the rain and checks that it really stopped."
-      },
       "setFog": {
         "title": "Fog",
         "description": "How thick the fog lies. 0 is clear, 100 is impenetrable."
@@ -799,7 +786,14 @@
       }
     },
     "invalidInput": "The input could not be used.",
-    "bridgeNeeded": "This needs the bridge running on the server."
+    "bridgeNeeded": "This needs the bridge running on the server.",
+    "categories": {
+      "weather": "Weather",
+      "sounds": "Sounds",
+      "actions": "Actions",
+      "zombies": "Zombies",
+      "world": "World"
+    }
   },
   "map": {
     "external": {

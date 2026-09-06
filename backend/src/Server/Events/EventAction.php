@@ -12,13 +12,39 @@ namespace App\Server\Events;
  */
 final readonly class EventAction
 {
-    public const GROUP_WEATHER = 'weather';
-    public const GROUP_SOUNDS = 'sounds';
-    public const GROUP_PLAYERS = 'players';
-    public const GROUP_WORLD = 'world';
+    /**
+     * The five categories, which decide the page an action lives on.
+     *
+     * A backend concept because it also decides the route, the nav entry
+     * and the breadcrumb; a frontend-only map would be a second table
+     * that can drift from this one.
+     */
+    public const CATEGORY_WEATHER = 'weather';
+    public const CATEGORY_SOUNDS = 'sounds';
+    public const CATEGORY_ACTIONS = 'actions';
+    public const CATEGORY_ZOMBIES = 'zombies';
+    public const CATEGORY_WORLD = 'world';
+
+    /** In the order the sidebar and the overview show them. */
+    public const CATEGORIES = [
+        self::CATEGORY_WEATHER,
+        self::CATEGORY_SOUNDS,
+        self::CATEGORY_ACTIONS,
+        self::CATEGORY_ZOMBIES,
+        self::CATEGORY_WORLD,
+    ];
 
     public const CHANNEL_RCON = 'rcon';
     public const CHANNEL_BRIDGE = 'bridge';
+
+    /**
+     * Try the bridge, fall back to RCON.
+     *
+     * For rain, which both can do: the bridge's value is that it reads
+     * back, RCON's is that it works with no bridge installed, and an
+     * operator should not have to know which button to press.
+     */
+    public const CHANNEL_PREFERRED = 'preferred';
 
     /**
      * @param list<EventField>   $fields
@@ -28,7 +54,7 @@ final readonly class EventAction
      */
     public function __construct(
         public string $id,
-        public string $group,
+        public string $category,
         public string $channel,
         /** Empty for a bridge action: it needs no RCON command at all. */
         public array $commands = [],
@@ -42,7 +68,7 @@ final readonly class EventAction
     {
         return [
             'id' => $this->id,
-            'group' => $this->group,
+            'category' => $this->category,
             'channel' => $this->channel,
             'commands' => $this->commands,
             'destructive' => $this->destructive,

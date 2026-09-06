@@ -138,6 +138,11 @@ final class EventConsoleTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
+    /**
+     * Rain prefers the bridge and falls back to RCON, and this fixture has
+     * no bridge -- so the recorded command proves the fallback ran rather
+     * than the request failing outright.
+     */
     public function testRecordsWhatWasTriggeredAndByWhom(): void
     {
         $server = $this->signedInWithServer();
@@ -149,6 +154,20 @@ final class EventConsoleTest extends FunctionalTestCase
         self::assertSame(ModerationAction::EVENT, $actions[0]->getAction());
         self::assertSame('stopRain', $actions[0]->getUsername());
         self::assertSame('stoprain', $actions[0]->getReason());
+    }
+
+    /** The merged rain must not have left one of the two ways behind. */
+    public function testRainFallsBackToRconWithoutABridge(): void
+    {
+        $server = $this->signedInWithServer();
+        $this->rcon->replies['help'] = "* startrain : Start rain.\n";
+
+        $this->request('POST', $this->url($server).'/startRain', ['intensity' => 70]);
+
+        self::assertResponseIsSuccessful();
+
+        $actions = $this->em->getRepository(ModerationAction::class)->findAll();
+        self::assertSame('startrain 70', $actions[0]->getReason());
     }
 
     /** An attempt the server refused is still something somebody did. */

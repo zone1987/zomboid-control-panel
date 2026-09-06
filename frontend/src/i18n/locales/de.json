@@ -672,13 +672,8 @@
     "confirmBody": "Das verändert die Welt für alle Spieler und lässt sich nicht rückgängig machen.",
     "channel": {
       "rcon": "RCON",
-      "bridge": "Bridge"
-    },
-    "groups": {
-      "weather": "Wetter",
-      "sounds": "Geräusche",
-      "players": "Spieler und Welt",
-      "world": "Welt"
+      "bridge": "Bridge",
+      "preferred": "Bridge, sonst RCON"
     },
     "fields": {
       "intensity": "Stärke",
@@ -757,14 +752,6 @@
         "title": "Datum setzen",
         "description": "Setzt Tag und Monat. Die Jahreszeit richtet sich danach."
       },
-      "bridgeStartRain": {
-        "title": "Regen starten (Bridge)",
-        "description": "Wie der RCON-Befehl, aber mit einer Rückmeldung, ob es tatsächlich regnet."
-      },
-      "bridgeStopRain": {
-        "title": "Regen beenden (Bridge)",
-        "description": "Beendet den Regen und prüft nach, ob er wirklich aufgehört hat."
-      },
       "setFog": {
         "title": "Nebel",
         "description": "Wie dicht der Nebel liegt. 0 ist klar, 100 ist undurchdringlich."
@@ -799,7 +786,14 @@
       }
     },
     "invalidInput": "Die Eingabe war nicht brauchbar.",
-    "bridgeNeeded": "Dafür muss die Bridge auf dem Server laufen."
+    "bridgeNeeded": "Dafür muss die Bridge auf dem Server laufen.",
+    "categories": {
+      "weather": "Wetter",
+      "sounds": "Geräusche",
+      "actions": "Aktionen",
+      "zombies": "Zombies",
+      "world": "Welt"
+    }
   },
   "map": {
     "external": {

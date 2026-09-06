@@ -143,11 +143,17 @@ final class EventDispatcherTest extends TestCase
         EventDispatcher::commandFor('summonHelicopterGunship', []);
     }
 
-    /** Every RCON action must build a command; a bridge action has none. */
+    /**
+     * Every action that can reach RCON must build a command.
+     *
+     * Skipping on `!== CHANNEL_RCON` would now skip CHANNEL_PREFERRED
+     * too, and the merged rain -- which falls back to RCON -- would
+     * silently leave coverage. Only a bridge-only action has no command.
+     */
     public function testEveryRconActionInTheCatalogueBuildsSomething(): void
     {
         foreach (EventCatalogue::all() as $action) {
-            if ($action->channel !== EventAction::CHANNEL_RCON) {
+            if ($action->channel === EventAction::CHANNEL_BRIDGE) {
                 continue;
             }
 

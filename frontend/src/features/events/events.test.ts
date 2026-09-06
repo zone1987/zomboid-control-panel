@@ -1,11 +1,18 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { defaultsFor, isComplete, type EventAction, type EventField } from './events'
+import {
+  defaultsFor,
+  EVENT_CATEGORIES,
+  isComplete,
+  type EventAction,
+  type EventField,
+} from './events'
 
 function actionWith(...fields: EventField[]): EventAction {
   return {
     id: 'test-action',
-    group: 'world',
+    category: 'world',
     channel: 'rcon',
     commands: [],
     destructive: false,
@@ -183,5 +190,43 @@ describe('isComplete', () => {
     )
 
     expect(isComplete(action, defaultsFor(action))).toBe(true)
+  })
+})
+
+/**
+ * The frontend lists the categories to keep the order, the icons and the
+ * typing local, so it can drift from the backend that assigns them.
+ * Asserted against the source rather than trusted.
+ */
+describe('the category list against the backend', () => {
+  const source = readFileSync('../backend/src/Server/Events/EventAction.php', 'utf8')
+
+  it('matches EventAction::CATEGORIES', () => {
+    const start = source.indexOf('public const CATEGORIES')
+    const block = source.slice(start, source.indexOf('];', start))
+    const names = [...block.matchAll(/self::CATEGORY_([A-Z]+),/g)].map((match) => match[1])
+
+    const values = names.map((name) => {
+      const found = source.match(new RegExp(`public const CATEGORY_${name} = '([a-z]+)'`))
+
+      expect(found, `CATEGORY_${name} has no value`).not.toBeNull()
+
+      return (found as RegExpMatchArray)[1]
+    })
+
+    expect(values).toEqual([...EVENT_CATEGORIES])
+  })
+
+  it('gives every category an icon and a label in both locales', () => {
+    const page = readFileSync('src/features/events/events-page.tsx', 'utf8')
+    const icons = page.slice(page.indexOf('const CATEGORY_ICONS'))
+    const de = JSON.parse(readFileSync('src/i18n/locales/de.json', 'utf8'))
+    const en = JSON.parse(readFileSync('src/i18n/locales/en.json', 'utf8'))
+
+    for (const category of EVENT_CATEGORIES) {
+      expect(icons, `${category} has no icon`).toMatch(new RegExp(`\\b${category}:`))
+      expect(de.events.categories[category], `${category} missing from de`).toBeTruthy()
+      expect(en.events.categories[category], `${category} missing from en`).toBeTruthy()
+    }
   })
 })

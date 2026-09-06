@@ -107,9 +107,11 @@ final class EventController extends AbstractController
         $action = EventCatalogue::find($actionId);
 
         try {
-            $outcome = $action?->channel === EventAction::CHANNEL_BRIDGE
-                ? $this->throughBridge($server, $actionId, $inputs)
-                : $this->events->dispatch($server, $actionId, $inputs);
+            $outcome = match ($action?->channel) {
+                EventAction::CHANNEL_BRIDGE => $this->throughBridge($server, $actionId, $inputs),
+                EventAction::CHANNEL_PREFERRED => $this->preferringTheBridge($server, $actionId, $inputs),
+                default => $this->events->dispatch($server, $actionId, $inputs),
+            };
         } catch (InvalidBridgeCommand $exception) {
             return new JsonResponse([
                 'status' => 'failed',
@@ -157,6 +159,28 @@ final class EventController extends AbstractController
      * @throws BridgeCommandFailed
      * @throws InvalidBridgeCommand
      */
+    /**
+     * The bridge first, RCON if the bridge could not do it.
+     *
+     * Only on BridgeCommandFailed -- the bridge is absent, silent or
+     * refused. An InvalidBridgeCommand means the panel built the request
+     * wrongly, which RCON would not fix and which must not be hidden.
+     *
+     * @param array<string, mixed> $inputs
+     */
+    private function preferringTheBridge(
+        GameServer $server,
+        string $actionId,
+        array $inputs,
+    ): EventOutcome {
+        try {
+            return $this->throughBridge($server, $actionId, $inputs);
+        } catch (BridgeCommandFailed) {
+            return $this->events->dispatch($server, $actionId, $inputs);
+        }
+    }
+
+    /** @param array<string, mixed> $inputs */
     private function throughBridge(GameServer $server, string $actionId, array $inputs): EventOutcome
     {
         [$command, $arguments] = match ($actionId) {
@@ -165,8 +189,8 @@ final class EventController extends AbstractController
                 'day' => $inputs['day'] ?? null,
                 'month' => $inputs['month'] ?? null,
             ]],
-            'bridgeStartRain' => [BridgeCommand::StartRain, ['intensity' => $inputs['intensity'] ?? null]],
-            'bridgeStopRain' => [BridgeCommand::StopRain, []],
+            'startRain' => [BridgeCommand::StartRain, ['intensity' => $inputs['intensity'] ?? null]],
+            'stopRain' => [BridgeCommand::StopRain, []],
             'soundAtPlayer', 'soundAtPoint' => [BridgeCommand::PlaySound, $inputs],
             default => [BridgeCommand::SetClimateValue, [
                 'name' => self::CLIMATE_ACTIONS[$actionId] ?? null,
