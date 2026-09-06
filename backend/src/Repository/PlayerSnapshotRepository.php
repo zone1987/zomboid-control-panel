@@ -60,4 +60,25 @@ class PlayerSnapshotRepository extends ServiceEntityRepository
 
         $builder->getQuery()->execute();
     }
+
+    public function countLastSeenBefore(\DateTimeImmutable $cutoff): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->andWhere('p.lastSeenAt < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /** @return int the number of rows removed */
+    public function deleteLastSeenBefore(\DateTimeImmutable $cutoff): int
+    {
+        return (int) $this->createQueryBuilder('p')
+            ->delete()
+            ->andWhere('p.lastSeenAt < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->execute();
+    }
 }

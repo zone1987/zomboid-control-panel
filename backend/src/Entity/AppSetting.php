@@ -29,6 +29,9 @@ class AppSetting
     public const MAIL_FROM_ADDRESS = 'mailer.from_address';
     public const MAIL_FROM_NAME = 'mailer.from_name';
 
+    /** Days after which an unseen player snapshot may go; 0 or unset keeps everything. */
+    public const PLAYER_RETENTION_DAYS = 'players.retention_days';
+
 
     /** Values that must never be returned to the frontend in plaintext. */
     public const SECRET_KEYS = [
