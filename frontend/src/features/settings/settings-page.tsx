@@ -123,26 +123,49 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">{t('nav.settings')}</h1>
         <p className="text-muted-foreground">{t('settings.description')}</p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="h-auto flex-wrap justify-start gap-1">
+      {/* A rail beside the cards rather than a strip above them: the
+          groups then read as sections with their tabs under them, and a
+          new category lengthens the list instead of wrapping a lone tab
+          onto a second row. Stacks above the content below `sm`. */}
+      <Tabs
+        value={tab}
+        onValueChange={setTab}
+        orientation="vertical"
+        className="gap-6 sm:grid sm:grid-cols-[12rem_1fr] sm:items-start"
+      >
+        <TabsList className="h-auto w-full flex-col items-stretch gap-0.5 bg-transparent p-0">
           <TabGroupLabel>{t('settings.groupAccess')}</TabGroupLabel>
-          <TabsTrigger value="steam">Steam</TabsTrigger>
-          <TabsTrigger value="google">Google</TabsTrigger>
-          <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
+          <TabsTrigger value="steam" className="justify-start">
+            Steam
+          </TabsTrigger>
+          <TabsTrigger value="google" className="justify-start">
+            Google
+          </TabsTrigger>
+          <TabsTrigger value="mail" className="justify-start">
+            {t('settings.mailTab')}
+          </TabsTrigger>
 
-          <TabGroupLabel className="ml-2">{t('settings.groupGameContent')}</TabGroupLabel>
-          <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
-          <TabsTrigger value="vehicles">{t('settings.vehiclesTab')}</TabsTrigger>
+          <TabGroupLabel className="mt-3">{t('settings.groupGameContent')}</TabGroupLabel>
+          <TabsTrigger value="icons" className="justify-start">
+            {t('settings.iconsTab')}
+          </TabsTrigger>
+          <TabsTrigger value="vehicles" className="justify-start">
+            {t('settings.vehiclesTab')}
+          </TabsTrigger>
 
-          <TabGroupLabel className="ml-2">{t('settings.groupPrivacy')}</TabGroupLabel>
-          <TabsTrigger value="privacy">{t('settings.privacyTab')}</TabsTrigger>
+          <TabGroupLabel className="mt-3">{t('settings.groupPrivacy')}</TabGroupLabel>
+          <TabsTrigger value="privacy" className="justify-start">
+            {t('settings.privacyTab')}
+          </TabsTrigger>
         </TabsList>
+
+        <div className="min-w-0">
 
         <TabsContent value="privacy">
           <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
@@ -330,21 +353,23 @@ export function SettingsPage() {
           <VehicleModelsCard />
         </TabsContent>
 
-      </Tabs>
+          {/* Inside the content column, so it sits under the card it
+              saves rather than under the rail. */}
+          {savable && (
+            <div className="mt-4 flex gap-2">
+              <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>
+                {save.isPending ? t('common.loading') : t('common.save')}
+              </Button>
 
-      {savable && (
-        <div className="flex gap-2">
-          <Button disabled={!hasChanges || save.isPending} onClick={() => save.mutate(draft)}>
-            {save.isPending ? t('common.loading') : t('common.save')}
-          </Button>
-
-          {hasChanges && (
-            <Button variant="ghost" onClick={() => setDraft({})}>
-              {t('common.cancel')}
-            </Button>
+              {hasChanges && (
+                <Button variant="ghost" onClick={() => setDraft({})}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </Tabs>
     </div>
   )
 }

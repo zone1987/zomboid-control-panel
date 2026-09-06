@@ -392,7 +392,7 @@
       "tooLarge": "{{name}} ist zu groß — je Datei sind 8 MB möglich."
     },
     "groupPrivacy": "Datenschutz",
-    "privacyTab": "Daten",
+    "privacyTab": "Aufbewahrung",
     "retentionTitle": "Aufbewahrung von Spielerdaten",
     "retentionDescription": "Wie lange Spieler gespeichert bleiben, die niemand mehr gesehen hat.",
     "retentionDays": "Aufbewahrung in Tagen",
