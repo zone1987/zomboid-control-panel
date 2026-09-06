@@ -124,7 +124,8 @@
     "updateAvailable": "Version {{version}} ist verfügbar",
     "upToDate": "Aktuell",
     "updateUnknown": "Nicht prüfbar",
-    "updates": "Aktualisierungen"
+    "updates": "Aktualisierungen",
+    "reloadForUpdate": "Neue Fassung laden"
   },
   "servers": {
     "title": "Server",

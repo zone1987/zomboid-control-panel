@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { ActiveServerProvider } from '@/features/servers/active-server'
 import { AppSidebar } from './app-sidebar'
 import { Breadcrumbs } from './breadcrumbs'
+import { AppUpdateBanner } from './app-update-banner'
 import { LanguageToggle } from './language-toggle'
 import { ThemeToggle } from './theme-toggle'
 
@@ -21,6 +22,7 @@ export function AppLayout() {
             <Breadcrumbs />
 
             <div className="ml-auto flex items-center gap-1">
+              <AppUpdateBanner />
               <LanguageToggle />
               <ThemeToggle />
             </div>

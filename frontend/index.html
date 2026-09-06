@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" class="dark">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -10,6 +10,19 @@
       // Applied before the app mounts, otherwise a light frame flashes
       // between first paint and React setting the class.
       (function () {
+        try {
+          var language = localStorage.getItem('zomboidcontrol.language')
+
+          document.documentElement.lang =
+            language === 'de' || language === 'en'
+              ? language
+              : navigator.language.indexOf('de') === 0
+                ? 'de'
+                : 'en'
+        } catch (error) {
+          document.documentElement.lang = 'en'
+        }
+
         try {
           var stored = localStorage.getItem('zomboidcontrol.theme')
           var dark =

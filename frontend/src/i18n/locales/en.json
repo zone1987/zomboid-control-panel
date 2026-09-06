@@ -124,7 +124,8 @@
     "updateAvailable": "Version {{version}} is available",
     "upToDate": "Up to date",
     "updateUnknown": "Cannot be checked",
-    "updates": "Updates"
+    "updates": "Updates",
+    "reloadForUpdate": "Load the new version"
   },
   "servers": {
     "title": "Servers",

@@ -70,4 +70,15 @@ export async function changeLanguage(language: SupportedLanguage): Promise<void>
   await i18n.changeLanguage(language)
 }
 
+/**
+ * Keeps the document's language attribute on whatever i18next resolved.
+ *
+ * Screen readers take their pronunciation from it, and every path --
+ * first detection, the fallback, a manual switch -- ends in this event,
+ * which is why it is hooked here rather than set at each call site.
+ */
+i18n.on('languageChanged', (language) => {
+  document.documentElement.lang = language.split('-')[0]
+})
+
 export default i18n
