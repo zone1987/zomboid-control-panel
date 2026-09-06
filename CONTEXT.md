@@ -2297,3 +2297,386 @@ findings, with signatures, are in the plan. Key points:
 | Build | clean, PWA generated |
 | Bridge on the server | **0.13.3**, matching what ships here |
 | Not verified | the vehicle page since the grid rework; `CATALOGUE_HEADING`; Lighthouse; a real spawn |
+
+---
+
+# 2026-09-06 (later) — The vehicle page finished, and every vehicle drawn
+
+Continues the session above, after a `/compact`. Ten commits, all pushed
+(`origin/main` at `f3c910c`).
+
+## What the user asked for, in order
+
+1. Vehicle favourites, and filtering by them
+2. "auch karosserien sollten favorisierbar sein nicht nur lackierungen"
+3. A body row that does not jump when a selection is made
+4. Boxes in a grid row all the same height
+5. "hier fehlt die ganze karosserie" — the Sports Car ez drawn as wheels alone
+6. "die Lackierung ist doch au allen 3 Lackierungen gleich" — three race cars, one picture
+7. A larger preview, "machs ruhig noch größer", then centred
+8. A road under the preview, then grass and bushes, then several tiles
+9. Technical names copyable everywhere, "das gilt auch für items"
+10. Vehicle information: seat, glove box and trunk capacity, then "alle informationen die wir bekommen können"
+11. A filter by vehicle type — "Kleinwagen, Van, Anhänger, Einsatzfahrzeuge"
+12. The Indie Stone attribution, with the terms quoted in full
+13. Stand the vehicle on the road
+
+## The three bugs worth remembering
+
+### Every vehicle fell back to a placeholder — and nothing was missing
+
+All 241 vehicles showed the fallback car icon. The subagent search proved
+**no file was absent**: all 177 textures and all 117 models were already
+in `backend/var/vehicle-models`.
+
+The catalogue held the wrong name for **83 of 117** models. The game does
+not name a mesh file in a vehicle script; it names a `model` block that
+names the file:
+
+```
+model Vehicles_CarLights_NoRandom
+{
+    mesh = vehicles/Vehicles_CarNormalLights,
+```
+
+So the catalogue recorded `Vehicles_CarLights_NoRandom` while the file is
+`Vehicles_CarNormalLights.fbx`, `ModelStore::has()` said no, and the tile
+silently showed the fallback. Resolved all 83 from the installation's own
+model blocks. **Drawable: 34 → 241 of 241.**
+
+Two entries name a file holding several meshes (`path|submesh`); the
+renderer draws a whole file, so `ModernCarWithDoors_Martin` lost its shell
+among the doors and hood. Both now use the plain body model.
+
+### Grouping by model name looked right and was wrong
+
+Chasing the pickup-mask problem, the grouping was moved onto the model
+name. That split one Step Van into five groups: the mesh files spell
+damage as `SMASH_`, `CRASH_` **and** `Smashed`, and lighting as `Lights`,
+so every spelling the suffix list missed became a group of its own.
+
+Reverted to the paint mask, which has exactly **one** case where it is too
+coarse — now a named exception in `SpawnableVehicles::SPLIT_MASKS`:
+`vehicle_pickuptruck_mask` paints both the Chevalier D6 (`PickUpTruck`)
+and the Dash Bulldriver (`PickUpVan`). **22 bodies from 241 entries.**
+
+### One render served under three names
+
+Three race cars share `vehicle_racecar.fbx` and differ only in their shell
+texture. `cacheKey()` keyed on the model alone, so the first render was
+served for all three. The map never showed it — a vehicle there is tinted
+per instance — but the catalogue puts the variants side by side.
+
+## The ground under the preview: geometry, not tuning
+
+Four attempts, each made worse by adjustment and settled by arithmetic.
+Recorded because the reasoning is not obvious:
+
+- A tile pictures **one world square seen from this very angle**. The
+  map's 2:1 projection is `sin(30°) = 0.5`, exactly the camera's
+  elevation — so a flat square projects back to the diamond it was drawn
+  as. Reasoning from `cos(30°) = 0.866` produced "impossible" and a
+  camera-pinned backdrop the vehicle floated above.
+- A plane maps its texture onto its **square**; the picture is a
+  **diamond** with transparent corners. The two are 45° out of step,
+  which showed as a chequerboard of holes. Turning each tile 45° about the
+  vertical and growing it by `√2` puts the diamond's points on the
+  square's edges.
+- With yaw 225 the camera sits at **negative** x and z, so the far verge
+  is the **positive** corner. Guessing put a bush in front of the vehicle.
+
+Tiles extracted with the existing `SpritePack` reader:
+`blends_street_01_0` and `blends_natural_01_16` from `Tiles2x.floor.pack`,
+`f_bushes_1_78` from `Tiles2x.pack` (the low-numbered bushes are bare
+winter twigs; the leafy ones start around 78). Written to
+`backend/var/vehicle-models/` as `floor_street.png`, `floor_grass.png`,
+`scenery_bush.png` — **outside git**, like every other game asset.
+
+`draw()` takes `{ ground: true }`, opt-in: the map does not want it,
+because the map *is* the ground. The option is part of the cache key.
+
+## Vehicle specifications: resolved from the scripts
+
+`VehicleSpecs.php`, generated, 241 entries: seats, trunk, glove box,
+mass, top speed, engine and braking force, mechanic type, engine
+loudness and quality.
+
+The scripts state these across a chain: a vehicle inherits a base
+template, that inherits part templates, and a part's capacity is either
+set outright or implied by the item it is built from
+(`itemType = Base.BigTrunk` → `MaxCapacity = 160`). Two resolutions were
+not obvious:
+
+- A **closed and an open truck bed are both defined for every vehicle**
+  though it carries only one, so the larger is the one it really has.
+  Taking the last match gave the Step Van 55 instead of 160.
+- The **trailer parts every vehicle inherits** (`TrailerTrunk`,
+  `TrailerAnimalFood`, `TrailerAnimalEggs`) appear on 220 of 241 and are
+  ignored except on an actual trailer.
+
+Measured: 241 masses, 221 seat counts, 220 trunks, 216 glove boxes. The
+extremes match what a player would name — Step Van 160 (largest bed),
+sports and race cars 120 km/h (fastest), van with seats 6 (most seats).
+A police Nyala is the same 800 kg shell as the saloon but does 100 km/h
+against 90, on 4800 engine force against 4000.
+
+**Only stated values are shown.** A modded vehicle has none, and an unset
+property takes an engine default the panel does not know.
+
+## Vehicle types: from the mask, not from mechanicType
+
+`VehicleTypes.php`, nine kinds: van 102, service 36, pickup 24, sports
+21, wreck 20, car 13, small 10, suv 10, trailer 5.
+
+Derived from the paint mask (the shell) plus the service words the game
+itself puts in a script name — a cruiser is a saloon with different
+paint, and somebody hunting for one thinks "service vehicle".
+**Deliberately not `mechanicType`**: that grades repair difficulty (1
+standard, 2 heavy, 3 sports), which files an ambulance beside a step van.
+
+The frontend keeps its own `VEHICLE_TYPES` list to hold the order and the
+typing, so `vehicles.test.ts` asserts it against `VehicleTypes::ORDER` by
+reading the PHP source — **proven to fail** when the two are reordered
+apart.
+
+The filter narrows the ground the other steps work on, so it combines
+with search, body and favourites rather than replacing them, and offers
+only the kinds the server actually has (`typesPresent()`).
+
+## Favourites, on both levels
+
+Bodies and liveries are separately markable, kept apart in
+`localStorage` per server (`zomboidcontrol.vehicleFavourites.<kind>.<id>`)
+because a body id is not a script name. Two rules the user's testing
+exposed:
+
+- **A chosen body wins over the filter.** Choosing a shell is the request
+  to see everything it comes in, so its plain liveries stay visible
+  instead of the grid emptying under the cursor.
+- **A body filtered out of the row cannot stay selected**, or the grid
+  below shows liveries of a shell no longer on screen. Hence `reachable`
+  in `vehicles-page.tsx`.
+
+Filtering shows marked bodies **plus** bodies holding a marked livery, so
+a favourite livery stays reachable when its body was never marked.
+
+## Grids that stopped jumping
+
+Three separate reflows, all reported by the user:
+
+- The clear-selection button appears only once a body is chosen and is
+  taller than the bare heading, so the row grew and pushed everything
+  down. The row now carries that height from the start (`h-6`).
+- Tiles were only as tall as their own content, so a two-line name left a
+  gap under its one-line neighbours. The tile fills its grid cell
+  (`h-full` on wrapper and button) and the member count is anchored with
+  `mt-auto`.
+- The page had no scrollbar gutter, so growing long enough to scroll
+  narrowed the content and re-flowed every grid. `scrollbar-gutter: stable`
+  on `html`.
+
+Also: "Alle" beside the body heading read as a label for the row rather
+than an action, so it now says `vehicles.clearBody` — "Auswahl aufheben".
+
+## Copyable machine values
+
+`components/ui/copyable.tsx`, one component replacing three ad-hoc
+clipboard handlers. `Base.StepVan_LouisvilleSWAT` is pasted, not
+retyped.
+
+Used for the vehicle script, the item type and a SteamID. **The item type
+was not shown at all** in the grid — it sat in a `title` attribute, which
+a touch device never reveals — so it is now visible on the tile and in
+the selection list.
+
+In `player-detail.tsx` the SteamID moved out of `DialogDescription`: a
+button inside a `<p>` is invalid HTML.
+
+## The Indie Stone attribution
+
+`/app/credits`, linked from the sidebar footer. The user established that
+the terms permit the game's art in a non-commercial fan project **on
+condition of a visible notice** — so the page is the condition the
+permission rests on, not decoration.
+
+Carries the wording the terms specify, left in English deliberately;
+links to Project Zomboid and to the terms; sets out which content the
+panel uses and where. Two things stated because they are easy to get
+wrong: **mod content belongs to its authors** and needs their permission
+separately, and **opening the map reveals the viewer's IP** to
+projectzomboidmap.com.
+
+`breadcrumbs.test.ts` gained a case for it: an unlisted page falls back to
+the dashboard label, so a missing title would read as "Übersicht" and
+nothing would complain.
+
+## Commits
+
+| Commit | What |
+|---|---|
+| `c46d9a6` | `docs:` the pre-compact record |
+| `5eb7256` | `fix(vehicles):` tell the two pickups apart |
+| `f5a13a2` | `feat(vehicles):` favourites on both levels |
+| `d45d53e` | `fix(ui):` stop grids reflowing |
+| `b818c73` | `fix(vehicles):` resolve the model indirection — 241/241 drawable |
+| `65cc70d` | `fix(map):` texture in the cache key; opt-in ground |
+| `73ca9f9` | `feat(ui):` `Copyable`, and show the hidden item type |
+| `9e9c8d3` | `feat(vehicles):` `VehicleSpecs` from the scripts |
+| `fdf6866` | `feat(vehicles):` facts card and type filter |
+| `a6546d0` | `fix(map):` stand the vehicle on the road |
+| `f3c910c` | `feat(panel):` the credits page |
+
+## Verification at the end of this stretch
+
+| | |
+|---|---|
+| Backend tests | **493, green** (was 468; +25 for types, specs and grouping) |
+| Frontend tests | **205 across 18 files, green** (was 172) |
+| Linter | **0 errors**, 29 warnings (all pre-existing; one was fixed) |
+| Typecheck | clean |
+| Build | clean, PWA generated, 82 precache entries |
+| Pushed | `origin/main` at `f3c910c` |
+| Checked in a browser | favourites on both levels, the type filter, the facts card, the road, the credits page, grid heights |
+| Still not verified | a real spawn against the live server (needs a player online); Lighthouse |
+
+Two process notes worth carrying forward, both now in CLAUDE.md:
+
+- **Vite in ddev kept serving stale modules** twice — the tile without its
+  star, then a 404 on a new route — while the file on disk was correct.
+  Check what is served with `curl` before debugging the code; restart with
+  `ddev dev`, since `pkill -f vite` does not reliably bring it back.
+- **`ExtractIconsCommand`'s `SpritePack` reader parses the floor and tile
+  packs too.** `SpritePack::parse()` takes bytes, `$pack->pages` and
+  `$page->sprites` are public. `/tmp` inside the container is not the
+  host's `/tmp`; stage files under `backend/var/tmp/`.
+
+---
+
+# TODO — the current list (supersedes the one at line 2128)
+
+The older list is left in place as a record; this one is what to work
+from. Ordered so each item is doable without the one after it.
+
+## Done since that list was written
+
+- [x] **`CATALOGUE_HEADING = 285`** — verified in a browser. The nose does
+      face the viewer.
+- [x] **Vehicle favourites, and filtering by them** — on both levels,
+      bodies and liveries (`f5a13a2`).
+- [x] **Frontend tests for `vehicles.ts`** — 28 of them, plus a drift guard
+      against `VehicleTypes::ORDER`.
+- [x] **Every vehicle drawn** — the model indirection resolved, 241/241
+      (`b818c73`).
+- [x] **Vehicle information and a type filter** (`9e9c8d3`, `fdf6866`).
+- [x] **Copyable machine values** (`73ca9f9`).
+- [x] **The Indie Stone attribution** (`f3c910c`), then translated with the
+      terms' own wording kept as a foldout.
+- [x] `representatives()` — still exported and still unused; see below.
+
+## 1. Small things left over from the vehicle page
+
+- [ ] **Verify a real spawn against the live server.** Needs a player
+      online; never actually tried end to end.
+- [ ] **`representatives()` in `vehicles.ts` is unused.** It has a test, so
+      it is not dead weight by accident — decide whether the "no body
+      chosen" state should show one per body (the plan's original shape)
+      or stay empty as it does now, then keep or delete it.
+- [ ] **The `set-state-in-effect` warnings.** 29 remain, all pre-existing.
+      One was removed by consolidating the paging reset into the setters;
+      the same treatment would fit several others.
+
+## 2. Remove vehicle spawning from Events
+
+Unchanged, and now the only thing keeping two spawn paths alive.
+
+- [ ] Delete the entry from `EventCatalogue::players()` and delete
+      `VehicleScripts.php`; the new controller already carries its own copy
+      of `isValidName()`.
+- [ ] `EventDispatcherTest`'s injection case (around line 98) **moves to
+      the vehicle tests rather than being deleted** — the injection guard
+      is why that test exists.
+- [ ] Delete `events.actions.spawnVehicle.*` from both locales.
+
+## 3. Events into five categories (plan phases 2–4)
+
+The largest remaining restructuring, unchanged. Detail in the plan and in
+the older list at line 2161; the essentials:
+
+- [ ] `EventAction::GROUP_*` → `CATEGORY_WEATHER/SOUNDS/ACTIONS/ZOMBIES/WORLD`.
+      **Backend and frontend in one commit** — the JSON key change breaks
+      the frontend type otherwise.
+- [ ] **Thunder → sounds, lightning → actions**, proven from the bytecode:
+      `thunder` passes `(false, false, true)`, `lightning` `(false, true, true)`.
+- [ ] **Merge the duplicated rain** with `CHANNEL_PREFERRED` (bridge first,
+      RCON on `BridgeCommandFailed` only).
+- [ ] Sidebar children on `SERVER_PAGES`; `isExactly` for the children.
+- [ ] Layout route with an index, a static `weather` child, a `:category` child.
+- [ ] Third breadcrumb level — `crumbsFor()` is extracted and tested, and
+      now has a case proving an unlisted page falls back silently.
+- [ ] Invert `EventDispatcherTest`'s skip to `=== CHANNEL_BRIDGE` (line ~154).
+- [ ] Re-pin `EventsApiTest`'s `ModerationAction` assertion.
+
+## 4. The weather page
+
+Unchanged; see line 2186 for the detail. Icon presets, `WorldStrip` at the
+top, slider rows behind a disclosure, the day arc for the world page,
+actions as directly-actionable cards. Snow stays omitted.
+
+## 5. Bridge 0.14 — needs an upload and a restart, announce it
+
+- [ ] Report `fog`, `clouds`, `thunderstorm`, `precipitation` in the world
+      state (`getFogIntensity()`, `getCloudIntensity()`,
+      `getIsThunderStorming()`, `getPrecipitationIntensity()`).
+
+## 6. The player dossier (plan phase 3)
+
+Unchanged; full detail at line 2211. Capability research is done. The
+points that decide the work: god mode, invisible, noclip, XP, voice ban,
+SteamID ban and whitelist are **plain RCON**; **healing needs the
+bridge**; build 42 replaced the `Stats` setters with
+`set(CharacterStat, float)` and the 24 stats carry their own bounds; a
+voice ban **does not persist**; **kill is unproven**; notes and tags need
+a `PlayerNote` entity and a migration; the dossier log is filtered to the
+selected player; and `new ModerationAction(...)` should go through one
+recorder service while the dossier actions are added.
+
+## 7. Deferred, agreed as separate plans
+
+Unchanged from line 2244: Discord (the strongest reference feature, with
+admin actions individually switchable and every message editable), Steam
+Workshop and mod management, the server config editor, the scheduler,
+statistics and charts, the notification bell, avatars with cropping,
+Lighthouse measurement, wheels on the map renderer,
+`ModerationAction`'s overloaded columns, route-level permission guards,
+and the unexposed climate values.
+
+Two additions to that list from this stretch:
+
+- [ ] **`llms.txt` does not exist.** It was asked for alongside the
+      security headers and never written. The headers are done
+      (`SecurityHeadersSubscriber`); this is not.
+- [ ] **A retention notice for the credits page.** The GDPR work (an
+      operator-set retention horizon, per-player export and erase) is
+      built, but nothing tells an operator where to find it. The credits
+      page is the natural home for a short pointer.
+
+## Verification at the end of this stretch
+
+| | |
+|---|---|
+| Backend tests | **493, green** |
+| Frontend tests | **207 across 19 files, green** |
+| Linter | **0 errors**, 29 warnings (all pre-existing) |
+| Typecheck | clean |
+| Build | clean, PWA generated |
+| Pushed | `origin/main` at `f3c910c`; the credits fixes are later and unpushed |
+| Bridge on the server | **0.13.3** |
+| Still not verified | a real spawn; Lighthouse |
+
+One bug found by the user after the push, worth recording because the
+cause is invisible in the source: **the sidebar link read
+`to="/app/credits"` while the router is mounted with
+`basename: '/app'`**, so the click went to `/app/app/credits` and no
+route matched. Every other link in that file uses a bare path.
+`app-sidebar.test.ts` now reads the basename out of `router.tsx` and
+asserts no link repeats it — proven to fail against the original mistake.

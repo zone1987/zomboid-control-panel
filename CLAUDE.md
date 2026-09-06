@@ -177,6 +177,55 @@ without opening the database by hand.
 Also: **no analytics, no CDN fonts, no trackers.** The CSP enforces it with
 `default-src 'self'` and two named exceptions.
 
+## 10b. Using the game's own art
+
+The Indie Stone's terms permit Project Zomboid's art in a non-commercial
+fan project **on condition of a visible notice**, which is why
+`/app/credits` exists and is linked from the sidebar footer. That page is
+not decoration: it is the condition the permission rests on. Its English
+wording is the text the terms specify — do not translate it.
+
+- **Extract from the installation, never from the wiki.** A wiki image may
+  carry an editor's own copyright on top of The Indie Stone's.
+- **Assets stay out of git.** `backend/var/` is ignored (`backend/.gitignore:8`),
+  and the 591 model files, the item icons and the ground tiles live there.
+  The repository carries the code that reads them, never the art.
+- **Mod art belongs to its author** and needs their permission separately.
+  The terms are explicit about that, and the credits page says so.
+- **Commercial use would need asking** (`info@theindiestone.com`). The
+  permission as it stands covers a free panel.
+
+## 10c. Geometry is derived, not tuned
+
+Three separate visual bugs this session were fixed by arithmetic after
+being made worse by adjustment. Compute the value, then look.
+
+- **The ground tiles.** A tile pictures one world square at this very
+  angle: the map's 2:1 projection is `sin(30°)`, the elevation the camera
+  already uses. So a flat square projects back to exactly the diamond it
+  was drawn as. Reasoning from `cos` instead led to "impossible".
+- **The 45° offset.** A plane maps its texture onto its *square* while the
+  picture is a *diamond* — 45° out of step, which showed as a chequerboard
+  of holes. Turn the plane 45° and grow it by `√2`.
+- **Which side is behind.** With yaw 225 the camera sits at negative x and
+  z, so the far side is the positive corner. Guessing put the bushes in
+  front of the vehicle.
+
+## 10d. Vite in ddev misses host edits
+
+Twice today the dev server kept serving a stale module while the file on
+disk was correct — the vehicles tile without its star, then a new route
+answering 404. Inotify does not always cross the mount.
+
+Check what is actually served before debugging the code:
+
+```
+curl -sk https://zomboidcontrol.ddev.site:5173/app/src/<path> | grep <symbol>
+```
+
+If it is stale, restart with `ddev dev` — and note that `pkill -f vite`
+does **not** reliably bring it back.
+
 ## 11. Delegating to subagents
 
 Permitted and encouraged, with rules learnt the hard way:
