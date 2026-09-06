@@ -18,7 +18,6 @@ use App\Server\Events\EventAction;
 use App\Server\Events\EventCatalogue;
 use App\Server\Events\EventDispatcher;
 use App\Server\Events\EventOutcome;
-use App\Server\Events\VehicleScripts;
 use App\Server\Rcon\CommandCatalogueProvider;
 use App\Server\Rcon\RconException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -84,7 +83,6 @@ final class EventController extends AbstractController
                 },
                 EventCatalogue::all(),
             ),
-            'vehicles' => VehicleScripts::NAMES,
             // Null means the command list could not be read; the interface
             // then offers everything rather than hiding it all.
             'commandsKnown' => $available !== null,

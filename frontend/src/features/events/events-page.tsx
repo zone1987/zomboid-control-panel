@@ -274,7 +274,6 @@ export function EventsPage() {
               action={action}
               values={values}
               players={players?.items ?? []}
-              vehicles={catalogue?.vehicles ?? []}
               onChange={(name, value) => setValues((previous) => ({ ...previous, [name]: value }))}
             />
 

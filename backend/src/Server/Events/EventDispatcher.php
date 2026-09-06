@@ -31,7 +31,19 @@ final readonly class EventDispatcher
      */
     public function dispatch(GameServer $server, string $actionId, array $inputs): EventOutcome
     {
-        $command = self::commandFor($actionId, $inputs);
+        return $this->run($server, $actionId, self::commandFor($actionId, $inputs));
+    }
+
+    /**
+     * Send a command a caller has already built.
+     *
+     * For the pages that own their own command -- spawning a vehicle is
+     * picking a thing and giving it to somebody, not triggering an event
+     * -- so they get the RCON plumbing and the outcome shape without
+     * needing an entry in the event catalogue.
+     */
+    public function run(GameServer $server, string $actionId, string $command): EventOutcome
+    {
         $config = $server->getRconConfig();
 
         if ($config === null) {
@@ -65,7 +77,6 @@ final readonly class EventDispatcher
             'gunshot' => 'gunshot',
             'alarm' => 'alarm',
             'broadcast' => self::broadcast($inputs),
-            'spawnVehicle' => self::spawnVehicle($inputs),
             'hordeNearPlayer' => sprintf(
                 'createhorde %d "%s"',
                 self::number($action, $inputs, 'count'),
@@ -99,18 +110,6 @@ final readonly class EventDispatcher
         }
 
         return sprintf('servermsg "%s"', $message);
-    }
-
-    /** @param array<string, mixed> $inputs */
-    private static function spawnVehicle(array $inputs): string
-    {
-        $script = trim(\is_string($inputs['script'] ?? null) ? $inputs['script'] : '');
-
-        if (!VehicleScripts::isValidName($script)) {
-            throw new RconCommandFailed(sprintf('"%s" is not a vehicle script name.', $script));
-        }
-
-        return sprintf('addvehicle "%s" "%s"', $script, self::player($inputs, 'player'));
     }
 
     /** @param array<string, mixed> $inputs */
@@ -163,8 +162,16 @@ final readonly class EventDispatcher
         return $value;
     }
 
-    /** Arguments are quoted, so a quote of its own would end one early. */
-    private static function clean(string $value): string
+    /**
+     * Strip what would break out of a quoted RCON argument.
+     *
+     * Arguments are quoted, so a quote of its own would end one early.
+     *
+     * Public because a caller building its own command needs the same
+     * guarantee: a player named `bob" ; quit "` must not become two
+     * commands.
+     */
+    public static function clean(string $value): string
     {
         return trim(preg_replace('/["\r\n\x00-\x1f]+/', '', $value) ?? '');
     }

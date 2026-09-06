@@ -131,10 +131,6 @@ final readonly class EventCatalogue
             new EventAction('broadcast', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['servermsg'], [
                 EventField::text('message', 250),
             ]),
-            new EventAction('spawnVehicle', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['addvehicle'], [
-                EventField::choice('script', VehicleScripts::NAMES),
-                EventField::player('player'),
-            ]),
             new EventAction('hordeNearPlayer', EventAction::GROUP_PLAYERS, EventAction::CHANNEL_RCON, ['createhorde'], [
                 EventField::number('count', 1, 500, 20),
                 EventField::player('player'),

@@ -725,10 +725,6 @@
         "title": "Broadcast",
         "description": "A message to everyone. It appears as a server message, not under a name."
       },
-      "spawnVehicle": {
-        "title": "Spawn vehicle",
-        "description": "Puts a vehicle beside a player. Modded vehicles can be typed in as well."
-      },
       "hordeNearPlayer": {
         "title": "Horde near a player",
         "description": "Puts zombies around a player. They notice them at once."

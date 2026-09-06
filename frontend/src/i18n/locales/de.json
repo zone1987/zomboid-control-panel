@@ -725,10 +725,6 @@
         "title": "Durchsage",
         "description": "Eine Nachricht an alle. Sie erscheint als Servernachricht, nicht unter einem Namen."
       },
-      "spawnVehicle": {
-        "title": "Fahrzeug spawnen",
-        "description": "Setzt ein Fahrzeug neben einen Spieler. Auch Fahrzeuge aus Mods lassen sich eintragen."
-      },
       "hordeNearPlayer": {
         "title": "Horde bei einem Spieler",
         "description": "Setzt Zombies rund um einen Spieler. Sie merken ihn sofort."

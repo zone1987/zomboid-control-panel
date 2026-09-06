@@ -23,6 +23,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(Permission::TriggerEvents->value)]
 final class VehicleSpawnController extends AbstractController
 {
+    /** Recorded on the moderation log, and the outcome's own label. */
+    private const ACTION = 'spawnVehicle';
+
     /** Mods name their vehicles freely; only the shape is constrained. */
     private const NAME_PATTERN = '/^[A-Za-z0-9.-]*[A-Za-z][A-Za-z0-9_.-]*$/';
 
@@ -71,12 +74,14 @@ final class VehicleSpawnController extends AbstractController
         }
 
         try {
-            // Reuses the event catalogue's addvehicle wiring, whose exact
-            // argument shape is pinned by EventDispatcherTest.
-            $outcome = $this->dispatcher->dispatch(
+            // The command is built here rather than through the event
+            // catalogue: spawning is picking a thing and giving it to
+            // somebody, not triggering an event. NAME_PATTERN above admits
+            // no quote, which is what keeps the arguments from breaking out.
+            $outcome = $this->dispatcher->run(
                 $server,
-                'spawnVehicle',
-                ['script' => $script, 'player' => $player],
+                self::ACTION,
+                sprintf('addvehicle "%s" "%s"', $script, EventDispatcher::clean($player)),
             );
         } catch (RconException $exception) {
             return new JsonResponse([
@@ -91,7 +96,7 @@ final class VehicleSpawnController extends AbstractController
         $this->entityManager->persist(new ModerationAction(
             $server,
             ModerationAction::EVENT,
-            'spawnVehicle',
+            self::ACTION,
             $this->getUser(),
             sprintf('%s -> %s', $script, $player),
             $outcome->reply,

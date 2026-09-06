@@ -95,19 +95,15 @@ final class EventDispatcherTest extends TestCase
         self::assertSame('startrain 50', EventDispatcher::commandFor('startRain', []));
     }
 
-    public function testRefusesAVehicleScriptThatIsNotAName(): void
+    /**
+     * The guard that used to sit on the spawnVehicle action, which has
+     * moved to its own page: a player name is still quoted into a
+     * command, so a quote of its own must not end the argument.
+     */
+    public function testStripsWhatWouldBreakOutOfAQuotedArgument(): void
     {
-        $this->expectException(RconCommandFailed::class);
-
-        EventDispatcher::commandFor('spawnVehicle', ['script' => 'Base.Van" ; quit "', 'player' => 'bob']);
-    }
-
-    public function testSpawnsAVehicleBesideAPlayer(): void
-    {
-        self::assertSame(
-            'addvehicle "Base.Van" "bob"',
-            EventDispatcher::commandFor('spawnVehicle', ['script' => 'Base.Van', 'player' => 'bob']),
-        );
+        self::assertSame('bob ; quit', EventDispatcher::clean('bob" ; quit "'));
+        self::assertSame('bob', EventDispatcher::clean("bob\r\n"));
     }
 
     public function testABroadcastLosesItsQuotesRatherThanEndingTheArgument(): void

@@ -16,13 +16,11 @@ export function EventForm({
   action,
   values,
   players,
-  vehicles,
   onChange,
 }: {
   action: EventAction
   values: Record<string, string | number | boolean>
   players: Player[]
-  vehicles: string[]
   onChange: (name: string, value: string | number) => void
 }) {
   const { t } = useTranslation()
@@ -45,11 +43,9 @@ export function EventForm({
           </Label>
 
           <FieldInput
-            action={action}
             field={field}
             value={values[field.name]}
             players={players}
-            vehicles={vehicles}
             onChange={(value) => onChange(field.name, value)}
           />
 
@@ -65,18 +61,14 @@ export function EventForm({
 }
 
 function FieldInput({
-  action,
   field,
   value,
   players,
-  vehicles,
   onChange,
 }: {
-  action: EventAction
   field: EventField
   value: string | number | boolean | undefined
   players: Player[]
-  vehicles: string[]
   onChange: (value: string | number) => void
 }) {
   const { t } = useTranslation()
@@ -104,9 +96,7 @@ function FieldInput({
   }
 
   if (field.type === 'choice') {
-    // A modded server has vehicles the panel does not list, so the
-    // dropdown is a shortcut into a field that still takes any name.
-    const options = action.id === 'spawnVehicle' ? vehicles : (field.choices ?? [])
+    const options = field.choices ?? []
 
     return (
       <div className="space-y-1.5">

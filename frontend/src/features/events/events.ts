@@ -28,7 +28,6 @@ export type EventAction = {
 
 export type EventCatalogue = {
   items: EventAction[]
-  vehicles: string[]
   commandsKnown: boolean
   error: string | null
 }
