@@ -175,3 +175,50 @@ export function setDial(
   // 0..1 climate value.
   return triggerEvent(serverId, dial.action, { value: shown })
 }
+
+/** One climate colour, indoors and out, as the game reports it. */
+export type ClimateColourChannels = { r: number; g: number; b: number; a: number }
+
+export type ClimateColour = {
+  index: number
+  admin: boolean
+  value: { exterior: ClimateColourChannels; interior: ClimateColourChannels } | null
+  adminValue: { exterior: ClimateColourChannels; interior: ClimateColourChannels } | null
+}
+
+export type ClimateColourReading = {
+  status: string
+  colours: Record<string, ClimateColour>
+}
+
+/** The two the game keeps: the global light and the fog's own colour. */
+export const CLIMATE_COLOURS = ['globalLight', 'fog'] as const
+
+export type ClimateColourName = (typeof CLIMATE_COLOURS)[number]
+
+export function readClimateColours(serverId: string): Promise<ClimateColourReading> {
+  return apiFetch(`/servers/${serverId}/climate/colours`)
+}
+
+/** `#rrggbb` from the game's own 0..1 channels. */
+export function toHex(channels: ClimateColourChannels | undefined): string {
+  if (channels === undefined) {
+    return '#ffffff'
+  }
+
+  const part = (value: number) =>
+    Math.round(Math.min(1, Math.max(0, value)) * 255)
+      .toString(16)
+      .padStart(2, '0')
+
+  return `#${part(channels.r)}${part(channels.g)}${part(channels.b)}`
+}
+
+/** And back, because a colour input speaks hex and the game speaks 0..1. */
+export function fromHex(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace('#', '')
+
+  const channel = (at: number) => Number.parseInt(clean.slice(at, at + 2), 16) / 255
+
+  return { r: channel(0), g: channel(2), b: channel(4) }
+}

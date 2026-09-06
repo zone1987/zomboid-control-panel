@@ -176,9 +176,11 @@ final class EventCatalogueTest extends TestCase
                     continue;
                 }
 
-                // A coordinate and a volume are bare numbers: there is no
-                // unit a reader would recognise for either.
-                if (\in_array($field->name, ['x', 'y', 'z', 'volume', 'day', 'month'], true)) {
+                // A coordinate, a volume and a colour channel are bare
+                // numbers: there is no unit a reader would recognise for
+                // any of them. A channel is a 0..1 fraction that the
+                // interface shows as a colour swatch, never as a figure.
+                if (\in_array($field->name, ['x', 'y', 'z', 'volume', 'day', 'month', 'r', 'g', 'b', 'a'], true)) {
                     continue;
                 }
 

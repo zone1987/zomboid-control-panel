@@ -1362,6 +1362,13 @@
     "pinnedCount_one": "One value is pinned and will not follow the season.",
     "pinnedCount_other": "{{count}} values are pinned and will not follow the season.",
     "unavailable": "Cannot be read",
-    "needsBridge": "The climate values live in the running game, so this page needs the bridge."
+    "needsBridge": "The climate values live in the running game, so this page needs the bridge.",
+    "colours": "Colours",
+    "coloursHint": "The two colours the game keeps. Indoors and out are set together — \"the light is too blue\" is one thought, not eight sliders.",
+    "colourNames": {
+      "globalLight": "Global light",
+      "fog": "Fog colour"
+    },
+    "colourSet": "The colour was set."
   }
 }

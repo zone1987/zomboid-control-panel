@@ -103,6 +103,19 @@ final readonly class EventCatalogue
                 EventField::choice('name', array_keys(BridgeCommand::CLIMATE_VALUES), 'temperature'),
             ]),
             new EventAction('resetClimate', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
+            // The two colours the game keeps, each four channels for
+            // indoors and four for out. Set as one colour for both,
+            // because a panel offering eight sliders for "the light is
+            // too blue" would be a panel nobody uses.
+            new EventAction('setClimateColour', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::choice('name', BridgeCommand::CLIMATE_COLOUR_NAMES, 'globalLight'),
+                EventField::number('r', 0, 1, 1),
+                EventField::number('g', 0, 1, 1),
+                EventField::number('b', 0, 1, 1),
+            ]),
+            new EventAction('releaseClimateColour', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::choice('name', BridgeCommand::CLIMATE_COLOUR_NAMES, 'globalLight'),
+            ]),
             new EventAction('thunder', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['thunder'], [
                 EventField::player('player', required: false),
             ]),

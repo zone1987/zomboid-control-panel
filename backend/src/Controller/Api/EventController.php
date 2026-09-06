@@ -237,6 +237,15 @@ final class EventController extends AbstractController
             'releaseTemperature' => [BridgeCommand::ReleaseClimate, ['name' => 'temperature']],
             'releaseClimate' => [BridgeCommand::ReleaseClimate, ['name' => $inputs['name'] ?? null]],
             'resetClimate' => [BridgeCommand::ResetClimate, []],
+            'setClimateColour' => [BridgeCommand::SetClimateColour, [
+                'name' => $inputs['name'] ?? null,
+                'r' => $inputs['r'] ?? null,
+                'g' => $inputs['g'] ?? null,
+                'b' => $inputs['b'] ?? null,
+            ]],
+            'releaseClimateColour' => [BridgeCommand::ReleaseClimateColour, [
+                'name' => $inputs['name'] ?? null,
+            ]],
             'setPower' => [BridgeCommand::SetUtility, [
                 'utility' => 'power',
                 'on' => ($inputs['on'] ?? false) === true,

@@ -42,6 +42,54 @@ final class ClimateEndpoint extends AbstractController
     ) {
     }
 
+    /**
+     * The two colours the game keeps: the global light and the fog.
+     *
+     * A read of their own rather than part of the climate values,
+     * because a colour is four channels for indoors and four for out —
+     * a shape nothing else on that page shares.
+     */
+    #[Route('/colours', name: 'api_servers_climate_colours', methods: ['GET'], priority: 10)]
+    public function colours(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'errors.notFound'],
+                Response::HTTP_NOT_FOUND,
+            );
+        }
+
+        try {
+            $result = $this->bridge->send($server, BridgeCommand::ReadClimateColours);
+        } catch (BridgeCommandFailed|InvalidBridgeCommand $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception instanceof BridgeCommandFailed
+                    ? $exception->messageKey()
+                    : 'events.invalidInput',
+                'detail' => $exception->getMessage(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        if (!$result->ok || $result->data === null) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'bridge.refused',
+                'detail' => $result->message,
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse([
+            'status' => 'ok',
+            // Handed through as the bridge reported it: the channels are
+            // already 0..1 floats, which is what the interface converts
+            // to hex and back at its own edge.
+            'colours' => $result->data['colours'] ?? [],
+        ]);
+    }
+
     #[Route('', name: 'api_servers_climate', methods: ['GET'])]
     public function read(string $id): JsonResponse
     {

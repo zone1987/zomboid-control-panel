@@ -36,13 +36,19 @@ import { seasonKey } from '@/features/servers/seasons'
 import { triggerEvent } from './events'
 import { formatRange, withUnit } from './units'
 import {
+  CLIMATE_COLOURS,
   CLIMATE_GROUPS,
   dialsOf,
   displayBounds,
+  fromHex,
   readClimate,
+  readClimateColours,
   setDial,
+  toHex,
   toDisplay,
   unitOf,
+  type ClimateColour,
+  type ClimateColourName,
   type ClimateDial,
   type ClimateGroup,
   type ClimateReading,
@@ -123,6 +129,8 @@ export function ClimatePage() {
           {CLIMATE_GROUPS.map((group) => (
             <DialGroup key={group} group={group} reading={data} serverId={id} />
           ))}
+
+          <ColourSection serverId={id} />
 
           <ReleaseAll
             serverId={id}
@@ -440,6 +448,146 @@ function DialRow({
       {!settable && (
         <p className="text-xs text-muted-foreground">{t('climate.readOnly')}</p>
       )}
+    </div>
+  )
+}
+
+/**
+ * The two colours the game keeps: the global light and the fog.
+ *
+ * One colour picker each, set for indoors and out together. The game
+ * holds eight channels — four in, four out — but "the light is too blue"
+ * is one thought, and a panel offering eight sliders for it would be a
+ * panel nobody uses. Anyone who needs them apart has the console.
+ */
+function ColourSection({ serverId }: { serverId: string }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+
+  const { data, error } = useQuery({
+    queryKey: ['climate-colours', serverId],
+    queryFn: () => readClimateColours(serverId),
+    retry: false,
+  })
+
+  if (error !== null && error !== undefined) {
+    return null
+  }
+
+  return (
+    <section className="w-fit min-w-full space-y-3 rounded-md border p-4 xl:min-w-3xl">
+      <SectionMark label={t('climate.colours')} />
+
+      <p className="text-sm text-muted-foreground">{t('climate.coloursHint')}</p>
+
+      {data === undefined ? (
+        <Skeleton className="h-20 w-full" />
+      ) : (
+        CLIMATE_COLOURS.map((name) => (
+          <ColourRow
+            key={name}
+            serverId={serverId}
+            name={name}
+            colour={data.colours[name]}
+            onDone={() =>
+              void queryClient.invalidateQueries({ queryKey: ['climate-colours', serverId] })
+            }
+          />
+        ))
+      )}
+    </section>
+  )
+}
+
+function ColourRow({
+  serverId,
+  name,
+  colour,
+  onDone,
+}: {
+  serverId: string
+  name: ClimateColourName
+  colour: ClimateColour | undefined
+  onDone: () => void
+}) {
+  const { t } = useTranslation()
+
+  // What the game is showing, which is what the picker starts from.
+  const current = toHex(colour?.value?.exterior)
+  const [edit, setEdit] = useState<{ from: string; to: string } | null>(null)
+  const shown = edit !== null && edit.from === current ? edit.to : current
+
+  const apply = useMutation({
+    mutationFn: () => triggerEvent(serverId, 'setClimateColour', { name, ...fromHex(shown) }),
+    onSuccess: () => {
+      toast.success(t('climate.colourSet'))
+      setEdit(null)
+      onDone()
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  const release = useMutation({
+    mutationFn: () => triggerEvent(serverId, 'releaseClimateColour', { name }),
+    onSuccess: () => {
+      toast.success(t('climate.released'))
+      setEdit(null)
+      onDone()
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  const pinned = colour?.admin === true
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Label htmlFor={`colour-${name}`} className="flex items-center gap-2 text-sm font-medium">
+        <Palette aria-hidden className="size-4 text-muted-foreground" />
+        {t(`climate.colourNames.${name}`)}
+      </Label>
+
+      {pinned ? (
+        <Badge variant="secondary" className="gap-1">
+          <Lock className="size-3" />
+          {t('climate.pinned')}
+        </Badge>
+      ) : (
+        <span className="text-xs text-muted-foreground">{t('climate.byTheGame')}</span>
+      )}
+
+      <input
+        id={`colour-${name}`}
+        type="color"
+        value={shown}
+        aria-label={t(`climate.colourNames.${name}`)}
+        className="h-9 w-16 shrink-0 cursor-pointer rounded-md border bg-transparent"
+        onChange={(event) => setEdit({ from: current, to: event.target.value })}
+      />
+
+      <span className="font-mono text-xs tabular-nums text-muted-foreground">{shown}</span>
+
+      <div className="ml-auto flex gap-1">
+        <Button
+          size="sm"
+          variant={shown === current ? 'ghost' : 'default'}
+          disabled={shown === current || apply.isPending}
+          onClick={() => apply.mutate()}
+        >
+          {t('climate.apply')}
+        </Button>
+
+        {pinned && (
+          <Button
+            size="sm"
+            variant="ghost"
+            title={t('climate.releaseHint')}
+            disabled={release.isPending}
+            onClick={() => release.mutate()}
+          >
+            <LockOpen className="size-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

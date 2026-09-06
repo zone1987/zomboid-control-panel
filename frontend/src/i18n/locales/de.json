@@ -1362,6 +1362,13 @@
     "pinnedCount_one": "Ein Wert ist festgesetzt und folgt der Jahreszeit nicht.",
     "pinnedCount_other": "{{count}} Werte sind festgesetzt und folgen der Jahreszeit nicht.",
     "unavailable": "Nicht lesbar",
-    "needsBridge": "Die Klimawerte stehen im laufenden Spiel, also braucht diese Seite die Bridge."
+    "needsBridge": "Die Klimawerte stehen im laufenden Spiel, also braucht diese Seite die Bridge.",
+    "colours": "Farben",
+    "coloursHint": "Die beiden Farben, die das Spiel führt. Innen und außen werden gemeinsam gesetzt — „das Licht ist zu blau“ ist ein Gedanke, keine acht Regler.",
+    "colourNames": {
+      "globalLight": "Globales Licht",
+      "fog": "Nebelfarbe"
+    },
+    "colourSet": "Die Farbe wurde gesetzt."
   }
 }
