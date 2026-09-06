@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
+import { cn } from '@/lib/utils'
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,7 +38,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { PlayerDetail } from './player-detail'
 import { BanDialog } from './ban-dialog'
 import { TeleportDialog } from './teleport-dialog'
 import {
@@ -52,13 +52,26 @@ import {
   type TeleportDestination,
 } from './players'
 
-export function PlayerTable({ serverId }: { serverId: string }) {
+export function PlayerTable({
+  serverId,
+  selected,
+  onSelect,
+}: {
+  serverId: string
+  /** The username the dossier beside the list is showing, if any. */
+  selected?: string | null
+  /**
+   * Told rather than shown: the dossier lives beside the list so a row
+   * can be compared with the one before it, which a dialog cannot do.
+   */
+  onSelect?: (player: Player) => void
+}) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const [onlineOnly, setOnlineOnly] = useState(false)
   const [banning, setBanning] = useState<Player | null>(null)
   const [teleporting, setTeleporting] = useState<Player | null>(null)
-  const [inspecting, setInspecting] = useState<Player | null>(null)
+
   const navigate = useNavigate()
 
   const { data, isPending } = useQuery({
@@ -204,8 +217,13 @@ export function PlayerTable({ serverId }: { serverId: string }) {
               {players.map((player) => (
                 <TableRow
                   key={player.username}
-                  className="cursor-pointer"
-                  onClick={() => setInspecting(player)}
+                  // The chosen row is marked, because the dossier beside
+                  // it is showing that player and nothing else says so.
+                  className={cn(
+                    'cursor-pointer',
+                    selected === player.username && 'bg-accent/50',
+                  )}
+                  onClick={() => onSelect?.(player)}
                 >
                   <TableCell>
                     <div className="flex flex-col">
@@ -357,13 +375,7 @@ export function PlayerTable({ serverId }: { serverId: string }) {
         />
       )}
 
-      {inspecting && (
-        <PlayerDetail
-          player={inspecting}
-          open
-          onOpenChange={(open) => !open && setInspecting(null)}
-        />
-      )}
+
     </div>
   )
 }

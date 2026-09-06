@@ -622,7 +622,40 @@
       "ekron": "Ekron",
       "fallasLake": "Fallas Lake"
     },
-    "teleported": "Spieler teleportiert."
+    "teleported": "Spieler teleportiert.",
+    "abilities": {
+      "god": "Unverwundbar",
+      "invisible": "Für Zombies unsichtbar",
+      "noclip": "Durch Wände",
+      "voiceBan": "Sprachchat gesperrt"
+    },
+    "abilityStates": {
+      "on": "An",
+      "off": "Aus",
+      "unknown": "Unbekannt"
+    },
+    "abilityOn": "An",
+    "abilityOff": "Aus",
+    "abilitySet": "„{{ability}}“ wurde gesetzt.",
+    "abilityFailed": "Der Server hat die Änderung nicht angenommen.",
+    "voiceBanIsTemporary": "Die Sprachsperre gilt nur bis zum nächsten Verbinden — der Server merkt sie sich nicht. Die anderen drei kann das Panel nicht zurücklesen, deshalb steht dort „Unbekannt“, bis es sie selbst gesetzt hat.",
+    "skill": "Fertigkeit",
+    "chooseSkill": "Fertigkeit wählen",
+    "atLevel": "(Stufe {{level}})",
+    "experience": "Erfahrung",
+    "grantExperience": "Erfahrung geben",
+    "experienceGranted": "{{amount}} XP in {{perk}} vergeben.",
+    "experienceFailed": "Die Erfahrung wurde nicht vergeben.",
+    "useServerMultiplier": "XP-Multiplikator des Servers anwenden",
+    "noSkillsReported": "Der Server meldet für diesen Spieler keine Fertigkeiten.",
+    "skillsNeedOnline": "Fertigkeiten meldet der Server nur für Spieler, die online sind.",
+    "needsOnline": "Dafür muss der Spieler online sein.",
+    "dossier": "Dossier",
+    "noTarget": "Kein Spieler gewählt",
+    "noTargetHint": "Wähle links einen Spieler aus der Liste.",
+    "vitalsTab": "Zustand",
+    "abilitiesTab": "Fähigkeiten",
+    "spawnTab": "Vergeben"
   },
   "console": {
     "title": "RCON-Konsole",

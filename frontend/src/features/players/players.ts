@@ -138,6 +138,43 @@ export function setAccessLevel(serverId: string, username: string, level: Access
 }
 
 /** Durations offered in the ban dialog, in minutes. */
+/**
+ * The abilities the server exposes, and the third state that matters.
+ *
+ * `unknown` is not a nicety: the server keeps none of these where the
+ * panel can read them back, so a switch showing "off" would be claiming
+ * something nobody checked. Two admins fighting over one flag is the
+ * failure that avoids.
+ */
+export const ABILITIES = ['god', 'invisible', 'noclip', 'voiceBan'] as const
+
+export type Ability = (typeof ABILITIES)[number]
+
+export type AbilityState = 'on' | 'off' | 'unknown'
+
+export function setAbility(serverId: string, username: string, ability: Ability, on: boolean) {
+  return apiFetch<{ status: string; reply: string }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/ability`,
+    { method: 'POST', body: { ability, on } },
+  )
+}
+
+/** As much as one grant may give, mirroring PlayerModerator::MAX_XP. */
+export const MAX_XP = 100000
+
+export function grantExperience(
+  serverId: string,
+  username: string,
+  perk: string,
+  amount: number,
+  withMultiplier = false,
+) {
+  return apiFetch<{ status: string; reply: string }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/experience`,
+    { method: 'POST', body: { perk, amount, withMultiplier } },
+  )
+}
+
 export const BAN_DURATIONS = [
   { id: '1h', minutes: 60 },
   { id: '2h', minutes: 120 },

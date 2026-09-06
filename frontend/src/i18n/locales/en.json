@@ -622,7 +622,40 @@
       "ekron": "Ekron",
       "fallasLake": "Fallas Lake"
     },
-    "teleported": "Player teleported."
+    "teleported": "Player teleported.",
+    "abilities": {
+      "god": "Invincible",
+      "invisible": "Invisible to zombies",
+      "noclip": "Walks through walls",
+      "voiceBan": "Voice chat blocked"
+    },
+    "abilityStates": {
+      "on": "On",
+      "off": "Off",
+      "unknown": "Unknown"
+    },
+    "abilityOn": "On",
+    "abilityOff": "Off",
+    "abilitySet": "\"{{ability}}\" was set.",
+    "abilityFailed": "The server did not accept the change.",
+    "voiceBanIsTemporary": "A voice ban lasts only until the player reconnects — the server does not remember it. The other three cannot be read back by the panel, which is why they read \"Unknown\" until it has set them itself.",
+    "skill": "Skill",
+    "chooseSkill": "Choose a skill",
+    "atLevel": "(level {{level}})",
+    "experience": "Experience",
+    "grantExperience": "Grant experience",
+    "experienceGranted": "Granted {{amount}} XP in {{perk}}.",
+    "experienceFailed": "The experience was not granted.",
+    "useServerMultiplier": "Apply the server's XP multiplier",
+    "noSkillsReported": "The server reports no skills for this player.",
+    "skillsNeedOnline": "The server reports skills only for players who are online.",
+    "needsOnline": "The player has to be online for that.",
+    "dossier": "Dossier",
+    "noTarget": "No player chosen",
+    "noTargetHint": "Pick a player from the list on the left.",
+    "vitalsTab": "Condition",
+    "abilitiesTab": "Abilities",
+    "spawnTab": "Grant"
   },
   "console": {
     "title": "RCON console",
