@@ -188,8 +188,11 @@ final class VehicleModelController extends AbstractController
         requirements: ['name' => '[A-Za-z0-9_-]{1,140}\\.[A-Za-z0-9]{1,6}'],
     )]
     #[IsGranted(Permission::ViewVehicles->value)]
-    public function show(string $name): Response
+    public function show(string $name, Request $request): Response
     {
+        // Hashed from the bytes already in hand; the store offers no
+        // digest, and a second read per request would cost more than it
+        // saves.
         $contents = $this->models->read($name);
 
         if ($contents === null) {
@@ -201,8 +204,14 @@ final class VehicleModelController extends AbstractController
                 ? 'image/png'
                 : 'application/octet-stream',
         ]);
-        $response->setMaxAge(86400);
+
+        $response->setEtag(md5($contents));
+        // Private, not public: served behind an authenticated session, so
+        // a shared cache must not keep a copy for the next account.
         $response->setPrivate();
+        $response->setMaxAge(31536000);
+        $response->headers->set('Cache-Control', 'private, max-age=31536000, immutable');
+        $response->isNotModified($request);
 
         return $response;
     }
