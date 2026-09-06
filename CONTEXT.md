@@ -2771,7 +2771,7 @@ made.
 | | |
 |---|---|
 | Backend tests | **498, green** (was 493; +6 spawn, −1 moved) |
-| Frontend tests | **211, green** across 20 files |
+| Frontend tests | **205, green** across 19 files (211 before `representatives` and its test went) |
 | Linter | 0 errors, 30 warnings (all pre-existing; `set-state-in-effect` in `events-page.tsx` is the one that moved into view) |
 | Typecheck / build | clean |
 | Checked in a browser | the grouped sidebar, with Events renamed |

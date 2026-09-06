@@ -1,111 +1,123 @@
 # ZomboidControl
 
-A web control panel for **Project Zomboid** dedicated servers (build 42).
-Symfony 7 API plus a React single-page application, deployed as one Docker
-image or on Coolify.
+> A web panel for administering a Project Zomboid dedicated server from
+> somewhere else. Runs in Docker or on Coolify and reaches the game server
+> only over FTP/SFTP, RCON and a Lua bridge mod it uploads itself.
 
-The panel reaches a game server only over **FTP/SFTP** and **RCON**, plus a
-Lua mod it uploads itself ("the bridge") that writes state files the panel
-reads back. It never runs beside the game, which rules some features out —
-see *Constraints* below.
+Free and non-commercial. Not affiliated with The Indie Stone.
 
-## Read these first
+This file describes the **project**, and lives in the repository rather
+than being served. A running installation is deliberately unlisted —
+`backend/public/robots.txt` disallows everything, because an
+administration panel belongs in no index and its login page should not
+advertise that the installation exists. Serving a description of it
+would undo that.
 
-- `CLAUDE.md` — the binding conventions. Read before changing anything.
-- `CONTEXT.md` — the running record: what is built, what is verified, what
-  is known broken, what comes next. After a context compaction it is the
-  only thing that carries state forward.
-- `docs/superpowers/briefs/` — what each sub-project is for and why.
-- `docs/superpowers/specs/` — designs, with the evidence behind each choice.
-- `docs/superpowers/plans/` — steps, with real progress marked.
+## What it is
 
-## Layout
+An operator panel, not a game server manager: it assumes the game server
+is already running somewhere and gives the people who run it a way to see
+and change what is happening. Symfony 7.4 / PHP 8.4 with PostgreSQL on
+the back, React 19 with Vite and Tailwind on the front, served as one
+installable PWA under `/app`.
 
-```
-backend/          Symfony 7, PHP 8.4 — 169 files
-  src/Controller/Api/     the HTTP surface, one controller per area
-  src/Entity/             Doctrine entities
-  src/Server/             everything that talks to a game server
-    Bridge/               the Lua mod's command queue and readers
-    Rcon/                 the RCON client and command catalogue
-    Storage/              FTP/SFTP browsing, reading and uploading
-    Players/ Items/ Events/ Vehicles/ Logs/ Chat/
-  src/Security/           auth, permissions, encryption, OAuth
-  src/Panel/              the panel's own version and update check
-  resources/bridge/       ZomboidControlBridge.lua, uploaded to the server
-  tests/                  PHPUnit; tests/Bridge/*.lua run under lua5.1
+The distinguishing constraint is **distance**. The panel does not sit on
+the game server's machine, so anything needing local access — host CPU
+metrics, starting a stopped process, reading the game's memory — is
+either impossible here or done differently. What is reachable: files over
+FTP, commands over RCON, and whatever a Lua mod running inside the game
+chooses to write to disk for the panel to read.
 
-frontend/         React 19, TypeScript, Vite, Tailwind 4, shadcn/ui
-  src/features/<area>/    one directory per area, matching the backend
-  src/components/ui/      shadcn primitives, unmodified where possible
-  src/components/layout/  sidebar, top bar, breadcrumbs
-  src/i18n/locales/       de.json and en.json — the only German in the repo
-  src/routes/             router, guards, lazy loading
-```
+## How it reaches the game
 
-## How it fits together
+- **RCON** — the game's own admin commands. Kick, ban, teleport, weather,
+  hordes, broadcasts, `addvehicle`. Synchronous, and the only channel
+  that works without installing anything.
+- **FTP/SFTP** — the server's files. The INI, sandbox settings, logs, the
+  save game, and the bridge mod itself. Read *and* write.
+- **The Lua bridge** (`ZomboidControlBridge`, currently 0.13.3) — a mod
+  the panel uploads. It writes what only code inside the game can know
+  (player health, skills, positions, the world's climate, the list of
+  vehicle scripts this server actually loaded, mods included) to JSON
+  files the panel then reads over FTP. One-way for reads; commands still
+  go by RCON.
 
-1. **RCON** for anything the game exposes as an admin command: kick, ban,
-   teleport, weather, spawning, `servermsg`. `EventDispatcher::commandFor()`
-   builds the exact command strings; they are pinned by tests because a
-   wrong argument shape fails silently in-game.
-2. **The bridge** for everything RCON has no command for: the in-game clock,
-   climate values, sounds at a point, reading player state. The panel writes
-   `cmd-<seq>.json` over FTP, the mod answers `res-<seq>.json`, each side
-   owning its own cursor.
-3. **Save files** for what neither offers: `vehicles.db` is read directly
-   (a SQLite copy pulled over FTP) so every vehicle on the map is known even
-   with no player nearby.
+Anything the bridge reports is unavailable until an operator uploads the
+mod and restarts the game server, so every feature depending on it says
+so rather than showing an empty value.
 
-## Constraints worth knowing before proposing a feature
+## What it does
 
-- **Remote only.** No host CPU, RAM or disk metrics: the panel would be
-  measuring its own container, not the game server.
-- **Shutdown is one-way.** RCON `quit` stops a server; nothing can start a
-  stopped one. A restart is honest only where the host restarts by itself.
-- **The bridge version matters.** Handlers added to the Lua only work once
-  the file is uploaded *and* the game server restarted.
-- **Game artwork stays out of git.** Vehicle models and item textures are
-  The Indie Stone's; they are uploaded by the operator into `backend/var/`,
-  which is gitignored.
+- **Players** — who is online, health, infection, skills, traits,
+  position, access level; kick, ban (by name or SteamID), unban,
+  teleport, whitelist.
+- **Map** — the world drawn from `tiles.projectzomboidmap.com` tiles with the
+  panel's own overlay: players, vehicles from the save game, place names.
+  Vehicles are rendered from the game's own FBX models in the browser.
+- **Vehicles** — all 241 base-game vehicles plus whatever mods add,
+  grouped into 22 body shells with their liveries, filterable by kind,
+  with the seat, trunk and glove box capacities read out of the game's
+  own scripts. Spawns beside a chosen player.
+- **Items** — the server's own item list, read by the bridge, with the
+  game's icons extracted from its sprite atlases.
+- **Events** — weather, sounds, staged events, hordes, world settings,
+  over RCON or the bridge.
+- **Console** — RCON with the server's own command list.
+- **Chat** — read from the server log, write with `servermsg`.
+- **Server settings** — the INI and sandbox values as files.
+- **Panel administration** — accounts with TOTP and passkeys, roles with
+  per-page permissions, invitations, an audit log of every admin action.
 
-## Conventions that are not negotiable
+## Design constraints worth knowing
 
-- **All code, comments, tests, commits and docs are English.** German lives
-  only in `frontend/src/i18n/locales/de.json`.
-- **No prose comments.** Reasoning goes in `CONTEXT.md` or into a test name
-  that states the rule. Short single lines marking a non-obvious constraint
-  are fine.
-- **Secrets: encrypted versus hashed is not interchangeable.** FTP, RCON and
-  TOTP secrets must be readable again, so they are encrypted. Passwords,
-  backup codes and invitation tokens are hashed.
-- **Verified means demonstrated.** Backend work gets a test; interface work
-  gets checked in a real browser. Say plainly what was checked and what was
-  not.
+- **Intuitive over complete.** Pick things by sight where they have a
+  look; never offer a control that cannot work here; say why something is
+  unavailable rather than hiding it.
+- **Accessibility is a requirement**, to the German BFSG, with one
+  deliberate exception: the map, whose panning and zooming *is* the
+  information.
+- **No analytics, no CDN fonts, no trackers.** The CSP is
+  `default-src 'self'` with two named exceptions (map tiles, and `blob:`
+  for rendered vehicles).
+- **Nothing the panel needs is removed for data protection.** SteamIDs,
+  positions and the moderation log stay, because a ban without an id and
+  a map without positions do not work. What is narrower: an
+  operator-configured retention horizon for players nobody has seen in
+  months, off by default, never touching the ban list.
 
-## Commands
+## Game content
 
-Everything runs inside ddev; PHP, Composer and the right Node binaries do
-not exist on the host.
+The panel displays Project Zomboid's own vehicle models, textures, ground
+tiles and item icons. These are © The Indie Stone Ltd and used under
+their terms, which permit it for a non-commercial fan project with a
+visible notice — the panel's `/app/credits` page. **The art is never
+committed to this repository**: it is extracted from an operator's own
+installation into `backend/var/`, which is git-ignored. Mod content
+belongs to its authors and needs their permission separately.
 
-| Task | Command |
-|---|---|
-| Start | `ddev start` |
-| Frontend with hot reload | `ddev dev` |
-| Backend tests | `ddev exec -d /var/www/html/backend "php bin/phpunit"` |
-| Frontend tests | `ddev exec -d /var/www/html/frontend "npm run test"` |
-| Linter | `ddev exec -d /var/www/html/frontend "npm run lint"` |
-| Build | `ddev exec -d /var/www/html/frontend "npm run build"` |
-| Bridge syntax | `ddev exec "luac5.1 -p backend/resources/bridge/ZomboidControlBridge.lua"` |
+## Documents
 
-## Testing habits particular to this project
+- [CLAUDE.md](CLAUDE.md): the project's binding conventions — English
+  code, no prose comments, what this remote deployment can and cannot do,
+  the accessibility and data-protection positions, how the game's art may
+  be used.
+- [CONTEXT.md](CONTEXT.md): the full development record. What is built,
+  what is verified, what is known to be broken, what the next step is,
+  and the reasoning behind decisions that are not obvious from the code.
+  Long by design.
+- [AGENTS.md](AGENTS.md): a pointer to CLAUDE.md, for tools that look
+  for that file name.
 
-- **Cross-language guards.** The Lua bridge is tested in Lua, because Lua is
-  what runs on the game server. The Lua test carries a copy of the functions
-  under test and a PHPUnit test asserts the copy has not drifted — see
-  `BridgeDecoderTest` and `BridgeVehicleListTest`.
-- **Source-reading tests.** Some frontend tests read a source file with
-  `readFileSync` and assert a table against it, rather than rendering
-  components; there is no rendering stack in this frontend.
-- **Catalogue walks.** Tests iterate whole catalogues (every RCON action,
-  every vehicle) so a new entry cannot be added without its wiring.
+## For a language model reading this
+
+`CONTEXT.md` is the file to read, and it is the only reliable statement
+of current state — the code shows what exists, not what is verified or
+why. It records measurements rather than intentions: where a number came
+from, which explanation turned out wrong, what was checked in a browser
+and what was not.
+
+Two habits this project holds to, in case they are useful signal:
+geometry and capacities are derived from the game's own files and stated
+with the command that measured them, never estimated; and a feature is
+described as done only when it has been demonstrated, with what was *not*
+verified named explicitly.
