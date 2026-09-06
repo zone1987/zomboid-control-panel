@@ -216,6 +216,73 @@ export function readPlayerHistory(serverId: string, username: string) {
   )
 }
 
+/**
+ * One character statistic, with the bounds the game itself declares.
+ *
+ * Measured on a live server, the twenty-four run 0..1, 0..100, −1..1,
+ * 20..40 and even 0..0.51 — so the panel never assumes a range, and a
+ * slider takes its ends from here.
+ */
+export type CharacterStat = {
+  value: number
+  min: number
+  max: number
+  default: number
+}
+
+export type PlayerVitals = {
+  status: string
+  player: string
+  stats: Record<string, CharacterStat>
+  weight: number | null
+  profession: string | null
+}
+
+export function readVitals(serverId: string, username: string): Promise<PlayerVitals> {
+  return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/vitals`)
+}
+
+export function setStat(serverId: string, username: string, stat: string, value: number) {
+  return apiFetch<{ status: string; reply: string }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/vitals`,
+    { method: 'POST', body: { stat, value } },
+  )
+}
+
+export function setWeight(serverId: string, username: string, weight: number) {
+  return apiFetch<{ status: string; reply: string }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/weight`,
+    { method: 'POST', body: { weight } },
+  )
+}
+
+export function healPlayer(serverId: string, username: string) {
+  return apiFetch<{ status: string; reply: string; parts?: number }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/heal`,
+    { method: 'POST' },
+  )
+}
+
+/**
+ * The statistics worth putting in front of somebody, in this order.
+ *
+ * All twenty-four are readable, but a dossier is for answering "why is
+ * this player complaining" — so the ones a person acts on come first and
+ * the rest sit behind a disclosure. Verified against the live server's
+ * own registry.
+ */
+export const PRIMARY_STATS = [
+  'Hunger',
+  'Thirst',
+  'Fatigue',
+  'Endurance',
+  'Pain',
+  'Panic',
+  'Stress',
+  'Sickness',
+  'ZombieInfection',
+] as const
+
 export const BAN_DURATIONS = [
   { id: '1h', minutes: 60 },
   { id: '2h', minutes: 120 },

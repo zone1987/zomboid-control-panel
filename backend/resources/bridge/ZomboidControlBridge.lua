@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.18.3"
+local BRIDGE_VERSION = "0.18.4"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -1786,17 +1786,34 @@ handlers.setPlayerStat = function(command)
 
     local stats = player:getStats()
 
-    if stats == nil or not stats:set(stat, value) then
-        return false, "the server refused the statistic"
+    if stats == nil then
+        return false, "the player has no statistics"
     end
 
-    -- Read back from the stats rather than trusting the setter's own
-    -- boolean, which only says the call was accepted.
+    stats:set(stat, value)
+
+    -- Read back rather than trusting set()'s own boolean, which is
+    -- false when the value did not *change* -- setting Boredom to 0
+    -- while it is already 0 returned false and was reported as a
+    -- refusal, which it is not. What the stat holds afterwards is the
+    -- only honest answer.
+    local applied = stats:get(stat)
+
+    if math.abs(applied - value) > 0.0001 then
+        return false, "the server would not take that value", string.format(
+            '{"player":"%s","stat":"%s","value":%.4f,"asked":%.4f}',
+            escape(player:getUsername()),
+            escape(stat:getId()),
+            applied,
+            value
+        )
+    end
+
     return true, "statistic set", string.format(
         '{"player":"%s","stat":"%s","value":%.4f,"asked":%.4f}',
         escape(player:getUsername()),
         escape(stat:getId()),
-        stats:get(stat),
+        applied,
         value
     )
 end

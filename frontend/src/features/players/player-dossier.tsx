@@ -16,6 +16,7 @@ import { ExperienceCard } from './experience-card'
 import { NotesCard } from './notes-card'
 import { PlayerHistory } from './player-history'
 import { PlayerVitals } from './player-vitals'
+import { VitalsCard } from './vitals-card'
 import type { Player } from './players'
 
 /**
@@ -87,8 +88,20 @@ export function PlayerDossier({
           {player === null ? (
             <NoTarget />
           ) : (
-            <div className="rounded-md border p-4">
-              <PlayerVitals player={player} />
+            <div className="space-y-3">
+              <div className="rounded-md border p-4">
+                <PlayerVitals player={player} />
+              </div>
+
+              {/* Adjustable, and every bound comes from the game. */}
+              <div className="rounded-md border p-4">
+                <SectionMark label={t('players.adjustCondition')} />
+                <VitalsCard
+                  serverId={serverId}
+                  username={player.username}
+                  online={player.online}
+                />
+              </div>
             </div>
           )}
         </TabsContent>
