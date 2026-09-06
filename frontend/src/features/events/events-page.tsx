@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
@@ -57,7 +57,14 @@ export function EventsPage({ only }: { only?: EventCategory } = {}) {
   const queryClient = useQueryClient()
   const [needle, setNeedle] = useState('')
   const [chosen, setChosen] = useState<string | null>(null)
-  const [values, setValues] = useState<Record<string, string | number | boolean>>({})
+  // The inputs, held against the action they belong to. An effect
+  // copying `defaultsFor(action)` into state rendered the form twice on
+  // every selection and clobbered a half-filled one whenever the
+  // catalogue refetched.
+  const [edit, setEdit] = useState<{
+    from: string
+    values: Record<string, string | number | boolean>
+  } | null>(null)
   const [confirming, setConfirming] = useState(false)
 
   const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
@@ -102,23 +109,39 @@ export function EventsPage({ only }: { only?: EventCategory } = {}) {
   }, [actions, needle, t])
 
   // Land on something usable rather than an empty right-hand pane.
-  useEffect(() => {
-    if (chosen === null && matches.length > 0) {
-      setChosen(matches[0].id)
-    }
-  }, [chosen, matches])
+  //
+  // Derived rather than chosen in an effect, and narrowed to the
+  // category this page shows: `matches` filters only by the search term,
+  // so falling back to its first entry landed the sounds page on a
+  // weather action. The effect this replaced had the same fault.
+  const listed = useMemo(
+    () => matches.filter((entry) => only === undefined || entry.category === only),
+    [matches, only],
+  )
 
-  const action = actions.find((entry) => entry.id === chosen) ?? null
+  const action =
+    actions.find((entry) => entry.id === chosen) ?? listed[0] ?? null
 
-  useEffect(() => {
+  const values =
+    edit !== null && action !== null && edit.from === action.id
+      ? edit.values
+      : action === null
+        ? {}
+        : defaultsFor(action)
+
+  const setValues = (
+    next: (previous: Record<string, string | number | boolean>) => Record<string, string | number | boolean>,
+  ) => {
     if (action !== null) {
-      setValues(defaultsFor(action))
+      setEdit({ from: action.id, values: next(values) })
     }
-  }, [action])
+  }
 
   const trigger = useMutation({
     mutationFn: () => triggerEvent(id, action?.id ?? '', values),
     onSuccess: (result) => {
+      setEdit(null)
+
       void queryClient.invalidateQueries({ queryKey: ['events-recent', id] })
 
       if (result.failed) {
