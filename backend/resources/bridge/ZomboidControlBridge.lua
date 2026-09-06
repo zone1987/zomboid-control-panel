@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.17.0"
+local BRIDGE_VERSION = "0.17.1"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -1415,9 +1415,12 @@ handlers.readClimate = function()
     local snowPinned = "null"
 
     if isSnow ~= nil then
+        -- getFinalValue exists on ClimateFloat but NOT on ClimateBool,
+        -- where finalValue is protected with a setter only. The manager's
+        -- own getter reads that same field.
         snowPinned = string.format(
             '{"value":%s,"admin":%s,"adminValue":%s}',
-            tostring(isSnow:getFinalValue()),
+            tostring(climate:getPrecipitationIsSnow()),
             tostring(isSnow:isEnableAdmin()),
             tostring(isSnow:getAdminValue())
         )
@@ -1481,7 +1484,7 @@ handlers.releaseSnow = function()
     return true, "snow flag released", string.format(
         '{"admin":%s,"value":%s}',
         tostring(isSnow:isEnableAdmin()),
-        tostring(isSnow:getFinalValue())
+        tostring(getClimateManager():getPrecipitationIsSnow())
     )
 end
 
