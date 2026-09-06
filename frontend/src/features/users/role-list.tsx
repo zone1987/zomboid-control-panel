@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -35,33 +35,49 @@ export function RoleList() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [chosen, setChosen] = useState<string | null>(null)
-  const [ticked, setTicked] = useState<string[]>([])
-  const [label, setLabel] = useState('')
+  // One draft rather than two states plus an effect to seed them: it
+  // remembers which role it belongs to, so switching role shows that
+  // role and a refetch cannot overwrite an unsaved edit.
+  const [edit, setEdit] = useState<{
+    from: string | undefined
+    label: string
+    permissions: string[]
+  } | null>(null)
   const [removing, setRemoving] = useState<PanelRole | null>(null)
 
   const { data, isPending } = useQuery({ queryKey: ['roles'], queryFn: listRoles })
 
   const roles = data?.items ?? []
-  const role = roles.find((entry) => entry.id === chosen) ?? null
 
-  useEffect(() => {
-    if (chosen === null && roles.length > 0) {
-      setChosen(roles[0].id)
-    }
-  }, [chosen, roles])
+  // Derived during render rather than chosen in an effect: with nothing
+  // picked the first role is the one being looked at, and an effect
+  // setting that would render once with no selection and again with one.
+  const role = roles.find((entry) => entry.id === chosen) ?? roles[0] ?? null
 
-  useEffect(() => {
-    if (role !== null) {
-      setTicked(role.permissions)
-      setLabel(role.label)
-    }
-  }, [role])
+  // The edit is held against the role it was started from, so switching
+  // role shows that role's own values and a poll cannot overwrite an
+  // unsaved change. An effect copying the role into state did both
+  // wrongly: it clobbered the draft whenever the list refetched.
+  const saved = { label: role?.label ?? '', permissions: role?.permissions ?? [] }
+  const draft = edit !== null && edit.from === role?.id ? edit : { ...saved, from: role?.id }
+
+  const label = draft.label
+  const ticked = draft.permissions
+
+  const change = (next: { label?: string; permissions?: string[] }) =>
+    setEdit({
+      from: role?.id,
+      label: next.label ?? label,
+      permissions: next.permissions ?? ticked,
+    })
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['roles'] })
 
   const save = useMutation({
     mutationFn: () => updateRole(role?.id ?? '', { label, permissions: ticked }),
     onSuccess: () => {
+      // The draft is spent: the next read is what the role is now.
+      setEdit(null)
       void refresh()
       toast.success(t('roles.saved'))
     },
@@ -98,9 +114,11 @@ export function RoleList() {
   })
 
   const toggle = (name: string) =>
-    setTicked((previous) =>
-      previous.includes(name) ? previous.filter((entry) => entry !== name) : [...previous, name],
-    )
+    change({
+      permissions: ticked.includes(name)
+        ? ticked.filter((entry) => entry !== name)
+        : [...ticked, name],
+    })
 
   const changed =
     role !== null &&
@@ -154,7 +172,7 @@ export function RoleList() {
               <Input
                 id="role-label"
                 value={label}
-                onChange={(event) => setLabel(event.target.value)}
+                onChange={(event) => change({ label: event.target.value })}
               />
             </div>
 
