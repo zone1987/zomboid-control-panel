@@ -4001,24 +4001,113 @@ it once at mount.
 
 ---
 
+## The vitals, with a player online at last (2026-09-07)
+
+The dossier's last piece, and the two handlers that had never been fired.
+
+### Three broken uploads before it worked, and what each taught
+
+| Version | Fault | Why the tooling missed it |
+|---|---|---|
+| 0.18.0 | `readUtilities` indexed `SandboxOptions.elecShutModifier`, a public **field** | Lua returns null for a Java field; nothing local knew |
+| 0.18.1 | a copy of `readUtilities` sat **above** `local handlers = {}` | `luac -p` checks syntax, not scope — it passed every time |
+| 0.18.2 | `readUtilities` was still the by-field version; the scripted edit had moved the *other* copy | no guard existed for either shape |
+| 0.18.3 | **works** | |
+
+Three guards now, each proven by reverting: no handler above its table,
+none defined twice, and neither sandbox field indexed anywhere. All three
+run before an upload rather than surfacing in a server log.
+
+**And the test tool had its own fault.** The shell hands every argument
+over as a string while `BridgeCommand` checks `=== true`, so
+`-a on=true` validated to **false**: asking to switch the power on
+switched it off, and the handler looked broken when it was not.
+`BridgeSendArgumentsTest` (10) pins the types now.
+
+### What the live server actually reports
+
+**The bounds are wildly uneven**, which is the whole justification for
+reading them rather than tabulating them:
+
+```
+Anger              0..1        Boredom          0..100
+Endurance          0..1        Fitness         -1..1
+NicotineWithdrawal 0..0.51     Temperature     20..40
+Thirst             0..1        ZombieFever      0..100
+```
+
+A single assumed range would have been wrong for most of them, and
+`Stats::set` **clamps** rather than refusing — so being wrong would have
+applied something else and reported success.
+
+Plus `weight: 80` and `profession: "burglar"` from the descriptor.
+
+### Verified from the panel, with a player online
+
+| What | Result |
+|---|---|
+| `readPlayerStats` | all 24 with their own min, max and default |
+| `setPlayerStat` | Panic set to 2, read back as 2 |
+| Out-of-bounds | refused by name: "Temperature must be between 20.00 and 40.00" |
+| `healPlayer` | **17 body parts** restored, health 1.0, not infected |
+| The heal button in the dossier | same, through the endpoint |
+| Power and water switches | both directions, badge changing from "Läuft dauerhaft" to "Abgeschaltet" |
+| `releaseSnow` | works — it failed in 0.18.0 on `ClimateBool::getFinalValue` |
+
+### One real bug the live test found
+
+**`Stats::set` returns false when the value did not *change*.** Setting
+Boredom to 0 while it was already 0 came back as "the server refused the
+statistic", which is not a refusal — it is nothing to do. **0.18.4**
+reads the stat back and compares, which is what the docblock already
+claimed the code did.
+
+### And one of mine, caught by looking
+
+`players.condition` was the player table's column header. I had
+overwritten it with "Zustand anpassen", so the table's column changed
+its name. The new section uses `players.adjustCondition`.
+
+### Files
+
+| File | Change |
+|---|---|
+| `backend/resources/bridge/ZomboidControlBridge.lua` | **0.18.4** |
+| `backend/src/Controller/Api/PlayerVitalsController.php` | **new** — 4 routes |
+| `backend/src/Command/BridgeSendCommand.php` | sends real types |
+| `backend/tests/Unit/Command/BridgeSendArgumentsTest.php` | **new**, 10 |
+| `backend/tests/…/BridgeCommandCoverageTest.php` | +2 guards |
+| `backend/tests/…/BridgeClimateCallsTest.php` | +1 guard |
+| `frontend/src/features/players/vitals-card.tsx` | **new** |
+| `frontend/src/features/players/stats.test.ts` | **new**, 4 |
+
+### Verification
+
+| What | State |
+|---|---|
+| Backend | **589 tests, 5626 assertions green** |
+| Frontend | **269 tests, 28 files green** |
+| Lint | 0 errors, 21 warnings |
+| Live | every bridge handler now fired against the running server |
+
+**Needs one more upload**: 0.18.3 is live, 0.18.4 fixes the unchanged-value
+refusal. Nothing else waits on it.
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. Waiting on you, not on me
 
-- [ ] **Upload bridge 0.18.1 and restart the server.** 0.18.0 is live and
-      its two utility handlers are broken (`readUtilities`,
-      `setUtility`): Lua cannot index a public Java **field**, which is
-      what `elecShutModifier` is. 0.18.1 goes through
-      `getElecShutModifier()` and `SandboxOptions::set(String, Object)`
-      instead. Everything else in 0.18.0 was fired against the live
-      server and works.
-- [ ] **Then the power/water section on the world page starts answering**
-      — it is built, tested and polling the endpoint already.
-- [ ] **Vitals sliders and the heal button** need 0.18.1 **and a player
-      online**. The bridge side exists (`readPlayerStats`,
-      `setPlayerStat`, `setPlayerWeight`); the ids are verified against
-      `CharacterStat`'s constant pool. Generate the sliders from the
-      reported bounds, exactly as the climate page does.
+- [ ] **Upload bridge 0.18.4 and restart.** 0.18.3 is live and works;
+      0.18.4 fixes only one thing: `Stats::set` returns false when a
+      value did not *change*, so setting a statistic to what it already
+      is was reported as a refusal. Nothing else waits on it.
+- [x] **Power and water** — working and verified from the panel.
+- [x] **Vitals sliders and the heal button** — done and verified live
+      with a player online: 24 statistics with the game's own bounds,
+      Panic set and read back, 17 body parts healed. See the entry
+      above.
 - [ ] **A real vehicle spawn** — needs a player online, never tried end
       to end.
 

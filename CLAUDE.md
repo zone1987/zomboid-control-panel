@@ -302,6 +302,17 @@ mod is uploaded by hand — so a mismatch surfaces on a live server as
 - **Bump `BRIDGE_VERSION` for any handler change.** Otherwise an
   operator running the older mod is told they are up to date while the
   panel sends commands it cannot answer.
+- **Fire every new handler at the running server before building on
+  it.** Three uploads in a row shipped broken because the local checks
+  cannot see what Lua does at run time: a public Java field indexed
+  (returns null), a handler above its own table (`luac -p` passes),
+  and a copy left on the old shape by a scripted edit. `app:bridge:send`
+  exists for exactly this, and each of those three now has a guard.
+- **A test tool must send the types the real caller sends.**
+  `-a on=true` arrived as the string `"true"` while `BridgeCommand`
+  checks `=== true`, so "switch the power on" switched it off and a
+  working handler looked broken. A tool that cannot express the real
+  request proves the wrong thing.
 - **Say plainly when an upload and a restart are needed**, in the commit
   and to the user. Only they can do it.
 - **`DocumentationTest` will fail** until `llms.txt` names the new
