@@ -19,15 +19,6 @@ export type MapLayer = {
   dzi: string
 }
 
-/**
- * pzmap2dzi writes layer 0 as jpg and every other floor as webp, because
- * the floors above have to be transparent to stack. Reading it wrong
- * gives a pyramid of 404s.
- */
-export function tileExtensionFor(level: number): 'jpg' | 'webp' {
-  return level === 0 ? 'jpg' : 'webp'
-}
-
 export type MapSource = {
 
   /** Prefix every tile and .dzi path is resolved against. */
@@ -75,30 +66,23 @@ export type MapGeometry = {
  * imported, so they are defaults rather than assumptions.
  */
 export const ISOMETRIC_DEFAULTS: MapGeometry = {
-  // x0 and y0 come from map_info.json; these are the values pzmap2dzi
-  // computes for build 42's default cell range.
+  // x0 and y0 come from map_info.json and are not scaled: only w and h
+  // shrink with omit_levels, and the transform divides by scale itself.
   originX: 1036288,
-  originY: -139296,
+  originY: -143392,
   // sqr: two grid widths of 64 pixels.
   squareSize: 128,
-  // 1 << skip, where skip is pzmap2dzi's omit_levels.
-  scale: 1,
+  // 1 << skip, where skip is pzmap2dzi's omit_levels. Two levels are
+  // dropped by default -- see TileRenderer::DEFAULT_OMIT_LEVELS -- so a
+  // view opened before the render's own map_info.json arrives is at the
+  // right scale rather than sixteen times too large.
+  scale: 4,
   // 1.5 * sqr. The renderer calls the same number LAYER_HEIGHT.
   floorHeight: 192,
-  width: 2314688,
-  height: 1021920,
+  width: 578672,
+  height: 252968,
   cellSize: 256,
 }
-
-/**
- * Floors build 42 can have: -32 to 31, the range lotheader allows.
- *
- * A render rarely covers all of them -- pzmap2dzi's layer_range usually
- * trims it to the handful a map actually uses -- so this is the outer
- * limit rather than what to show. The floors offered come from the
- * source's own layer list.
- */
-export const BUILD_42_FLOORS = { min: -32, max: 31 } as const
 
 /**
  * Places worth jumping to.
@@ -124,9 +108,6 @@ export const QUICK_TARGETS = [
   { id: 'ekron', x: 1020, y: 9838 },
   { id: 'fallasLake', x: 7348, y: 8371 },
 ] as const
-
-/** The world's own bounds, which no view may leave. */
-export const WORLD_BOUNDS = { minX: 0, maxX: 20000, minY: 0, maxY: 20000 } as const
 
 /**
  * Builds the source for an isometric render the panel actually holds.

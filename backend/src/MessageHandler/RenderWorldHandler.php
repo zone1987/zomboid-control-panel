@@ -119,6 +119,12 @@ final readonly class RenderWorldHandler
             'bytesHeld' => 0,
             'objectsHeld' => 0,
             'phase' => 'starting',
+            // Three timestamps rather than one: the survey is 50 minutes
+            // in which no tile is drawn, so a rate measured from
+            // startedAt would put the projection hours out.
+            'surveyStartedAt' => null,
+            'surveyFinishedAt' => null,
+            'drawingStartedAt' => null,
             // So the panel can end this run outright rather than asking
             // it to notice: an upload that keeps going costs money.
             'workerPid' => getmypid(),
@@ -129,6 +135,10 @@ final readonly class RenderWorldHandler
         $this->progress->clearStop();
         $this->progress->resume();
         $this->progress->write($counts);
+
+        if ($message->fresh) {
+            $this->startAfresh($tiles, $counts);
+        }
 
         // Nothing is drawn until it is known what holds anything. Four
         // passes in five would otherwise produce blank tiles across the
@@ -143,6 +153,9 @@ final readonly class RenderWorldHandler
         // The world says how many floors it has; a tower reaching 29
         // makes this larger than the five a run starts out assuming.
         $counts['floorsTotal'] = \count($this->floorsIn($occupancy));
+        // Where the estimate measures from: the survey drew nothing, so
+        // counting its minutes into the rate would halve every figure.
+        $counts['drawingStartedAt'] = time();
         $this->progress->write($counts);
 
         foreach ($this->passes($occupancy) as [$floor, $batch, $lastForTheseCells]) {
@@ -458,10 +471,30 @@ final readonly class RenderWorldHandler
     }
 
     /**
-     * Every batch of every pass, one floor at a time.
+     * Throws away what an earlier run left, before drawing again.
      *
-     * @return \Generator<array{int, list<array{int, int}>}>
+     * A geometry change invalidates everything at once: the renderer
+     * refuses a directory whose map_info.json disagrees, tiles already
+     * in the store belong to a different pyramid, and the ledger would
+     * skip an unchanged cell on the strength of those tiles.
+     *
+     * The occupancy map survives deliberately. It records what each
+     * cell holds, which no render setting changes, and re-reading it
+     * costs 50 minutes of FTP.
+     *
+     * @param array<string, mixed> $counts
      */
+    private function startAfresh(string $tiles, array &$counts): void
+    {
+        $counts['phase'] = 'clearing';
+        $this->progress->write($counts);
+
+        // Descriptors go too: their geometry is exactly what changed.
+        $this->clear($tiles, keepExtension: null);
+        $this->uploader->clear(TileReader::PREFIX);
+        $this->ledger->clear();
+    }
+
     /**
      * Walks the world once, recording what each cell holds.
      *
@@ -477,6 +510,7 @@ final readonly class RenderWorldHandler
     private function surveyWorld(GameServer $server, array &$counts): ?array
     {
         $counts['phase'] = 'surveying';
+        $counts['surveyStartedAt'] = time();
         $this->progress->write($counts);
 
         // A survey is a quarter of an hour of FTP; its answer is 2.5 MB
@@ -488,6 +522,8 @@ final readonly class RenderWorldHandler
             $counts['cellsWithContent'] = \count($known);
             $counts['passesSkippedEmpty'] =
                 \count($known) * \count($this->floorsIn($known)) - $this->floorPasses($known);
+            // Answered from store, so the segment has no width to show.
+            $counts['surveyFinishedAt'] = $counts['surveyStartedAt'];
             $this->progress->write($counts);
 
             return $known;
@@ -539,6 +575,7 @@ final readonly class RenderWorldHandler
             \count($occupancy) * \count($this->floorsIn($occupancy)) - $this->floorPasses($occupancy);
 
         $this->occupancyMap->record($occupancy);
+        $counts['surveyFinishedAt'] = time();
         $this->progress->write($counts);
 
         return $occupancy;

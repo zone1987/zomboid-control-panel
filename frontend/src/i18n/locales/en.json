@@ -414,7 +414,7 @@
         "verifying": "Verifying the upload",
         "retrying": "Retrying failed uploads",
         "finishing": "Finishing up",
-        "clearing": "Clearing the store",
+        "clearing": "Clearing the previous render",
         "sweeping": "Removing outdated tiles",
         "paused": "Paused",
         "surveying": "Surveying the map"
@@ -894,7 +894,21 @@
       "surveyed": "cells surveyed",
       "withContent": "with content",
       "skippedEmpty": "Skipped (empty)",
-      "surveyNote": "Checking which tiles hold anything. Only those get drawn."
+      "surveyNote": "Checking which tiles hold anything. Only those get drawn.",
+      "remaining": "{{time}} left",
+      "rate": "{{tiles}} tiles/s · {{bytes}} MB/s",
+      "minimise": "Minimise",
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "skippedEmptyNote_one": "{{count}} pass skipped: nothing stands there",
+      "skippedEmptyNote_other": "{{count}} passes skipped: nothing stands there",
+      "retryNote_one": "Retry {{round}}: {{count}} tile being sent again",
+      "retryNote_other": "Retry {{round}}: {{count}} tiles being sent again",
+      "segment": {
+        "survey": "Survey",
+        "drawing": "Drawing",
+        "finish": "Finish"
+      }
     },
     "noRender": "No map has been rendered yet",
     "noRenderHint": "The isometric map is drawn from the server's own map data. Start it under Settings → Map."

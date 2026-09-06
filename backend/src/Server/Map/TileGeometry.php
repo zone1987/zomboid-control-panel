@@ -10,6 +10,10 @@ namespace App\Server\Map;
  * Needed to render a missing tile on demand: the renderer works in
  * cells, the viewer asks for tiles, and one has to become the other.
  *
+ * Nothing calls this today -- the tile route reads the object store and
+ * answers 404 for a tile no run has drawn. Kept because the inversion
+ * is the hard part and its tests caught a factor of two in it.
+ *
  * The transform is pzmap2dzi's own, inverted. Its viewer computes
  *
  *     px = (x0 + (sx - sy) * sqr / 2) / scale

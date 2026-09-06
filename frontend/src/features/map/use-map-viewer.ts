@@ -151,6 +151,21 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
     // logging every one of them to the console.
     instance.addHandler('tile-load-failed', () => undefined)
 
+    /**
+     * A descriptor that is not there yet is the same thing, one level up.
+     *
+     * Before the first batch reaches the store there is no layer0.dzi,
+     * and OpenSeadragon writes "Unable to open [object Object]: HTTP
+     * 404" across the middle of the map in its own styling. The render
+     * window already says what is happening, so this is noise on top of
+     * an explanation -- and it stays on screen after the tiles arrive.
+     */
+    instance.addHandler('open-failed', () => {
+      // Its message element is added to the container on failure and
+      // never removed by the viewer itself.
+      node.querySelectorAll('.openseadragon-message').forEach((message) => message.remove())
+    })
+
     // Tracks the pointer so the readout can show where the mouse is.
     const tracker = new OpenSeadragon.MouseTracker({
       element: node,

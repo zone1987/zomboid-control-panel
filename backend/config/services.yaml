@@ -7,6 +7,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Pyramid levels the renderer leaves undrawn, deepest first. Each one
+    # quarters both the render and the upload; 2 keeps interiors and
+    # furniture while bringing the whole world under an afternoon.
+    default_omit_levels: 2
 
 services:
     # default configuration for services in *this* file
@@ -98,6 +102,9 @@ services:
             $rendererPath: '%env(PZMAP_RENDERER_PATH)%'
             $python: '%env(PZMAP_PYTHON)%'
             $projectDirectory: '%kernel.project_dir%'
+            # Each level dropped quarters the render: the whole world is
+            # 724 GB at 0 and 45 GB at 2, and interiors survive both.
+            $omitLevels: '%env(int:default:default_omit_levels:PZMAP_OMIT_LEVELS)%'
 
     App\Server\Map\CellSurvey:
         arguments:

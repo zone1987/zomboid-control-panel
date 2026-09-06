@@ -28,6 +28,17 @@ final readonly class TileRenderer
     /** Long enough for a slow disk, short enough not to hang a request. */
     private const TIMEOUT_SECONDS = 90;
 
+    /**
+     * Pyramid levels left undrawn, deepest first.
+     *
+     * Each one quarters the output. Measured against this project's own
+     * figures -- 241 KB a tile, 3.5 MB/s to the store, ~13 tiles/s
+     * rendered -- the whole world costs 3.15 M tiles and 724 GB at 0,
+     * and 197 k tiles and 45 GB at 2. Interiors, furniture and shelves
+     * survive either way; what goes is one zoom step short of 1:1.
+     */
+    public const DEFAULT_OMIT_LEVELS = 2;
+
     public function __construct(
         private CellFetcher $cells,
         private RenderRoot $root,
@@ -37,6 +48,7 @@ final readonly class TileRenderer
         private ?string $rendererPath,
         private ?string $python,
         private string $projectDirectory,
+        private int $omitLevels = self::DEFAULT_OMIT_LEVELS,
     ) {
     }
 
@@ -132,7 +144,7 @@ final readonly class TileRenderer
 
             return false;
         } finally {
-            if (getenv('PZMAP_KEEP_CONF') === '') {
+            if (getenv('PZMAP_KEEP_CONF') === false) {
                 @unlink($configuration);
             }
         }
@@ -178,7 +190,7 @@ final readonly class TileRenderer
 
             return $process->isSuccessful();
         } finally {
-            if (getenv('PZMAP_KEEP_CONF') === '') {
+            if (getenv('PZMAP_KEEP_CONF') === false) {
                 @unlink($configuration);
             }
         }
@@ -287,6 +299,16 @@ final readonly class TileRenderer
                 1,
             ) ?? $body;
         }
+
+        // main.py maps this key onto the renderer's own skip_level.
+        // Without it the template's 0 stands and every run draws the
+        // deepest level, which is three quarters of a full render.
+        $body = preg_replace(
+            '/^    omit_levels: .*$/m',
+            sprintf('    omit_levels: %d', $this->omitLevels),
+            $body,
+            1,
+        ) ?? $body;
 
         $path = $this->rendererPath.'/conf/'.uniqid('render-', true).'.yaml';
 

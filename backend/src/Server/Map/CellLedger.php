@@ -80,6 +80,35 @@ final class CellLedger
         }
     }
 
+    /**
+     * Forgets every checksum.
+     *
+     * For a run starting afresh: a cell whose lotpack is unchanged has
+     * still to be drawn again when the geometry changed under it, and
+     * the ledger would otherwise skip it on the strength of tiles that
+     * no longer belong to the pyramid being built.
+     */
+    public function clear(): void
+    {
+        $this->cache = [];
+
+        if (!$this->storage->isConfigured()) {
+            return;
+        }
+
+        try {
+            $filesystem = $this->storage->create();
+
+            if ($filesystem->fileExists(self::KEY)) {
+                $filesystem->delete(self::KEY);
+            }
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Clearing the cell ledger failed.', [
+                'error' => mb_substr($exception->getMessage(), 0, 200),
+            ]);
+        }
+    }
+
     /** Keyed by floor as well: each pass draws a different one. */
     public static function name(int $x, int $y, int $floor = 0): string
     {

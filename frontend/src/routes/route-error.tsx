@@ -1,4 +1,4 @@
-import { useRouteError } from 'react-router'
+import { isRouteErrorResponse, useRouteError } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, TriangleAlert } from 'lucide-react'
 
@@ -18,7 +18,7 @@ export function RouteError() {
   const error = useRouteError()
 
   const stale = looksLikeStaleChunk(error)
-  const detail = error instanceof Error ? error.message : String(error)
+  const detail = describe(error)
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6 text-center">
@@ -48,4 +48,33 @@ export function RouteError() {
       </details>
     </div>
   )
+}
+
+/**
+ * The folded-away detail, in words rather than "[object Object]".
+ *
+ * React Router throws an ErrorResponse for a route that does not match
+ * -- a plain object, not an Error -- and String() on it yields
+ * "[object Object]". That is the one line an operator is asked to send
+ * when reporting a problem, so it has to say something.
+ */
+function describe(error: unknown): string {
+  if (isRouteErrorResponse(error)) {
+    return `${error.status} ${error.statusText}${error.data ? `: ${String(error.data)}` : ''}`
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error)
+    } catch {
+      // Circular or otherwise unserialisable; the fallback still beats
+      // "[object Object]".
+    }
+  }
+
+  return String(error)
 }

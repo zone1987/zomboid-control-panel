@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Pause, Play, TriangleAlert, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Minus, Pause, Play, TriangleAlert, X } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
@@ -16,35 +16,56 @@ import {
   type RenderProgress,
 } from '@/features/settings/render-progress'
 
-function size(bytes: number): string {
-  return bytes < 1073741824
-    ? `${(bytes / 1048576).toFixed(0)} MB`
-    : `${(bytes / 1073741824).toFixed(1)} GB`
-}
+import { overallPercent, remainingSeconds } from './render-estimate'
+import { RenderFigures } from './render-figures'
+import { duration } from './render-format'
+import { RenderTimeline } from './render-timeline'
 
-function elapsed(from: number): string {
-  const total = Math.max(0, Math.floor(Date.now() / 1000) - from)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
+type WindowState = 'open' | 'collapsed' | 'minimised'
 
-  return hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`
+const STATE_KEY = 'zc:render-window'
+
+function storedState(): WindowState {
+  try {
+    const value = localStorage.getItem(STATE_KEY)
+
+    return value === 'collapsed' || value === 'minimised' || value === 'open' ? value : 'collapsed'
+  } catch {
+    // A browser refusing storage is not a reason to show nothing.
+    return 'collapsed'
+  }
 }
 
 /**
  * What the render is doing, over the map it is producing.
  *
- * The map cannot be used while it is being drawn -- what is there is a
- * fragment -- so the progress belongs on top of it rather than on a
- * settings page nobody would sit and watch.
+ * Bottom centre, because everything else is taken: zoom and search top
+ * left, players top right, layers and floors on the sides, coordinates
+ * bottom left, places bottom right. Measured in a browser rather than
+ * assumed -- the free strip is 906 px at 1440 and 746 at 1280.
+ *
+ * It grows upward when opened, so the click target stays under the
+ * cursor and neither bottom corner is ever covered.
  */
 export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
   const { t } = useTranslation()
   const [progress, setProgress] = useState<RenderProgress>({ state: 'idle' })
+  const [windowState, setWindowState] = useState<WindowState>(storedState)
 
   // Closed on the click, not on the answer: the run is killed server
   // side, and a window that lingers while uploads cost money reads as a
   // button that did nothing.
   const [stopped, setStopped] = useState(false)
+
+  const show = (next: WindowState) => {
+    setWindowState(next)
+
+    try {
+      localStorage.setItem(STATE_KEY, next)
+    } catch {
+      // Preference lost, window still works.
+    }
+  }
 
   const stopRun = useMutation({
     mutationFn: stopWorldRender,
@@ -86,12 +107,22 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
     }
   }, [])
 
-  // Nothing rendered and nothing running: the map behind this is black,
-  // so the box says what to do rather than leaving an empty page.
+  const failed = progress.state === 'failed'
+
+  // A failure behind a collapsed window is the one outcome this must
+  // not produce, so it opens itself rather than waiting to be asked.
+  useEffect(() => {
+    if (failed) {
+      setWindowState('open')
+    }
+  }, [failed])
+
   if (stopped) {
     return null
   }
 
+  // Nothing rendered and nothing running: the map behind this is black,
+  // so the box says what to do rather than leaving an empty page.
   if (progress.state !== 'running') {
     if (hasRender) {
       return null
@@ -113,207 +144,141 @@ export function RenderOverlay({ hasRender = true }: { hasRender?: boolean }) {
 
   const paused = progress.paused === true
   const stopping = progress.stopRequested === true
+  const percent = overallPercent(progress)
+  const remaining = remainingSeconds(progress)
+  const phase = t(`settings.render.phase.${progress.phase ?? 'starting'}`, progress.phase ?? '')
 
-  const surveying = progress.phase === 'surveying'
+  if (windowState === 'minimised') {
+    return (
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center">
+        <button
+          type="button"
+          className="pointer-events-auto flex size-10 items-center justify-center rounded-full border border-border/60 bg-background/90 shadow-lg backdrop-blur hover:bg-accent"
+          title={`${phase} · ${percent}%`}
+          aria-label={`${phase} · ${percent}%`}
+          onClick={() => show('collapsed')}
+        >
+          <Ring percent={percent} />
+        </button>
+      </div>
+    )
+  }
 
-  // During the survey the cell total is not known yet -- it is what the
-  // survey is working out -- so it counts against the whole grid.
-  const total = surveying ? 78 * 64 : (progress.cellsTotal ?? 0)
-  const done = surveying ? (progress.cellsSurveyed ?? 0) : (progress.cellsDone ?? 0)
-  const percent = total === 0 ? 0 : Math.round((done / total) * 100)
+  const open = windowState === 'open'
 
   return (
-    // Nothing between this and the map: watching the tiles arrive is
-    // the best evidence a run is working, so the panel floats and the
-    // map underneath stays draggable.
-    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-4">
-      <div className="pointer-events-auto w-full max-w-md space-y-4 rounded-xl border bg-background/95 p-6 shadow-2xl backdrop-blur">
-        <div className="flex items-start gap-3">
-          <Loader2 className="mt-0.5 size-5 shrink-0 animate-spin text-primary" />
+    <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-4">
+      <div
+        className={`pointer-events-auto w-full max-w-[min(34rem,100%)] overflow-hidden rounded-lg border bg-background/95 shadow-2xl backdrop-blur ${
+          failed ? 'border-destructive' : 'border-border/60'
+        }`}
+      >
+        {open && (
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto border-b border-border/60 p-3">
+            <RenderTimeline progress={progress} />
+            <RenderFigures progress={progress} />
 
-          <div className="min-w-0">
-            <h2 className="font-semibold">{t('map.render.title')}</h2>
-            <p className="text-sm text-muted-foreground">{t('map.render.description')}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[0.65rem] text-muted-foreground">{t('map.render.keepsGoing')}</p>
+
+              {/* Asks rather than kills: the run stops at the next batch
+                  boundary, where the last upload is already verified. */}
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={holdRun.isPending || stopping}
+                  onClick={() => holdRun.mutate(paused)}
+                >
+                  {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
+                  {paused ? t('map.render.resume') : t('map.render.pause')}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setStopped(true)
+                    stopRun.mutate()
+                  }}
+                >
+                  <X className="size-3.5" />
+                  {t('map.render.stop')}
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span>
-              {t(`settings.render.phase.${progress.phase ?? 'starting'}`, progress.phase ?? '')}
-              {progress.currentFloor !== undefined && (
-                <span className="ml-1.5 text-muted-foreground">
-                  · {t('map.render.floorPass', { floor: progress.currentFloor })}
-                </span>
-              )}
-            </span>
-            <span className="tabular-nums text-muted-foreground">
-              {percent}% · {elapsed(progress.startedAt ?? 0)}
-            </span>
-          </div>
-
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full bg-primary transition-[width] duration-300"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* The survey reads every cell before a tile is drawn, which
-            takes a quarter of an hour: without saying so, the run looks
-            stuck at nought per cent. */}
-        {surveying && (
-          <>
-            <p className="text-xs text-muted-foreground">{t('map.render.surveyNote')}</p>
-
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <Figure
-                label={t('map.render.surveyed')}
-                value={`${done.toLocaleString()} / ${total.toLocaleString()}`}
-              />
-              <Figure
-                label={t('map.render.withContent')}
-                value={(progress.cellsWithContent ?? 0).toLocaleString()}
-              />
-            </dl>
-          </>
         )}
 
-        <dl className={`grid grid-cols-2 gap-x-4 gap-y-2 text-sm${surveying ? ' hidden' : ''}`}>
-          <Figure
-            label={t('settings.render.cells')}
-            value={`${done.toLocaleString()} / ${total.toLocaleString()}`}
-          />
-          {/* The grid is 78 by 64, but the world is not a rectangle:
-              the rest report themselves empty and cost nothing. */}
-          <Figure
-            label={t('settings.render.rendered')}
-            value={`${(progress.cellsRendered ?? 0).toLocaleString()}${
-              (progress.cellsEmpty ?? 0) > 0
-                ? ` (${(progress.cellsEmpty ?? 0).toLocaleString()} ${t('map.render.emptyCells')})`
-                : ''
-            }`}
-          />
-          <Figure label={t('settings.render.tiles')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
-          {/* What the bucket holds, which is what it costs -- not what
-              this run happened to send. */}
-          <Figure label={t('map.render.inStore')} value={size(progress.bytesHeld ?? 0)} />
-          {/* What the survey saved: cell-floor pairs that hold nothing
-              and are never drawn. Distinct from tilesSkipped, which
-              means the store already has it. */}
-          {(progress.passesSkippedEmpty ?? 0) > 0 && (
-            <Figure
-              label={t('map.render.skippedEmpty')}
-              value={(progress.passesSkippedEmpty ?? 0).toLocaleString()}
-            />
+        <div className="flex items-center gap-2 px-3 py-2 text-xs">
+          {failed ? (
+            <TriangleAlert className="size-4 shrink-0 text-destructive" />
+          ) : (
+            <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
           )}
-        </dl>
 
-        {/* Shown from the first batch, not once an estimate exists: a
-            run that reports nothing for its first minutes looks stuck. */}
-        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-md bg-muted/60 px-3 py-2 text-sm">
-          <Figure label={t('map.render.batchTotal')} value={(progress.batchTotal ?? 0).toLocaleString()} />
-          <Figure label={t('map.render.batchDone')} value={(progress.batchDone ?? 0).toLocaleString()} />
-          <Figure label={t('map.render.batchPending')} value={(progress.batchPending ?? 0).toLocaleString()} />
-        </dl>
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left hover:text-foreground"
+            aria-expanded={open}
+            onClick={() => show(open ? 'collapsed' : 'open')}
+          >
+            <span className="truncate font-medium">{phase}</span>
+            <span className="shrink-0 tabular-nums text-muted-foreground">· {percent} %</span>
+            {remaining !== null && (
+              <span className="hidden shrink-0 tabular-nums text-muted-foreground sm:inline">
+                · {t('map.render.remaining', { time: duration(remaining) })}
+              </span>
+            )}
+          </button>
 
-        <dl className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-md bg-muted/40 px-3 py-2 text-xs">
-          {/* Estimated, not counted: how many tiles a world makes
-              depends on what stands in each cell, so this is the rate
-              so far carried across the cells still to come. */}
-          <Figure
-            label={t('map.render.totalTiles')}
-            value={
-              (progress.tilesEstimated ?? 0) > 0
-                ? `≈ ${(progress.tilesEstimated ?? 0).toLocaleString()}`
-                : '—'
-            }
-          />
-          <Figure label={t('map.render.totalDone')} value={(progress.tilesUploaded ?? 0).toLocaleString()} />
-          <Figure
-            label={t('map.render.totalPending')}
-            value={
-              (progress.tilesEstimated ?? 0) > 0
-                ? `≈ ${Math.max(
-                    0,
-                    (progress.tilesEstimated ?? 0) - (progress.tilesUploaded ?? 0),
-                  ).toLocaleString()}`
-                : '—'
-            }
-          />
-        </dl>
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            title={t('map.render.minimise')}
+            aria-label={t('map.render.minimise')}
+            onClick={() => show('minimised')}
+          >
+            <Minus className="size-3.5" />
+          </button>
 
-        {(progress.tilesFailed ?? 0) > 0 && (
-          <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
-            <TriangleAlert className="size-3.5 shrink-0" />
-            {/* Cleared as soon as they arrive: a tile the store refused
-                is retried on the next batch, so this is what is
-                outstanding right now, not a tally of everything that
-                ever failed. */}
-            {t('map.render.failedNote', { count: progress.tilesFailed ?? 0 })}
-          </p>
-        )}
-
-        {(progress.tilesSkipped ?? 0) > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {t('map.render.skippedNote', { count: progress.tilesSkipped ?? 0 })}
-          </p>
-        )}
-
-        {/* The tile name going past is how somebody tells a working
-            render from a stuck one. */}
-        <p className="truncate rounded-md bg-muted/60 px-2 py-1.5 font-mono text-xs text-muted-foreground">
-          {progress.currentFloor !== undefined
-            ? `${t('map.render.floor')} ${progress.currentFloor} · `
-            : ''}
-          {progress.currentCell ? `${t('settings.render.cell')} ${progress.currentCell} · ` : ''}
-          {progress.currentTile || '…'}
-        </p>
-
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">{t('map.render.keepsGoing')}</p>
-
-          {/* Asks rather than kills: the run stops at the next batch
-              boundary, where the last upload is already verified. */}
-          <div className="flex shrink-0 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={holdRun.isPending || stopping}
-              onClick={() => holdRun.mutate(paused)}
-            >
-              {paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
-              {paused ? t('map.render.resume') : t('map.render.pause')}
-            </Button>
-
-            {/* The run ends at the next batch boundary, so the window
-                stays and says so rather than closing on a promise. */}
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                setStopped(true)
-                stopRun.mutate()
-              }}
-            >
-              <X className="size-3.5" />
-              {t('map.render.stop')}
-            </Button>
-          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            title={open ? t('map.render.collapse') : t('map.render.expand')}
+            aria-label={open ? t('map.render.collapse') : t('map.render.expand')}
+            onClick={() => show(open ? 'collapsed' : 'open')}
+          >
+            {open ? <ChevronDown className="size-3.5" /> : <ChevronUp className="size-3.5" />}
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+/** Percent as a ring, for the minimised state. */
+function Ring({ percent }: { percent: number }) {
+  const radius = 8
+  const circumference = 2 * Math.PI * radius
+
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
-    </div>
+    <svg viewBox="0 0 20 20" className="size-5 -rotate-90">
+      <circle cx="10" cy="10" r={radius} fill="none" stroke="currentColor" strokeWidth="3" className="text-muted" />
+      <circle
+        cx="10"
+        cy="10"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        className="text-primary"
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - percent / 100)}
+      />
+    </svg>
   )
 }

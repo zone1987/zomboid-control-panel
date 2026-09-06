@@ -54,11 +54,6 @@ export function viewportToWorld(point: ViewportPoint, floor: number, source: Map
   return imageToWorld(viewportToImage(point, source.geometry), floor, source)
 }
 
-/** Rounded to whole squares, which is the only precision the game has. */
-export function roundToSquare(point: WorldPoint): WorldPoint {
-  return { x: Math.round(point.x), y: Math.round(point.y) }
-}
-
 export function isInsideWorld(point: WorldPoint, source: MapSource): boolean {
   const image = worldToImage(point, 0, source)
 

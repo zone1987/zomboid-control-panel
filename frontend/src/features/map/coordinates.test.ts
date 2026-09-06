@@ -86,9 +86,17 @@ describe('isometric projection', () => {
 describe('agreement with pzmap2dzi', () => {
   const { originX, originY } = ISOMETRIC_DEFAULTS
 
+  // Stated here rather than taken from the defaults: this checks the
+  // formula itself, and the defaults carry whatever omit_levels the
+  // panel renders with -- 2, so scale 4.
+  const UNSCALED: MapSource = {
+    ...ISOMETRIC,
+    geometry: { ...ISOMETRIC_DEFAULTS, scale: 1 },
+  }
+
   it('matches the reference formula on the ground', () => {
     const world = { x: 10778, y: 9770 }
-    const image = worldToImage(world, 0, ISOMETRIC)
+    const image = worldToImage(world, 0, UNSCALED)
 
     expect(image.x).toBeCloseTo(originX + (world.x - world.y) * 64, 6)
     expect(image.y).toBeCloseTo(originY + (world.x + world.y) * 32, 6)
@@ -96,7 +104,7 @@ describe('agreement with pzmap2dzi', () => {
 
   it('matches the reference formula on an upper floor', () => {
     const world = { x: 8000, y: 11800 }
-    const image = worldToImage(world, 3, ISOMETRIC)
+    const image = worldToImage(world, 3, UNSCALED)
 
     expect(image.x).toBeCloseTo(originX + (world.x - world.y) * 64, 6)
     expect(image.y).toBeCloseTo(originY + (world.x + world.y) * 32 - 3 * 192, 6)
@@ -110,7 +118,7 @@ describe('agreement with pzmap2dzi', () => {
     }
     const world = { x: 5000, y: 5000 }
 
-    const full = worldToImage(world, 0, ISOMETRIC)
+    const full = worldToImage(world, 0, UNSCALED)
     const small = worldToImage(world, 0, trimmed)
 
     expect(small.x).toBeCloseTo(full.x / 4, 6)

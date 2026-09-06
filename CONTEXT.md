@@ -33,8 +33,15 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ## Next concrete step
 
-**A full world render is running**, started 2026-09-05 22:00 with the
-survey below. It needs watching, not building.
+**Start a full world render.** Nothing is running: the run recorded here
+on 2026-09-05 is gone -- no `messenger:consume`, no `main.py`, checked
+2026-09-06 -- and the store under `B42` is empty.
+
+Everything it needs is ready: renderer present, texture packs complete
+and unpacked, `omit_levels: 2` verified against a real cell. The run
+should now cost about four hours drawing and four uploading rather than
+the sixty-seven and fifty-nine that made every previous attempt
+hopeless. See the log entry for 2026-09-06.
 
 Everything else on the map is built and verified. What remains open is
 listed under "Not yet built".
@@ -89,7 +96,7 @@ below cell level would mean rewriting the renderer's task builder.
 
 ### What a run now costs
 
-Projected from the running render, 441 tiles per cell-floor pass:
+Projected from a real render, 441 tiles per cell-floor pass:
 
 | | Without the survey | With it |
 |---|---|---|
@@ -100,6 +107,13 @@ Projected from the running render, 441 tiles per cell-floor pass:
 The 1 TB bucket fits the second and not the first. Note that 330 GB,
 recorded here earlier, was wrong: measured at 236 KB a tile
 (16.5 GB / 71,833 objects).
+
+**Those figures are for `omit_levels: 0`, which is no longer what runs.**
+The survey is one of two levers and was the only one in use; the second
+is the pyramid depth, and it had never reached the renderer. At the
+default of 2 the same world is **197 k tiles and 45 GB, about four hours
+each way**. Both savings multiply: the survey skips 96 % of the passes,
+and dropping two levels quarters what the rest produce twice over.
 
 ### The defect that ruined two runs
 
@@ -219,6 +233,42 @@ challenge. Its disk-cache idea is worth borrowing; its source is not.
 world square is a blur at any useful zoom -- nothing on it can be made
 out. It was only ever the thing that worked while the isometric render
 did not.
+
+**PMTiles and MBTiles, 2026-09-06.** Proposed to cut the upload from
+days, on the reasoning that request latency dominates. Measured here it
+does not: 3.15 M tiles at 15 objects/s is 58.3 h and 724 GB at 3.5 MB/s
+is 58.8 h -- the same figure. At the measured 19 objects/s the run is
+already faster than the byte floor allows, so it is bandwidth-bound.
+Packaging changes the request count and leaves the bytes untouched.
+
+This repeats what commit `4deddd4` already measured with archives of 200
+tiles: 9.7 tiles/s against 19 for individual objects.
+
+Three further obstacles, checked against the specifications:
+
+- PMTiles addresses square grids -- the v3 tile id is a Hilbert curve
+  over 2^z x 2^z, and the reference decoder throws on `x >= 1 << z`
+  (`pmtiles` 4.5.0, `js/src/index.ts:77-95`). A 2261 x 998 level fits
+  only sparsely inside a square address space. Max zoom 26; 22 would fit.
+- OpenSeadragon has no PMTiles tile source, shipped or community.
+  `getTileUrl` returns a URL; a PMTiles tile is a byte range behind an
+  async directory lookup.
+- MBTiles is roughly ten times past its practical envelope at 690 GB and
+  cannot be range-served from object storage at all.
+
+Two ideas from the same review are worth keeping, because they attack
+bytes rather than packaging: **rclone** against the existing per-tile
+layout, and **content-hash deduplication** -- forest and water tiles
+repeat, and uploading each distinct blob once would cut the payload.
+Neither is built.
+
+**Leaflet, again.** Proposed alongside PMTiles. The map moved from
+Leaflet to OpenSeadragon in `8445bab` one day earlier, because
+pzmap2dzi writes DZI, which OpenSeadragon reads natively and Leaflet
+needs a custom `L.TileLayer` for: TileSize 1024, ~22 levels, per-floor
+`Format`, cropped edge tiles on a 2.26:1 image. Deep-link zoom semantics
+would also change -- OSD measures in image widths, Leaflet in log2
+levels. None of it touches the render duration.
 
 ---
 
@@ -973,3 +1023,125 @@ Now a `web_extra_daemon` locally, 24 hours and 1 GB in both.
 
 Commits `ecb20b2` through `4deddd4`.
 
+
+### 2026-09-06 — The render finishes in an afternoon, and says so
+
+**The two days had one cause.** `renderer/conf/conf.yaml:175` holds
+`omit_levels: 0`, and `TileRenderer::writeConfiguration()` rewrote
+`pz_root`, `output_root`, `render_cell_range`, `dzi_cell_range` and
+`layer_range` -- but never `omit_levels`. The template's value stood, so
+every run drew the deepest pyramid level: three quarters of the output.
+
+Measured from this project's own figures (241 KB a tile, 3.5 MB/s to the
+store, ~13 tiles/s rendered):
+
+| Setting | Tiles | Size | Render | Upload |
+|---|---|---|---|---|
+| `omit_levels: 0` | 3.15 M | 724 GB | ~67 h | ~59 h |
+| `omit_levels: 1` | 788 k | 181 GB | ~17 h | ~15 h |
+| **`omit_levels: 2`** | **197 k** | **45 GB** | **~4 h** | **~4 h** |
+
+Brief 08 already named 2 as the number to plan around. The setting had
+simply never reached the renderer.
+
+`DEFAULT_OMIT_LEVELS = 2`, overridable through `PZMAP_OMIT_LEVELS`.
+**Verified against a real cell:** `map_info.json` reports `skip: 2` and
+`w: 578672` -- exactly a quarter of 2314688 -- with `cell_rects` still
+pinned to the whole world.
+
+**Three traps found on the way.**
+
+`omit_levels` maps to the renderer's own `skip_level` (`main.py:183`),
+so the key written must be the former. `map_info_mismatch`
+(`pzdzi.py:216-229`) checks `skip` among its keys, so changing the depth
+needs the output directory genuinely empty -- and `rm -rf var/map/iso`
+takes the 502 MB of unpacked textures with it.
+
+`%env(int:default_omit_levels:PZMAP_OMIT_LEVELS)%` is wrong -- the
+`default:` processor is missing -- and turned every tile request into a
+500. `MapTileRouteTest` caught it on the first run, which is exactly the
+regression that test was written for.
+
+**`descriptorNames()` is not a defect.** An audit reported `$layer < $max`
+as an off-by-one dropping the top floor. `maxlayer` is *exclusive*:
+pzmap2dzi iterates `range(minlayer, maxlayer)` when writing descriptors
+(`pzdzi.py:193, 238`) and copies the same value into `map_info.json`
+(`:574`). `<` is correct; `<=` would ask for a floor with no `.dzi`.
+
+**`fresh` was carried and ignored.** `MapController` read it from the
+request and put it in the message; `RenderWorldHandler` never looked.
+An operator choosing "start over" got a continued run -- and after an
+`omit_levels` change that is the one thing that cannot work.
+`startAfresh()` now clears the tiles, the store prefix and the cell
+ledger, which is also what finally gives the `clearing` phase the
+meaning its translation always claimed. The occupancy map survives on
+purpose: no render setting changes what a cell holds, and re-reading it
+costs 50 minutes.
+
+**The render window, rebuilt.** It was one centred panel over the middle
+of the map, with seven figures at equal weight and no answer to "how
+much longer".
+
+Positions measured in a browser rather than assumed: every edge and
+corner is taken -- zoom and search top left, players top right, layers
+and floors on the sides, coordinates bottom left, places bottom right.
+The free strip is the bottom centre, 906 px at 1440 and 746 at 1280, and
+the map surface starts at x=280/y=80, so the bar centres on the surface
+rather than the viewport. Verified at 1280: bar 496-1040, coordinates
+end at 411, places begin at 1157.
+
+A **proportional timeline**, not a stepper. `rendering` and `uploading`
+alternate once per batch of six cells -- hundreds of times -- so as
+consecutive steps the marker would swing back and forth for hours. The
+segments are as wide as the time they cost, and the survey segment
+disappears entirely on a second run.
+
+**Three timestamps make the estimate honest.** The handler kept 28
+counters and one `startedAt`; a rate measured across the 50-minute
+survey would put the projection hours out. `surveyStartedAt`,
+`surveyFinishedAt` and `drawingStartedAt` now let `render-estimate.ts`
+answer -- or return `null`, which it does for the first 30 seconds and
+throughout the survey. An invented figure is worse than none.
+
+`retryRound` and `retryPending` were written by the handler all along
+and missing from the frontend type, so the one signal that the store is
+refusing never reached the screen.
+
+**Two display bugs fixed.**
+
+OpenSeadragon wrote "Unable to open [object Object]: HTTP 404" across
+the map whenever no `layer0.dzi` was in the store yet -- the normal state
+before the first batch. An `open-failed` handler removes its message
+node. Verified with every descriptor 404ing: no message, and the
+progress bar explains the situation instead.
+
+`route-error.tsx` showed `[object Object]` as its technical detail,
+because React Router throws an `ErrorResponse` rather than an `Error`.
+That is the line an operator is asked to send when reporting a problem.
+It now reads `404 Not Found: Error: No route matches URL "/app/map"`.
+
+**`ISOMETRIC_DEFAULTS` moved to `scale: 4`,** matching what the panel
+actually renders, so a view opened before the render's own
+`map_info.json` arrives is at the right size rather than sixteen times
+too large. The three tests checking the formula against pzmap2dzi state
+`scale: 1` themselves now, rather than inheriting whatever the panel
+happens to render with.
+
+**The texture packs are confirmed.** The local game installation was
+deleted; a Windows copy on a USB stick at
+`/Volumes/ESD-USB/ProjectZomboid` holds all five required packs, and all
+five are SHA-256 identical to what was already uploaded. Nothing to
+re-upload.
+
+Dead code removed: `renderMissing()` and `parseTilePath()` (69 lines,
+would have fatalled -- the call omitted the `GameServer` argument), the
+unreachable `gameMapSource` branch, `tileExtensionFor`, `roundToSquare`,
+`BUILD_42_FLOORS`, the map feature's `WORLD_BOUNDS`. `PZMAP_KEEP_CONF`
+was inverted: `getenv() === ''` is true only when the variable is set to
+an empty string, so unset -- the normal case -- kept every temp config,
+and `renderer/conf/` had accumulated 19.
+
+450 backend tests, 88 frontend tests. Both suites green.
+
+**Ruled out, with the measurement:** PMTiles, MBTiles and a return to
+Leaflet -- see "Ruled out, with reasons" above.

@@ -11,7 +11,6 @@ use App\Repository\PlayerSnapshotRepository;
 use App\Security\Permission\Permission;
 use App\Server\Bridge\ServerInfoReader;
 use App\Server\Map\IsometricTiles;
-use App\Server\Map\TileGeometry;
 use App\Server\Map\TileRenderer;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
@@ -52,74 +51,6 @@ final class MapController extends AbstractController
         ]);
     }
 
-    /**
-     * Renders the cells behind a tile that is not there.
-     *
-     * Returns null when the path is not a tile, when nothing can render,
-     * or when the render produced nothing -- an empty stretch of world
-     * has no tile, and asking again will not change that.
-     */
-    private function renderMissing(string $path): ?string
-    {
-        if (!$this->renderer->isAvailable()) {
-            return null;
-        }
-
-        $tile = self::parseTilePath($path);
-
-        if ($tile === null) {
-            return null;
-        }
-
-        $geometry = $this->isometric->geometry();
-
-        if ($geometry === null) {
-            return null;
-        }
-
-        $cells = TileGeometry::fromGeometry(
-            $geometry,
-            $this->isometric->tileSize() ?? 1024,
-            $this->isometric->deepestLevel() ?? 22,
-        )->cellsUnder($tile['level'], $tile['column'], $tile['row'], $tile['floor']);
-
-        if (!$this->renderer->render($cells)) {
-            return null;
-        }
-
-        return $this->isometric->resolve($path);
-    }
-
-    /**
-     * Reads layer<floor>_files/<level>/<column>_<row>.<ext>.
-     *
-     * @return array{floor: int, level: int, column: int, row: int}|null
-     */
-    private static function parseTilePath(string $path): ?array
-    {
-        $matched = preg_match(
-            '#^layer(-?\d+)_files/(\d+)/(\d+)_(\d+)\.\w+$#',
-            $path,
-            $parts,
-        );
-
-        return $matched === 1
-            ? [
-                'floor' => (int) $parts[1],
-                'level' => (int) $parts[2],
-                'column' => (int) $parts[3],
-                'row' => (int) $parts[4],
-            ]
-            : null;
-    }
-
-    /**
-     * Fetches the map from a game server.
-     *
-     * Offered in the interface rather than only on the command line: an
-     * operator running a rented server has a browser, not a shell on the
-     * machine the panel runs on.
-     */
     /** Asks a running render to stop after the batch it is on. */
     #[Route('/render/stop', name: 'api_map_render_stop', methods: ['POST'])]
     #[IsGranted(Permission::EditSettings->value)]

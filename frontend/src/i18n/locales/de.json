@@ -414,7 +414,7 @@
         "verifying": "Prüft den Upload",
         "retrying": "Wiederholt fehlgeschlagene Uploads",
         "finishing": "Räumt auf",
-        "clearing": "Räumt den Speicher auf",
+        "clearing": "Räumt den alten Render weg",
         "sweeping": "Entfernt veraltete Kacheln",
         "paused": "Pausiert",
         "surveying": "Analysiert die Karte"
@@ -894,7 +894,21 @@
       "surveyed": "Zellen geprüft",
       "withContent": "mit Inhalt",
       "skippedEmpty": "Übersprungen (leer)",
-      "surveyNote": "Es wird geprüft, welche Kacheln überhaupt Inhalt haben. Nur die werden gezeichnet."
+      "surveyNote": "Es wird geprüft, welche Kacheln überhaupt Inhalt haben. Nur die werden gezeichnet.",
+      "remaining": "noch {{time}}",
+      "rate": "{{tiles}} Kacheln/s · {{bytes}} MB/s",
+      "minimise": "Minimieren",
+      "collapse": "Zuklappen",
+      "expand": "Aufklappen",
+      "skippedEmptyNote_one": "{{count}} Durchgang übersprungen, weil dort nichts steht",
+      "skippedEmptyNote_other": "{{count}} Durchgänge übersprungen, weil dort nichts steht",
+      "retryNote_one": "Wiederholung {{round}}: {{count}} Kachel wird erneut gesendet",
+      "retryNote_other": "Wiederholung {{round}}: {{count}} Kacheln werden erneut gesendet",
+      "segment": {
+        "survey": "Analyse",
+        "drawing": "Zeichnen",
+        "finish": "Abschluss"
+      }
     },
     "noRender": "Es gibt noch keine gerenderte Karte",
     "noRenderHint": "Die isometrische Karte wird aus den Kartendaten des Servers gezeichnet. Unter Einstellungen → Karte lässt sie sich starten."

@@ -21,6 +21,13 @@ export type RenderProgress = {
   currentCell?: string
   currentTile?: string
   tilesRemoved?: number
+  /** Written by the handler on every retry round; the store refusing. */
+  retryRound?: number
+  retryPending?: number
+  /** The survey draws nothing, so the drawing rate measures from its own start. */
+  surveyStartedAt?: number | null
+  surveyFinishedAt?: number | null
+  drawingStartedAt?: number | null
   stopRequested?: boolean
   paused?: boolean
   batchTotal?: number
