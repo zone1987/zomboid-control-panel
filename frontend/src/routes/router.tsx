@@ -117,6 +117,10 @@ export const router = createBrowserRouter(
                   ],
                 },
                 {
+                  path: 'credits',
+                  lazy: lazyRoute(() => import('@/features/panel/credits-page'), 'CreditsPage'),
+                },
+                {
                   path: 'health',
                   lazy: lazyRoute(() => import('@/features/dashboard/health-probe-page'), 'HealthProbePage'),
                 },

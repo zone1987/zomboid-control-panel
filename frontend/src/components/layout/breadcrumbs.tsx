@@ -19,6 +19,7 @@ const TITLES: Record<string, string> = {
   profile: 'nav.profile',
   health: 'nav.health',
   users: 'nav.users',
+  credits: 'nav.credits',
 }
 
 // Segments that follow a server id and name a page of their own.

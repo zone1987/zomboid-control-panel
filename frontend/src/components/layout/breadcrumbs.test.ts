@@ -15,6 +15,14 @@ describe('deriving breadcrumbs from a path', () => {
     expect(crumbsFor('/settings')).toEqual([{ label: 'nav.settings' }])
   })
 
+  /**
+   * An unlisted page falls back to the dashboard label, so a page added
+   * without its title reads as "Overview" and nothing complains.
+   */
+  it('names the credits page', () => {
+    expect(crumbsFor('/credits')).toEqual([{ label: 'nav.credits' }])
+  })
+
   it('links the root back to the section on a server sub page', () => {
     expect(crumbsFor(`/servers/${SERVER_ID}/players`)).toEqual([
       { label: 'nav.servers', to: '/servers' },

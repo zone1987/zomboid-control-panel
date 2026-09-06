@@ -99,7 +99,8 @@
     "chat": "Chat",
     "items": "Items",
     "vehicles": "Vehicles",
-    "map": "Map"
+    "map": "Map",
+    "credits": "Credits"
   },
   "dashboard": {
     "subtitle": "What is happening on this server right now.",
@@ -1094,5 +1095,20 @@
         "description": "Change sign-in methods, mail delivery and other basics."
       }
     }
+  },
+  "credits": {
+    "title": "Credits & legal",
+    "description": "Where the artwork this panel shows comes from.",
+    "terms": "The Indie Stone Terms",
+    "whatIsUsed": "Game content used",
+    "models": "Vehicle models and textures",
+    "modelsWhere": "From the game installation, uploaded by the operator. Shown on the vehicles page and the map.",
+    "tiles": "Ground tiles",
+    "tilesWhere": "Road and grass tiles from the game's texture packs, as the ground under the vehicle preview.",
+    "icons": "Item icons",
+    "iconsWhere": "From the game's sprite atlases, shown on the items page.",
+    "mods": "Mod content belongs to its authors. Uploading a mod's artwork into this panel needs their permission — the Indie Stone Terms do not cover it.",
+    "mapTiles": "Map tiles",
+    "mapTilesWhere": "The world map is loaded from projectzomboidmap.com. Opening the map reveals the browser's IP address to that service."
   }
 }

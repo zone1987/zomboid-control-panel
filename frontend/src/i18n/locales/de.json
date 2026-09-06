@@ -99,7 +99,8 @@
     "chat": "Chat",
     "items": "Items",
     "vehicles": "Fahrzeuge",
-    "map": "Karte"
+    "map": "Karte",
+    "credits": "Danksagungen"
   },
   "dashboard": {
     "subtitle": "Was auf diesem Server gerade los ist.",
@@ -1094,5 +1095,20 @@
         "description": "Anmeldeverfahren, Mailversand und andere Grundeinstellungen ändern."
       }
     }
+  },
+  "credits": {
+    "title": "Danksagungen & Rechtliches",
+    "description": "Woher die Grafiken kommen, die dieses Panel zeigt.",
+    "terms": "Nutzungsbedingungen von The Indie Stone",
+    "whatIsUsed": "Verwendete Spielinhalte",
+    "models": "Fahrzeugmodelle und -texturen",
+    "modelsWhere": "Aus der Spielinstallation, vom Betreiber selbst hochgeladen. Gezeigt auf der Fahrzeugseite und der Karte.",
+    "tiles": "Bodenkacheln",
+    "tilesWhere": "Straßen- und Wiesenkacheln aus den Texturpaketen des Spiels, als Untergrund der Fahrzeugvorschau.",
+    "icons": "Item-Symbole",
+    "iconsWhere": "Aus den Sprite-Atlanten des Spiels, gezeigt auf der Item-Seite.",
+    "mods": "Inhalte aus Mods gehören ihren jeweiligen Autoren. Wer Mod-Grafiken in dieses Panel lädt, braucht deren Erlaubnis — die Bedingungen von The Indie Stone deckten das nicht ab.",
+    "mapTiles": "Kartenkacheln",
+    "mapTilesWhere": "Die Weltkarte wird von projectzomboidmap.com geladen. Beim Öffnen der Karte erreicht die IP-Adresse des Browsers diesen Dienst."
   }
 }
