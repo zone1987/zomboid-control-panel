@@ -1,3 +1,21 @@
+handlers.readUtilities = function()
+    local powerOn, powerShutAt, day = utilityState("power")
+    local waterOn, waterShutAt = utilityState("water")
+
+    if powerOn == nil or waterOn == nil then
+        return false, "the server would not report its utilities"
+    end
+
+    return true, "utilities read", string.format(
+        '{"day":%.1f,"power":{"on":%s,"shutAt":%s},"water":{"on":%s,"shutAt":%s}}',
+        day,
+        tostring(powerOn),
+        tostring(powerShutAt),
+        tostring(waterOn),
+        tostring(waterShutAt)
+    )
+end
+
 --[[
     ZomboidControl bridge — server side.
 
@@ -22,7 +40,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.18.0"
+local BRIDGE_VERSION = "0.18.1"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -2012,13 +2030,36 @@ local function apocalypseDay()
     return getGameTime():getWorldAgeHours() / 24 + (sandbox:getTimeSinceApo() - 1) * 30
 end
 
+--- The option names the game uses for the two utilities.
+--
+-- Reached by name through getOptionByName and set through
+-- SandboxOptions::set(String, Object), because the public *fields*
+-- (elecShutModifier and friends) are not reachable from Lua: indexing
+-- one returns null, and the live server answered "attempted index:
+-- getValueAsObject of non-table: null". Methods are.
+local UTILITY_OPTIONS = {
+    power = { name = "ElecShutModifier", read = "getElecShutModifier" },
+    water = { name = "WaterShutModifier", read = "getWaterShutModifier" },
+}
+
 --- Reads whether a utility is still running, and its cut-off day.
-local function utilityState(option)
+local function utilityState(which)
+    local option = UTILITY_OPTIONS[which]
+
+    if option == nil then
+        return nil
+    end
+
+    local sandbox = getSandboxOptions()
     local day = apocalypseDay()
-    local shutAt = option:getValueAsObject()
+    local shutAt = sandbox[option.read](sandbox)
 
     if type(shutAt) ~= "number" then
         shutAt = tonumber(tostring(shutAt))
+    end
+
+    if shutAt == nil then
+        return nil
     end
 
     -- -1 is the game's own "never": the utility stays on forever.
@@ -2040,11 +2081,7 @@ end
 -- "never shuts off", so it cannot lapse again a day later.
 handlers.setUtility = function(command)
     local which = command.utility
-    local sandbox = getSandboxOptions()
-
-    local option = which == "power" and sandbox.elecShutModifier
-        or which == "water" and sandbox.waterShutModifier
-        or nil
+    local option = UTILITY_OPTIONS[which]
 
     if option == nil then
         return false, "utility must be power or water"
@@ -2053,28 +2090,32 @@ handlers.setUtility = function(command)
     local wanted = command.on == true or command.on == "true"
     local day = apocalypseDay()
 
-    option:setValueFromObject(wanted and -1 or math.floor(day))
+    -- Off is the current day floored, so the cut-off is now rather than
+    -- retroactive by an arbitrary amount. On is -1, the game's own
+    -- "never shuts off", so it cannot lapse again a day later.
+    getSandboxOptions():set(option.name, wanted and -1 or math.floor(day))
 
-    -- Read back rather than trust the setter, and report the day as well:
-    -- a panel showing "on" while the world is past the cut-off would be
-    -- the same lie the snow flag told.
-    local on, shutAt = utilityState(option)
+    -- Read back rather than trust the setter: the same read the panel
+    -- polls with, so a success here means the panel will agree.
+    local on, shutAt = utilityState(which)
+
+    if on == nil then
+        return false, "the server would not report the utility back"
+    end
 
     if on ~= wanted then
         return false, "the server would not change the utility", string.format(
             '{"utility":"%s","on":%s,"shutAt":%s,"day":%.1f}',
-            tostring(which),
+            escape(tostring(which)),
             tostring(on),
             tostring(shutAt),
             day
         )
     end
 
-    sandbox:sendToServer()
-
     return true, wanted and "utility switched on" or "utility switched off", string.format(
         '{"utility":"%s","on":%s,"shutAt":%s,"day":%.1f}',
-        tostring(which),
+        escape(tostring(which)),
         tostring(on),
         tostring(shutAt),
         day

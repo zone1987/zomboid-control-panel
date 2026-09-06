@@ -160,6 +160,15 @@ final readonly class EventCatalogue
             new EventAction('setDaylight', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::percent('value', 100),
             ]),
+            // The power and the water. There is no on/off flag in the
+            // game: a utility runs until the world is older than its
+            // shut-off day, so switching one moves that day.
+            new EventAction('setPower', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::toggle('on', default: true),
+            ]),
+            new EventAction('setWater', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::toggle('on', default: true),
+            ]),
             new EventAction('setViewDistance', EventAction::CATEGORY_WORLD, EventAction::CHANNEL_BRIDGE, [], [
                 EventField::percent('value', 50),
             ]),

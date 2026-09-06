@@ -35,6 +35,12 @@ final class BridgeClimateCallsTest extends TestCase
      * ClimateColor, `rgb` a zombie.core.Color. Reusing a name for a
      * different class is what makes a call unverifiable, so the
      * convention is part of the guard rather than a style preference.
+     *
+     * `option` is deliberately absent: the sandbox options are reached
+     * by name through `getOptionByName`/`set` rather than through their
+     * public fields, because indexing one of those fields from Lua
+     * returns null — the live server answered "attempted index:
+     * getValueAsObject of non-table: null" before this was corrected.
      */
     private const HOLDS = [
         'climate' => 'ClimateManager',
@@ -43,7 +49,6 @@ final class BridgeClimateCallsTest extends TestCase
         'colour' => 'ClimateColor',
         'storm' => 'ThunderStorm',
         'sandbox' => 'SandboxOptions',
-        'option' => 'IntegerConfigOption',
         'rgb' => 'Color',
         'player' => 'IsoPlayer',
         'damage' => 'BodyDamage',

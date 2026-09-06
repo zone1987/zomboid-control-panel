@@ -817,6 +817,14 @@
       "generateWeather": {
         "title": "Wetter erzeugen",
         "description": "Lässt die Wettersimulation selbst entscheiden, was kommt. Eine warme oder kalte Front und deren Stärke sind die Vorgabe."
+      },
+      "setPower": {
+        "title": "Strom",
+        "description": "Schaltet die Stromversorgung ein oder ab. Das Spiel kennt keinen Schalter, sondern einen Abschalttag — „ein“ setzt ihn auf „nie“, „ab“ auf heute."
+      },
+      "setWater": {
+        "title": "Wasser",
+        "description": "Schaltet die Wasserversorgung ein oder ab, auf demselben Weg wie der Strom."
       }
     },
     "invalidInput": "Die Eingabe war nicht brauchbar.",
@@ -899,7 +907,15 @@
     },
     "daylightNow": "Gemessene Tageslichtstärke",
     "timeSet": "Die Uhr steht jetzt auf {{hour}}:00.",
-    "currently": "derzeit {{value}}"
+    "currently": "derzeit {{value}}",
+    "utilities": "Versorgung",
+    "utilitiesUnavailable": "Strom und Wasser stehen in den Sandbox-Einstellungen des laufenden Spiels — dafür braucht diese Seite die Bridge.",
+    "apocalypseDay": "Tag {{day}} nach dem Ausbruch. Eine Versorgung läuft, solange dieser Tag unter ihrem Abschalttag liegt.",
+    "neverShutsOff": "Läuft dauerhaft",
+    "running": "Läuft",
+    "shutOff": "Abgeschaltet",
+    "daysLeft_one": "Noch ein Tag",
+    "daysLeft_other": "Noch {{count}} Tage"
   },
   "map": {
     "external": {

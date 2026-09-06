@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CalendarDays, Eye, Play, Sun } from 'lucide-react'
+import { CalendarDays, Droplets, Eye, Play, Sun, Zap } from 'lucide-react'
 
 import { ApiError, errorField } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import { SectionMark } from '@/components/layout/section-mark'
 import { getWorld } from '@/features/servers/world'
 import { readClimate } from './climate'
 import { DayArc } from './day-arc'
 import { listEvents, triggerEvent } from './events'
 import { formatRange } from './units'
+import { NEVER, readUtilities, type Utility } from './utilities'
 
 /** How often the in-game clock is re-read; the bridge writes every ten. */
 const POLL_MS = 15_000
@@ -169,7 +172,126 @@ export function WorldPage() {
         }
       />
 
+      <UtilitySection serverId={id} />
+
       <DateSection serverId={id} day={time?.day} month={time?.month} />
+    </div>
+  )
+}
+
+/**
+ * The power and the water.
+ *
+ * There is no on/off flag in the game: a utility runs until the world is
+ * older than its shut-off day, counted from the outbreak. So the switch
+ * is honest about what it does — off sets that day to today, on sets the
+ * game's own "never" — and the row says how long is left where that is a
+ * countdown at all.
+ */
+function UtilitySection({ serverId }: { serverId: string }) {
+  const { t } = useTranslation()
+
+  const { data, error } = useQuery({
+    queryKey: ['utilities', serverId],
+    queryFn: () => readUtilities(serverId),
+    retry: false,
+    refetchInterval: 60_000,
+  })
+
+  return (
+    <section className="w-fit min-w-full max-w-3xl space-y-3 rounded-md border p-4">
+      <SectionMark label={t('events.utilities')} />
+
+      {data === undefined ? (
+        <p className="text-sm text-muted-foreground">
+          {error === null || error === undefined
+            ? t('common.loading')
+            : t('events.utilitiesUnavailable')}
+        </p>
+      ) : (
+        <>
+          <UtilityRow
+            serverId={serverId}
+            actionId="setPower"
+            icon={Zap}
+            utility={data.power}
+          />
+
+          <UtilityRow
+            serverId={serverId}
+            actionId="setWater"
+            icon={Droplets}
+            utility={data.water}
+          />
+
+          <p className="border-t pt-2 text-xs text-muted-foreground">
+            {t('events.apocalypseDay', { day: Math.floor(data.day) })}
+          </p>
+        </>
+      )}
+    </section>
+  )
+}
+
+function UtilityRow({
+  serverId,
+  actionId,
+  icon: Icon,
+  utility,
+}: {
+  serverId: string
+  actionId: 'setPower' | 'setWater'
+  icon: typeof Zap
+  utility: Utility
+}) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+
+  const set = useMutation({
+    mutationFn: (on: boolean) => triggerEvent(serverId, actionId, { on }),
+    onSuccess: (result) => {
+      if (result.failed) {
+        toast.warning(result.reply === '' ? t('events.refused') : result.reply)
+      } else {
+        toast.success(t('events.triggered'))
+      }
+
+      void queryClient.invalidateQueries({ queryKey: ['utilities', serverId] })
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="flex items-center gap-2 text-sm font-medium">
+        <Icon aria-hidden className="size-4 text-muted-foreground" />
+        {t(`events.actions.${actionId}.title`)}
+      </span>
+
+      {/* State, and what happens next -- "on" alone cannot say until when. */}
+      {utility.on ? (
+        utility.shutAt === NEVER ? (
+          <Badge variant="secondary">{t('events.neverShutsOff')}</Badge>
+        ) : utility.daysLeft === null ? (
+          <Badge variant="secondary">{t('events.running')}</Badge>
+        ) : (
+          <Badge variant="outline">
+            {t('events.daysLeft', { count: utility.daysLeft })}
+          </Badge>
+        )
+      ) : (
+        <Badge variant="outline" className="text-muted-foreground">
+          {t('events.shutOff')}
+        </Badge>
+      )}
+
+      <Switch
+        className="ml-auto"
+        checked={utility.on}
+        disabled={set.isPending}
+        aria-label={t(`events.actions.${actionId}.title`)}
+        onCheckedChange={(on) => set.mutate(on)}
+      />
     </div>
   )
 }

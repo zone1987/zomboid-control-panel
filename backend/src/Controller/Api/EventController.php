@@ -215,6 +215,14 @@ final class EventController extends AbstractController
             'releaseTemperature' => [BridgeCommand::ReleaseClimate, ['name' => 'temperature']],
             'releaseClimate' => [BridgeCommand::ReleaseClimate, ['name' => $inputs['name'] ?? null]],
             'resetClimate' => [BridgeCommand::ResetClimate, []],
+            'setPower' => [BridgeCommand::SetUtility, [
+                'utility' => 'power',
+                'on' => ($inputs['on'] ?? false) === true,
+            ]],
+            'setWater' => [BridgeCommand::SetUtility, [
+                'utility' => 'water',
+                'on' => ($inputs['on'] ?? false) === true,
+            ]],
             'soundAtPlayer', 'soundAtPoint' => [BridgeCommand::PlaySound, $inputs],
             default => [BridgeCommand::SetClimateValue, [
                 'name' => self::CLIMATE_ACTIONS[$actionId] ?? null,

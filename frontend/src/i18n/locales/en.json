@@ -817,6 +817,14 @@
       "generateWeather": {
         "title": "Generate weather",
         "description": "Lets the weather simulation decide what arrives. A warm or cold front and its strength are what you give it."
+      },
+      "setPower": {
+        "title": "Power",
+        "description": "Switches the electricity on or off. The game has no switch but a shut-off day — \"on\" sets it to never, \"off\" to today."
+      },
+      "setWater": {
+        "title": "Water",
+        "description": "Switches the water on or off, by the same route as the power."
       }
     },
     "invalidInput": "The input could not be used.",
@@ -899,7 +907,15 @@
     },
     "daylightNow": "Measured daylight strength",
     "timeSet": "The clock now reads {{hour}}:00.",
-    "currently": "currently {{value}}"
+    "currently": "currently {{value}}",
+    "utilities": "Utilities",
+    "utilitiesUnavailable": "The power and the water live in the running game's sandbox options, so this page needs the bridge.",
+    "apocalypseDay": "Day {{day}} after the outbreak. A utility runs while that day is below its shut-off day.",
+    "neverShutsOff": "Never shuts off",
+    "running": "Running",
+    "shutOff": "Shut off",
+    "daysLeft_one": "One day left",
+    "daysLeft_other": "{{count}} days left"
   },
   "map": {
     "external": {
