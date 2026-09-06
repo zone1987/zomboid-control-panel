@@ -2775,3 +2775,130 @@ made.
 | Linter | 0 errors, 30 warnings (all pre-existing; `set-state-in-effect` in `events-page.tsx` is the one that moved into view) |
 | Typecheck / build | clean |
 | Checked in a browser | the grouped sidebar, with Events renamed |
+
+---
+
+# 2026-09-06 (evening, continued) — llms.txt, retention, five categories
+
+## llms.txt, and AGENTS.md stopped drifting — `d45c48e`
+
+Asked for alongside the security headers; the headers shipped and the
+file never did. It describes what the panel is, how it reaches a game
+server it does not sit on, and what that distance makes impossible.
+
+**Deliberately in the repository rather than served.**
+`backend/public/robots.txt` disallows everything, because an
+administration panel belongs in no index and its login page should not
+advertise that the installation exists — serving a description of it
+would undo that. The file says so in its own second paragraph.
+
+`tests/Unit/DocumentationTest.php` checks the figures a reader would take
+on faith against what they describe: the vehicle count (241), the body
+count the grouping produces (22), the bridge version that ships (0.13.3),
+and that `backend/var/` is still ignored. Proven to fail when either
+number is edited away.
+
+**AGENTS.md became a pointer.** It was a copy of CLAUDE.md, had fallen
+four sections and two hundred lines behind, and nobody noticed until the
+two were diffed. A stale copy of the rules is worse than no copy.
+
+## The retention horizon is settable — `b131fc5`, `a7b7079`
+
+`StalePlayerPurger` read `players.retention_days`; nothing could write
+it. Not in `SettingsController::EDITABLE`, not on any endpoint, not in
+any interface. So the purge ran daily, did nothing, and said nothing.
+
+Now a **Retention** tab under a **Data protection** group, with the
+credits page pointing at it. Off stays the default and a valid answer.
+
+**Below seven days the endpoint refuses** rather than accepting:
+`RETENTION_MINIMUM_DAYS = 7`, because a horizon that short catches
+players who are merely on holiday, and a control that deletes things
+should not read a mistake as an instruction. The frontend shows the same
+limit inline; the backend is the one that enforces it.
+
+The card states what goes — name, SteamID, position, health, skills —
+and that the ban list and moderation log do not.
+
+**The tab strip became a vertical rail.** It had wrapped: a group label
+fitting at the end of a row left its first tab stranded on the next one,
+reading as a heading for the group above it. Two attempts made it worse
+— shortening the label only hid it, and `w-full` on the label to force a
+break broke the flex layout outright, overlapping the tabs onto the
+card. A rail beside the cards solves the shape: groups read as sections,
+a new category lengthens the list, and the labels can say what they mean
+again. The save row moved inside the content column.
+
+## Events into five categories — `46adf8c`
+
+`group` → `category`, four values → five:
+
+| Category | Holds |
+|---|---|
+| `weather` | startRain, stopRain, startStorm, stopWeather, setFog, setWind, setTemperature, setClouds |
+| `sounds` | **thunder**, gunshot, alarm, soundAtPlayer, soundAtPoint |
+| `actions` | **lightning**, chopper, broadcast |
+| `zombies` | hordeNearPlayer, hordeAtPoint, removeZombies |
+| `world` | setTime, setDate, setDaylight, setViewDistance |
+
+**Thunder and lightning are placed by the game, not by taste.** Both
+call `transmitServerTriggerLightning(x, y, doStrike, doLightning,
+doRumble)`; the bytecode has thunder passing `(false, false, true)` — the
+rolling sound alone — against lightning's `(false, true, true)`. So
+thunder is a sound and lightning is a staged one-shot.
+
+**Zombies is a fifth category rather than a fourth**, which lets
+"actions" mean something: nothing there can wreck a server, everything
+in zombies can. `EventCatalogueTest` pins that only the zombie actions
+carry `destructive`.
+
+**Rain is one action again.** `bridgeStartRain`/`bridgeStopRain` deleted;
+`startRain`/`stopRain` gained `CHANNEL_PREFERRED`, handled by
+`EventController::preferringTheBridge()`: the bridge first, RCON on
+`BridgeCommandFailed` only. **Not** on `InvalidBridgeCommand` — that
+means the panel built the request wrongly, which RCON would not fix and
+which must not be hidden. The list shows a Bridge badge only for
+bridge-*only* actions, since a preferred one always works.
+
+`GROUP_ORDER` in the frontend is gone — it was the duplicate table the
+plan wanted removed. `EVENT_CATEGORIES` replaces it and a drift guard in
+`events.test.ts` asserts it against `EventAction::CATEGORIES` by reading
+the PHP source, plus that every category has an icon and a label in both
+locales. Proven to fail when the two lists are reordered apart.
+
+**Two tests would have silently lost coverage**, and were corrected
+rather than left:
+
+- `EventDispatcherTest`'s catalogue walk skipped `!== CHANNEL_RCON`,
+  which now also skips `CHANNEL_PREFERRED` — so the merged rain would
+  never have been checked. It skips only `CHANNEL_BRIDGE`.
+- `EventConsoleTest` gained `testRainFallsBackToRconWithoutABridge`,
+  proving the fallback runs: the fixture has no bridge, and
+  `startrain 70` lands in the moderation log.
+
+## Verification
+
+| | |
+|---|---|
+| Backend tests | **516, green** (was 498; +8 catalogue, +5 retention, +4 documentation, +1 rain fallback) |
+| Frontend tests | **207, green** across 19 files |
+| Linter | 0 errors, 29 warnings (all pre-existing) |
+| Typecheck / build | clean |
+| Pushed | `origin/main` |
+| Checked in a browser | the grouped sidebar, the retention tab and its refusal, the settings rail, the five event categories, "Bridge, sonst RCON" |
+
+## What is left of the events restructuring
+
+The categories exist; the **pages** do not. Still open from plan phase 4:
+
+- [ ] Sidebar children under Events — a `children` field on
+      `SERVER_PAGES`, `isExactly` for exact matching on the children with
+      the prefix match kept for the parent.
+- [ ] The layout route with an index, a static `weather` child and a
+      `:category` child. Static segments match before dynamic ones, so
+      adding a category later is one line in the catalogue.
+- [ ] The third breadcrumb level. `crumbsFor()` is extracted and tested,
+      and now has a case proving an unlisted page falls back silently.
+- [ ] The weather page itself: icon presets, `WorldStrip` at the top,
+      slider rows, the day arc for the world page, actions as
+      directly-actionable cards.
