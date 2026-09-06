@@ -126,5 +126,5 @@ failures = failures + check("Leerzeichen um Doppelpunkt",
     d('{ "action" : "ping" , "hour" : 3 }').hour == 3)
 failures = failures + check("Zahl als Text bleibt Text", d('{"hour":"14"}').hour == "14")
 
-print(failures == 0 and "\nAlle Pruefungen bestanden." or ("\n" .. failures .. " fehlgeschlagen."))
+print(failures == 0 and "\nAll checks passed." or ("\n" .. failures .. " failed."))
 os.exit(failures == 0 and 0 or 1)

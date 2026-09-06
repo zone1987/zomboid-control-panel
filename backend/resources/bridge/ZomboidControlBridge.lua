@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.12.1"
+local BRIDGE_VERSION = "0.13.1"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -35,6 +35,10 @@ local FACTIONS_FILE = "ZomboidControl/factions.json"
 -- Written once per server start: the catalogue only changes when mods do,
 -- and it is several thousand entries.
 local ITEMS_FILE = "ZomboidControl/items.json"
+
+--- Which vehicles this server can spawn, and the liveries of each.
+--- Separate from vehicles.json, which is the ones placed in the world.
+local VEHICLE_CATALOGUE_FILE = "ZomboidControl/vehicle-catalogue.json"
 -- Diagnostic: which media files the server actually has, so the panel
 -- knows whether icons can be extracted at all.
 local PROBE_FILE = "ZomboidControl/probe.json"
@@ -675,6 +679,144 @@ local function writeItems()
     writer:close()
 
     print("[ZomboidControl] Wrote " .. written .. " items.")
+end
+
+--- One spawnable vehicle: its model, scale and the textures it wears.
+---
+--- A script carries exactly one skin -- the 51 van liveries are 51
+--- separate scripts, not skins of one -- so the panel groups them by
+--- shared model rather than reading a list from any single script.
+local function describeVehicleScript(name, script)
+    local parts = { string.format("\"script\":\"%s\"", escape(name)) }
+
+    -- getModel() hands back a Model object, not a string: the file name
+    -- is on it, and printing the object gives a Java identity hash.
+    local gotModel, model = pcall(function() return script:getModel() end)
+
+    if gotModel and model ~= nil then
+        local gotFile, file = pcall(function() return model:getFile() end)
+
+        if gotFile and file ~= nil and tostring(file) ~= "" then
+            table.insert(parts, string.format("\"model\":\"%s\"", escape(tostring(file))))
+        end
+
+        local gotScale, scale = pcall(function() return model:getScale() end)
+
+        if gotScale and type(scale) == "number" and scale > 0 then
+            table.insert(parts, string.format("\"scale\":%.4f", scale))
+        end
+    end
+
+    local gotName, full = pcall(function() return script:getFullName() end)
+
+    if gotName and full ~= nil and tostring(full) ~= "" then
+        table.insert(parts, string.format("\"fullName\":\"%s\"", escape(tostring(full))))
+    end
+
+    -- The textures decide what the renderer can draw and which body a
+    -- vehicle belongs to: everything sharing a mask is one shell.
+    local gotCount, count = pcall(function() return script:getSkinCount() end)
+
+    if gotCount and type(count) == "number" and count > 0 then
+        local gotSkin, skin = pcall(function() return script:getSkin(0) end)
+
+        if gotSkin and skin ~= nil then
+            for _, entry in ipairs({
+                { "texture", "texture" },
+                { "mask", "textureMask" },
+                { "rust", "textureRust" },
+            }) do
+                local gotValue, value = pcall(function() return skin[entry[2]] end)
+
+                if gotValue and value ~= nil and tostring(value) ~= "" then
+                    table.insert(
+                        parts,
+                        string.format("\"%s\":\"%s\"", entry[1], escape(tostring(value)))
+                    )
+                end
+            end
+        end
+    end
+
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+--- Every vehicle this server can spawn, written incrementally.
+---
+--- getAllVehicles() is the list the server actually has, mods included,
+--- which is why the panel asks rather than shipping a table of its own.
+local function writeVehicleCatalogue()
+    local ok, names = pcall(getAllVehicles)
+
+    if not ok or names == nil then
+        return
+    end
+
+    local manager = nil
+    local gotManager, found = pcall(getScriptManager)
+
+    if gotManager then
+        manager = found
+    end
+
+    local writer = getFileWriter(VEHICLE_CATALOGUE_FILE, true, false)
+
+    if writer == nil then
+        print("[ZomboidControl] Could not open " .. VEHICLE_CATALOGUE_FILE .. " for writing.")
+        return
+    end
+
+    writer:write(string.format(
+        "{\"bridgeVersion\":\"%s\",\"sessionId\":\"%s\",\"generatedAt\":%d,\"vehicles\":[",
+        BRIDGE_VERSION,
+        SESSION_ID,
+        getTimestamp()
+    ))
+
+    local written = 0
+
+    for i = 0, names:size() - 1 do
+        local name = names:get(i)
+
+        if name ~= nil and tostring(name) ~= "" then
+            local script = nil
+
+            if manager ~= nil then
+                local gotScript, found2 = pcall(function()
+                    return manager:getVehicle(tostring(name))
+                end)
+
+                if gotScript then
+                    script = found2
+                end
+            end
+
+            local entry
+
+            if script ~= nil then
+                local described, value = pcall(describeVehicleScript, tostring(name), script)
+                entry = described and value or nil
+            end
+
+            -- A script the manager will not hand over still belongs in
+            -- the list: it can be spawned by name even undrawable.
+            if entry == nil then
+                entry = string.format("{\"script\":\"%s\"}", escape(tostring(name)))
+            end
+
+            if written > 0 then
+                writer:write(",")
+            end
+
+            writer:write(entry)
+            written = written + 1
+        end
+    end
+
+    writer:write(string.format("],\"vehicleCount\":%d}", written))
+    writer:close()
+
+    print("[ZomboidControl] Wrote " .. written .. " vehicle scripts.")
 end
 
 --- Wraps a write so a fault in one file cannot stop the others.
@@ -1487,6 +1629,7 @@ Events.OnServerStarted.Add(function()
     -- Once per start: mods are loaded by now, so the catalogue includes
     -- whatever they added.
     attempt("items", writeItems)
+    attempt("vehicleCatalogue", writeVehicleCatalogue)
     attempt("probe", writeProbe)
 
     -- Picks up where the last run left off, so a restart does not replay

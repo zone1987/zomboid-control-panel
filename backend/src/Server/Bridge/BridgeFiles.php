@@ -28,6 +28,9 @@ final class BridgeFiles
     /** Where the loaded vehicles are, from bridge 0.10.0. */
     public const VEHICLES = self::DIRECTORY.'/vehicles.json';
 
+    /** What can be spawned, as opposed to what is placed in the world. */
+    public const VEHICLE_CATALOGUE = self::DIRECTORY.'/vehicle-catalogue.json';
+
     /** Factions and their members, from bridge 0.10.0. */
     public const FACTIONS = self::DIRECTORY.'/factions.json';
 
