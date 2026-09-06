@@ -213,6 +213,8 @@ final class EventController extends AbstractController
             // season's own, and releasing the admin pin is what hands it
             // back. Any number here would be a guess overriding it.
             'releaseTemperature' => [BridgeCommand::ReleaseClimate, ['name' => 'temperature']],
+            'releaseClimate' => [BridgeCommand::ReleaseClimate, ['name' => $inputs['name'] ?? null]],
+            'resetClimate' => [BridgeCommand::ResetClimate, []],
             'soundAtPlayer', 'soundAtPoint' => [BridgeCommand::PlaySound, $inputs],
             default => [BridgeCommand::SetClimateValue, [
                 'name' => self::CLIMATE_ACTIONS[$actionId] ?? null,

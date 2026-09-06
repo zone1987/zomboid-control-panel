@@ -422,7 +422,8 @@
     "outdated": "A newer version is available",
     "stale": "No recent reading",
     "noReading": "Nothing read yet",
-    "restartNeeded": "Uploaded but not loaded — the game server needs a restart."
+    "restartNeeded": "Uploaded but not loaded — the game server needs a restart.",
+    "refused": "The server refused the request."
   },
   "users": {
     "description": "Who has access to this application.",
@@ -1232,5 +1233,51 @@
       "unknown": "unknown"
     },
     "openSettings": "Open the settings"
+  },
+  "climate": {
+    "title": "Climate",
+    "description": "Every climate condition on the server — what the game is running, and what has been pinned.",
+    "now": "Climate now",
+    "season": "Season",
+    "falling": "Precipitation",
+    "nothing": "dry",
+    "thunder": "Thunderstorm",
+    "groups": {
+      "air": "Air",
+      "sky": "Sky",
+      "light": "Light"
+    },
+    "values": {
+      "temperature": "Temperature",
+      "wind": "Wind speed",
+      "windAngle": "Wind direction",
+      "humidity": "Humidity",
+      "clouds": "Cloud cover",
+      "fog": "Fog",
+      "precipitation": "Precipitation intensity",
+      "viewDistance": "View distance",
+      "daylight": "Daylight",
+      "globalLight": "Global light",
+      "nightStrength": "Night strength",
+      "ambient": "Ambient light",
+      "desaturation": "Desaturation"
+    },
+    "pinned": "Pinned",
+    "byTheGame": "run by the game",
+    "apply": "Set",
+    "release": "Release",
+    "releaseHint": "Hand this value back to the game",
+    "released": "The game is running that value again.",
+    "set": "\"{{name}}\" was set.",
+    "readOnly": "This value can only be read for now.",
+    "snowPinned": "Snow pinned",
+    "resetTitle": "Hand everything back to the game",
+    "reset": "Release all",
+    "resetDone": "Every pinned value was released.",
+    "nonePinned": "Nothing is pinned — the game is running all of it.",
+    "pinnedCount_one": "One value is pinned and will not follow the season.",
+    "pinnedCount_other": "{{count}} values are pinned and will not follow the season.",
+    "unavailable": "Cannot be read",
+    "needsBridge": "The climate values live in the running game, so this page needs the bridge."
   }
 }

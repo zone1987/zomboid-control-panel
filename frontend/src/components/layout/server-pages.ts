@@ -2,13 +2,14 @@ import {
   Car,
   CloudRain,
   Globe,
+  Map,
   MessagesSquare,
   Package,
   ScrollText,
-  Map,
   Skull,
   Sparkles,
   Terminal,
+  Thermometer,
   Users,
   Volume2,
   Zap,
@@ -60,6 +61,10 @@ export const EVENT_CHILDREN: ServerChildPage[] = [
   { path: 'actions', label: 'events.categories.actions', icon: Zap },
   { path: 'zombies', label: 'events.categories.zombies', icon: Skull },
   { path: 'world', label: 'events.categories.world', icon: Globe },
+  // Not a sixth category: the thirteen climate values are a state to
+  // look at, not thirteen events to fire, so the page reads the game and
+  // writes through the actions that already exist.
+  { path: 'climate', label: 'climate.title', icon: Thermometer },
 ]
 
 export const SERVER_PAGES: ServerPage[] = [

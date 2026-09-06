@@ -105,6 +105,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/events/weather-page'), 'WeatherPage'),
                     },
                     {
+                      // Also static: the thirteen climate values are a
+                      // state read from the running game, not a category
+                      // of events to pick from a list.
+                      path: 'servers/:id/events/climate',
+                      lazy: lazyRoute(() => import('@/features/events/climate-page'), 'ClimatePage'),
+                    },
+                    {
                       path: 'servers/:id/events/:category',
                       lazy: lazyRoute(() => import('@/features/events/category-page'), 'CategoryPage'),
                     },

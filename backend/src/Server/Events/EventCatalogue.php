@@ -97,6 +97,12 @@ final readonly class EventCatalogue
             // one: setClimateValue pins a value until something releases
             // it, and only the game knows what the season should be.
             new EventAction('releaseTemperature', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
+            // The general form, for the climate page: any one value by
+            // name, or every pinned one at once.
+            new EventAction('releaseClimate', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE, [], [
+                EventField::choice('name', array_keys(BridgeCommand::CLIMATE_VALUES), 'temperature'),
+            ]),
+            new EventAction('resetClimate', EventAction::CATEGORY_WEATHER, EventAction::CHANNEL_BRIDGE),
             new EventAction('thunder', EventAction::CATEGORY_SOUNDS, EventAction::CHANNEL_RCON, ['thunder'], [
                 EventField::player('player', required: false),
             ]),

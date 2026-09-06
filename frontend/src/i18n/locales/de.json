@@ -422,7 +422,8 @@
     "outdated": "Neuere Fassung verfügbar",
     "stale": "Keine aktuelle Meldung",
     "noReading": "Noch nichts gelesen",
-    "restartNeeded": "Hochgeladen, aber noch nicht geladen — der Spielserver muss neu gestartet werden."
+    "restartNeeded": "Hochgeladen, aber noch nicht geladen — der Spielserver muss neu gestartet werden.",
+    "refused": "Der Server hat die Anfrage abgelehnt."
   },
   "users": {
     "description": "Wer Zugang zu dieser Anwendung hat.",
@@ -1232,5 +1233,51 @@
       "unknown": "unbekannt"
     },
     "openSettings": "Einstellungen öffnen"
+  },
+  "climate": {
+    "title": "Klima",
+    "description": "Alle Klimabedingungen des Servers — was das Spiel führt und was festgesetzt ist.",
+    "now": "Klima jetzt",
+    "season": "Jahreszeit",
+    "falling": "Niederschlag",
+    "nothing": "trocken",
+    "thunder": "Gewitter",
+    "groups": {
+      "air": "Luft",
+      "sky": "Himmel",
+      "light": "Licht"
+    },
+    "values": {
+      "temperature": "Temperatur",
+      "wind": "Windgeschwindigkeit",
+      "windAngle": "Windrichtung",
+      "humidity": "Luftfeuchtigkeit",
+      "clouds": "Bewölkung",
+      "fog": "Nebel",
+      "precipitation": "Niederschlagsstärke",
+      "viewDistance": "Sichtweite",
+      "daylight": "Tageslicht",
+      "globalLight": "Globales Licht",
+      "nightStrength": "Nachtstärke",
+      "ambient": "Umgebungslicht",
+      "desaturation": "Entsättigung"
+    },
+    "pinned": "Festgesetzt",
+    "byTheGame": "vom Spiel geführt",
+    "apply": "Setzen",
+    "release": "Freigeben",
+    "releaseHint": "Diesen Wert wieder dem Spiel überlassen",
+    "released": "Der Wert wird wieder vom Spiel geführt.",
+    "set": "„{{name}}“ wurde gesetzt.",
+    "readOnly": "Dieser Wert kann derzeit nur gelesen werden.",
+    "snowPinned": "Schnee festgesetzt",
+    "resetTitle": "Alles dem Spiel überlassen",
+    "reset": "Alle freigeben",
+    "resetDone": "Alle festgesetzten Werte wurden freigegeben.",
+    "nonePinned": "Kein Wert ist festgesetzt — das Spiel führt alle selbst.",
+    "pinnedCount_one": "Ein Wert ist festgesetzt und folgt der Jahreszeit nicht.",
+    "pinnedCount_other": "{{count}} Werte sind festgesetzt und folgen der Jahreszeit nicht.",
+    "unavailable": "Nicht lesbar",
+    "needsBridge": "Die Klimawerte stehen im laufenden Spiel, also braucht diese Seite die Bridge."
   }
 }
