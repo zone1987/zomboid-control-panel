@@ -3775,7 +3775,7 @@ and that paths outside a server are left alone.
 
 | What | State |
 |---|---|
-| Frontend | **265 tests, 26 files green** |
+| Frontend | **260 tests, 26 files green** |
 | Lint | 0 errors, 29 warnings |
 | Live | the console still reachable with a full-permission account |
 

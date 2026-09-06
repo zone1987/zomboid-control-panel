@@ -143,6 +143,8 @@ final class EventController extends AbstractController
             $actor,
             $outcome->command,
             $outcome->reply,
+            inputs: self::scalarsOf($inputs),
+            failed: $outcome->failed(),
         );
 
         return new JsonResponse(['status' => 'sent', ...$outcome->toArray()]);
@@ -179,6 +181,25 @@ final class EventController extends AbstractController
         } catch (BridgeCommandFailed) {
             return $this->events->dispatch($server, $actionId, $inputs);
         }
+    }
+
+    /**
+     * The inputs, reduced to what a log column can hold.
+     *
+     * Anything the interface sent that is not a scalar was not something
+     * a person typed into a field, so dropping it loses nothing and
+     * keeps the column readable — the point is "rain at 70", not a
+     * faithful copy of the request body.
+     *
+     * @param array<string, mixed> $inputs
+     *
+     * @return array<string, scalar>|null
+     */
+    private static function scalarsOf(array $inputs): ?array
+    {
+        $kept = array_filter($inputs, static fn (mixed $value): bool => \is_scalar($value));
+
+        return $kept === [] ? null : $kept;
     }
 
     /** @param array<string, mixed> $inputs */
@@ -292,6 +313,10 @@ final class EventController extends AbstractController
                     'reply' => $a->getReply(),
                     'performedBy' => $a->getPerformedBy()?->getDisplayName(),
                     'performedAt' => $a->getPerformedAt()->format(\DateTimeInterface::ATOM),
+                    // What was asked for, so the list can say "rain at 70"
+                    // rather than only "rain".
+                    'inputs' => $a->getInputs(),
+                    'failed' => $a->hasFailed(),
                 ],
                 array_slice(array_values($entries), 0, 25),
             ),

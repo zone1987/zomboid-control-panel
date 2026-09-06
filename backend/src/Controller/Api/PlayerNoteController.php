@@ -159,6 +159,8 @@ final class PlayerNoteController extends AbstractController
                     'reply' => $entry->getReply(),
                     'performedBy' => $entry->getPerformedBy()?->getDisplayName(),
                     'performedAt' => $entry->getPerformedAt()->format(\DateTimeInterface::ATOM),
+                    'inputs' => $entry->getInputs(),
+                    'failed' => $entry->hasFailed(),
                 ],
                 $this->actions->forPlayer($server, $username),
             ),

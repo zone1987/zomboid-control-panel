@@ -79,6 +79,31 @@ class ModerationAction
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $reply = null;
 
+    /**
+     * What was asked for, as the interface put it.
+     *
+     * The history could say "rain" but never "rain at 70": the inputs
+     * were dropped on the way in, so the log recorded which action ran
+     * and not what it ran with. Null on every row written before this
+     * column existed, and on actions that take nothing.
+     *
+     * @var array<string, scalar>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $inputs = null;
+
+    /**
+     * Whether the server refused it.
+     *
+     * An attempt is worth recording either way — "who tried" is a
+     * question a log has to answer — but a list that cannot tell a
+     * refusal from a success reads as though everything worked. Null
+     * means unknown, which is what every row written before this column
+     * existed truthfully is.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?bool $failed = null;
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $performedBy;
@@ -105,6 +130,9 @@ class ModerationAction
         ?string $reason = null,
         ?string $reply = null,
         ?\DateTimeImmutable $expiresAt = null,
+        /** @var array<string, scalar>|null */
+        ?array $inputs = null,
+        ?bool $failed = null,
     ) {
         $this->expiresAt = $expiresAt;
         $this->id = Uuid::v7();
@@ -112,6 +140,8 @@ class ModerationAction
         $this->action = $action;
         $this->username = $username;
         $this->performedBy = $performedBy;
+        $this->inputs = $inputs === [] ? null : $inputs;
+        $this->failed = $failed;
         $this->reason = $reason;
         $this->reply = $reply;
         $this->performedAt = new \DateTimeImmutable();
@@ -145,6 +175,23 @@ class ModerationAction
     public function getReply(): ?string
     {
         return $this->reply;
+    }
+
+    /**
+     * What was asked for, or null where nothing was or it predates the
+     * column.
+     *
+     * @return array<string, scalar>|null
+     */
+    public function getInputs(): ?array
+    {
+        return $this->inputs;
+    }
+
+    /** True when refused, false when accepted, null when unknown. */
+    public function hasFailed(): ?bool
+    {
+        return $this->failed;
     }
 
     public function getPerformedBy(): ?User

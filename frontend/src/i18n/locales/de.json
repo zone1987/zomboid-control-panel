@@ -675,7 +675,8 @@
     "byTheSystem": "automatisch",
     "joined": "Hat den Server betreten",
     "left": "Hat den Server verlassen",
-    "banExpired": "Bann ist abgelaufen"
+    "banExpired": "Bann ist abgelaufen",
+    "wasRefused": "Der Server hat das abgelehnt."
   },
   "console": {
     "title": "RCON-Konsole",

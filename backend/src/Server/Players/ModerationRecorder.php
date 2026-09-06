@@ -46,6 +46,10 @@ final readonly class ModerationRecorder
         ?string $reason = null,
         ?string $reply = null,
         ?\DateTimeImmutable $expiresAt = null,
+        /** What was asked for, so the log can say "rain at 70". @var array<string, scalar>|null */
+        ?array $inputs = null,
+        /** True when the server refused it; null when nobody checked. */
+        ?bool $failed = null,
     ): ModerationAction {
         $entry = new ModerationAction(
             $server,
@@ -55,6 +59,8 @@ final readonly class ModerationRecorder
             $reason,
             $reply,
             $expiresAt,
+            $inputs,
+            $failed,
         );
 
         $this->entityManager->persist($entry);
@@ -76,6 +82,10 @@ final readonly class ModerationRecorder
         ?string $reason = null,
         ?string $reply = null,
         ?\DateTimeImmutable $expiresAt = null,
+        /** What was asked for, so the log can say "rain at 70". @var array<string, scalar>|null */
+        ?array $inputs = null,
+        /** True when the server refused it; null when nobody checked. */
+        ?bool $failed = null,
     ): ModerationAction {
         $entry = new ModerationAction(
             $server,
@@ -85,6 +95,8 @@ final readonly class ModerationRecorder
             $reason,
             $reply,
             $expiresAt,
+            $inputs,
+            $failed,
         );
 
         $this->entityManager->persist($entry);

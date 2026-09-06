@@ -35,11 +35,27 @@ export function PlayerHistory({
     <ul className="divide-y">
       {items.map((entry, index) => (
         <li key={`${entry.performedAt}-${index}`} className="flex flex-wrap gap-x-3 gap-y-1 py-2 text-sm">
-          <Badge variant="outline" className="shrink-0">
+          {/* A refusal is not a success, and a list that cannot tell
+              them apart reads as though everything worked. */}
+          <Badge
+            variant={entry.failed === true ? 'destructive' : 'outline'}
+            className="shrink-0"
+            title={entry.failed === true ? t('players.wasRefused') : undefined}
+          >
             {t(`players.actionName.${entry.action}`, { defaultValue: entry.action })}
           </Badge>
 
           <span className="min-w-0 flex-1">
+            {/* What was asked for, which the log could not say before:
+                "rain" and "rain at 70" are different events. */}
+            {entry.inputs !== null && (
+              <span className="mr-2 font-mono text-xs text-muted-foreground">
+                {Object.entries(entry.inputs)
+                  .map(([name, value]) => `${name}=${String(value)}`)
+                  .join(' ')}
+              </span>
+            )}
+
             {/* A reason is prose or a key: the backend writes
                 `players.joined` for a join, and printing that verbatim is
                 what the history did until now. */}

@@ -3,6 +3,11 @@ doctrine:
         types:
             encrypted_string: App\Security\Encryption\EncryptedStringType
         url: '%env(resolve:DATABASE_URL)%'
+        # messenger_messages belongs to the transport, not to any entity,
+        # so every generated migration proposed dropping its three
+        # indexes -- the ones that keep the queue fast. Twice now they
+        # had to be removed by hand; ignoring the table is the fix.
+        schema_filter: ~^(?!messenger_messages)~
 
         # IMPORTANT: You MUST configure your server version,
         # either here or in the DATABASE_URL env var (see .env file)

@@ -203,6 +203,10 @@ export type PlayerHistoryEntry = {
   reply: string | null
   performedBy: string | null
   performedAt: string
+  /** What was asked for, so the list can say "rain at 70". */
+  inputs: Record<string, string | number | boolean> | null
+  /** True when refused, false when accepted, null when nobody checked. */
+  failed: boolean | null
 }
 
 /** What was done to one player, and only to them. */

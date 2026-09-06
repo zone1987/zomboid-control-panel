@@ -675,7 +675,8 @@
     "byTheSystem": "automatic",
     "joined": "Joined the server",
     "left": "Left the server",
-    "banExpired": "The ban expired"
+    "banExpired": "The ban expired",
+    "wasRefused": "The server refused this."
   },
   "console": {
     "title": "RCON console",
