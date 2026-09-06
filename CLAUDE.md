@@ -83,3 +83,114 @@ the host fails with missing native bindings, and vice versa.
 A change is done when it has been demonstrated, not when it looks right.
 Backend work gets a test; interface work gets checked in a real browser.
 State plainly what was verified and what was not.
+
+## 7. The product standard: it must be intuitive
+
+Stated repeatedly by the user and binding on every decision. Not "has the
+feature" — **intuitive**. A reference panel exists at
+`https://zomboid.andreas-gerhardt.com` and is a source of shapes to learn
+from, never a checklist to match: copy, improve or reject each of its
+patterns on this test alone.
+
+What that means concretely:
+
+- **Show the state, not just the control.** A weather page that cannot say
+  whether it is raining is a guess machine. "Vehicles (0 loaded)" tells you
+  whether "nothing" means hidden or absent; "Vehicles" does not.
+- **Pick things by sight where they have a look.** 241 vehicles have
+  liveries and real names; body tiles and a livery grid beat a dropdown of
+  `Base.*` strings.
+- **No modal for something you compare.** Player details belong in a column
+  you can switch within, not a box you close and reopen.
+- **One page, one job** — and no page with 26 of them.
+- **Never offer what cannot work.** A control needing the panel to sit
+  beside the game, or a button that stops a server nothing can restart, is
+  worse than its absence.
+- **Say why something is unavailable.** Disabled with a reason beats
+  vanished.
+- **Type nothing you could click.** Variable chips over hand-typed braces, a
+  day arc over an hour field, presets over "fill in intensity".
+- **Show what will happen before it happens.** A live preview, a
+  confirmation naming the destructive action, a verdict from the server
+  rather than "the call did not throw".
+- **A card gets the width its content needs, not the width available.** Full
+  width is for a table, a map or a log — not a two-line text box.
+
+## 8. Local versus remote: what this deployment can do
+
+The reference panel can be installed **beside the game server**. **This one
+runs in Docker or on Coolify, remote**, reaching the server only through
+**FTP/SFTP** and **RCON**, plus the Lua bridge it uploads itself. Several
+reference features are therefore impossible or pointless here, and the
+difference must be stated rather than silently copied.
+
+| Reference feature | Here |
+|---|---|
+| Host CPU / RAM / disk metrics | **Impossible** — would measure our own container |
+| Start the server | **Impossible** — RCON needs it running; `quit` and `save` work, so shutdown is one-way |
+| Panel port, HTTPS, self-restart | **Not applicable** — Docker or Coolify owns those |
+| Steam Workshop / mod management | **Yes, and valuable** — `-mods` and `WorkshopItems` live in the INI, which we read and write |
+| Server config editor, scheduler, backups | **Yes** — plain files over FTP, `servermsg` over RCON |
+
+Rule: **copy the shape, not the feature list.** Where a feature depends on
+locality, find the remote equivalent or leave it out and say why.
+
+## 9. Performance and accessibility are requirements, not polish
+
+- **Lazy-load and cache wherever it pays.** Measured examples: three.js was
+  static in the map bundle (960 kB → 368 kB by importing it where used);
+  both locales sat in the entry chunk (only the active one loads now).
+- **Lighthouse 100 on all four scores** is the target the user set.
+- **Images are optimised, never shipped as uploaded.** Trim the border,
+  scale to what is displayed, re-encode at quality 80, offer AVIF and WebP
+  and let the browser choose. Measured: the logos went 3.6 MB → 412 kB.
+  WebP beats AVIF on flat graphics; AVIF wins on photographs — keep both.
+- **BFSG compliance in full, with one exception: the map.** Its panning,
+  zooming and label reveals *are* the information, and the accessibility
+  directive provides for exactly that. `prefers-reduced-motion` is honoured
+  globally and `.pz-map` is excluded from it deliberately.
+- **Contrast is computed, not eyeballed.** The first green came out at
+  exactly 4.50:1 against white, which rounding decides; it was darkened to
+  5.00:1.
+- **No colour-only meaning.** Roughly one man in twelve cannot separate red
+  from green, so state carries a shape as well as a hue.
+
+## 10. Data protection: nothing the panel needs is removed
+
+Compliance here means processing what the purpose requires and being able to
+account for it — **not** dropping data and breaking the tool.
+
+Stays, with its reason:
+
+| Data | Why |
+|---|---|
+| **SteamID** | A ban is worthless without it: names change, the id does not |
+| **Positions** | The map *is* the feature |
+| **Moderation log** | Answering "who banned this player, and why" is the point — and protects the banned player too |
+| **Health, skills, traits** | What the player dossier exists to show |
+
+What is narrower: a retention horizon for players nobody has seen in
+months, **set by the operator and off by default**, never touching the ban
+list. Plus a per-player export and erase, so a request can be answered
+without opening the database by hand.
+
+Also: **no analytics, no CDN fonts, no trackers.** The CSP enforces it with
+`default-src 'self'` and two named exceptions.
+
+## 11. Delegating to subagents
+
+Permitted and encouraged, with rules learnt the hard way:
+
+- **Disjoint file sets only.** Give each agent an explicit allow-list and an
+  explicit forbidden list. Name the files another agent is holding.
+- **Never let an agent touch the bridge.** A bridge change needs the file
+  uploaded and the game server restarted, which only the user can do — so
+  **any bridge change must be reported in the main task**, not buried in an
+  agent's report.
+- **Two at a time, not three.**
+- **Do not run the full test suite while agents are writing.** A 468-test
+  run reading half-written files produces phantom failures; verify your own
+  work with `--filter` until they finish.
+- **Check their work yourself.** Read the diff, re-run the tests. Three
+  agents delivered correctly today; one still put a task in the wrong
+  schedule file because the brief named the wrong one.

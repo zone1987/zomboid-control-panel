@@ -1766,3 +1766,534 @@ openings in the body are the model as authored.
 **The server name cannot be edited.** A server's name is set when it is
 created and there is no way to change it afterwards. The user asked for
 this first, ahead of the unfinished vehicle work above.
+
+## 2026-09-06 — The server name and description became editable
+
+Done. This was the task recorded above as the next one.
+
+### What was actually missing
+
+Nothing in the backend. `PATCH /api/servers/{id}` already accepted both
+`name` and `description`, and `updateServer()` in
+`frontend/src/features/servers/servers.ts` already sent them. The gap was
+the interface: `server-detail-page.tsx` printed the name as a heading and
+the description as a paragraph beneath it, and offered no field for
+either. The create dialog on the list page asks only for a name, so a
+description could never be set at all.
+
+### The change
+
+A third tab, **General**, first in the row and the one that opens by
+default, holding the two fields:
+`frontend/src/features/servers/server-detail-page.tsx:214`. It reuses the
+page's existing draft-and-save mechanism, so a change there is saved by
+the same button as the FTP and RCON tabs and cancelled by the same
+Cancel. `Input` rather than a textarea — the project has no textarea
+primitive and a one-line note is what the field is for.
+
+`maxLength={100}` on the name matches the column and the
+`Assert\Length(max: 100)` on the entity, so the limit is felt while
+typing rather than reported after saving.
+
+### A blank name is now refused rather than swallowed
+
+`ServerController::update()` used to test
+`trim($payload['name']) !== ''` as part of deciding whether to apply the
+name at all, so clearing the field and pressing Save returned 200 with
+the old name and a "saved" toast. The operator was told their change was
+kept when it was discarded. It now answers 422 with
+`errors.name = validation.required`, the same shape `create()` uses
+(`backend/src/Controller/Api/ServerController.php:95`).
+
+The interface does not rely on that: `nameIsBlank` disables Save and
+shows `servers.nameRequired` under the field. The backend check is the
+one that matters for anything calling the API directly.
+
+### Translations
+
+Five new keys per locale, added to the existing `servers` block:
+`generalTab`, `generalTitle`, `generalDescription`,
+`descriptionPlaceholder`, `nameRequired`. `servers.name` and
+`servers.description` already existed and are reused.
+
+### Verification
+
+- Three new backend tests in
+  `backend/tests/Functional/ServerConfigurationTest.php`:
+  `testRenamesAServer` (and that it trims), `testChangesAndClearsTheDescription`
+  (set, then clear back to null), `testKeepsTheNameWhenTheNewOneIsBlank`
+  (422, and the stored name is untouched afterwards). The last one failed
+  against the old controller with 200, which is what proved the fault.
+- Permission is already covered: `PermissionEnforcementTest::testSeeingServersDoesNotAllowEditingThem`
+  patches `name` with only `ViewServers` and expects 403. No new test was
+  added for it.
+- 421 backend tests, 137 frontend tests, 14 Lua checks, production build,
+  linter 0 errors. `git diff --check` clean.
+- Checked in a real browser against the live panel
+  (`https://zomboidcontrol.ddev.site:5173/app/servers/…`): renamed
+  "GTX Gaming" to "GTX Gaming Kentucky" with a description, and the
+  heading, the paragraph, both fields and the sidebar entry all followed.
+  Blanking the name showed the message and disabled Save. Cancel
+  discarded. The server was then set back to "GTX Gaming" with an empty
+  description, which also confirmed a cleared description reaches the
+  database as null.
+
+### Still open, unchanged from the entry above
+
+1. Wheels — the `bodyFrame()` fix in `vehicle-renderer.ts` is written but
+   has never been seen working. Force a fresh render first; the cache is
+   keyed by type, paint and heading, so editing the code does not
+   invalidate it.
+2. Bridge 0.12.1 is not on the server yet — the panel reports 0.12.0
+   installed against 0.12.1 available. Until it is uploaded and the game
+   server restarted, vehicles render in the default paint.
+3. Body damage, rust and broken windows: researched, nothing implemented.
+4. The upload descriptions naming the exact source folder for each asset
+   kind were asked for and are not written.
+
+---
+
+# 2026-09-06 — A long session: shell, logo, vehicles, and a suite that finally passes
+
+The full plan for everything below lives at
+**`~/.claude/plans/snug-stargazing-russell.md`** — read it before picking
+any of this up. It carries the reasoning, the measured facts and the
+decisions the user made, in more depth than this log.
+
+## Everything the user asked for, in the order they asked
+
+Recorded verbatim in intent, because much of it is not yet built.
+
+1. **Rename "Eventkonsole" to "Events"**, and give it sub-categories in the
+   sidebar — weather as its own entry.
+2. **A weather page with icons** — rain, fog, thunderstorm — not a text list.
+3. **Separate actions from weather**: "Blitz ist eher eine aktion, donner
+   gehört eher zu geräuschen."
+4. **"Das UX muss einfach intuitiver und ansprechender werden"** — repeated
+   three times over the session. Now rule 7 in CLAUDE.md.
+5. **Vehicle spawning out of Events entirely**, into a top-level page built
+   like Items: a grid, single selection, player on the right. With **all
+   variants and liveries** per vehicle, two levels (body first, then
+   livery), drawn with the map's own renderer.
+6. **Weather off the players page** — "wieso wird mir dort das wetter
+   angezeigt?"
+7. **Language and theme toggles in the top bar**, theme with dark/light/
+   **system**. A notification bell later, only once there is a real use.
+8. **The panel as a PWA**, with a Zomboid zombie face as its logo.
+9. **A player dossier like the reference panel's** — vitals, moderation,
+   spawn, abilities, notes and log — built whole, including healing, god
+   mode, XP and the rest.
+10. **Design closer to the reference panel**: "volle Annäherung" — Zomboid
+    green, monospace section marks, terminal feel.
+11. **Two-column card lists** where a card holds a short control.
+12. **Charts** on the overview and a statistics page — kills per player was
+    the example.
+13. **Panel version shown, and update checks** against GitHub — "vielleicht
+    wäre was für die benachrichtigungsglocke".
+14. **Security headers** and **a proper `llms.txt`**.
+15. **Avatars from the social login, and changeable** — with cropping and
+    scaling, not just upload.
+16. **Web-optimised images**: AVIF or WebP, quality 80, scaled down.
+17. **Maximum performance**: lazy loading everywhere, caching where it pays.
+18. **Lighthouse 100** everywhere.
+19. **`prefers-reduced-motion` honoured everywhere — except the map.**
+20. **GDPR compliance** — with the explicit correction that **nothing the
+    panel needs may be removed**.
+21. **Discord integration** like the reference panel's, and beyond it:
+    **admin actions individually switchable** (`addItem` yes, healing no),
+    with **every message editable**.
+22. **Conventional commits** from now on.
+23. **Better hover effects, page transitions, gradients and backgrounds.**
+24. **Favourites for vehicles, and filtering by them.**
+25. **Delegate to subagents** — but only tasks with no points of contact,
+    and **any bridge change must surface in the main task**.
+
+## Built and committed today
+
+Nine commits, `34053c4` through `11f603c`. All green: **468 backend tests,
+172 frontend tests, 10 Lua checks, 0 lint errors**, three consecutive
+backend runs to prove stability.
+
+### `fix(tests): leave the database as the test found it` — `a451b0e`
+
+**The most valuable fix of the session.** The functional suite had failed
+differently on every run since the tests were written — 10 to 50 errors, a
+broad collapse into 401s across unrelated classes. Two subagents hit it
+independently and both correctly called it pre-existing; one proved it with
+five runs of the untouched baseline.
+
+Cause: every functional test emptied its tables in **`setUp`**. That cleans
+before each test but never after the last, so whichever class ran last left
+rows in the shared test database and the next run died on a duplicate
+email.
+
+`backend/tests/Functional/FunctionalTestCase.php` now clears in
+**`tearDown`**, once, and all 17 tests extend it. Dependent tables first,
+because Postgres enforces the keys.
+
+**Deliberately not in `setUp`:** touching the container there boots the
+kernel before `createClient()`, which Symfony refuses. My first attempt did
+exactly that and turned 30 flaky errors into 167 consistent ones — which at
+least proved the mechanism.
+
+### `feat: give the panel a shell` — `72d61a3`
+
+- Top bar with language and theme toggles. **Theme gained its third state**:
+  `ThemeProvider` supported dark/light/system all along, but the sidebar's
+  flip (`theme === 'dark' ? 'light' : 'dark'`) could not express "follow the
+  system".
+- **Weather removed from the players page** and moved to the overview.
+- The overview, previously 32 lines holding one untranslated card, now
+  carries stat cards, the world strip, an activity timeline and section
+  tiles with per-area state. **Host telemetry deliberately absent** — it
+  would measure our own container.
+- Panel version declared once in `services.yaml` (`app.version: 1.0.0`),
+  reported by `/api/health`, shown in the sidebar footer.
+- `PanelUpdateChecker` against the GitHub releases API, **cached six
+  hours** because unauthenticated calls are limited to sixty an hour.
+  `upToDate` is **null** when the check fails: not knowing is not the same
+  as being current.
+- Security headers in the kernel rather than a vhost, since the panel runs
+  behind whatever Docker or Coolify provides. HSTS only over TLS.
+- `robots.txt`, `X-Robots-Tag: noindex`, and `llms.txt` as a map of the
+  project for contributors.
+
+### `perf: split the heavy chunks` — `21328af`
+
+- **three.js was static in the map bundle**: 960 kB for a renderer that
+  idles until artwork is uploaded. Now dynamically imported — the map page
+  is **368 kB** and the renderer a 592 kB chunk a bare map never fetches.
+  Note the abandonment guard: closing the map while three.js loads would
+  otherwise leave an ownerless renderer.
+- **Both locales sat in the entry chunk.** English stays (it is the
+  fallback every missing key resolves against); German is its own chunk.
+  564 kB → 524 kB.
+- Motion: page transitions, hover lift, a faint primary wash on the
+  surface. All stops under `prefers-reduced-motion` — **measured 0.00001s
+  against 0.16s** — with `.pz-map` excluded by design.
+- `locales.test.ts`: same keys in both languages, no empty values, matching
+  interpolations. It catches exactly the mistake made earlier in the branch,
+  where five action names existed in neither locale.
+
+### `feat: make the panel installable` — `d79f9ea`
+
+PWA with manifest, service worker and icons. API **never** cached; map
+tiles cached a month. A newer build **offers** a reload in the top bar
+rather than taking it — reloading mid-ban-reason would lose it.
+
+**A real accessibility bug fixed:** `index.html` declared `lang="de"`
+unconditionally, so a screen reader read English with a German voice. Now
+hooked to i18next's own `languageChanged` event — the one place every path
+passes through. My first attempt set it only after `init()`, which never ran
+for an English start; **caught in a browser**, English text under
+`lang="de"`, not by reasoning.
+
+### `feat: put the real logo on the panel` — `399b1f9`
+
+The user supplied three variants. The badge sits on the sign-in page, the
+hexagon mark in the sidebar and as the app icon.
+
+**The name beside the badge is text, not part of the image.** Rendered from
+the wordmark at 128 px, "CONTROL PANEL" was already illegible; as text it
+stays sharp and a screen reader can read it.
+
+**Optimised, not shipped as delivered:** 1254 px squares over a megabyte
+each, a third of it border. Trimmed, scaled, offered as AVIF and WebP.
+**3.6 MB → 412 kB**, the badge alone 1205 kB → 30 kB. WebP beat AVIF here —
+the opposite of the earlier photograph measurement — because these are flat
+shapes with hard edges.
+
+**The favicon stays the drawn SVG.** At 32 px the real logo collapses to a
+green hexagon; the SVG scales sharply.
+
+### `refactor(bridge)` + `fix(bridge)` — `7ba32bf`, `a598999`
+
+Bridge **0.13.3**, currently **running on the live server**.
+
+`writeVehicleCatalogue()` walks `getAllVehicles()` — whatever the server
+loaded, mods included — and reports each script's model. Written
+incrementally, the way `writeItems()` already handles five thousand items.
+
+**Three corrections, each from running it rather than reading about it:**
+
+1. `getModel()` returns a **Model object**, not a string. Printing it gave
+   `VehicleScript$Model@1a35f99a` for all 241 vehicles; the file name is on
+   the object (`getFile()`).
+2. **A script carries exactly one skin.** The 51 van liveries are 51
+   separate scripts, not skins of one — confirmed in `vehicle_van.txt`,
+   which holds a single `skin` block. `getSkinCount()` reported nothing
+   useful because the assumption was wrong, not the call.
+3. **`VehicleScript` has two members**: `textures` (one Skin, holding the
+   script's own block) and `skins` (a list, empty throughout the base game).
+   `getTextures()` is asked first, `getSkin(0)` kept as a fallback for a
+   modded vehicle that fills the list.
+
+**Then the user corrected the whole approach**, and was right: the panel
+*already* holds every vehicle's model, texture and paint mask in
+`VehicleCatalogue`, generated from the game's scripts — and the artwork
+those names point at is uploaded by the operator through an interface that
+already exists. Asking the server for textures was a second source of truth
+for no gain. The bridge now reports **only what the server alone knows**:
+which vehicles exist, and which model each uses.
+
+### `feat(vehicles): give spawning a page of its own` — `11f603c`
+
+`/app/servers/<id>/vehicles`, sidebar entry between Items and Chat.
+
+Live figures from the running server: **241 vehicles, 21 bodies, 68
+drawable now** (the rest need textures uploaded). Real names throughout —
+"Franklin Valuline — van (57)", "Dash Bulldriver (45)".
+
+- `SpawnableVehicles` joins the bridge's list with the panel's artwork,
+  cached per bridge session id like `ItemCatalogue`.
+- `VehicleNames` (generated, 213 entries from `IG_UI.json`) supplies the
+  display names the scripts do not carry. **42 catalogue entries have
+  none** — wrecks, burnt shells, build 42's trade vans — so it falls back
+  to the script name spaced out.
+- Bodies group by **shared paint mask**; the 20 unmasked entries are all
+  wrecks and go into one group rather than 20 groups of one. Two masks
+  share the name "Franklin Valuline", so a duplicate gets a readable
+  qualifier ("— van", "— vanseats").
+- `VehicleSpawnController` reuses the event catalogue's `addvehicle`
+  wiring, whose argument shape is pinned by `EventDispatcherTest`.
+- **A vehicle the panel cannot picture is still listed and still
+  spawnable.** Hiding it would remove a working capability, and that is
+  exactly the modded case.
+
+### `feat(players)` ×2 — `736decf`, `c9a6a92`
+
+From subagents, both checked and both green.
+
+`RosterWatcher` records joins and leaves by diffing the roster against the
+snapshots, which makes it idempotent under a 5-second poll. **The case that
+mattered:** a bridge that is not answering reports an empty roster, and that
+must not read as everybody leaving. The discriminator already existed —
+`refresh()` throws on an unreadable file and flags `stale` when too old.
+
+`StalePlayerPurger` with an operator-set horizon, **off by default**. The
+ban list is untouched by design: a ban that expired by itself would be a
+security regression. A row exactly on the horizon stays. Scheduled beside
+the ban lifter in `MainSchedule`, not the unused Flex stub in
+`Schedule.php` — the brief named the wrong file and the agent said so.
+
+### The rest
+
+- `feat(settings): group the tab strip into sections` — `dc490bb`. Labels
+  are `aria-hidden` so the tablist keeps its roles; a heading announced
+  between tabs would break "tab 3 of 5".
+- `perf(vehicles): immutable ETag for model artwork` — `34053c4`. A 304
+  still reads the file to hash it, because `ModelStore` offers no digest.
+- `fix(events): stop range-checking an empty optional number` — `47c9759`.
+  The early-out sat after the number branch, so an optional number was
+  effectively required. No action declares one today, which is why it needed
+  a test rather than a bug report.
+- `refactor(nav): one table of server pages` — `4dfdb59`. The sidebar and
+  breadcrumbs each held the same seven pairs, in different orders.
+- `feat: let a server be renamed after it is created` — `e8c44bc`. Clearing
+  the name used to answer 200 and keep the old one.
+
+## Uncommitted, in progress
+
+`git status` shows these mid-flight:
+
+```
+ M frontend/src/features/vehicles/vehicles-page.tsx
+ M frontend/src/features/vehicles/vehicle-preview.tsx
+ M frontend/src/i18n/locales/{de,en}.json
+ M frontend/src/routes/router.tsx
+?? frontend/src/features/vehicles/body-tile.tsx
+```
+
+State: typecheck clean, lint 0 errors, locale test green. **Not yet checked
+in a browser since the last change.** What changed and why:
+
+- **The body row became a picture grid** (`body-tile.tsx`). Twenty-one text
+  buttons in three wrapping rows made an operator read a wall of names to
+  find a shape they would recognise on sight. The user called the old
+  version "maximal unintuitiv und die IX ist grausam".
+- **Both grids share `minmax(9rem,1fr)`** — the user asked for equal box
+  widths, and 9 rem is what fits "Chevalier Cerise Wagon" over two lines.
+- **A heading over each grid**: "Karosserie" above, "Lackierungen" below.
+- **The lower grid is empty until a body is chosen** — the user's last
+  instruction, and clearer than the "one of each" third state I had.
+- **`CATALOGUE_HEADING = 285`** in `vehicle-preview.tsx`. The map's heading
+  zero points away down the isometric axis, which showed a catalogue tile
+  the vehicle's back. 285 turns the nose towards the viewer. **This is the
+  one thing that needs a browser check first** — it was set, built, but
+  never seen.
+- The route needed **deeper indentation** than my first patch assumed, so
+  it silently did nothing and the page 404'd. Fixed; the anchor is
+  `path: 'servers/:id/chat'` at 20 spaces.
+
+## TODO — pick up here
+
+Ordered so each item is doable without the one after it.
+
+### 1. Finish the vehicle page (in progress, uncommitted)
+
+- [ ] **Check `CATALOGUE_HEADING = 285` in a browser.** Set and built,
+      never seen. If the nose still points away, the other candidates are
+      **267**, **277** or **297** — the arithmetic is
+      `(wanted_screen_angle − 243.4) mod 360`, and the renderer buckets to
+      15°.
+- [ ] **Vehicle favourites, and filtering by them** — the user's last
+      request before the compact. `localStorage` per server id is the
+      established pattern here (`active-server.tsx`, `theme-provider.tsx`,
+      `i18n/config.ts` all use try/catch around it). A star on the tile, a
+      "Favoriten" filter beside the body grid. Strings are **already in
+      both locales**: `vehicles.favourites`, `addFavourite`,
+      `removeFavourite`, `noFavourites`.
+- [ ] Verify a real spawn against the live server — needs a player online.
+- [ ] Frontend tests for `vehicles.ts` (`matches`, `representatives` — note
+      `representatives` is now unused and should go if nothing needs it).
+- [ ] Commit as `feat(vehicles)`, then push.
+
+### 2. Remove vehicle spawning from Events
+
+`spawnVehicle` still sits in `EventCatalogue::players()`. Removing it means:
+- [ ] Delete the entry and `VehicleScripts.php`; move `isValidName()` — the
+      new controller already carries its own copy of the pattern.
+- [ ] `EventDispatcherTest`'s injection case (around line 98) **moves to
+      the vehicle tests rather than being deleted** — the injection guard
+      is why that test exists.
+- [ ] Delete `events.actions.spawnVehicle.*` from both locales.
+
+### 3. Events into five categories (plan phases 2–4)
+
+The largest remaining restructuring. Full detail in the plan; the essentials:
+- [ ] `EventAction::GROUP_*` → `CATEGORY_WEATHER/SOUNDS/ACTIONS/ZOMBIES/WORLD`,
+      `$group` → `$category`. **Backend and frontend in one commit** — the
+      JSON key change breaks the frontend type otherwise.
+- [ ] **Thunder → sounds, lightning → actions.** Proven from the bytecode:
+      both call `transmitServerTriggerLightning(x, y, doStrike, doLightning,
+      doRumble)`, and `thunder` passes `(false, false, true)` — the rolling
+      sound alone — while `lightning` passes `(false, true, true)`.
+- [ ] **Merge the duplicated rain.** `bridgeStartRain`/`bridgeStopRain` go;
+      `startRain`/`stopRain` gain `CHANNEL_PREFERRED` (bridge first,
+      fall back to RCON on `BridgeCommandFailed` only).
+- [ ] Sidebar children via a `children` field on `SERVER_PAGES` (now in
+      `components/layout/server-pages.ts`); `isExactly` helper for the
+      children, prefix match kept for the parent.
+- [ ] Layout route with an index, a static `weather` child and a
+      `:category` child.
+- [ ] Third breadcrumb level. `crumbsFor()` is already extracted and tested.
+- [ ] `EventDispatcherTest`'s catalogue walk skips
+      `!== CHANNEL_RCON` (line ~154) — **invert it to `=== CHANNEL_BRIDGE`**
+      or the merged rain silently leaves coverage.
+- [ ] `EventsApiTest`: re-pin the `ModerationAction` assertion once rain
+      prefers the bridge.
+
+### 4. The weather page
+
+- [ ] Icon tiles as presets (frontend-only bundles of existing actions,
+      fired sequentially with one toast). Names verified present in lucide:
+      `Sun`, `Cloudy`, `CloudDrizzle`, `CloudRain`, `CloudRainWind`,
+      `CloudLightning`, `CloudFog`, `SunDim`.
+- [ ] `<WorldStrip serverId={id} />` at the top, imported as-is.
+- [ ] Slider rows for fog, clouds, wind, temperature. **`radix-ui` is
+      already a dependency and carries `Slider`** — a wrapper, not a new
+      dependency.
+- [ ] **Snow is omitted**: needs `setPrecipitationIsSnow()`, no action, no
+      handler. New capability, deferred.
+- [ ] The clickable **day arc** for the world page (the user chose it over
+      an analogue clock, which is ambiguous across 24 hours).
+- [ ] **Actions page as large directly-actionable cards**, not
+      list-and-detail — three entries make a select-then-fill step friction.
+
+### 5. Bridge 0.14: the weather state the page needs
+
+**Requires an upload and a game-server restart — announce it.**
+- [ ] Report `fog`, `clouds`, `thunderstorm`, `precipitation` in the world
+      state. The game exposes `getFogIntensity()`, `getCloudIntensity()`,
+      `getIsThunderStorming()`, `getPrecipitationIntensity()`.
+- [ ] Then the live band is complete and the active preset can highlight.
+
+### 6. The player dossier (plan phase 3)
+
+Build whole, as the user asked. Capability research is **done** — the
+findings, with signatures, are in the plan. Key points:
+- [ ] List left / dossier right. `player-detail.tsx` stops being a `Dialog`
+      and becomes the vitals tab. `ban-dialog` and `teleport-dialog` stay
+      modal.
+- [ ] **God mode, invisible, noclip, XP, voice ban, SteamID ban, whitelist
+      are all plain RCON** — `godmodplayer`, `invisibleplayer`,
+      `noclip <user>`, each taking `-true`/`-false` so the panel sets a
+      state instead of toggling blind. **No bridge needed for that tab.**
+- [ ] **Healing needs the bridge**, and is proven possible: the game itself
+      does it server-side in `ClientCommands.lua` (`RestoreToFullHealth()`
+      per body part, then `syncBodyPart`).
+- [ ] **Vitals**: build 42 replaced the old `Stats` setters with
+      `set(CharacterStat, float)`; the 24 stats carry their own
+      `getMinimumValue()`/`getMaximumValue()`, so generate the sliders from
+      the game's bounds. Weight is `IsoPlayer.getNutrition().setWeight(double)`.
+- [ ] **A voice ban does not persist** — in-memory only, lost on reconnect.
+      The row must say so.
+- [ ] **Kill is the one unproven item.** The API exists
+      (`Kill`, `dieNetwork`, `setHealth(0)`) but no server-side call site
+      exists in the game's own Lua. Test before shipping.
+- [ ] Notes and tags need a `PlayerNote` entity and a migration.
+- [ ] **The dossier log is filtered to the selected player** — the
+      reference panel shows everybody's and needs a second search box
+      inside a view already scoped to one player. `moderation_action`
+      already has `idx_server_username`.
+- [ ] Route `new ModerationAction(...)` through one recorder service while
+      adding the dossier actions. It appears in **six** places today; phase
+      3 adds several more, and that seam is where notifications later hook
+      in. Cheap now, expensive across twelve call sites later.
+
+### 7. Deferred, agreed as separate plans
+
+- [ ] **Discord** — the strongest reference feature. Bot status, per-command
+      permissions, two-way chat relay, and **event notifications with every
+      message editable**. Beyond the reference: **admin actions individually
+      switchable**, default **off**, ideally to a separate channel.
+      `ChatLine.php:63` already parses inbound Discord messages;
+      `ChatBroadcaster` already sends. **`ChatLine` does not parse the
+      channel** (`main_tab_title_id` is ignored), which "General only"
+      versus "all public chat" needs.
+- [ ] **Steam Workshop / mod management** — the user called it especially
+      valuable. `-mods` and `WorkshopItems` live in the INI, readable and
+      writable over FTP.
+- [ ] **Server config editor** — INI, sandbox (183 values), spawn points
+      and regions.
+- [ ] **Scheduler** — cron tasks, restart warnings with a countdown,
+      preset broadcasts. Caveat: **we can stop a server, never start one.**
+- [ ] **Statistics and charts.** `getZombieKills()`, `getSurvivorKills()`,
+      `getHoursSurvived()` are on `IsoGameCharacter` — three lines of Lua.
+      **But `PlayerSnapshot` is one overwritten row per player, not a time
+      series**, so "players online over time" needs a new sample table.
+      Charts are a new dependency (no `recharts`), though `--chart-1`…`5`
+      tokens already exist in both themes.
+- [ ] **The notification bell.** Its first real content is now known:
+      panel and bridge updates, plus the join/leave and admin-action feed.
+- [ ] **Avatars**: from the social login (`SteamProfileFetcher` already
+      calls `GetPlayerSummaries`, whose response carries `avatarfull`) and
+      uploadable **with cropping and scaling**. GD is installed and already
+      used this way in `IconExtractor::crop()`. **Proxy rather than
+      hotlink**, so `img-src 'self'` stays true.
+- [ ] **Lighthouse measurement** — never actually run. Needs a browser
+      against the running app.
+- [ ] **Wheels on the map renderer** — the `bodyFrame()` fix is written and
+      still **never seen working**. Force a fresh render; the cache is keyed
+      by type, paint and heading, so editing code does not invalidate it.
+- [ ] **`ModerationAction`'s overloaded columns** — `username` holds the
+      action id, `reason` the command, inputs are dropped and there is no
+      `failed` flag, so the recent list cannot say "rain at 70".
+- [ ] **Route-level permission guards** — per-page permissions are enforced
+      only in the sidebar today.
+- [ ] **Coordinate-based thunder and lightning**, blizzard and tropical
+      storm, and the seven unexposed climate values already in
+      `CLIMATE_VALUES`.
+
+## Verification state at the end of this session
+
+| | |
+|---|---|
+| Backend tests | **468, green** — three consecutive runs |
+| Frontend tests | **172 across 17 files, green** |
+| Lua checks | **10, green** (`vehicle-catalogue-test.lua`) |
+| Linter | **0 errors**, 30 warnings (all pre-existing) |
+| Typecheck | clean |
+| Build | clean, PWA generated |
+| Bridge on the server | **0.13.3**, matching what ships here |
+| Not verified | the vehicle page since the grid rework; `CATALOGUE_HEADING`; Lighthouse; a real spawn |
