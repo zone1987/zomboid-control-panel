@@ -3149,199 +3149,354 @@ against a command with no handler.
 
 ---
 
+## Snow that stays snow, the full climate surface, and a status bar (2026-09-06)
+
+The user's order was snow and a blizzard first, then all the climate
+settings. Both landed, plus five things they asked for while it ran.
+
+### Snow: the setter was a lie, and the bytecode said so
+
+**The symptom the user reported**: `-6 °C und es regnet. Aber eigentlich
+sollte es jetzt schneien.` The panel had reported success.
+
+**The cause, read from `javap -p -c` against the installation** at
+`/Volumes/ESD-USB/ProjectZomboid/projectzomboid.jar`:
+
+```
+public void setPrecipitationIsSnow(boolean);
+  0: aload_0
+  1: getfield  precipitationIsSnow:ClimateManager$ClimateBool
+  4: iload_1
+  5: putfield  ClimateManager$ClimateBool.finalValue:Z   <-- and nothing else
+  8: return
+
+public boolean getPrecipitationIsSnow();
+  ... getfield ClimateManager$ClimateBool.finalValue:Z   <-- the same field
+```
+
+So `setPrecipitationIsSnow` writes **only `finalValue`**, and
+`getPrecipitationIsSnow` reads **that same field** back. The bridge's
+read-back therefore only ever proved its own write had happened — never
+that the game kept it. `calculate()` recomputes `finalValue` from the
+season on its next tick and the snow becomes rain again.
+
+**The fix**: the admin override on `ClimateBool[0]`, which is the route
+the game's own admin console takes (`ISAdmPanelClimate.lua:418`).
+`setEnableAdmin(true)` + `setAdminValue(snowing)`, then
+`setPrecipitationIsSnow` as well so the *current* tick shows it. The
+read-back is now `getAdminValue()`, which is a different field from the
+one just written and therefore means something.
+
+**Measured live**: `Schnee` at `-5,0 °C` on the world strip, where the
+same temperature had read `Regen` before. Verified in a browser after
+the user restarted with 0.17.
+
+### The presets know what snow needs
+
+- **Cool first.** The game refuses snow above freezing, so `setSnow`
+  before a temperature step is a step asking to be refused. Order is
+  declared and asserted: `cools below freezing before it asks for snow`.
+- **The slider cannot undo its own preset.** The user: *"beim
+  wetterevent schnee ist es quatsch wenn man die temperatur auf über
+  0 °C stellen kann."* A `PresetStep` may now carry `min`/`max` that
+  **narrow** the field's range, never widen it — the action still
+  declares what the server accepts. Snow caps at `-1`.
+- **Clear releases rather than sets.** Only the game knows what July is,
+  so `releaseTemperature` lifts the pin (`ClimateFloat::setEnableAdmin(false)`)
+  instead of guessing a number. Asserted, including that clear does
+  **not** contain `setTemperature`.
+- **A step can rename itself.** `startRain` reads wrongly under a snow
+  preset, so a step may carry `label` → `events.stepLabels.startSnow`
+  ("Schnee starten"). The user asked for exactly this wording.
+- **A toggle step is stated, not offered.** On the snow preset the
+  precipitation type *is* what "snow" means, so a switch able to turn it
+  back to rain would undo the preset just chosen. The row reads
+  "Niederschlag fällt als Schnee" via `events.toggleStates.setSnow.true`.
+  The `toggle` field type stays in the catalogue — the climate page needs
+  it — but `weather-page.tsx` renders a preset step as a statement.
+
+### Bridge 0.17.0: everything the climate exposes
+
+Erhebung per `javap` (subagent, `zombie/iso/weather/*`), not assumed.
+What it corrected or added:
+
+| Finding | Consequence |
+|---|---|
+| Temperature is **−80…80 °C**, not −30…40 | `CLIMATE_BOUNDS[4]`; the weather page keeps the narrower `WEATHER_MIN/MAX_CELSIUS` because a preset is a plausible day |
+| `windAngle` is **−1…1**, `viewDistance` **0…100**, the rest 0…1 | `BridgeCommand::CLIMATE_BOUNDS`; `setAdminValue` **clamps silently**, so an out-of-range value would be applied as something else and reported as success |
+| `getClimateFloat(int)` only — **no name lookup** | the name↔index pairing lives in `CLIMATE_FLOATS` (Lua) and `CLIMATE_VALUES` (PHP) |
+| `FLOAT_MAX = 13` is a sentinel; indices are 0…12 | the project's assumed list was **correct** |
+| One `ClimateBool`: `BOOL_IS_SNOW = 0` | `setSnow`, `releaseSnow` |
+| Two `ClimateColor`: `COLOR_GLOBAL_LIGHT = 0`, `COLOR_NEW_FOG = 1` | recorded in `CLIMATE_COLOURS`, **not yet exposed** |
+| `triggerCustomWeatherStage(stage, hours)` is what the game's own admin panel calls | `triggerWeatherStage`, 8 named stages, 1–240 h |
+| `triggerCustomWeather(strength, warm)` lets the simulation decide | `generateWeather`, strength 10–100 %, warm/cold front |
+| Every `ClimateFloat` has `getMin()`/`getMax()` | `readClimate` reports them, so the climate page needs no hard-coded table |
+
+New Lua handlers in **0.17.0** (was 0.15.0):
+`releaseClimate`, `resetClimate` (the game's own `resetAdmin()`),
+`releaseSnow`, `triggerWeatherStage`, `generateWeather`; `readClimate`
+extended with per-float `index`/`min`/`max`, the snow bool's own override
+state, `thunderStorming`, `season`, `seasonProgression`, `airMass`,
+`frontStrength`; `setSnow` rewritten as above.
+
+**One load-time trap avoided**: `WeatherPeriod.STAGE_*` at module level
+would run when the mod loads, and a missing class there takes the whole
+bridge down rather than one handler. `stageNumber()` reads it inside a
+`pcall` and falls back to the numbers `javap` reports (storm 3,
+blizzard 7, tropical 8).
+
+**`stopWeather` moved to `CHANNEL_PREFERRED`** — the bridge's
+`stopWeatherAndThunder()` also stops the thunder, which RCON's
+`stopweather` leaves running.
+
+### Units come from the field
+
+Section 10e's open item, closed. `EventField` gained `unit` plus
+`UNIT_PERCENT/KPH/CELSIUS/HOURS/TILES/COUNT` and a `percent()`
+shorthand; `EventCatalogue` states it once per field;
+`frontend/src/features/events/units.ts` prints it.
+
+Two corrections the user made while it landed:
+
+- **"jetzt stehen die einheiten hier doppelt"** — it was on the range
+  *and* the number. Now on the range only, which is the label that
+  explains; the input carries it in its `aria-label`.
+- **"Schreib bitte -30 °C - 40 °C"** — `-30–40` is unreadable, because
+  the range dash and the minus are the same stroke. `formatRange` puts
+  the unit on **both ends** when the minimum is negative, and keeps the
+  compact form otherwise.
+
+`events.range` is deleted: with the unit inside the formatted string the
+key held only `{{range}}`.
+
+### Weather presets in four groups
+
+The user: *"können wir die wetterereignisse noch ein bisschen
+kategorisieren?"* `PRESET_GROUPS = ['calm','rain','snow','air']`, each
+preset declares one, `presetsOf()` selects. Asserted: every preset in a
+declared group, no group empty, both locales label all four. The gap
+between groups is wider than inside one (`pt-2 first:pt-0` over
+`space-y-1.5`) after *"lass zwischen den gruppen ein klein wenig
+abstand"*.
+
+### A status bar under the page
+
+The user's own diagnosis of where things sat: the version and the credits
+link at the bottom of the sidebar, the four lights crowded into the top
+bar. All three are facts, so all three moved to
+`frontend/src/components/layout/app-footer.tsx` — `h-9`, deliberately
+shorter than the `h-14` header, on the user's instruction (*"nicht so
+hoch werden wie die top-bar"*). Left: `Panel v1.0.0`, a quiet divider
+(`h-3 bg-border/50`), `Bridge v0.17.0`, another divider, Danksagungen as
+a **button**. Right: the four lights at `h-6`.
+
+- `PanelVersionLine` lost its sidebar-specific classes and gained
+  `labelled`, so the label cannot outlive the value it names.
+- `BridgeVersionLine` (new) reads the connections endpoint the lights
+  already poll, so it costs no request.
+- `CreditsContent` (new) is the attribution extracted once; the page and
+  the new `CreditsDialog` both render it. **The page stays**: The Indie
+  Stone's terms ask for a visible notice and a dialog cannot be linked
+  to, so the dialog carries a link to `/credits`.
+
+### The bridge light was lying, and the endpoint had no test
+
+Spotted on the live page: the footer read `Bridge v0.17.0` while the
+server was still running 0.15.0. `BridgeInstaller::status()` compares the
+**file on disk** against what the panel ships — but the mod loads at
+server start, so an upload changes the file and nothing else. The light
+said "up to date" at exactly the moment it exists to warn.
+
+`ServerInfoReader` was already discarding the `bridgeVersion` the running
+bridge writes into its own output. It keeps it now, and
+`BridgeVersionVerdict` (new, pure, 5 tests) decides between three
+versions: running ≠ on disk → `bridge.restartNeeded`; otherwise current
+vs. available. Proven by reverting to the old comparison: 1 failure.
+
+**And the endpoint had no test at all.** A refactor deleted
+`ConnectionStatusEndpoint::game()` and all 529 tests stayed green while
+the browser got a 500 (`Attempted to call an undefined method named
+"game"`). `ConnectionStatusTest` (new, 6 tests) asks for the response;
+deleting that method again fails 4 of its 6.
+
+Also cost 15 minutes: after adding a class to that controller the dev
+environment kept returning 500 until `php bin/console cache:clear`.
+
+### Files
+
+| File | Change |
+|---|---|
+| `backend/resources/bridge/ZomboidControlBridge.lua` | **0.17.0**; `setSnow` rewritten, `releaseClimate`, `resetClimate`, `releaseSnow`, `triggerWeatherStage`, `generateWeather`, `readClimate` extended, `CLIMATE_FLOATS`, `stageNumber()` |
+| `backend/src/Server/Bridge/BridgeCommand.php` | `ReleaseClimate`, `ResetClimate`, `ReleaseSnow`, `TriggerWeatherStage`, `GenerateWeather`; `CLIMATE_BOUNDS`, `CLIMATE_BOOL_IS_SNOW`, `CLIMATE_COLOURS`, `WEATHER_STAGES`, `MAX_STAGE_HOURS`; `climateValue()`, `stage()` |
+| `backend/src/Server/Bridge/BridgeVersionVerdict.php` | **new** — running vs. on disk vs. shipped |
+| `backend/src/Server/Bridge/ServerInfoReader.php` | keeps `bridgeVersion` |
+| `backend/src/Controller/Api/ConnectionStatusEndpoint.php` | judges by the running bridge; reports `installedVersion` too |
+| `backend/src/Server/Events/EventField.php` | `unit`, six unit constants, `percent()`, `toggle()` |
+| `backend/src/Server/Events/EventCatalogue.php` | `setSnow`, `startBlizzard`, `releaseSnow`, `releaseTemperature`, `triggerWeatherStage`, `generateWeather`; units on every bounded number; `WEATHER_MIN/MAX_CELSIUS` |
+| `backend/src/Controller/Api/EventController.php` | maps all six; `stopWeather` through the bridge |
+| `frontend/src/features/events/units.ts` | **new** — `withUnit`, `formatRange` |
+| `frontend/src/features/events/weather-presets.ts` | groups, `snow`, `blizzard`, `label`, `min`/`max` per step |
+| `frontend/src/features/events/weather-page.tsx` | groups, per-step refusal, toggle as a statement, narrowed bounds, `w-fit min-w-full xl:min-w-3xl` |
+| `frontend/src/features/events/event-form.tsx` | `toggle` branch, units |
+| `frontend/src/components/layout/app-footer.tsx` | **new** |
+| `frontend/src/components/layout/bridge-version-line.tsx` | **new** |
+| `frontend/src/features/panel/credits-content.tsx`, `credits-dialog.tsx` | **new** |
+| `backend/tests/Functional/ConnectionStatusTest.php` | **new**, 6 |
+| `backend/tests/Unit/Server/Bridge/BridgeVersionVerdictTest.php` | **new**, 5 |
+
+### Verification
+
+| What | State |
+|---|---|
+| Backend | **535 tests, 5268 assertions green** |
+| Frontend | **228 tests, 20 files green** |
+| Lua | `luac -p` clean |
+| Lint | 0 errors, 29 pre-existing warnings |
+| Typecheck, build | clean |
+| **Snow on the live server** | **verified — `Schnee` at `-5,0 °C`, bridge 0.17.0 running** |
+| The footer, the groups, the units, the labels | **seen in a browser** |
+| Guards proven to fail when reverted | unit guard, the verdict, `game()` deletion |
+| Not verified | `triggerWeatherStage`, `generateWeather`, `resetClimate`, `releaseClimate`, `releaseSnow` — all shipped in 0.17.0 and **never fired**; the climate page they exist for is next |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
-The user set the order explicitly: **snow and blizzard first, then all
-the climate settings, then the rest.**
+## 1. The climate page — the next thing, and the bridge is ready
 
-## 1. Snow and a snowstorm as weather events
+Bridge 0.17.0 carries everything it needs and **none of it has been
+fired yet**. That is the first job: exercise `readClimate`,
+`releaseClimate`, `resetClimate`, `triggerWeatherStage` and
+`generateWeather` against the live server before building on them.
 
-The bridge can already do this — 0.15 is live. What is missing is the
-panel side.
+- [ ] **Decide page vs. sixth category.** Thirteen sliders are not
+      thirteen events, so: a **page** at
+      `servers/:id/events/climate`, reading `readClimate` and writing
+      `setClimateValue` — plus an `EVENT_CHILDREN` entry and a sidebar
+      child, which is what makes it reachable.
+- [ ] **A `readClimate` endpoint.** There is none: the action is a
+      *write* channel and this is a read. Probably
+      `GET /api/servers/{id}/climate` beside `ConnectionStatusEndpoint`,
+      read-only and safe to poll.
+- [ ] **Bounds come from the reading, not a table.** Every float now
+      reports its own `min`/`max`; three differ from 0..1
+      (temperature −80…80, windAngle −1…1, viewDistance 0…100). Do not
+      hard-code them a second time in the frontend.
+- [ ] **Show the override state, and offer to release it.** A pinned
+      value reads "you have pinned this", an unpinned one "the game is
+      running this". `releaseClimate` (one) and `resetClimate` (all)
+      exist for exactly this.
+- [ ] **Units per 10e** — % for the 0..1 values shown as percentages,
+      °C, km/h against the 120 ceiling. `EventField::unit` is built;
+      this page does not go through `EventField`, so it needs the same
+      `withUnit`/`formatRange` from `features/events/units.ts`.
+- [ ] **The user asked for it graphically** — *"schön grafisch
+      aufbereitet auch vielleicht mit einem thermometer Icon usw"*.
+      A thermometer for temperature, a wind icon, a cloud, a sun; the
+      icons already used on the world strip (`world-strip.tsx`) are the
+      precedent, and lucide has `Thermometer`, `Wind`, `Cloud`,
+      `Sun`, `Droplets`, `Eye`, `Moon`, `Sparkles`.
+- [ ] **The two `ClimateColor`s are not exposed** —
+      `COLOR_GLOBAL_LIGHT = 0`, `COLOR_NEW_FOG = 1`, each with
+      exterior/interior RGBA and its own admin override
+      (`setAdminValueExterior/-Interior`). No bridge handler yet. The
+      game's own panel offers them as colour pickers
+      (`ISAdmPanelClimate.lua:363-371`).
+- [ ] **`triggerWeatherStage` deserves a control** — 8 named stages with
+      a duration is more than the presets express, and it is what the
+      game's own admin panel offers.
 
-- [ ] **A `setSnow` action in `EventCatalogue`**, category `weather`,
-      `CHANNEL_BRIDGE`, with a boolean input. **The `toggle` field type
-      does not exist yet**: `EventField` has `player`, `text`, `choice`
-      and `number`. Adding it means the factory, the type in
-      `events.ts`, and a branch in `event-form.tsx`'s `FieldInput`.
-- [ ] **A `startBlizzard` action**, category `weather`,
-      `CHANNEL_BRIDGE`, no inputs.
-- [ ] **Map both in `EventController::throughBridge()`** —
-      `'setSnow' => [BridgeCommand::SetSnow, ['snowing' => ...]]` and
-      `'startBlizzard' => [BridgeCommand::StartBlizzard, []]`.
-- [ ] **Two presets** in `weather-presets.ts`: `snow`
-      (`setSnow` true, `startRain` for the intensity) and `blizzard`
-      (`startBlizzard`). Icons verified present in lucide:
-      **`Snowflake`**, **`CloudSnow`**.
-- [ ] **Say when it will not work.** `setSnow` reads back and fails with
-      the temperature when the game refuses — the panel must show that
-      reason rather than a success toast. The existing `StepRow` already
-      renders an unavailable step struck through; a *refused* step is a
-      different case and needs its own message.
-- [ ] Labels in both locales under `events.presets.*` and
-      `events.actions.*`.
-
-## 2. All the climate settings — a Klima page under Events
-
-The user's words: "unter Events ein weiteres untermenü Klima wo wir alle
-auf dem server herrschenden Klimabedingungen anpassen können".
-
-- [ ] **`readClimate` is the foundation and already exists** in bridge
-      0.15. It returns, for each of the thirteen values: `value`
-      (`getFinalValue`), `admin` (`isEnableAdmin`), `adminValue`
-      (`getAdminValue`) — plus `windSpeedKph`, `maxWindSpeedKph`,
-      `snowing`, `raining`.
-- [ ] **A `climate` category** — a sixth in `EventAction::CATEGORIES`,
-      or a page of its own outside the catalogue. Decide which:
-      the catalogue drives the nav and the routes, but thirteen sliders
-      are not thirteen "events". **Probably a page, reading `readClimate`
-      and writing through `setClimateValue`**, which already exists and
-      takes an index plus a value.
-- [ ] The thirteen values, with their indices confirmed from
-      `ClimateManager`'s constant pool: `0 desaturation, 1 globalLight,
-      2 nightStrength, 3 precipitation, 4 temperature (−80…80), 5 fog,
-      6 wind, 7 windAngle, 8 clouds, 9 ambient, 10 viewDistance (…100),
-      11 daylight, 12 humidity`. Six are exposed today; seven are not.
-- [ ] **Show the admin override state.** A climate float has
-      `setEnableAdmin(true)` and an admin value that overrides the
-      game's own — so the page must say "the game is running this" versus
-      "you have pinned this", and offer a way to release it
-      (`setEnableAdmin(false)`, which needs a bridge handler).
-- [ ] **Units, per section 10e.** Temperature is degrees; wind is km/h
-      against the 120 ceiling; the rest are 0..1 shown as percentages.
-      Do not put a raw 0..1 in front of anybody.
-- [ ] A sidebar child under Events, a label in both locales, and an
-      entry in `EVENT_CHILDREN`.
-
-## 2b. Units are missing from every range and value
-
-Spotted by the user on the weather page: the step rows read **"1–100"**,
-**"0–100"** and **"0–120"** with nothing after them, so nothing says the
-first two are percentages and the third km/h. The same confusion the
-wind control had, moved from the value to its label.
-
-- [ ] **Add a `unit` to `EventField`** so the catalogue states it once
-      and every renderer shows it — rather than each page guessing from
-      the action's name. `EventField.php` has `player`, `text`,
-      `choice`, `number`; the factories are all in that one file.
-- [ ] **Print it in both renderers.** `weather-page.tsx`'s `StepRow` and
-      `event-form.tsx` both output `{min}–{max}`; the number field's own
-      value should carry it too.
-- [ ] The units in play: **%** for the 0..100 climate values, **km/h**
-      for wind, **°C** for temperature, **h** for the storm duration and
-      the hour, **tiles** for a horde radius.
-- [ ] While there: `events.range` currently formats "1 bis 100". It
-      needs the unit as a parameter rather than a second key per unit.
-
-## 3. The remaining event pages
+## 2. The remaining event pages
 
 - [ ] **Actions as large directly-actionable cards** rather than
       list-and-detail: with three entries (lightning, chopper,
-      broadcast), select-then-fill is pure friction. Lightning and
-      chopper are one click; broadcast carries its field in its own card.
-- [ ] **The day arc for the world page** — a horizontal band from
-      midnight to midnight with sunrise and sunset marked and night
-      shaded, the current hour highlighted, plus quick picks for dawn,
-      noon, dusk, midnight. Chosen over an analogue clock, which is
-      ambiguous across 24 hours. Daylight sits beneath it, because the
-      two interact.
-- [ ] **Sounds and Zombies** already work through the generic page. The
-      Zombies page must keep its `AlertDialog` confirmation.
+      broadcast), select-then-fill is pure friction.
+- [ ] **The day arc for the world page** — a band from midnight to
+      midnight, sunrise and sunset marked, night shaded, the current
+      hour highlighted, quick picks for dawn/noon/dusk/midnight.
+      Daylight sits beneath it, because the two interact.
+- [ ] **Sounds and Zombies** work through the generic page. Zombies must
+      keep its `AlertDialog`.
 
-## 4. The player dossier (plan phase 3)
+## 3. The player dossier (plan phase 3)
 
-Unchanged and still the largest single piece. Capability research is
-**done**; the findings with signatures are in the plan at
-`~/.claude/plans/snug-stargazing-russell.md`. The points that decide the
-work:
+Unchanged, still the largest single piece. Capability research **done**;
+signatures in `~/.claude/plans/snug-stargazing-russell.md`. The points
+that decide the work:
 
 - [ ] List left / dossier right. `player-detail.tsx` stops being a
       `Dialog` and becomes the Vitals tab. `ban-dialog` and
-      `teleport-dialog` stay modal — short confirmed input is what a
-      dialog is for.
+      `teleport-dialog` stay modal.
 - [ ] **God mode, invisible, noclip, XP, voice ban, SteamID ban and
-      whitelist are all plain RCON** — `godmodplayer`, `invisibleplayer`,
-      `noclip <user>`, each taking `-true`/`-false` so the panel sets a
-      state rather than toggling blind. **No bridge needed for that tab.**
-- [ ] **Healing needs the bridge**, and is proven possible: the game
-      does it server-side in `ClientCommands.lua`
-      (`RestoreToFullHealth()` per body part, then `syncBodyPart`).
-- [ ] **Vitals**: build 42 replaced the old `Stats` setters with
+      whitelist are all plain RCON** — each takes `-true`/`-false`, so
+      the panel sets a state rather than toggling blind. **No bridge.**
+- [ ] **Healing needs the bridge**; the game does it server-side in
+      `ClientCommands.lua` (`RestoreToFullHealth()` per body part, then
+      `syncBodyPart`).
+- [ ] **Vitals**: build 42 replaced the `Stats` setters with
       `set(CharacterStat, float)`; the 24 stats carry their own
-      `getMinimumValue()`/`getMaximumValue()`, so generate the sliders
-      from the game's bounds. Weight is
-      `IsoPlayer.getNutrition().setWeight(double)`.
-- [ ] **A voice ban does not persist** — in-memory only, lost on
-      reconnect. The row must say so.
-- [ ] **Kill is the one unproven item.** The API exists (`Kill`,
-      `dieNetwork`, `setHealth(0)`) but no server-side call site exists
-      in the game's own Lua. Test before shipping.
+      `getMinimumValue()`/`getMaximumValue()` — generate the sliders from
+      the game's bounds, exactly as the climate page now does.
+- [ ] **A voice ban does not persist** — in-memory, lost on reconnect.
+- [ ] **Kill is unproven.** The API exists; no server-side call site
+      does. Test before shipping.
 - [ ] Notes and tags need a `PlayerNote` entity and a migration.
-- [ ] **The dossier log is filtered to the selected player** — the
-      reference panel shows everybody's and then needs a second search
-      box inside a view already scoped to one player.
+- [ ] The dossier log is **filtered to the selected player**;
       `moderation_action` already has `idx_server_username`.
-- [ ] Route `new ModerationAction(...)` through one recorder service
-      while adding the dossier actions. It appears in **six** places
-      today; that seam is where notifications later hook in.
+- [ ] Route `new ModerationAction(...)` through one recorder while
+      adding the dossier actions — six literals today, and that seam is
+      where notifications later hook in.
 
-## 5. Deferred, agreed as separate plans
+## 4. Deferred, agreed as separate plans
 
-- [ ] **Discord** — the strongest reference feature. Bot status,
-      per-command permissions, two-way chat relay, and **event
-      notifications with every message editable**. Beyond the reference:
-      **admin actions individually switchable**, default **off**, ideally
-      to a separate channel. `ChatLine.php:63` already parses inbound
-      Discord messages and `ChatBroadcaster` already sends; **`ChatLine`
-      does not parse the channel** (`main_tab_title_id` is ignored),
-      which "General only" versus "all public chat" needs.
+- [ ] **Discord** — bot status, per-command permissions, two-way relay,
+      event notifications with **every message editable**; admin actions
+      individually switchable, default **off**, ideally to a separate
+      channel. `ChatLine.php:63` parses inbound Discord already;
+      **`ChatLine` does not parse the channel** (`main_tab_title_id`
+      ignored), which "General only" needs.
 - [ ] **Steam Workshop / mod management** — the user called this
-      especially valuable. `-mods` and `WorkshopItems` live in the INI,
-      readable and writable over FTP.
-- [ ] **Server config editor** — INI, sandbox (183 values), spawn points
-      and regions.
-- [ ] **Scheduler** — cron tasks, restart warnings with a countdown,
-      preset broadcasts. Caveat: **we can stop a server, never start
-      one.**
+      especially valuable. `-mods` and `WorkshopItems` are in the INI.
+- [ ] **Server config editor** — INI, sandbox (183 values), spawn
+      points and regions.
+- [ ] **Scheduler** — cron tasks, restart warnings, preset broadcasts.
+      Caveat: **we can stop a server, never start one.**
 - [ ] **Statistics and charts.** `getZombieKills()`,
       `getSurvivorKills()`, `getHoursSurvived()` are on
-      `IsoGameCharacter` — three lines of Lua. **But `PlayerSnapshot` is
-      one overwritten row per player, not a time series**, so "players
-      online over time" needs a new sample table. Charts are a new
-      dependency (no `recharts`), though `--chart-1`…`5` tokens already
+      `IsoGameCharacter`. **`PlayerSnapshot` is one overwritten row per
+      player, not a time series** — "online over time" needs a sample
+      table. New dependency (no `recharts`), though `--chart-1`…`5`
       exist in both themes.
-- [ ] **The notification bell.** Its content is now known: panel and
-      bridge updates, plus the join/leave and admin-action feed.
-- [ ] **Avatars** from the social login (`SteamProfileFetcher` already
-      calls `GetPlayerSummaries`, whose response carries `avatarfull`)
-      and uploadable **with cropping and scaling**. GD is installed and
-      already used this way in `IconExtractor::crop()`. **Proxy rather
-      than hotlink**, so `img-src 'self'` stays true.
-- [ ] **Lighthouse measurement** — never actually run.
+- [ ] **The notification bell** — content known: panel and bridge
+      updates, plus the join/leave and admin-action feed.
+- [ ] **Avatars** from the social login (`GetPlayerSummaries` already
+      returns `avatarfull`) and uploadable **with cropping**. GD is
+      installed and used this way in `IconExtractor::crop()`. **Proxy,
+      never hotlink**, so `img-src 'self'` stays true.
+- [ ] **Lighthouse** — never run.
 - [ ] **Wheels on the map renderer** — the `bodyFrame()` fix is written
-      and still **never seen working**. Force a fresh render; the cache
-      is keyed by model, texture, paint and heading, so editing code does
+      and **never seen working**. Force a fresh render; the cache is
+      keyed by model, texture, paint and heading, so editing code does
       not invalidate it.
 - [ ] **`ModerationAction`'s overloaded columns** — `username` holds the
-      action id, `reason` the command, inputs are dropped and there is no
-      `failed` flag, so the recent list cannot say "rain at 70".
-- [ ] **Route-level permission guards** — per-page permissions are
-      enforced only in the sidebar today.
-- [ ] **A real vehicle spawn against the live server** — needs a player
+      action id, `reason` the command, inputs are dropped, no `failed`
+      flag, so the recent list cannot say "rain at 70".
+- [ ] **Route-level permission guards** — enforced only in the sidebar.
+- [ ] **A real vehicle spawn** against the live server — needs a player
       online, never tried end to end.
-- [ ] **Coordinate-based thunder and lightning**, tropical storm, and the
-      seven unexposed climate values (covered by item 2 above).
+- [ ] **Coordinate-based thunder and lightning.** The engine takes
+      `(x, y, doStrike, doLightning, doRumble)`; RCON takes a player
+      name only. Would let a strike be placed on the map.
 
-## Where the code is, for the two next items
+## Where the code is, for item 1
 
 | What | Where |
 |---|---|
-| Bridge handlers | `backend/resources/bridge/ZomboidControlBridge.lua`, `handlers.<name> = function` from ~line 1200 |
-| Bridge commands | `backend/src/Server/Bridge/BridgeCommand.php` — enum plus `validate()` |
-| Bridge→action mapping | `backend/src/Controller/Api/EventController.php::throughBridge()` |
-| Climate indices | `BridgeCommand::CLIMATE_VALUES`, and `CLIMATE_ACTIONS` in `EventController` |
-| Event catalogue | `backend/src/Server/Events/EventCatalogue.php`; field types in `EventField.php` |
-| Weather page | `frontend/src/features/events/weather-page.tsx` |
-| Presets | `frontend/src/features/events/weather-presets.ts` |
+| Bridge climate handlers | `backend/resources/bridge/ZomboidControlBridge.lua` — `readClimate` ~1389, `resetClimate` ~1450, `releaseClimate` ~1270, `releaseSnow` ~1472, `triggerWeatherStage` ~1523, `generateWeather` ~1556 |
+| Indices, bounds, colours, stages | `BridgeCommand::CLIMATE_VALUES`, `CLIMATE_BOUNDS`, `CLIMATE_COLOURS`, `WEATHER_STAGES` |
+| Bridge→action mapping | `EventController::throughBridge()` |
+| A read-only pollable endpoint to copy | `backend/src/Controller/Api/ConnectionStatusEndpoint.php` |
+| Units | `frontend/src/features/events/units.ts` |
+| Icons per condition, as a precedent | `frontend/src/features/servers/world-strip.tsx` |
 | Sidebar children | `frontend/src/components/layout/server-pages.ts`, `EVENT_CHILDREN` |
-| Category route | `frontend/src/routes/router.tsx` — static above `:category` |
+| Category route (static above `:category`) | `frontend/src/routes/router.tsx` |

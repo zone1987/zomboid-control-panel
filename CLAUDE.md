@@ -279,10 +279,16 @@ was wrong; the pair was unusable.
   **"0–100 %"**, **"−30–40 °C"**, and put the unit on the field's own
   value too. A bare range is a range in unknown units.
 - **The unit belongs to the field, not to the page.** `EventField`
-  should carry it so the catalogue states it once and every renderer
-  shows it, rather than each page guessing from the action's name.
-  Currently unbuilt: `event-form.tsx` and `weather-page.tsx` both print
-  `{min}–{max}` with nothing after it.
+  carries it, so the catalogue states it once and every renderer shows
+  it. `features/events/units.ts` prints it: `withUnit` and
+  `formatRange`.
+- **Once, at the label that explains it.** On the range, not also on the
+  input beside it — "0–120 km/h" above a field reading "95 km/h" says it
+  twice, which is noise. The input keeps it in its `aria-label`.
+- **A negative range needs it on both ends.** `-30–40` cannot be read:
+  the range dash and the minus are the same stroke. Write
+  **"−30 °C – 40 °C"**, and keep the compact form when the minimum is
+  positive.
 
 ## 10f. The bridge and the panel are two files uploaded apart
 
@@ -300,9 +306,49 @@ mod is uploaded by hand — so a mismatch surfaces on a live server as
   and to the user. Only they can do it.
 - **`DocumentationTest` will fail** until `llms.txt` names the new
   version. That is the intended behaviour, not an obstacle.
-- **Read back rather than trusting a setter.** The game refuses snow
-  outside a cold season, so `setSnow` returns what it actually applied
-  and the panel can say so instead of claiming success.
+- **Read back rather than trusting a setter — from a different field
+  than the one you wrote.** `setPrecipitationIsSnow` writes
+  `ClimateBool.finalValue` and `getPrecipitationIsSnow` reads that same
+  field, so the read-back proved only that the write happened. The game
+  recomputed `finalValue` on its next tick and the snow became rain,
+  while the panel had reported success. The admin override
+  (`setEnableAdmin` + `setAdminValue`) is what persists, and
+  `getAdminValue()` is a read that means something.
+- **Ask the class, not your memory.** `javap -p -c` against
+  `/Volumes/ESD-USB/ProjectZomboid/projectzomboid.jar` settled in
+  minutes what guessing had got wrong for an hour: which field a setter
+  writes, that temperature is −80…80 rather than −30…40, that
+  `setAdminValue` **clamps silently** rather than refusing, and that
+  three of the thirteen climate floats do not run 0..1. A silent clamp
+  applies something other than what was asked and reports success.
+- **Nothing at module level touches an exposed game class.** A
+  `local X = WeatherPeriod.STAGE_STORM` runs when the mod loads, and a
+  class not yet reachable there takes the **whole bridge** down rather
+  than one handler. Read it inside the handler, in a `pcall`, with the
+  literal as a fallback.
+
+## 10g. A status the endpoint cannot be wrong about
+
+Two failures in one afternoon, both from a status that was read off the
+convenient thing rather than the true one.
+
+- **The file on disk is not the running mod.** The mod loads at server
+  start, so an upload changes the file and nothing else.
+  `BridgeInstaller::status()` compares disk against shipped, which read
+  "up to date" while the game still answered with the older handler set
+  — the one moment the light exists for. The bridge writes its own
+  version into its output; **that** is the one answering commands.
+  `BridgeVersionVerdict` decides between all three.
+- **An endpoint with no test can lose a method silently.** A refactor
+  deleted `ConnectionStatusEndpoint::game()` and all 529 tests stayed
+  green while the browser got a 500. A controller returning a shape the
+  interface polls needs a functional test that **asks for the response**
+  — and the test is worth only what a revert proves: removing that
+  method again fails 4 of its 6 cases.
+- **Clear the cache after adding a class to a controller.** The dev
+  environment kept returning 500 from a stale container until
+  `php bin/console cache:clear`, which cost fifteen minutes of debugging
+  correct code.
 
 ## 11. Delegating to subagents
 
@@ -321,3 +367,9 @@ Permitted and encouraged, with rules learnt the hard way:
 - **Check their work yourself.** Read the diff, re-run the tests. Three
   agents delivered correctly today; one still put a task in the wrong
   schedule file because the brief named the wrong one.
+- **A read-only survey is the best use of one.** Enumerating what
+  `ClimateManager` exposes meant `javap` over dozens of classes and a
+  grep across the game's whole Lua tree — a large amount of output for
+  three paragraphs of conclusion. Give it an explicit "change no file,
+  report only what the tool shows, say 'not present' rather than
+  guessing", and demand a file:line for every claim.
