@@ -23,6 +23,7 @@ final readonly class ExpiredBanLifter
         private PlayerModerator $moderator,
         private EntityManagerInterface $entityManager,
         private LoggerInterface $logger,
+        private ModerationRecorder $recorder,
     ) {
     }
 
@@ -54,14 +55,14 @@ final readonly class ExpiredBanLifter
 
             $ban->markLifted();
 
-            $this->entityManager->persist(new ModerationAction(
+            $this->recorder->add(
                 $ban->getServer(),
                 ModerationAction::UNBAN,
                 $ban->getUsername(),
                 null,
                 'banExpired',
                 $reply,
-            ));
+            );
 
             ++$lifted;
         }

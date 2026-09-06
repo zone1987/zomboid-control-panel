@@ -104,6 +104,129 @@ final class PlayerModeratorTest extends TestCase
         $this->moderator(new RecordingRcon())->kick(new GameServer('No RCON'), 'bob');
     }
 
+
+    /**
+     * Every ability takes -true/-false, so the panel sets a state rather
+     * than toggling blind — and the command names are the server's own,
+     * which spells this one without the second "e".
+     */
+    public function testSetsAnAbilityToAStateRatherThanToggling(): void
+    {
+        $rcon = new RecordingRcon();
+
+        $this->moderator($rcon)->setAbility($this->server(), 'bob', 'god', true);
+        $this->moderator($rcon)->setAbility($this->server(), 'bob', 'god', false);
+
+        self::assertSame(
+            ['godmodplayer "bob" -true', 'godmodplayer "bob" -false'],
+            $rcon->sent,
+        );
+    }
+
+    public function testKnowsEveryAbilityTheServerOffers(): void
+    {
+        $rcon = new RecordingRcon();
+
+        foreach (array_keys(PlayerModerator::ABILITIES) as $ability) {
+            $this->moderator($rcon)->setAbility($this->server(), 'bob', $ability, true);
+        }
+
+        self::assertSame(
+            [
+                'godmodplayer "bob" -true',
+                'invisibleplayer "bob" -true',
+                'noclip "bob" -true',
+                'voiceban "bob" -true',
+            ],
+            $rcon->sent,
+        );
+    }
+
+    public function testRefusesAnAbilityTheServerHasNoCommandFor(): void
+    {
+        $this->expectException(RconCommandFailed::class);
+
+        $this->moderator(new RecordingRcon())->setAbility($this->server(), 'bob', 'fly', true);
+    }
+
+    public function testGrantsExperienceInOneSkill(): void
+    {
+        $rcon = new RecordingRcon();
+
+        $this->moderator($rcon)->grantExperience($this->server(), 'bob', 'Woodwork', 200);
+
+        self::assertSame(['addxp "bob" Woodwork=200'], $rcon->sent);
+    }
+
+    /** The multiplier is what "a level's worth" means on a server running one. */
+    public function testAsksForTheServerMultiplierWhenTold(): void
+    {
+        $rcon = new RecordingRcon();
+
+        $this->moderator($rcon)->grantExperience($this->server(), 'bob', 'Woodwork', 200, true);
+
+        self::assertSame(['addxp "bob" Woodwork=200 -true'], $rcon->sent);
+    }
+
+    /**
+     * The perk is unquoted in the command, so anything but letters could
+     * end the argument and start another.
+     */
+    public function testRefusesASkillThatIsNotAPlainName(): void
+    {
+        foreach (['Woodwork=1 -true; quit', 'Wood work', 'Woodwork"', ''] as $perk) {
+            try {
+                $this->moderator(new RecordingRcon())->grantExperience($this->server(), 'bob', $perk, 1);
+
+                self::fail(sprintf('"%s" was accepted as a skill', $perk));
+            } catch (RconCommandFailed) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
+    public function testRefusesAnAmountOutsideTheCap(): void
+    {
+        foreach ([0, -5, PlayerModerator::MAX_XP + 1] as $amount) {
+            try {
+                $this->moderator(new RecordingRcon())
+                    ->grantExperience($this->server(), 'bob', 'Woodwork', $amount);
+
+                self::fail(sprintf('%d was accepted as an amount', $amount));
+            } catch (RconCommandFailed) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
+    /** A name can be changed; the id is what makes a ban work. */
+    public function testBansAndUnbansASteamId(): void
+    {
+        $rcon = new RecordingRcon();
+
+        $this->moderator($rcon)->banSteamId($this->server(), '76561198000000000');
+        $this->moderator($rcon)->unbanSteamId($this->server(), '76561198000000000');
+
+        self::assertSame(
+            ['banid 76561198000000000', 'unbanid 76561198000000000'],
+            $rcon->sent,
+        );
+    }
+
+    /** The id is unquoted too, so it is digits or nothing. */
+    public function testRefusesAnythingThatIsNotASteamId(): void
+    {
+        foreach (['7656119800000000; quit', 'bob', '123', ''] as $id) {
+            try {
+                $this->moderator(new RecordingRcon())->banSteamId($this->server(), $id);
+
+                self::fail(sprintf('"%s" was accepted as a SteamID', $id));
+            } catch (RconCommandFailed) {
+                self::assertTrue(true);
+            }
+        }
+    }
+
     private function moderator(RecordingRcon $rcon): PlayerModerator
     {
         return new PlayerModerator($rcon);

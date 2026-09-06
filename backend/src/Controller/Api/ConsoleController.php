@@ -9,6 +9,7 @@ use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Rcon\CommandCatalogueProvider;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
@@ -37,6 +38,7 @@ final class ConsoleController extends AbstractController
         private readonly RconClientInterface $rcon,
         private readonly CommandCatalogueProvider $catalogue,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -113,10 +115,14 @@ final class ConsoleController extends AbstractController
 
         // Recorded so the moderation history shows what was done by hand
         // as well as what went through the interface.
-        $this->entityManager->persist(
-            new ModerationAction($server, ModerationAction::CONSOLE, $this->verbOf($line), $actor, $line, $reply),
+        $this->recorder->record(
+            $server,
+            ModerationAction::CONSOLE,
+            $this->verbOf($line),
+            $actor,
+            $line,
+            $reply,
         );
-        $this->entityManager->flush();
 
         return new JsonResponse(['status' => 'sent', 'command' => $line, 'reply' => $reply]);
     }

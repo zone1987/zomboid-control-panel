@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Server\Players;
 
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Players\RosterWatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -137,7 +138,9 @@ final class RosterWatcherTest extends TestCase
         $entityManager->method('persist')->willReturnCallback($recorder->persist(...));
         $entityManager->method('flush')->willReturnCallback($recorder->flush(...));
 
-        return new RosterWatcher($entityManager);
+        // The recorder shares the same entity manager, so everything it
+        // queues still lands in the recording above.
+        return new RosterWatcher($entityManager, new ModerationRecorder($entityManager));
     }
 
     private function server(): GameServer

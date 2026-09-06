@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Entity\ModerationAction;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Events\EventDispatcher;
 use App\Server\Rcon\RconException;
 use App\Server\Vehicles\SpawnableVehicles;
@@ -34,6 +35,7 @@ final class VehicleSpawnController extends AbstractController
         private readonly SpawnableVehicles $catalogue,
         private readonly EventDispatcher $dispatcher,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -93,15 +95,14 @@ final class VehicleSpawnController extends AbstractController
 
         // Recorded whether or not the server accepted it: an attempt is
         // still something somebody did.
-        $this->entityManager->persist(new ModerationAction(
+        $this->recorder->record(
             $server,
             ModerationAction::EVENT,
             self::ACTION,
             $this->getUser(),
             sprintf('%s -> %s', $script, $player),
             $outcome->reply,
-        ));
-        $this->entityManager->flush();
+        );
 
         return new JsonResponse([
             'status' => 'sent',

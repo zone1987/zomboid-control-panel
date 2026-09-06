@@ -13,6 +13,7 @@ final readonly class RosterWatcher
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private ModerationRecorder $recorder,
     ) {
     }
 
@@ -37,15 +38,11 @@ final readonly class RosterWatcher
         $joined = array_diff($after, $before);
 
         foreach ($joined as $username) {
-            $this->entityManager->persist(
-                new ModerationAction($server, ModerationAction::JOIN, $username, null, 'players.joined'),
-            );
+            $this->recorder->add($server, ModerationAction::JOIN, $username, null, 'players.joined');
         }
 
         foreach ($left as $username) {
-            $this->entityManager->persist(
-                new ModerationAction($server, ModerationAction::LEAVE, $username, null, 'players.left'),
-            );
+            $this->recorder->add($server, ModerationAction::LEAVE, $username, null, 'players.left');
         }
 
         if ($joined !== [] || $left !== []) {

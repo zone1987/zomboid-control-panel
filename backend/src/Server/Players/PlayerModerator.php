@@ -114,6 +114,102 @@ final readonly class PlayerModerator
         return $this->run($server, sprintf('setaccesslevel "%s" %s', $this->sanitise($username), $level));
     }
 
+    /**
+     * The abilities the server exposes as plain RCON.
+     *
+     * Every one takes `-true`/`-false`, so the panel sets a state rather
+     * than toggling blind — a toggle against a state nobody read is how
+     * two admins end up fighting over one flag. The command names come
+     * from the server's own `help` output, which spells three of them
+     * differently from its own documentation: `godmodplayer`, not
+     * `godmodeplayer`.
+     */
+    public const ABILITIES = [
+        'god' => 'godmodplayer',
+        'invisible' => 'invisibleplayer',
+        'noclip' => 'noclip',
+        'voiceBan' => 'voiceban',
+    ];
+
+    public function setAbility(GameServer $server, string $username, string $ability, bool $on): string
+    {
+        $command = self::ABILITIES[$ability] ?? null;
+
+        if ($command === null) {
+            throw new RconCommandFailed(sprintf('Unknown ability "%s".', $ability));
+        }
+
+        return $this->run($server, sprintf(
+            '%s "%s" -%s',
+            $command,
+            $this->sanitise($username),
+            $on ? 'true' : 'false',
+        ));
+    }
+
+    /**
+     * Grants experience in one skill.
+     *
+     * The trailing `-true` asks the server to apply the player's own XP
+     * multiplier, which is what "give them a level's worth" means on a
+     * server that runs one; without it the number is raw.
+     */
+    public function grantExperience(
+        GameServer $server,
+        string $username,
+        string $perk,
+        int $amount,
+        bool $withMultiplier = false,
+    ): string {
+        if ($amount < 1 || $amount > self::MAX_XP) {
+            throw new RconCommandFailed(sprintf('XP must be between 1 and %d.', self::MAX_XP));
+        }
+
+        // A perk is a bare identifier in the command, unquoted, so
+        // anything but letters could inject a further argument.
+        if (preg_match('/^[A-Za-z]+$/', $perk) !== 1) {
+            throw new RconCommandFailed(sprintf('Unknown skill "%s".', $perk));
+        }
+
+        return $this->run($server, sprintf(
+            'addxp "%s" %s=%d%s',
+            $this->sanitise($username),
+            $perk,
+            $amount,
+            $withMultiplier ? ' -true' : '',
+        ));
+    }
+
+    /** As much as one command may grant, so a typo cannot max a skill. */
+    public const MAX_XP = 100000;
+
+    /**
+     * Bans or unbans a SteamID rather than a name.
+     *
+     * The point of the whole thing: a name can be changed, an id cannot.
+     */
+    public function banSteamId(GameServer $server, string $steamId): string
+    {
+        return $this->run($server, sprintf('banid %s', self::steamId($steamId)));
+    }
+
+    public function unbanSteamId(GameServer $server, string $steamId): string
+    {
+        return $this->run($server, sprintf('unbanid %s', self::steamId($steamId)));
+    }
+
+    /** Digits only: the id is unquoted in the command. */
+    private static function steamId(string $value): string
+    {
+        $id = trim($value);
+
+        if (preg_match('/^\d{6,20}$/', $id) !== 1) {
+            throw new RconCommandFailed('That is not a SteamID.');
+        }
+
+        return $id;
+    }
+
     public function message(GameServer $server, string $text): string
     {
         return $this->run($server, sprintf('servermsg "%s"', $this->sanitise($text)));

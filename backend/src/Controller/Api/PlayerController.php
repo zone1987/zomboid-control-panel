@@ -15,6 +15,7 @@ use App\Server\Bridge\BridgeInstaller;
 use App\Server\Players\BridgeStatusReader;
 use App\Server\Players\BridgeUnavailable;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Bridge\BridgeCommand;
 use App\Server\Bridge\BridgeCommandFailed;
 use App\Server\Bridge\BridgeCommandSender;
@@ -45,6 +46,7 @@ final class PlayerController extends AbstractController
         private readonly BridgeInstaller $bridgeInstaller,
         private readonly BridgeCommandSender $commands,
         private readonly RosterWatcher $roster,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -383,10 +385,7 @@ final class PlayerController extends AbstractController
 
         // Recorded only after the server accepted it, so the log does not
         // claim bans that never happened.
-        $this->entityManager->persist(
-            new ModerationAction($server, $kind, $username, $actor, $reason, $reply, $expiresAt),
-        );
-        $this->entityManager->flush();
+        $this->recorder->record($server, $kind, $username, $actor, $reason, $reply, $expiresAt);
 
         // Zomboid answers in prose, so the reply is passed through rather
         // than interpreted; the caller decides what it means.

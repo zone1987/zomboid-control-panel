@@ -9,6 +9,7 @@ use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Items\ItemCatalogue;
 use App\Server\Items\ItemTranslations;
 use App\Settings\SupportedLanguages;
@@ -34,6 +35,7 @@ final class ItemController extends AbstractController
         private readonly SupportedLanguages $languages,
         private readonly ItemGiver $giver,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -150,14 +152,13 @@ final class ItemController extends AbstractController
             $delivered,
         ));
 
-        $this->entityManager->persist(new ModerationAction(
+        $this->recorder->record(
             $server,
             ModerationAction::ITEMS,
             $username,
             $actor,
             mb_substr($summary, 0, 500),
-        ));
-        $this->entityManager->flush();
+        );
     }
 
     /**

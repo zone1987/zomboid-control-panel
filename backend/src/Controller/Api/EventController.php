@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Repository\ModerationActionRepository;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Bridge\BridgeCommand;
 use App\Server\Bridge\BridgeCommandFailed;
 use App\Server\Bridge\BridgeCommandSender;
@@ -40,6 +41,7 @@ final class EventController extends AbstractController
         private readonly ModerationActionRepository $actions,
         private readonly EntityManagerInterface $entityManager,
         private readonly BridgeCommandSender $bridge,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -134,15 +136,14 @@ final class EventController extends AbstractController
 
         // Recorded whether or not the server liked it: an attempt that was
         // refused is still something somebody did.
-        $this->entityManager->persist(new ModerationAction(
+        $this->recorder->record(
             $server,
             ModerationAction::EVENT,
             $actionId,
             $actor,
             $outcome->command,
             $outcome->reply,
-        ));
-        $this->entityManager->flush();
+        );
 
         return new JsonResponse(['status' => 'sent', ...$outcome->toArray()]);
     }

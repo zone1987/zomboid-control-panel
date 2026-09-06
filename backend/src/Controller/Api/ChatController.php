@@ -9,6 +9,7 @@ use App\Entity\ModerationAction;
 use App\Entity\User;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
+use App\Server\Players\ModerationRecorder;
 use App\Server\Chat\ChatBroadcaster;
 use App\Server\Chat\ChatLine;
 use App\Server\Logs\LogFileFinder;
@@ -34,6 +35,7 @@ final class ChatController extends AbstractController
         private readonly LogTailer $tailer,
         private readonly ChatBroadcaster $broadcaster,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ModerationRecorder $recorder,
     ) {
     }
 
@@ -132,15 +134,14 @@ final class ChatController extends AbstractController
 
         // Recorded like any other command, so it is clear afterwards who
         // announced what.
-        $this->entityManager->persist(new ModerationAction(
+        $this->recorder->record(
             $server,
             ModerationAction::BROADCAST,
             $actor->getDisplayName(),
             $actor,
             ChatBroadcaster::sanitise($message),
             $reply,
-        ));
-        $this->entityManager->flush();
+        );
 
         return new JsonResponse([
             'status' => 'sent',
