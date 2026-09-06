@@ -887,7 +887,10 @@
         "warm": "Warm front",
         "cold": "Cold front"
       }
-    }
+    },
+    "actionsAvailable": "What can be triggered",
+    "anyPlayer": "A random player",
+    "broadcastPlaceholder": "A message to every player"
   },
   "map": {
     "external": {

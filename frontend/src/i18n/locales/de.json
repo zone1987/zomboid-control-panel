@@ -887,7 +887,10 @@
         "warm": "Warmfront",
         "cold": "Kaltfront"
       }
-    }
+    },
+    "actionsAvailable": "Was ausgelöst werden kann",
+    "anyPlayer": "Zufälliger Spieler",
+    "broadcastPlaceholder": "Nachricht an alle Spieler"
   },
   "map": {
     "external": {

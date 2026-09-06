@@ -112,6 +112,13 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/events/climate-page'), 'ClimatePage'),
                     },
                     {
+                      // Three entries, each directly actionable, so the
+                      // generic list-and-detail page would make every one
+                      // of them a two-step.
+                      path: 'servers/:id/events/actions',
+                      lazy: lazyRoute(() => import('@/features/events/actions-page'), 'ActionsPage'),
+                    },
+                    {
                       path: 'servers/:id/events/:category',
                       lazy: lazyRoute(() => import('@/features/events/category-page'), 'CategoryPage'),
                     },
