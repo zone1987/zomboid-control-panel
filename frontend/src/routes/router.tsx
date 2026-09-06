@@ -2,7 +2,13 @@ import { createBrowserRouter } from 'react-router'
 
 import { AppLayout } from '@/components/layout/app-layout'
 import { LoginPage } from '@/features/auth/login-page'
-import { RequireAnonymous, RequireAuth, RequirePermission, SetupGate } from './guards'
+import {
+  RequireAnonymous,
+  RequireAuth,
+  RequirePagePermission,
+  RequirePermission,
+  SetupGate,
+} from './guards'
 import { lazyRoute } from './lazy-route'
 import { RouteError } from './route-error'
 
@@ -56,8 +62,15 @@ export const router = createBrowserRouter(
                   lazy: lazyRoute(() => import('@/features/profile/profile-page'), 'ProfilePage'),
                 },
                 {
+                  // The branch gate keeps somebody with no server
+                  // permission at all out; the page gate below reads the
+                  // same table the sidebar reads, so a moderator cannot
+                  // reach the console by typing its URL.
                   element: <RequirePermission anyOf={['servers.view', 'players.view']} />,
                   children: [
+                    {
+                      element: <RequirePagePermission />,
+                      children: [
                     {
                       path: 'servers',
                       lazy: lazyRoute(() => import('@/features/servers/server-list-page'), 'ServerListPage'),
@@ -132,6 +145,8 @@ export const router = createBrowserRouter(
                     {
                       path: 'servers/:id/console',
                       lazy: lazyRoute(() => import('@/features/console/console-page'), 'ConsolePage'),
+                    },
+                      ],
                     },
                   ],
                 },

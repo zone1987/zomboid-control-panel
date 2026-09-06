@@ -3745,6 +3745,42 @@ that usable.
 
 ---
 
+## Route-level permission guards (2026-09-06)
+
+A real hole, not a tidy-up: the per-page permissions were enforced
+**only in the sidebar**, so a moderator holding `players.view` could
+reach `/servers/<id>/console` by typing the URL. The nav entry was
+hidden; the route was not.
+
+`RequirePagePermission` now sits inside the server branch and reads
+**the same `SERVER_PAGES` table the navigation reads** — a second list of
+route permissions would eventually disagree with the first, and the
+disagreement would be the hole. A child page resolves through its parent
+(`events/weather` → `events.trigger`), because there is one event
+permission and the parent gates the subtree.
+
+`permissionForPath` lives in `page-permission.ts` rather than beside the
+components: a file exporting both a component and a function breaks fast
+refresh, which oxlint caught — the same lesson as `DAY_MARKS`.
+
+**Scope stated plainly**: this stops somebody landing on a page whose
+every control would refuse. The endpoints behind it carry their own
+`#[IsGranted]` and remain the real boundary; a route guard in a
+JavaScript bundle is a courtesy, not a security control.
+
+`page-permission.test.ts` (5) asserts every page resolves to the
+permission the sidebar declares, that the console is gated behind
+`console.use`, that all six event children resolve through their parent,
+and that paths outside a server are left alone.
+
+| What | State |
+|---|---|
+| Frontend | **265 tests, 26 files green** |
+| Lint | 0 errors, 29 warnings |
+| Live | the console still reachable with a full-permission account |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3873,7 +3909,9 @@ that decide the work:
 - [ ] **`ModerationAction`'s overloaded columns** — `username` holds the
       action id, `reason` the command, inputs are dropped, no `failed`
       flag, so the recent list cannot say "rain at 70".
-- [ ] **Route-level permission guards** — enforced only in the sidebar.
+- [x] **Route-level permission guards** — done:
+      `RequirePagePermission` reads the same table the sidebar reads, so
+      the two cannot drift.
 - [ ] **A real vehicle spawn** against the live server — needs a player
       online, never tried end to end.
 - [ ] **Coordinate-based thunder and lightning.** The engine takes
