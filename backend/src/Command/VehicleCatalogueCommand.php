@@ -9,6 +9,9 @@ use App\Repository\GameServerRepository;
 use App\Server\Bridge\BridgeFiles;
 use App\Server\Storage\FileBrowserInterface;
 use App\Server\Storage\StorageException;
+use App\Server\Vehicles\Models\ModelStore;
+use App\Server\Vehicles\Models\VehicleCatalogue;
+use App\Server\Vehicles\Models\VehicleNames;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -30,6 +33,7 @@ final class VehicleCatalogueCommand extends Command
     public function __construct(
         private readonly GameServerRepository $servers,
         private readonly FileBrowserInterface $files,
+        private readonly ModelStore $models,
     ) {
         parent::__construct();
     }
@@ -80,40 +84,60 @@ final class VehicleCatalogueCommand extends Command
         /** @var list<array<string, mixed>> $vehicles */
         $vehicles = $payload['vehicles'];
 
-        $io->definitionList(
-            ['Server' => $server->getName()],
-            ['Bridge' => (string) ($payload['bridgeVersion'] ?? '?')],
-            ['Vehicles' => (string) \count($vehicles)],
-            ['With a texture' => (string) \count(array_filter(
-                $vehicles,
-                static fn (array $v): bool => ($v['texture'] ?? null) !== null,
-            ))],
-            ['Distinct bodies' => (string) \count(array_unique(array_filter(array_map(
-                static fn (array $v): ?string => $v['mask'] ?? null,
-                $vehicles,
-            ))))],
-        );
-
         $needle = $input->getOption('search');
         $rows = [];
+        $known = 0;
+        $drawable = 0;
+        $bodies = [];
 
         foreach ($vehicles as $vehicle) {
             $script = (string) ($vehicle['script'] ?? '');
+            $artwork = VehicleCatalogue::find($script);
+
+            if ($artwork !== null) {
+                ++$known;
+
+                if ($artwork['mask'] !== null) {
+                    $bodies[$artwork['mask']] = true;
+                }
+            }
+
+            // Drawable means the artwork is named *and* uploaded.
+            $drawn = $artwork !== null
+                && $this->models->has($artwork['model'])
+                && $artwork['texture'] !== null
+                && $this->models->has($artwork['texture']);
+
+            if ($drawn) {
+                ++$drawable;
+            }
 
             if (\is_string($needle) && $needle !== '' && stripos($script, $needle) === false) {
                 continue;
             }
 
             $rows[] = [
+                VehicleNames::of($script),
                 $script,
-                self::tail((string) ($vehicle['model'] ?? '—')),
-                self::tail((string) ($vehicle['texture'] ?? '—')),
-                self::tail((string) ($vehicle['mask'] ?? '—')),
+                $artwork === null ? '—' : self::tail((string) ($artwork['mask'] ?? '—')),
+                $drawn ? 'yes' : 'no',
             ];
         }
 
+        $io->definitionList(
+            ['Server' => $server->getName()],
+            ['Bridge' => (string) ($payload['bridgeVersion'] ?? '?')],
+            ['Vehicles' => (string) \count($vehicles)],
+            ['Known to the panel' => sprintf('%d of %d', $known, \count($vehicles))],
+            ['Drawable now' => (string) $drawable],
+            ['Distinct bodies' => (string) \count($bodies)],
+        );
+
         $limit = max(1, (int) $input->getOption('limit'));
-        $io->table(['Script', 'Model', 'Texture', 'Mask'], \array_slice($rows, 0, $limit));
+        $io->table(
+            ['Name', 'Script', 'Body', 'Drawn'],
+            \array_slice($rows, 0, $limit),
+        );
 
         if (\count($rows) > $limit) {
             $io->comment(sprintf('%d more not shown.', \count($rows) - $limit));

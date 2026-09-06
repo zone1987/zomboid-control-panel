@@ -1,4 +1,5 @@
 import {
+  Car,
   MessagesSquare,
   Package,
   ScrollText,
@@ -21,6 +22,7 @@ export type ServerPage = {
 export const SERVER_PAGES: ServerPage[] = [
   { path: 'players', label: 'nav.players', icon: Users, permission: 'players.view' },
   { path: 'items', label: 'nav.items', icon: Package, permission: 'items.give' },
+  { path: 'vehicles', label: 'nav.vehicles', icon: Car, permission: 'events.trigger' },
   { path: 'chat', label: 'nav.chat', icon: MessagesSquare, permission: 'chat.read' },
   { path: 'logs', label: 'nav.logs', icon: ScrollText, permission: 'log.view' },
   { path: 'map', label: 'nav.map', icon: Map, permission: 'players.view' },
