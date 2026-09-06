@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Car, Search, Users, X } from 'lucide-react'
+import { Car, Search, Star, Users, X } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -23,11 +23,13 @@ import { getServer } from '@/features/servers/servers'
 import { listPlayers } from '@/features/players/players'
 import { useVehicleRenderer } from '@/features/map/use-vehicle-renderer'
 import { VehiclePreview } from './vehicle-preview'
+import { BodyTile } from './body-tile'
+import { useFavourites } from './use-favourites'
 import { VehicleTile } from './vehicle-tile'
 import {
   listVehicles,
-  matches,
-  representatives,
+  select,
+  selectBodies,
   spawnVehicle,
   WRECKS,
   type SpawnableVehicle,
@@ -41,11 +43,30 @@ export function VehiclesPage() {
   const { id = '' } = useParams()
   const renderer = useVehicleRenderer()
 
+  const favouriteBodies = useFavourites(id, 'body')
+  const favouriteVehicles = useFavourites(id, 'vehicle')
+
   const [body, setBody] = useState<string | null>(null)
+  const [onlyFavourites, setOnlyFavourites] = useState(false)
   const [needle, setNeedle] = useState('')
   const [chosen, setChosen] = useState<SpawnableVehicle | null>(null)
   const [player, setPlayer] = useState('')
   const [visible, setVisible] = useState(PAGE_SIZE)
+
+  const search = (value: string) => {
+    setNeedle(value)
+    setVisible(PAGE_SIZE)
+  }
+
+  const chooseBody = (value: string | null) => {
+    setBody(value)
+    setVisible(PAGE_SIZE)
+  }
+
+  const toggleFavouritesFilter = () => {
+    setOnlyFavourites((previous) => !previous)
+    setVisible(PAGE_SIZE)
+  }
 
   const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
 
@@ -73,23 +94,30 @@ export function VehiclesPage() {
   // name does not know which shell it belongs to.
   const searching = needle.trim() !== ''
 
-  const shown = useMemo(() => {
-    if (catalogue === undefined) {
-      return []
-    }
+  const bodies = useMemo(
+    () =>
+      catalogue === undefined
+        ? []
+        : selectBodies(catalogue, onlyFavourites, favouriteBodies.has, favouriteVehicles.has),
+    [catalogue, onlyFavourites, favouriteBodies, favouriteVehicles],
+  )
 
-    if (searching) {
-      return catalogue.items.filter((vehicle) => matches(vehicle, needle))
-    }
+  // A body that has just been filtered out of the row above must not stay
+  // selected, or the grid below would show liveries of an invisible shell.
+  const reachable = body !== null && bodies.some((entry) => entry.id === body) ? body : null
 
-    if (body === null) {
-      return representatives(catalogue)
-    }
+  const shown = useMemo(
+    () =>
+      select(
+        catalogue?.items ?? [],
+        { needle, body: reachable, onlyFavourites },
+        favouriteVehicles.has,
+        favouriteBodies.has,
+      ),
+    [catalogue, reachable, needle, onlyFavourites, favouriteVehicles, favouriteBodies],
+  )
 
-    return catalogue.items.filter((vehicle) => vehicle.body === body)
-  }, [catalogue, body, needle, searching])
-
-  useEffect(() => setVisible(PAGE_SIZE), [body, needle])
+  const markedCount = favouriteBodies.ids.length + favouriteVehicles.ids.length
 
   const spawn = useMutation({
     mutationFn: () => spawnVehicle(id, chosen?.script ?? '', player),
@@ -117,6 +145,9 @@ export function VehiclesPage() {
   const bodyName = (id_: string, name: string) =>
     id_ === WRECKS || name === '' ? t('vehicles.wrecks') : name
 
+  const bodyLabel = (id_: string) =>
+    (catalogue?.bodies ?? []).find((entry) => entry.id === id_)?.name ?? ''
+
   return (
     <div className="space-y-4">
       <div>
@@ -136,75 +167,116 @@ export function VehiclesPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
         <div className="space-y-3">
-          <div className="relative h-9">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={needle}
-              className="pl-8 pr-8"
-              placeholder={t('vehicles.search')}
-              onChange={(event) => setNeedle(event.target.value)}
-            />
-            {needle !== '' && (
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={t('common.cancel')}
-                onClick={() => setNeedle('')}
-              >
-                <X className="size-4" />
-              </button>
-            )}
+          <div className="flex gap-2">
+            <div className="relative h-9 flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={needle}
+                className="pl-8 pr-8"
+                placeholder={t('vehicles.search')}
+                onChange={(event) => search(event.target.value)}
+              />
+              {needle !== '' && (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={t('common.cancel')}
+                  onClick={() => search('')}
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+
+            <Button
+              variant={onlyFavourites ? 'default' : 'outline'}
+              aria-pressed={onlyFavourites}
+              onClick={toggleFavouritesFilter}
+            >
+              <Star className={onlyFavourites ? 'size-4 fill-current' : 'size-4'} />
+              {t('vehicles.favourites')}
+              {markedCount > 0 && <span className="font-mono text-xs">{markedCount}</span>}
+            </Button>
           </div>
 
           {/* The body row stays visible while a body is open, so changing
               shell is one click rather than a step backwards. */}
           {!searching && (
             <div className="space-y-2">
-              <SectionMark
-                label={t('vehicles.bodies')}
-                state={body === null ? undefined : t('vehicles.filtered')}
-              />
+              <div className="flex h-6 items-center gap-2">
+                <SectionMark
+                  label={t('vehicles.bodies')}
+                  state={onlyFavourites ? t('vehicles.favourites') : undefined}
+                />
 
-              <div className="flex flex-wrap gap-1.5">
-                <Button
-                  variant={body === null ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="h-7"
-                  onClick={() => setBody(null)}
-                >
-                  {t('vehicles.allBodies')}
-                </Button>
-
-                {(catalogue?.bodies ?? []).map((entry) => (
+                {reachable !== null && (
                   <Button
-                    key={entry.id}
-                    variant={body === entry.id ? 'secondary' : 'ghost'}
+                    variant="ghost"
                     size="sm"
-                    className="h-7"
-                    onClick={() => setBody(entry.id)}
+                    className="h-6 px-2 text-xs"
+                    onClick={() => chooseBody(null)}
                   >
-                    {bodyName(entry.id, entry.name)}
-                    <span className="ml-1 text-muted-foreground">{entry.count}</span>
+                    <X className="size-3" />
+                    {t('vehicles.clearBody')}
                   </Button>
-                ))}
+                )}
               </div>
+
+              {bodies.length === 0 ? (
+                <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  {t('vehicles.noFavourites')}
+                </p>
+              ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
+                  {bodies.map((entry) => (
+                    <BodyTile
+                      key={entry.id}
+                      name={bodyName(entry.id, entry.name)}
+                      count={entry.count}
+                      preview={entry.preview}
+                      selected={reachable === entry.id}
+                      favourite={favouriteBodies.has(entry.id)}
+                      renderer={renderer}
+                      onSelect={() => chooseBody(reachable === entry.id ? null : entry.id)}
+                      onToggleFavourite={() => favouriteBodies.toggle(entry.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {shown.length === 0 ? (
+          {!searching && reachable === null && shown.length === 0 ? (
+            <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+              {t('vehicles.pickABody')}
+            </p>
+          ) : shown.length === 0 ? (
             <p className="rounded-md border p-8 text-center text-sm text-muted-foreground">
               {t('vehicles.noMatch')}
             </p>
           ) : (
-            <>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
+            <div className="space-y-2 pt-3">
+              <SectionMark
+                label={searching ? t('vehicles.results') : t('vehicles.liveries')}
+                state={
+                  searching
+                    ? undefined
+                    : reachable === null
+                      ? t('vehicles.favourites')
+                      : bodyName(reachable, bodyLabel(reachable))
+                }
+              />
+
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
                 {shown.slice(0, visible).map((vehicle) => (
                   <VehicleTile
                     key={vehicle.script}
                     vehicle={vehicle}
                     selected={chosen?.script === vehicle.script}
+                    favourite={favouriteVehicles.has(vehicle.script)}
                     renderer={renderer}
                     onSelect={() => setChosen(vehicle)}
+                    onToggleFavourite={() => favouriteVehicles.toggle(vehicle.script)}
                   />
                 ))}
               </div>
@@ -218,7 +290,7 @@ export function VehiclesPage() {
                   {t('vehicles.showMore', { count: shown.length - visible })}
                 </Button>
               )}
-            </>
+            </div>
           )}
         </div>
 
@@ -238,9 +310,31 @@ export function VehiclesPage() {
                   className="h-24 w-full"
                 />
 
-                <div>
-                  <p className="text-sm font-medium">{chosen.name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{chosen.script}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium">{chosen.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{chosen.script}</p>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-pressed={favouriteVehicles.has(chosen.script)}
+                    aria-label={
+                      favouriteVehicles.has(chosen.script)
+                        ? t('vehicles.removeFavourite')
+                        : t('vehicles.addFavourite')
+                    }
+                    onClick={() => favouriteVehicles.toggle(chosen.script)}
+                  >
+                    <Star
+                      className={
+                        favouriteVehicles.has(chosen.script)
+                          ? 'size-4 fill-current text-primary'
+                          : 'size-4 text-muted-foreground'
+                      }
+                    />
+                  </Button>
                 </div>
 
                 {!chosen.drawable && (

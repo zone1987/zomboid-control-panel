@@ -942,7 +942,9 @@
     "descriptionFor": "Fahrzeuge bei einem Spieler auf {{server}} spawnen.",
     "search": "Fahrzeug suchen — Name oder Skript",
     "bodies": "Karosserie",
-    "allBodies": "Alle",
+    "liveries": "Lackierungen",
+    "results": "Ergebnisse",
+    "clearBody": "Auswahl aufheben",
     "filtered": "gefiltert",
     "noMatch": "Kein Fahrzeug gefunden.",
     "showMore_one": "{{count}} weiteres anzeigen",
@@ -958,7 +960,12 @@
     "noCatalogue": "Fahrzeugliste noch nicht gelesen",
     "noCatalogueHint": "Die Bridge schreibt die Liste beim Serverstart. Lade Bridge 0.13 oder neuer hoch und starte den Server neu.",
     "invalidScript": "Der Fahrzeugname ist nicht brauchbar.",
-    "playerRequired": "Wähle einen Spieler aus, neben dem das Fahrzeug erscheinen soll."
+    "playerRequired": "Wähle einen Spieler aus, neben dem das Fahrzeug erscheinen soll.",
+    "pickABody": "Wähle oben eine Karosserie, um ihre Lackierungen zu sehen.",
+    "favourites": "Favoriten",
+    "addFavourite": "Als Favorit merken",
+    "removeFavourite": "Aus den Favoriten entfernen",
+    "noFavourites": "Noch keine Favoriten. Markiere ein Fahrzeug mit dem Stern."
   },
   "icons": {
     "uploadFailed": "Der Upload ist fehlgeschlagen.",

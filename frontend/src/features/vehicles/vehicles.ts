@@ -82,3 +82,66 @@ export function representatives(catalogue: VehicleCatalogue): SpawnableVehicle[]
     })
     .filter((member): member is SpawnableVehicle => member !== undefined)
 }
+
+export type Selection = {
+  needle: string
+  body: string | null
+  onlyFavourites: boolean
+}
+
+/**
+ * The bodies the top grid shows.
+ *
+ * Filtering by favourite narrows the bodies to the marked ones, and to
+ * those holding a marked livery -- a favourite livery whose body was
+ * never marked must still be reachable.
+ */
+export function selectBodies(
+  catalogue: VehicleCatalogue,
+  onlyFavourites: boolean,
+  isFavouriteBody: (id: string) => boolean,
+  isFavouriteVehicle: (script: string) => boolean,
+): VehicleBody[] {
+  if (!onlyFavourites) {
+    return catalogue.bodies
+  }
+
+  const bodiesHoldingOne = new Set(
+    catalogue.items.filter((item) => isFavouriteVehicle(item.script)).map((item) => item.body),
+  )
+
+  return catalogue.bodies.filter(
+    (body) => isFavouriteBody(body.id) || bodiesHoldingOne.has(body.id),
+  )
+}
+
+/**
+ * Which vehicles the lower grid shows.
+ *
+ * A chosen body always wins: its liveries are all shown, favourite or
+ * not, because choosing a shell is the request to see what it comes in.
+ * With no body chosen, the favourites stand in for it -- the marked
+ * liveries, plus every livery of a marked body.
+ */
+export function select(
+  items: SpawnableVehicle[],
+  selection: Selection,
+  isFavouriteVehicle: (script: string) => boolean,
+  isFavouriteBody: (id: string) => boolean = () => false,
+): SpawnableVehicle[] {
+  if (selection.needle.trim() !== '') {
+    return items.filter((vehicle) => matches(vehicle, selection.needle))
+  }
+
+  if (selection.body !== null) {
+    return items.filter((vehicle) => vehicle.body === selection.body)
+  }
+
+  if (selection.onlyFavourites) {
+    return items.filter(
+      (vehicle) => isFavouriteVehicle(vehicle.script) || isFavouriteBody(vehicle.body),
+    )
+  }
+
+  return []
+}

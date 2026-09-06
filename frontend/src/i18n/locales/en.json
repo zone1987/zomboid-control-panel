@@ -942,7 +942,9 @@
     "descriptionFor": "Spawn a vehicle beside a player on {{server}}.",
     "search": "Search vehicles — name or script",
     "bodies": "Body",
-    "allBodies": "All",
+    "liveries": "Liveries",
+    "results": "Results",
+    "clearBody": "Clear selection",
     "filtered": "filtered",
     "noMatch": "No vehicle found.",
     "showMore_one": "Show {{count}} more",
@@ -958,7 +960,12 @@
     "noCatalogue": "The vehicle list has not been read yet",
     "noCatalogueHint": "The bridge writes the list when the server starts. Upload bridge 0.13 or newer and restart the server.",
     "invalidScript": "That vehicle name cannot be used.",
-    "playerRequired": "Choose a player for the vehicle to appear beside."
+    "playerRequired": "Choose a player for the vehicle to appear beside.",
+    "pickABody": "Choose a body above to see its liveries.",
+    "favourites": "Favourites",
+    "addFavourite": "Keep as a favourite",
+    "removeFavourite": "Remove from favourites",
+    "noFavourites": "No favourites yet. Mark a vehicle with the star."
   },
   "icons": {
     "uploadFailed": "The upload failed.",

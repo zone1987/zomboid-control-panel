@@ -2,23 +2,22 @@ import { cn } from '@/lib/utils'
 import type { VehicleRenderer } from '@/features/map/vehicle-renderer'
 import { FavouriteStar } from './favourite-star'
 import { VehiclePreview } from './vehicle-preview'
-import type { SpawnableVehicle } from './vehicles'
 
-/**
- * One vehicle in the grid.
- *
- * No plus and minus: a spawn takes one vehicle, so choosing replaces the
- * choice rather than adding to a count.
- */
-export function VehicleTile({
-  vehicle,
+/** One body shell, pictured by whichever of its members has artwork. */
+export function BodyTile({
+  name,
+  count,
+  preview,
   selected,
   favourite,
   renderer,
   onSelect,
   onToggleFavourite,
 }: {
-  vehicle: SpawnableVehicle
+  name: string
+  count: number
+  /** A member with artwork; null when none of them has any. */
+  preview: string | null
   selected: boolean
   favourite: boolean
   renderer: VehicleRenderer | null
@@ -30,16 +29,20 @@ export function VehicleTile({
       <button
         type="button"
         aria-pressed={selected}
-        title={vehicle.script}
         className={cn(
-          'pz-interactive flex h-full w-full flex-col items-center gap-1.5 rounded-md border p-2 text-center',
+          'pz-interactive flex h-full w-full flex-col items-center gap-1 rounded-md border p-2 text-center',
           selected ? 'border-primary bg-primary/10' : 'hover:bg-accent/50',
         )}
         onClick={onSelect}
       >
-        <VehiclePreview script={vehicle.script} renderer={renderer} className="h-16 w-full" />
+        <VehiclePreview
+          script={preview ?? ''}
+          renderer={preview === null ? null : renderer}
+          className="h-12 w-full"
+        />
 
-        <span className="line-clamp-2 text-xs leading-tight">{vehicle.name}</span>
+        <span className="line-clamp-2 text-xs font-medium leading-tight">{name}</span>
+        <span className="mt-auto font-mono text-[0.65rem] text-muted-foreground">{count}</span>
       </button>
 
       <FavouriteStar marked={favourite} onToggle={onToggleFavourite} />

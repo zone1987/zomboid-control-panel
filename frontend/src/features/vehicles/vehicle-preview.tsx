@@ -4,6 +4,9 @@ import { Car } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { VehicleRenderer } from '@/features/map/vehicle-renderer'
 
+/** Three-quarter view: nose towards the viewer, one side visible. */
+const CATALOGUE_HEADING = 285
+
 /**
  * A vehicle drawn from the game's own model, or a fallback icon.
  *
@@ -40,8 +43,10 @@ export function VehiclePreview({
         x: 0,
         y: 0,
         z: 0,
-        // Straight on, so every tile shows the same face.
-        heading: 0,
+        // The map's heading zero points away down the isometric axis,
+        // which shows a catalogue tile the back of the vehicle. 285
+        // turns the nose towards the viewer instead.
+        heading: CATALOGUE_HEADING,
         skin: null,
         engineRunning: false,
       })
