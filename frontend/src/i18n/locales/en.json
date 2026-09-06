@@ -591,7 +591,11 @@
       "teleport": "Teleport",
       "event": "Event",
       "join": "Joined",
-      "leave": "Left"
+      "leave": "Left",
+      "ability": "Ability",
+      "experience": "Experience",
+      "heal": "Healed",
+      "statistic": "Statistic"
     },
     "bridgeOutdated": "The server is running an older bridge",
     "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards.",
@@ -655,7 +659,23 @@
     "noTargetHint": "Pick a player from the list on the left.",
     "vitalsTab": "Condition",
     "abilitiesTab": "Abilities",
-    "spawnTab": "Grant"
+    "spawnTab": "Grant",
+    "notesTab": "Notes",
+    "note": "Note",
+    "tags": "Tags",
+    "notePlaceholder": "What the team should know about this player",
+    "noteSaved": "The note was saved.",
+    "noteUpdated": "Last by {{who}} on {{when}}",
+    "someone": "someone",
+    "addTag": "Add a tag",
+    "removeTag": "Remove \"{{tag}}\"",
+    "tagLimits": "Up to {{count}} tags of {{length}} characters each.",
+    "whatWasDone": "What was done to this player",
+    "noHistoryForPlayer": "Nothing has been recorded for this player yet.",
+    "byTheSystem": "automatic",
+    "joined": "Joined the server",
+    "left": "Left the server",
+    "banExpired": "The ban expired"
   },
   "console": {
     "title": "RCON console",

@@ -591,7 +591,11 @@
       "teleport": "Teleport",
       "event": "Event",
       "join": "Beigetreten",
-      "leave": "Verlassen"
+      "leave": "Verlassen",
+      "ability": "Fähigkeit",
+      "experience": "Erfahrung",
+      "statistic": "Zustandswert",
+      "heal": "Geheilt"
     },
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
     "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu.",
@@ -655,7 +659,23 @@
     "noTargetHint": "Wähle links einen Spieler aus der Liste.",
     "vitalsTab": "Zustand",
     "abilitiesTab": "Fähigkeiten",
-    "spawnTab": "Vergeben"
+    "spawnTab": "Vergeben",
+    "notesTab": "Notizen",
+    "note": "Notiz",
+    "tags": "Merkmale",
+    "notePlaceholder": "Was das Team über diesen Spieler wissen sollte",
+    "noteSaved": "Die Notiz wurde gespeichert.",
+    "noteUpdated": "Zuletzt von {{who}} am {{when}}",
+    "someone": "jemandem",
+    "addTag": "Merkmal hinzufügen",
+    "removeTag": "„{{tag}}“ entfernen",
+    "tagLimits": "Bis zu {{count}} Merkmale mit je {{length}} Zeichen.",
+    "whatWasDone": "Was mit diesem Spieler gemacht wurde",
+    "noHistoryForPlayer": "Für diesen Spieler ist noch nichts vermerkt.",
+    "byTheSystem": "automatisch",
+    "joined": "Hat den Server betreten",
+    "left": "Hat den Server verlassen",
+    "banExpired": "Bann ist abgelaufen"
   },
   "console": {
     "title": "RCON-Konsole",

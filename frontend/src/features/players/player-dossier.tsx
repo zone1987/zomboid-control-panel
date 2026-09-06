@@ -13,6 +13,8 @@ import {
 import { SectionMark } from '@/components/layout/section-mark'
 import { AbilityRows } from './ability-rows'
 import { ExperienceCard } from './experience-card'
+import { NotesCard } from './notes-card'
+import { PlayerHistory } from './player-history'
 import { PlayerVitals } from './player-vitals'
 import type { Player } from './players'
 
@@ -78,6 +80,7 @@ export function PlayerDossier({
           <TabsTrigger value="vitals">{t('players.vitalsTab')}</TabsTrigger>
           <TabsTrigger value="abilities">{t('players.abilitiesTab')}</TabsTrigger>
           <TabsTrigger value="spawn">{t('players.spawnTab')}</TabsTrigger>
+          <TabsTrigger value="notes">{t('players.notesTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vitals">
@@ -111,6 +114,23 @@ export function PlayerDossier({
             <div className="rounded-md border p-4">
               <ExperienceCard serverId={serverId} player={player} />
             </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="notes" className="space-y-3">
+          {player === null ? (
+            <NoTarget />
+          ) : (
+            <>
+              <div className="rounded-md border p-4">
+                <NotesCard serverId={serverId} username={player.username} />
+              </div>
+
+              <div className="rounded-md border p-4">
+                <SectionMark label={t('players.whatWasDone')} />
+                <PlayerHistory serverId={serverId} username={player.username} />
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>

@@ -175,6 +175,43 @@ export function grantExperience(
   )
 }
 
+export type PlayerNote = {
+  note: string | null
+  tags: string[]
+  updatedBy: string | null
+  updatedAt: string | null
+  /** The fixed suggestions, and what this server already uses. */
+  suggested: string[]
+  inUse: string[]
+  limits: { note: number; tags: number; tagLength: number }
+}
+
+export function readNote(serverId: string, username: string): Promise<PlayerNote> {
+  return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/note`)
+}
+
+export function saveNote(serverId: string, username: string, note: string | null, tags: string[]) {
+  return apiFetch<{ status: string; note: string | null; tags: string[] }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/note`,
+    { method: 'PUT', body: { note, tags } },
+  )
+}
+
+export type PlayerHistoryEntry = {
+  action: string
+  reason: string | null
+  reply: string | null
+  performedBy: string | null
+  performedAt: string
+}
+
+/** What was done to one player, and only to them. */
+export function readPlayerHistory(serverId: string, username: string) {
+  return apiFetch<{ items: PlayerHistoryEntry[] }>(
+    `/servers/${serverId}/players/${encodeURIComponent(username)}/history`,
+  )
+}
+
 export const BAN_DURATIONS = [
   { id: '1h', minutes: 60 },
   { id: '2h', minutes: 120 },

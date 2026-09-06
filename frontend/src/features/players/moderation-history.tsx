@@ -1,3 +1,4 @@
+import { reasonKey } from './reason'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { History } from 'lucide-react'
@@ -68,7 +69,11 @@ export function ModerationHistory({ serverId }: { serverId: string }) {
               <TableCell className="font-medium">{entry.username}</TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
-                {entry.reason ?? t('common.none')}
+                {entry.reason === null
+                  ? t('common.none')
+                  : t(reasonKey(entry.reason) ?? entry.reason, {
+                      defaultValue: entry.reason,
+                    })}
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">

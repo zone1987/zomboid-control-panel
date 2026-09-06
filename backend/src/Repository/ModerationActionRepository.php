@@ -32,6 +32,32 @@ class ModerationActionRepository extends ServiceEntityRepository
     }
 
     /**
+     * What was done to one player, newest first.
+     *
+     * The dossier's own log. The reference panel shows every player's
+     * activity inside a view already scoped to one, and then needs a
+     * second search box to make that usable — this is the same data
+     * asked the right question instead.
+     *
+     * `idx_server_username` already exists, so this is one indexed
+     * lookup rather than a filter over the whole history.
+     *
+     * @return list<ModerationAction>
+     */
+    public function forPlayer(GameServer $server, string $username, int $limit = 50): array
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.server = :server')
+            ->andWhere('a.username = :username')
+            ->setParameter('server', $server)
+            ->setParameter('username', $username)
+            ->orderBy('a.performedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Temporary bans whose time is up and that nobody has lifted yet.
      *
      * @return list<ModerationAction>
