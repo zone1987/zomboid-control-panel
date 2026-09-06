@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Server\Bridge;
 
+use App\Server\Bridge\BridgeCommand;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Every climate method the bridge calls has to exist on its class.
+ * Every game method the bridge calls has to exist on its class.
  *
  * Lua finds out at run time and on the live server: `readClimate` called
  * `getFinalValue()` on a `ClimateBool`, which only `ClimateFloat` has,
@@ -28,14 +29,30 @@ final class BridgeClimateCallsTest extends TestCase
     /**
      * The bridge's variable names and the class each one holds.
      *
-     * Lua has no types, so the pairing is a convention the bridge keeps:
-     * `climate` is always the manager, `float` always a ClimateFloat,
-     * `isSnow` always the one ClimateBool.
+     * Lua has no types, so the pairing is a convention the bridge keeps
+     * and this test enforces: `climate` is always the manager, `float` a
+     * ClimateFloat, `isSnow` the one ClimateBool, `colour` a
+     * ClimateColor, `rgb` a zombie.core.Color. Reusing a name for a
+     * different class is what makes a call unverifiable, so the
+     * convention is part of the guard rather than a style preference.
      */
     private const HOLDS = [
         'climate' => 'ClimateManager',
         'float' => 'ClimateFloat',
         'isSnow' => 'ClimateBool',
+        'colour' => 'ClimateColor',
+        'storm' => 'ThunderStorm',
+        'sandbox' => 'SandboxOptions',
+        'option' => 'IntegerConfigOption',
+        'rgb' => 'Color',
+        'player' => 'IsoPlayer',
+        'damage' => 'BodyDamage',
+        'part' => 'BodyPart',
+        'stats' => 'Stats',
+        'stat' => 'CharacterStat',
+        'nutrition' => 'Nutrition',
+        'fitness' => 'Fitness',
+        'descriptor' => 'SurvivorDesc',
     ];
 
     public function testEveryCallExistsOnItsClass(): void
@@ -76,6 +93,61 @@ final class BridgeClimateCallsTest extends TestCase
         self::assertStringNotContainsString('isSnow:getFinalValue()', self::lua());
     }
 
+    /**
+     * Colour has getR/getG/getB but **no getA** — only getAlphaFloat.
+     * The obvious fourth name is the one that would fail on a live
+     * server, exactly as ClimateBool::getFinalValue did.
+     */
+    public function testTheAlphaChannelIsReadByItsRealName(): void
+    {
+        $api = self::api();
+
+        self::assertContains('getR', $api['Color']);
+        self::assertNotContains('getA', $api['Color']);
+        self::assertContains('getAlphaFloat', $api['Color']);
+
+        self::assertStringNotContainsString(':getA()', self::lua());
+    }
+
+    /**
+     * The statistic ids the bridge asks for must be the ones the game
+     * registers. They come from CharacterStat's own constant pool, not
+     * from its constant *names* — and `ORDERED_STATS` cannot be walked
+     * from Lua at all, being a Java array rather than a list, so the
+     * names are the only route.
+     */
+    public function testEveryStatisticIsAskedForByItsRealId(): void
+    {
+        $api = self::api();
+        $lua = self::lua();
+
+        self::assertCount(24, $api['_characterStatIds']);
+
+        preg_match(
+            '/local CHARACTER_STATS = \{(.*?)\}/s',
+            $lua,
+            $found,
+        );
+
+        self::assertArrayHasKey(1, $found, 'the bridge no longer names the statistics');
+
+        preg_match_all('/"(\w+)"/', $found[1], $names);
+
+        self::assertSame(
+            $api['_characterStatIds'],
+            $names[1],
+            'the bridge asks for statistics the game does not register',
+        );
+
+        // A Java array has neither, so either would fail at run time.
+        self::assertStringNotContainsString('ORDERED_STATS:size()', $lua);
+        self::assertStringNotContainsString('ORDERED_STATS:get(', $lua);
+
+        // And the panel's own list has to be the same one, or it would
+        // accept a name the bridge then cannot look up.
+        self::assertSame($api['_characterStatIds'], BridgeCommand::CHARACTER_STATS);
+    }
+
     /** @return array<string, list<string>> */
     private static function api(): array
     {
@@ -90,6 +162,8 @@ final class BridgeClimateCallsTest extends TestCase
         foreach (array_values(self::HOLDS) as $class) {
             self::assertArrayHasKey($class, $api, $class);
         }
+
+        self::assertArrayHasKey('_characterStatIds', $api);
 
         /** @var array<string, list<string>> $api */
         return $api;

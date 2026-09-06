@@ -3360,6 +3360,113 @@ environment kept returning 500 until `php bin/console cache:clear`.
 
 ---
 
+## The remaining event pages, and a season nobody could read (2026-09-06)
+
+### The climate page shipped with an untranslated season
+
+`Early Summer` stood on the climate page while the world strip beside it
+read `Frühsommer` — the same fact in two languages on one screen. Cause:
+`seasonKey()` was private to `world-strip.tsx`, so the climate page had
+nothing to call and printed the game's own wording.
+
+Now `frontend/src/features/servers/seasons.ts`, used by both.
+`seasons.test.ts` asserts all twelve seasons resolve in both locales
+**and** that every page showing one calls `seasonKey` — restoring the raw
+value fails it by filename. Verified live: `Frühsommer`.
+
+### Actions as cards that do their own work
+
+Three entries (lightning, chopper, broadcast), so the generic
+list-and-detail page made each a two-step: pick it, then fill a form that
+is usually empty. `actions-page.tsx` gives each its own card, shaped by
+what it needs:
+
+- **Lightning** — an optional player chooser, because the game picks one
+  at random when nothing is named (placeholder: "Zufälliger Spieler").
+- **Chopper** — a single click.
+- **Broadcast** — its own field with a character counter, because that
+  field *is* the action; Enter fires it, and an empty one disables the
+  button.
+
+No generic form on this page on purpose: three actions do not need one,
+and the form is what made it a two-step. The channel is a footnote
+(`RCON`) rather than a choice. Route is static above `:category`.
+
+**Verified live**: the chopper answered `Chopper launched`.
+
+### The day as a band, with the daylight measured
+
+`world-page.tsx` plus `day-arc.tsx`. An hour field asks somebody to
+translate "make it dusk" into a number; the band does not — midnight to
+midnight, the server's own hour marked, four quick picks (dawn 06, noon
+12, dusk 18, midnight 00). Chosen over a clock face, which cannot tell
+noon from midnight, the one distinction that matters when setting a time.
+
+**The shading is the honest part, and it cost a check.** There is **no
+sunrise or sunset constant in the game** — grepped `media/lua/` (only
+place names and voice lines) and `javap`'d `ClimateManager` (only
+`FLOAT_DAYLIGHT_STRENGTH = 11` and `FLOAT_NIGHT_STRENGTH = 2`; daylight
+is a simulated value that moves with the season). So a fixed dawn at
+06:00 would picture a day the server is not having. The band takes the
+**measured** daylight from `readClimate` when there is one, and shows the
+hours plainly when there is not.
+
+Daylight and view distance sit beneath the arc because the two interact —
+set 03:00 and nothing is visible until daylight is raised — and each says
+what the server runs **now** ("derzeit 88 %"), not only what it could be
+set to.
+
+`DAY_MARKS` lives in `day-marks.ts` rather than beside the component: a
+file exporting both a component and a constant breaks fast refresh, which
+oxlint caught.
+
+**Verified live**: dusk → `time set` → the arc read `18:12` on the next
+poll. The full round trip.
+
+### The Claude Design attempt, abandoned — with one finding worth keeping
+
+Asked for, started, then called off by the user; `design/` and its four
+files were removed and nothing was committed. One finding survives and
+will matter again:
+
+**React ships no UMD build from 19 onwards.** cdnjs serves 18.3.1 and
+404s on 19. Anything loading this panel's components outside the app must
+therefore bundle React rather than expect `window.React` — otherwise
+every `forwardRef` fails at load with "forwardRef is not a function".
+Two further traps found the same way: a Vite **library** build sets no
+`define` values, so a dependency reading `process.env.NODE_ENV` throws
+and the whole UMD factory aborts *before assigning a single export*,
+leaving an empty global that looks like a build problem; and
+`export * from 'lucide-react'` pulled every one of its icons in, taking
+the bundle from 345 kB to 1.18 MB.
+
+### Files
+
+| File | Change |
+|---|---|
+| `frontend/src/features/servers/seasons.ts` | **new** — shared `seasonKey` |
+| `frontend/src/features/servers/seasons.test.ts` | **new**, 3 |
+| `frontend/src/features/servers/world-strip.tsx` | imports it instead of owning it |
+| `frontend/src/features/events/climate-page.tsx` | translates the season |
+| `frontend/src/features/events/actions-page.tsx` | **new** |
+| `frontend/src/features/events/world-page.tsx` | **new** |
+| `frontend/src/features/events/day-arc.tsx` | **new** |
+| `frontend/src/features/events/day-marks.ts` | **new** |
+| `frontend/src/features/events/day-marks.test.ts` | **new**, 3 |
+| `frontend/src/routes/router.tsx` | `events/actions` and `events/world` static above `:category` |
+
+### Verification
+
+| What | State |
+|---|---|
+| Backend | **542 tests green** (unchanged this stretch) |
+| Frontend | **248 tests, 23 files green** |
+| Lint | 0 errors, 29 warnings (unchanged) |
+| Typecheck, build | clean |
+| Live | chopper fired; the clock set to dusk and read back as 18:12; the season reads Frühsommer |
+
+---
+
 # TODO — the current list (supersedes every earlier one)
 
 ## 1. The climate page — the next thing, and the bridge is ready
@@ -3406,17 +3513,16 @@ fired yet**. That is the first job: exercise `readClimate`,
       a duration is more than the presets express, and it is what the
       game's own admin panel offers.
 
-## 2. The remaining event pages
+## 2. The remaining event pages — **done**
 
-- [ ] **Actions as large directly-actionable cards** rather than
-      list-and-detail: with three entries (lightning, chopper,
-      broadcast), select-then-fill is pure friction.
-- [ ] **The day arc for the world page** — a band from midnight to
-      midnight, sunrise and sunset marked, night shaded, the current
-      hour highlighted, quick picks for dawn/noon/dusk/midnight.
-      Daylight sits beneath it, because the two interact.
-- [ ] **Sounds and Zombies** work through the generic page. Zombies must
-      keep its `AlertDialog`.
+- [x] **Actions as directly-actionable cards** — `actions-page.tsx`.
+      Chopper verified live.
+- [x] **The day arc** — `world-page.tsx` + `day-arc.tsx`. The game has no
+      sunrise constant, so the band takes the **measured** daylight from
+      `readClimate` rather than drawing an assumed one. Verified live:
+      dusk → "time set" → 18:12 on the arc.
+- [x] **Sounds and Zombies** stay on the generic page, and Zombies keeps
+      its `AlertDialog`.
 
 ## 3. The player dossier (plan phase 3)
 

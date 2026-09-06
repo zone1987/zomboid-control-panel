@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.17.1"
+local BRIDGE_VERSION = "0.18.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -309,6 +309,10 @@ local function describePlayer(player)
         string.format("\"z\":%.1f", player:getZ()),
         string.format("\"health\":%.3f", player:getHealth()),
         string.format("\"hoursSurvived\":%.1f", player:getHoursSurvived()),
+        -- What a leaderboard needs, and both are plain ints on
+        -- IsoGameCharacter. Free here: the roster is already being walked.
+        string.format("\"zombieKills\":%d", player:getZombieKills()),
+        string.format("\"survivorKills\":%d", player:getSurvivorKills()),
         string.format("\"accessLevel\":\"%s\"", escape(player:getAccessLevel())),
     }
 
@@ -1595,6 +1599,502 @@ handlers.playSound = function(command)
     addSound(nil, x, y, tonumber(command.z) or 0, radius, volume)
 
     return true, "sound placed", string.format('{"x":%d,"y":%d}', x, y)
+end
+
+--- Heals a player completely.
+--
+-- The route the game itself takes, from server Lua
+-- (ClientCommands.lua:551-559 and :596): every body part is restored
+-- one at a time and each is synchronised, because BodyDamage's own
+-- RestoreToFullHealth exists but the game does not use it -- and the
+-- part-by-part loop is the path that is proven to reach clients.
+--
+-- The stiffness is cleared as well, which the game does in the same
+-- handler: a healed character that still aches reads as a half-done job.
+handlers.healPlayer = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local damage = player:getBodyDamage()
+
+    if damage == nil then
+        return false, "the player has no body damage to heal"
+    end
+
+    local parts = damage:getBodyParts()
+    local healed = 0
+
+    for i = 1, parts:size() do
+        local part = parts:get(i - 1)
+
+        if part ~= nil then
+            part:RestoreToFullHealth()
+            -- The mask the game passes, which syncs every field of the
+            -- part rather than a chosen few.
+            syncBodyPart(part, 0xFFFFFFFFFFF)
+            healed = healed + 1
+        end
+    end
+
+    local fitness = player:getFitness()
+
+    if fitness ~= nil then
+        -- Same names the game clears in its own heal.
+        for _, group in ipairs({ "Cardio", "Strength", "Aerobics" }) do
+            pcall(function()
+                fitness:removeStiffnessValue(group)
+            end)
+        end
+    end
+
+    return true, "player healed", string.format(
+        '{"player":"%s","parts":%d,"health":%.3f,"infected":%s}',
+        escape(player:getUsername()),
+        healed,
+        player:getHealth(),
+        tostring(damage:isInfected())
+    )
+end
+
+--- The character statistics, by the game's own registry.
+--
+-- Build 42 replaced the individual setters with set(CharacterStat,
+-- float), and CharacterStat is a class with a REGISTRY rather than an
+-- enum -- so a stat is looked up by its id and carries its own minimum
+-- and maximum. The panel never hard-codes those: a stat clamps to them
+-- silently, exactly as the climate values do.
+--- The twenty-four statistics the game registers, by their own ids.
+--
+-- From CharacterStat's public constants in build 42. Named here because
+-- ORDERED_STATS is a Java array rather than a list, which Lua cannot
+-- walk -- and because a registry read at load time would tie the bridge
+-- to whichever mods had registered by then.
+local CHARACTER_STATS = {
+    "Anger", "Boredom", "Discomfort", "Endurance", "Fatigue", "Fitness",
+    "FoodSickness", "Hunger", "Idleness", "Intoxication", "Morale",
+    "NicotineWithdrawal", "Pain", "Panic", "Poison", "Sanity", "Sickness",
+    "Stress", "Temperature", "Thirst", "Unhappiness", "Wetness",
+    "ZombieFever", "ZombieInfection",
+}
+
+local function characterStat(id)
+    if type(id) ~= "string" or id == "" then
+        return nil
+    end
+
+    local ok, stat = pcall(function()
+        return CharacterStat.getById(id)
+    end)
+
+    return ok and stat or nil
+end
+
+handlers.readPlayerStats = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local stats = player:getStats()
+
+    if stats == nil then
+        return false, "the player has no statistics"
+    end
+
+    local parts = {}
+
+    -- The twenty-four by name rather than through ORDERED_STATS, which
+    -- javap shows to be a Java **array** (CharacterStat[]) -- :size() and
+    -- :get() do not exist on one, and nothing in the game's own Lua
+    -- iterates it, so it would fail on the live server. getById is the
+    -- documented lookup and each name is a public constant.
+    for _, id in ipairs(CHARACTER_STATS) do
+        local stat = characterStat(id)
+
+        if stat ~= nil then
+            table.insert(parts, string.format(
+                '"%s":{"value":%.4f,"min":%.4f,"max":%.4f,"default":%.4f}',
+                escape(stat:getId()),
+                stats:get(stat),
+                stat:getMinimumValue(),
+                stat:getMaximumValue(),
+                stat:getDefaultValue()
+            ))
+        end
+    end
+
+    local weight = "null"
+    local nutrition = player:getNutrition()
+
+    if nutrition ~= nil then
+        weight = string.format("%.1f", nutrition:getWeight())
+    end
+
+    local profession = "null"
+    local descriptor = player:getDescriptor()
+
+    if descriptor ~= nil then
+        local job = descriptor:getCharacterProfession()
+
+        if job ~= nil then
+            profession = string.format('"%s"', escape(job:getName()))
+        end
+    end
+
+    return true, "statistics read", string.format(
+        '{"player":"%s","stats":{%s},"weight":%s,"profession":%s}',
+        escape(player:getUsername()),
+        table.concat(parts, ","),
+        weight,
+        profession
+    )
+end
+
+handlers.setPlayerStat = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local stat = characterStat(command.stat)
+
+    if stat == nil then
+        return false, "there is no statistic by that name"
+    end
+
+    local value = tonumber(command.value)
+
+    if value == nil then
+        return false, "value is required"
+    end
+
+    local low, high = stat:getMinimumValue(), stat:getMaximumValue()
+
+    if value < low or value > high then
+        return false, string.format(
+            "%s must be between %.2f and %.2f",
+            escape(stat:getId()),
+            low,
+            high
+        )
+    end
+
+    local stats = player:getStats()
+
+    if stats == nil or not stats:set(stat, value) then
+        return false, "the server refused the statistic"
+    end
+
+    -- Read back from the stats rather than trusting the setter's own
+    -- boolean, which only says the call was accepted.
+    return true, "statistic set", string.format(
+        '{"player":"%s","stat":"%s","value":%.4f,"asked":%.4f}',
+        escape(player:getUsername()),
+        escape(stat:getId()),
+        stats:get(stat),
+        value
+    )
+end
+
+--- The weight, which lives on the nutrition rather than the stats.
+handlers.setPlayerWeight = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local weight = tonumber(command.weight)
+
+    if weight == nil or weight < 30 or weight > 200 then
+        return false, "weight must be between 30 and 200"
+    end
+
+    local nutrition = player:getNutrition()
+
+    if nutrition == nil then
+        return false, "the player has no nutrition"
+    end
+
+    nutrition:setWeight(weight)
+
+    return true, "weight set", string.format(
+        '{"player":"%s","weight":%.1f,"asked":%.1f}',
+        escape(player:getUsername()),
+        nutrition:getWeight(),
+        weight
+    )
+end
+
+--- The two climate colours, read as RGBA for inside and outside.
+--
+-- COLOR_GLOBAL_LIGHT is 0 and COLOR_NEW_FOG is 1, from ClimateManager's
+-- own constants. Each carries an admin override like a float does, and
+-- each holds two colours: what the world looks like outdoors and what it
+-- looks like under a roof.
+--
+-- Note getAlphaFloat rather than getA: Color has getR/getG/getB but no
+-- getA, which would fail at run time on the live server the way the snow
+-- flag did.
+local function colourParts(info)
+    if info == nil then
+        return "null"
+    end
+
+    local outside = info:getExterior()
+    local inside = info:getInterior()
+
+    -- Named rgb rather than colour: `colour` is this bridge's name for a
+    -- ClimateColor, and these getters live on zombie.core.Color. Keeping
+    -- the two apart is what lets a test check each call against the right
+    -- class.
+    local function rgba(rgb)
+        if rgb == nil then
+            return "null"
+        end
+
+        return string.format(
+            '{"r":%.3f,"g":%.3f,"b":%.3f,"a":%.3f}',
+            rgb:getR(),
+            rgb:getG(),
+            rgb:getB(),
+            rgb:getAlphaFloat()
+        )
+    end
+
+    return string.format('{"exterior":%s,"interior":%s}', rgba(outside), rgba(inside))
+end
+
+local CLIMATE_COLOURS = { [0] = "globalLight", [1] = "fog" }
+
+handlers.readClimateColours = function()
+    local climate = getClimateManager()
+    local parts = {}
+
+    for index = 0, 1 do
+        local colour = climate:getClimateColor(index)
+        local name = CLIMATE_COLOURS[index]
+
+        if colour ~= nil and name ~= nil then
+            table.insert(parts, string.format(
+                '"%s":{"index":%d,"admin":%s,"value":%s,"adminValue":%s}',
+                name,
+                index,
+                tostring(colour:isEnableAdmin()),
+                colourParts(colour:getFinalValue()),
+                colourParts(colour:getAdminValue())
+            ))
+        end
+    end
+
+    return true, "climate colours read", string.format('{"colours":{%s}}', table.concat(parts, ","))
+end
+
+--- Sets one climate colour, indoors and out.
+handlers.setClimateColour = function(command)
+    local index = command.name == "globalLight" and 0 or command.name == "fog" and 1 or nil
+
+    if index == nil then
+        return false, "name must be globalLight or fog"
+    end
+
+    local colour = getClimateManager():getClimateColor(index)
+
+    if colour == nil then
+        return false, "no climate colour at that index"
+    end
+
+    local function channel(key, fallback)
+        local value = tonumber(command[key])
+
+        if value == nil then
+            return fallback
+        end
+
+        return math.max(0, math.min(1, value))
+    end
+
+    local r, g, b, a = channel("r", 1), channel("g", 1), channel("b", 1), channel("a", 1)
+
+    colour:setEnableAdmin(true)
+    -- Exterior and interior together, in that order, which is what the
+    -- eight-argument setAdminValue takes.
+    colour:setAdminValue(r, g, b, a, r, g, b, a)
+
+    return true, "climate colour set", string.format(
+        '{"name":"%s","admin":%s,"adminValue":%s}',
+        tostring(command.name),
+        tostring(colour:isEnableAdmin()),
+        colourParts(colour:getAdminValue())
+    )
+end
+
+handlers.releaseClimateColour = function(command)
+    local index = command.name == "globalLight" and 0 or command.name == "fog" and 1 or nil
+
+    if index == nil then
+        return false, "name must be globalLight or fog"
+    end
+
+    local colour = getClimateManager():getClimateColor(index)
+
+    if colour == nil then
+        return false, "no climate colour at that index"
+    end
+
+    colour:setEnableAdmin(false)
+
+    return true, "climate colour released", string.format(
+        '{"name":"%s","admin":%s}',
+        tostring(command.name),
+        tostring(colour:isEnableAdmin())
+    )
+end
+
+--- A lightning strike at a point on the map.
+--
+-- RCON's lightning takes a player name and nothing else, so a strike
+-- could never be placed. triggerThunderEvent(x, y, strike, flash, rumble)
+-- takes the coordinates and the three parts separately -- which is the
+-- one call the game itself makes from server Lua
+-- (server/ClientCommands.lua:634), so this is the proven path rather
+-- than an inferred one.
+handlers.strikeLightning = function(command)
+    local x = tonumber(command.x)
+    local y = tonumber(command.y)
+
+    if x == nil or y == nil then
+        return false, "x and y are required"
+    end
+
+    if x < 0 or x > 20000 or y < 0 or y > 20000 then
+        return false, "the coordinates are outside the world"
+    end
+
+    local storm = getClimateManager():getThunderStorm()
+
+    if storm == nil then
+        return false, "the server has no thunderstorm"
+    end
+
+    -- Each part is separate: a rumble alone is distant thunder, a flash
+    -- is lightning without damage, and a strike sets fire to what it hits.
+    local strike = command.strike == true or command.strike == "true"
+    local flash = command.flash ~= false and command.flash ~= "false"
+    local rumble = command.rumble ~= false and command.rumble ~= "false"
+
+    storm:triggerThunderEvent(math.floor(x), math.floor(y), strike, flash, rumble)
+
+    return true, "lightning triggered", string.format(
+        '{"x":%d,"y":%d,"strike":%s,"flash":%s,"rumble":%s}',
+        math.floor(x),
+        math.floor(y),
+        tostring(strike),
+        tostring(flash),
+        tostring(rumble)
+    )
+end
+
+--- How many days into the apocalypse the world currently is.
+--
+-- The formula is the game's own, from ISVehicleMenu.lua:1089: the world
+-- age in days plus thirty days for each month the scenario started after
+-- the outbreak. Utilities are on while that number is below their shut
+-- modifier, so this is what a switch has to move around.
+local function apocalypseDay()
+    local sandbox = getSandboxOptions()
+
+    return getGameTime():getWorldAgeHours() / 24 + (sandbox:getTimeSinceApo() - 1) * 30
+end
+
+--- Reads whether a utility is still running, and its cut-off day.
+local function utilityState(option)
+    local day = apocalypseDay()
+    local shutAt = option:getValueAsObject()
+
+    if type(shutAt) ~= "number" then
+        shutAt = tonumber(tostring(shutAt))
+    end
+
+    -- -1 is the game's own "never": the utility stays on forever.
+    local on = shutAt == -1 or day < shutAt
+
+    return on, shutAt, day
+end
+
+--- Turns the power or the water on or off.
+--
+-- There is no on/off flag in the game: a utility runs until the world is
+-- older than its shut modifier, in days. So switching it off means
+-- moving that day into the past, and switching it on means moving it
+-- beyond today -- which is what the panel does rather than pretending a
+-- boolean exists.
+--
+-- Off is set to the current day floor, so the cut-off is now rather than
+-- retroactive by an arbitrary amount. On is set to -1, the game's own
+-- "never shuts off", so it cannot lapse again a day later.
+handlers.setUtility = function(command)
+    local which = command.utility
+    local sandbox = getSandboxOptions()
+
+    local option = which == "power" and sandbox.elecShutModifier
+        or which == "water" and sandbox.waterShutModifier
+        or nil
+
+    if option == nil then
+        return false, "utility must be power or water"
+    end
+
+    local wanted = command.on == true or command.on == "true"
+    local day = apocalypseDay()
+
+    option:setValueFromObject(wanted and -1 or math.floor(day))
+
+    -- Read back rather than trust the setter, and report the day as well:
+    -- a panel showing "on" while the world is past the cut-off would be
+    -- the same lie the snow flag told.
+    local on, shutAt = utilityState(option)
+
+    if on ~= wanted then
+        return false, "the server would not change the utility", string.format(
+            '{"utility":"%s","on":%s,"shutAt":%s,"day":%.1f}',
+            tostring(which),
+            tostring(on),
+            tostring(shutAt),
+            day
+        )
+    end
+
+    sandbox:sendToServer()
+
+    return true, wanted and "utility switched on" or "utility switched off", string.format(
+        '{"utility":"%s","on":%s,"shutAt":%s,"day":%.1f}',
+        tostring(which),
+        tostring(on),
+        tostring(shutAt),
+        day
+    )
+end
+
+--- What the utilities are doing, and when they are due to stop.
+handlers.readUtilities = function()
+    local sandbox = getSandboxOptions()
+    local powerOn, powerShutAt, day = utilityState(sandbox.elecShutModifier)
+    local waterOn, waterShutAt = utilityState(sandbox.waterShutModifier)
+
+    return true, "utilities read", string.format(
+        '{"day":%.1f,"power":{"on":%s,"shutAt":%s},"water":{"on":%s,"shutAt":%s}}',
+        day,
+        tostring(powerOn),
+        tostring(powerShutAt),
+        tostring(waterOn),
+        tostring(waterShutAt)
+    )
 end
 
 handlers.setSafehouseRespawn = function(command)

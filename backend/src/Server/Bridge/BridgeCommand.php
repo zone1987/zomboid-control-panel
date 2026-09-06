@@ -24,6 +24,16 @@ enum BridgeCommand: string
     case ReleaseSnow = 'releaseSnow';
     case TriggerWeatherStage = 'triggerWeatherStage';
     case GenerateWeather = 'generateWeather';
+    case ReadClimateColours = 'readClimateColours';
+    case SetClimateColour = 'setClimateColour';
+    case ReleaseClimateColour = 'releaseClimateColour';
+    case StrikeLightning = 'strikeLightning';
+    case SetUtility = 'setUtility';
+    case ReadUtilities = 'readUtilities';
+    case HealPlayer = 'healPlayer';
+    case ReadPlayerStats = 'readPlayerStats';
+    case SetPlayerStat = 'setPlayerStat';
+    case SetPlayerWeight = 'setPlayerWeight';
     case SetSnow = 'setSnow';
     case StartBlizzard = 'startBlizzard';
     case StopWeather = 'stopWeather';
@@ -116,7 +126,46 @@ enum BridgeCommand: string
     {
         return match ($this) {
             self::Ping, self::StopRain, self::StartBlizzard, self::StopWeather,
-            self::ReadClimate, self::ResetClimate, self::ReleaseSnow => [],
+            self::ReadClimate, self::ResetClimate, self::ReleaseSnow,
+            self::ReadClimateColours, self::ReadUtilities => [],
+            self::SetClimateColour => [
+                'name' => self::colourName($arguments),
+                // Every channel a fraction, because that is what the
+                // game's own setAdminValue takes.
+                'r' => self::number($arguments, 'r', 0, 1),
+                'g' => self::number($arguments, 'g', 0, 1),
+                'b' => self::number($arguments, 'b', 0, 1),
+                'a' => isset($arguments['a']) ? self::number($arguments, 'a', 0, 1) : 1,
+            ],
+            self::ReleaseClimateColour => ['name' => self::colourName($arguments)],
+            self::StrikeLightning => [
+                'x' => self::number($arguments, 'x', 0, 20000),
+                'y' => self::number($arguments, 'y', 0, 20000),
+                // The three parts separately: a rumble alone is distant
+                // thunder, a flash is lightning without damage, and a
+                // strike sets fire to what it hits. Only the strike is
+                // off by default, because only it destroys anything.
+                'strike' => ($arguments['strike'] ?? false) === true,
+                'flash' => ($arguments['flash'] ?? true) !== false,
+                'rumble' => ($arguments['rumble'] ?? true) !== false,
+            ],
+            self::SetUtility => [
+                'utility' => self::utility($arguments),
+                'on' => ($arguments['on'] ?? false) === true,
+            ],
+            self::HealPlayer, self::ReadPlayerStats => ['player' => self::text($arguments, 'player')],
+            self::SetPlayerStat => [
+                'player' => self::text($arguments, 'player'),
+                'stat' => self::statistic($arguments),
+                // Bounds are the game's own and differ per statistic, so
+                // the bridge checks them against what the stat reports
+                // rather than the panel guessing a range here.
+                'value' => self::number($arguments, 'value', -1000, 1000),
+            ],
+            self::SetPlayerWeight => [
+                'player' => self::text($arguments, 'player'),
+                'weight' => self::number($arguments, 'weight', 30, 200),
+            ],
             self::TriggerWeatherStage => [
                 'stage' => self::stage($arguments),
                 'duration' => self::number($arguments, 'duration', 1, self::MAX_STAGE_HOURS),
@@ -205,6 +254,72 @@ enum BridgeCommand: string
             'index' => $index,
             'value' => self::number($arguments, 'value', $min, $max),
         ];
+    }
+
+    /** The two climate colours the game keeps. */
+    public const CLIMATE_COLOUR_NAMES = ['globalLight', 'fog'];
+
+    /** The utilities a server can switch. */
+    public const UTILITIES = ['power', 'water'];
+
+    /**
+     * The twenty-four statistics the game registers, by its own ids.
+     *
+     * From `CharacterStat`'s constant pool in build 42, not from the
+     * constant names — the two agree here, which a test asserts against
+     * the bridge rather than trusting.
+     */
+    public const CHARACTER_STATS = [
+        'Anger', 'Boredom', 'Discomfort', 'Endurance', 'Fatigue', 'Fitness',
+        'FoodSickness', 'Hunger', 'Idleness', 'Intoxication', 'Morale',
+        'NicotineWithdrawal', 'Pain', 'Panic', 'Poison', 'Sanity', 'Sickness',
+        'Stress', 'Temperature', 'Thirst', 'Unhappiness', 'Wetness',
+        'ZombieFever', 'ZombieInfection',
+    ];
+
+    /** @param array<string, mixed> $arguments */
+    private static function statistic(array $arguments): string
+    {
+        $stat = $arguments['stat'] ?? null;
+
+        if (!\is_string($stat) || !\in_array($stat, self::CHARACTER_STATS, true)) {
+            throw new InvalidBridgeCommand(sprintf(
+                '"stat" must be one of %s.',
+                implode(', ', self::CHARACTER_STATS),
+            ));
+        }
+
+        return $stat;
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private static function colourName(array $arguments): string
+    {
+        $name = $arguments['name'] ?? null;
+
+        if (!\is_string($name) || !\in_array($name, self::CLIMATE_COLOUR_NAMES, true)) {
+            throw new InvalidBridgeCommand(sprintf(
+                '"name" must be one of %s.',
+                implode(', ', self::CLIMATE_COLOUR_NAMES),
+            ));
+        }
+
+        return $name;
+    }
+
+    /** @param array<string, mixed> $arguments */
+    private static function utility(array $arguments): string
+    {
+        $utility = $arguments['utility'] ?? null;
+
+        if (!\is_string($utility) || !\in_array($utility, self::UTILITIES, true)) {
+            throw new InvalidBridgeCommand(sprintf(
+                '"utility" must be one of %s.',
+                implode(', ', self::UTILITIES),
+            ));
+        }
+
+        return $utility;
     }
 
     /** @param array<string, mixed> $arguments */
