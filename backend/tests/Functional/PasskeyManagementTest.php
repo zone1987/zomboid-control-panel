@@ -8,13 +8,12 @@ use App\Entity\User;
 use App\Entity\WebauthnCredential;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
 use Webauthn\TrustPath\EmptyTrustPath;
 
-final class PasskeyManagementTest extends WebTestCase
+final class PasskeyManagementTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

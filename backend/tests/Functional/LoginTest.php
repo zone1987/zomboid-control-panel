@@ -7,11 +7,10 @@ namespace App\Tests\Functional;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class LoginTest extends WebTestCase
+final class LoginTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

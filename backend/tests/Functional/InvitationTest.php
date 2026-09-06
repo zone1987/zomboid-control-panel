@@ -9,11 +9,10 @@ use App\Entity\User;
 use App\Invitation\InvitationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class InvitationTest extends WebTestCase
+final class InvitationTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

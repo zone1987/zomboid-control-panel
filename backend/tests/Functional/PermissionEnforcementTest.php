@@ -12,7 +12,6 @@ use App\Security\Permission\Permission;
 use App\Server\Rcon\RconClientInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -20,7 +19,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * The point of brief 06, demonstrated: a moderator who may kick but not
  * ban, without also holding the FTP credentials.
  */
-final class PermissionEnforcementTest extends WebTestCase
+final class PermissionEnforcementTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 
@@ -34,10 +33,6 @@ final class PermissionEnforcementTest extends WebTestCase
         $this->client->disableReboot();
 
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
-        $this->em->createQuery('DELETE FROM App\Entity\ModerationAction')->execute();
-        $this->em->createQuery('DELETE FROM App\Entity\GameServer')->execute();
-        $this->em->createQuery('DELETE FROM App\Entity\User')->execute();
-        $this->em->createQuery('DELETE FROM App\Entity\Role')->execute();
     }
 
     public function testAModeratorMayKickButNotBan(): void

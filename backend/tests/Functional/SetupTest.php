@@ -8,10 +8,9 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
-final class SetupTest extends WebTestCase
+final class SetupTest extends FunctionalTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;

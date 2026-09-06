@@ -8,11 +8,10 @@ use App\Entity\User;
 use App\Security\PasswordReset\PasswordResetService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class PasswordResetTest extends WebTestCase
+final class PasswordResetTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

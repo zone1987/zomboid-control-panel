@@ -9,11 +9,10 @@ use App\Entity\User;
 use App\Repository\RoleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class RoleManagementTest extends WebTestCase
+final class RoleManagementTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

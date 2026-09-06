@@ -10,7 +10,6 @@ use App\Security\Permission\Permission;
 use App\Server\Vehicles\Models\ModelStore;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -18,7 +17,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * A model or texture never changes under the same name, so the map
  * should be told to keep it and a repeat fetch should transfer nothing.
  */
-final class VehicleModelCachingTest extends WebTestCase
+final class VehicleModelCachingTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

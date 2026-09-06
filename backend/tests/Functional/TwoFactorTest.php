@@ -8,11 +8,10 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use OTPHP\TOTP;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class TwoFactorTest extends WebTestCase
+final class TwoFactorTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

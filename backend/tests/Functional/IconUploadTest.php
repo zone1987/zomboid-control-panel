@@ -8,7 +8,6 @@ use App\Entity\User;
 use App\Server\Items\Icons\IconStore;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * An operator whose server is rented has no game installation to point
  * the extraction command at, so the packs come in through the browser.
  */
-final class IconUploadTest extends WebTestCase
+final class IconUploadTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

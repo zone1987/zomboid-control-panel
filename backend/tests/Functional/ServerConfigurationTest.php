@@ -10,11 +10,10 @@ use App\Entity\RconConfig;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class ServerConfigurationTest extends WebTestCase
+final class ServerConfigurationTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 

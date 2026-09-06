@@ -13,11 +13,10 @@ use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconUnreachable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class ChatTest extends WebTestCase
+final class ChatTest extends FunctionalTestCase
 {
     private const PASSWORD = 'a-sufficiently-long-password';
 
