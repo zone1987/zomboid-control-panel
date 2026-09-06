@@ -17,13 +17,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { useActiveServer } from '@/features/servers/active-server'
 import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
 import { IconPacksCard } from './icon-packs-card'
-import { ObjectStorageCard } from './object-storage-card'
-import { TexturePacksCard } from './texture-packs-card'
-import { WorldRenderCard } from './world-render-card'
 import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
 import {
   listSettings,
@@ -41,7 +37,6 @@ export function SettingsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>({})
-  const { activeServerId } = useActiveServer()
 
   const { data, isPending } = useQuery({
     queryKey: ['settings'],
@@ -130,7 +125,6 @@ export function SettingsPage() {
           <TabsTrigger value="mail">{t('settings.mailTab')}</TabsTrigger>
           <TabsTrigger value="icons">{t('settings.iconsTab')}</TabsTrigger>
           <TabsTrigger value="map">{t('settings.mapTab')}</TabsTrigger>
-          <TabsTrigger value="storage">{t('settings.storageTab')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steam">
@@ -312,13 +306,20 @@ export function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="map" className="space-y-4">
-          <TexturePacksCard />
-          <WorldRenderCard serverId={activeServerId} />
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('map.external.title')}</CardTitle>
+              <CardDescription>{t('map.external.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <p>{t('map.external.noRender')}</p>
+              <a href="https://projectzomboidmap.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                projectzomboidmap.com
+              </a>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="storage">
-          <ObjectStorageCard items={data?.items} field={field} />
-        </TabsContent>
       </Tabs>
 
       <div className="flex gap-2">

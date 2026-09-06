@@ -2,20 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import OpenSeadragon from 'openseadragon'
 
 import { viewportToWorld, worldToViewport, type WorldPoint } from './coordinates'
-import type { MapSource } from './map-config'
+import { floorFor, type MapSource } from './map-config'
 
-// A tile that has not been drawn yet is the normal state during a
-// render, and OpenSeadragon logs an error for every one of them.
-const seadragonConsole = (OpenSeadragon as unknown as { console: Console }).console
-const originalError = seadragonConsole.error.bind(seadragonConsole)
-
-seadragonConsole.error = (...args: unknown[]) => {
-  if (typeof args[0] === 'string' && args[0].startsWith('Tile %s failed to load')) {
-    return
-  }
-
-  originalError(...args)
-}
 import { fitZoom, tileSourceFor } from './tile-source'
 import type { MapViewState } from './map-url-state'
 
@@ -29,6 +17,7 @@ type Options = {
 export type MapViewer = {
   containerRef: (element: HTMLDivElement | null) => void
   ready: boolean
+  loadFailed: boolean
   floor: number
   setFloor: (floor: number) => void
   centre: WorldPoint
@@ -48,8 +37,10 @@ export type MapViewer = {
  * second.
  */
 export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: Options): MapViewer {
+  const initialFloor = floorFor(source, initial?.floor ?? 0)
   const [ready, setReady] = useState(false)
-  const [floor, setFloorState] = useState(initial?.floor ?? 0)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [floor, setFloorState] = useState(initialFloor)
   const [centre, setCentre] = useState<WorldPoint>({
     x: initial?.x ?? 10778,
     y: initial?.y ?? 9770,
@@ -78,7 +69,11 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
 
     const instance = OpenSeadragon({
       element: node,
-      tileSources: tileSourceFor(source, initial?.floor ?? 0),
+      // Plain images work across origins without reading their pixels or fetching descriptors.
+      drawer: 'html',
+      crossOriginPolicy: false,
+      loadTilesWithAjax: false,
+      tileSources: tileSourceFor(source, initialFloor),
       showNavigationControl: false,
       // The panel draws its own, in the panel's own style.
       showNavigator: false,
@@ -96,6 +91,11 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
     })
 
     viewer.current = instance
+    const loadTimer = window.setTimeout(() => setLoadFailed(true), 15_000)
+    instance.addOnceHandler('tile-loaded', () => {
+      window.clearTimeout(loadTimer)
+      setLoadFailed(false)
+    })
 
     const report = () => {
       const { source: current, floor: level, onViewChanged: notify } = state.current
@@ -116,7 +116,9 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
      */
     instance.addOnceHandler('open', () => {
       instance.addOnceHandler('animation-finish', () => {
-        const start = initial ?? { x: 10778, y: 9770, zoom: 2, floor: 0 }
+        const start = initial
+          ? { ...initial, floor: initialFloor }
+          : { x: 10778, y: 9770, zoom: 80, floor: initialFloor }
         const point = worldToViewport({ x: start.x, y: start.y }, start.floor, source)
 
         instance.viewport.zoomTo(start.zoom, undefined, true)
@@ -145,26 +147,6 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
 
     instance.addHandler('animation-finish', report)
     instance.addHandler('zoom', report)
-
-    // A tile that is not there yet is the normal state during a render,
-    // not a fault. Registering a handler keeps OpenSeadragon from
-    // logging every one of them to the console.
-    instance.addHandler('tile-load-failed', () => undefined)
-
-    /**
-     * A descriptor that is not there yet is the same thing, one level up.
-     *
-     * Before the first batch reaches the store there is no layer0.dzi,
-     * and OpenSeadragon writes "Unable to open [object Object]: HTTP
-     * 404" across the middle of the map in its own styling. The render
-     * window already says what is happening, so this is noise on top of
-     * an explanation -- and it stays on screen after the tiles arrive.
-     */
-    instance.addHandler('open-failed', () => {
-      // Its message element is added to the container on failure and
-      // never removed by the viewer itself.
-      node.querySelectorAll('.openseadragon-message').forEach((message) => message.remove())
-    })
 
     // Tracks the pointer so the readout can show where the mouse is.
     const tracker = new OpenSeadragon.MouseTracker({
@@ -196,21 +178,21 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
       const point = instance.viewport.pointFromPixel(pixel)
       const world = viewportToWorld({ x: point.x, y: point.y }, level, current)
 
-      menu({ x: Math.round(world.x), y: Math.round(world.y) })
+      menu({ x: Math.round(world.x), y: Math.round(world.y), z: level })
     }
 
     node.addEventListener('contextmenu', onContext)
 
     return () => {
+      window.clearTimeout(loadTimer)
       node.removeEventListener('contextmenu', onContext)
       tracker.destroy()
       instance.destroy()
       viewer.current = null
       setReady(false)
+      setLoadFailed(false)
     }
-    // Built once. A change of source rebuilds it, which is correct:
-    // switching between the game's map and an isometric render is a
-    // different image, not a different view of the same one.
+    // Rebuild only when the image source changes.
   }, [source])
 
   /**
@@ -222,6 +204,7 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
   const setFloor = useCallback(
     (next: number) => {
       const instance = viewer.current
+      next = floorFor(state.current.source, next)
 
       if (instance === null || next === state.current.floor) {
         return
@@ -288,6 +271,7 @@ export function useMapViewer({ source, initial, onViewChanged, onContextMenu }: 
   return {
     containerRef,
     ready,
+    loadFailed,
     floor,
     setFloor,
     centre,

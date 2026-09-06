@@ -15,11 +15,11 @@
  */
 export type MapLayer = {
   level: number
-  /** Where the .dzi for this floor lives, relative to the tile root. */
-  dzi: string
 }
 
 export type MapSource = {
+
+  tileSize?: number
 
   /** Prefix every tile and .dzi path is resolved against. */
   root: string
@@ -34,6 +34,31 @@ export type MapSource = {
   geometry: MapGeometry
 
   layers: MapLayer[]
+}
+
+// Metadata from this immutable render's base/map_info.json and layer descriptors.
+export const PROJECT_ZOMBOID_MAP: MapSource = {
+  root: 'https://tiles.projectzomboidmap.com/maps/b42.20.2-r1/base',
+  tileSize: 1024,
+  geometry: {
+    originX: 1036288,
+    originY: -139296,
+    squareSize: 128,
+    scale: 1,
+    floorHeight: 192,
+    width: 2314368,
+    height: 1019040,
+    cellSize: 256,
+  },
+  layers: Array.from({ length: 47 }, (_, index) => {
+    const level = index - 17
+    return { level }
+  }),
+}
+
+export function floorFor(source: MapSource, floor: number): number {
+  if (source.layers.some(({ level }) => level === floor)) return floor
+  return source.layers.find(({ level }) => level === 0)?.level ?? source.layers[0].level
 }
 
 export type MapGeometry = {
@@ -51,37 +76,6 @@ export type MapGeometry = {
   height: number
   /** Squares per cell, for reading pzmap2dzi's own numbers back. */
   cellSize: number
-}
-
-/**
- * An isometric render, as pzmap2dzi produces it.
- *
- * Not shipped: nobody distributes these tiles, and the game does not
- * contain them. An operator generates them from their own installation
- * -- see docs/superpowers/briefs/08-isometric-map.md -- and the panel
- * then serves them from its own storage.
- *
- * The geometry below is the shape pzmap2dzi writes into map_info.json
- * for build 42. The values are filled in from that file when tiles are
- * imported, so they are defaults rather than assumptions.
- */
-export const ISOMETRIC_DEFAULTS: MapGeometry = {
-  // x0 and y0 come from map_info.json and are not scaled: only w and h
-  // shrink with omit_levels, and the transform divides by scale itself.
-  originX: 1036288,
-  originY: -143392,
-  // sqr: two grid widths of 64 pixels.
-  squareSize: 128,
-  // 1 << skip, where skip is pzmap2dzi's omit_levels. Two levels are
-  // dropped by default -- see TileRenderer::DEFAULT_OMIT_LEVELS -- so a
-  // view opened before the render's own map_info.json arrives is at the
-  // right scale rather than sixteen times too large.
-  scale: 4,
-  // 1.5 * sqr. The renderer calls the same number LAYER_HEIGHT.
-  floorHeight: 192,
-  width: 578672,
-  height: 252968,
-  cellSize: 256,
 }
 
 /**
@@ -108,40 +102,3 @@ export const QUICK_TARGETS = [
   { id: 'ekron', x: 1020, y: 9838 },
   { id: 'fallasLake', x: 7348, y: 8371 },
 ] as const
-
-/**
- * Builds the source for an isometric render the panel actually holds.
- *
- * Everything comes from the render's own map_info.json -- the origin,
- * the square size, the scale a trimmed pyramid declares -- because
- * those change with the options the operator rendered with. Only the
- * floor height is derived, and only because pzmap2dzi derives it the
- * same way: 1.5 squares.
- */
-export function isometricSourceFrom(
-  levels: number[],
-  geometry: MapGeometry | null,
-): MapSource | null {
-  if (geometry === null || levels.length === 0) {
-    return null
-  }
-
-  return {
-    root: '/api/map/isometric',
-    geometry,
-    layers: levels.map((level) => ({ level, dzi: `layer${level}.dzi` })),
-  }
-}
-
-/**
- * What the viewer opens before a render exists.
- *
- * The controls, the floor picker and the coordinate readout all belong
- * on screen while a render is running: tiles appear underneath them as
- * they are drawn, rather than the page staying empty for hours.
- */
-export const PENDING_SOURCE: MapSource = {
-  root: '/api/map/isometric',
-  geometry: ISOMETRIC_DEFAULTS,
-  layers: [{ level: 0, dzi: 'layer0.dzi' }],
-}

@@ -1,8 +1,6 @@
 import { Trans, useTranslation } from 'react-i18next'
-import { Copy, ExternalLink } from 'lucide-react'
-import { toast } from 'sonner'
+import { ExternalLink } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 
 function StepList({ items }: { items: string[] }) {
   return (
@@ -93,77 +91,6 @@ export function MailerInstructions() {
     <div className="space-y-2">
       <p>{t('settings.mailerIntro')}</p>
       <p className="text-xs text-muted-foreground">{t('settings.mailerNote')}</p>
-    </div>
-  )
-}
-
-export function HetznerInstructions() {
-  const { t } = useTranslation()
-
-  return (
-    <div className="space-y-2">
-      <StepList
-        items={[
-          t('settings.s3Step1'),
-          t('settings.s3Step2'),
-          t('settings.s3Step3'),
-          t('settings.s3Step4'),
-        ]}
-      />
-
-      <p>
-        <DocLink href="https://console.hetzner.cloud/">console.hetzner.cloud</DocLink>
-      </p>
-
-      <p className="text-xs text-muted-foreground">{t('settings.s3Note')}</p>
-    </div>
-  )
-}
-
-export function TexturePackInstructions() {
-  const { t } = useTranslation()
-
-  return (
-    <div className="space-y-3">
-      <p>{t('settings.textures.stepIntro')}</p>
-
-      <dl className="space-y-2">
-        {[
-          ['Windows', 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\ProjectZomboid\\media\\texturepacks'],
-          ['Linux', '~/.steam/steam/steamapps/common/ProjectZomboid/media/texturepacks'],
-          ['macOS', '~/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media/texturepacks'],
-        ].map(([system, path]) => (
-          <div key={system}>
-            <dt className="text-xs font-medium">{system}</dt>
-            <dd className="flex items-start gap-2">
-              <span className="min-w-0 flex-1 break-all font-mono text-xs text-muted-foreground">
-                {path}
-              </span>
-
-              {/* Nobody retypes this into the Go-to-Folder box. */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-6 shrink-0"
-                aria-label={t('common.copy')}
-                onClick={() => {
-                  void navigator.clipboard?.writeText(path)
-                  toast.success(t('common.copied'))
-                }}
-              >
-                <Copy className="size-3" />
-              </Button>
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      {/* On macOS the folder is inside an app bundle, which Finder
-          hides behind a context-menu entry most people never use. */}
-      <p className="text-xs text-muted-foreground">{t('settings.textures.macNote')}</p>
-
-      <p className="text-xs text-muted-foreground">{t('settings.textures.serverNote')}</p>
     </div>
   )
 }

@@ -7,7 +7,6 @@ import { MapPin } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -25,14 +24,13 @@ import {
 } from '@/components/ui/select'
 import { teleportPlayer } from '@/features/players/players'
 import type { WorldPoint } from './coordinates'
-import { isometricSourceFrom, PENDING_SOURCE, type MapSource } from './map-config'
+import { PROJECT_ZOMBOID_MAP } from './map-config'
 import { viewStateOnArrival } from './map-url-state'
-import { mapOverlay, mapStatus, type MapPlayer } from './map'
+import { mapOverlay, type MapPlayer } from './map'
 import { ALL_LAYERS_ON, type LayerVisibility } from './layer-toggles'
 import { WorldMap } from './world-map'
 import { MapSearch } from './map-search'
 import { MapSidebar } from './map-sidebar'
-import { RenderOverlay } from './render-overlay'
 
 export function MapPage() {
   const { t } = useTranslation()
@@ -44,16 +42,6 @@ export function MapPage() {
   // Set once the viewer is up, so search and the place buttons can move
   // the view without the page holding viewer state of its own.
   const goTo = useRef<((point: WorldPoint, zoom?: number) => void) | null>(null)
-
-  // Asked again while a render is going: the descriptors appear early
-  // and the floors grow as layers are drawn, so the viewer can open on
-  // a partial render and fill in.
-  const { data: status, isPending } = useQuery({
-    queryKey: ['map-status'],
-    queryFn: mapStatus,
-    refetchInterval: 15_000,
-    placeholderData: (previous) => previous,
-  })
 
   const { data: overlay } = useQuery({
     queryKey: ['map-overlay', id],
@@ -71,17 +59,9 @@ export function MapPage() {
   // its own position into the hash.
   const initial = useMemo(() => viewStateOnArrival(), [])
 
-  const source: MapSource | null = useMemo(
-    () =>
-      status?.isometric.available === true
-        ? isometricSourceFrom(status.isometric.levels, status.isometric.geometry)
-        : null,
-    [status],
-  )
-
   const teleport = useMutation({
     mutationFn: () =>
-      teleportPlayer(id, who ?? '', { x: target?.x ?? 0, y: target?.y ?? 0, z: 0 }),
+      teleportPlayer(id, who ?? '', { x: target?.x ?? 0, y: target?.y ?? 0, z: target?.z ?? 0 }),
     onSuccess: () => {
       setTarget(null)
       setWho(null)
@@ -95,7 +75,7 @@ export function MapPage() {
       ),
   })
 
-  const move = useCallback((point: WorldPoint) => goTo.current?.(point, 6), [])
+  const move = useCallback((point: WorldPoint) => goTo.current?.(point, 80), [])
 
   const onPlayerClick = useCallback((player: MapPlayer) => {
     goTo.current?.({ x: player.x, y: player.y })
@@ -105,20 +85,12 @@ export function MapPage() {
     goTo.current = move
   }, [])
 
-  if (isPending) {
-    return <Skeleton className="h-[36rem] w-full" />
-  }
-
-
-
   return (
     // Fills whatever the layout leaves, rather than guessing the header
     // height and leaving a strip along the bottom.
     <div className="relative h-full min-h-[30rem] w-full">
-      <RenderOverlay hasRender={source !== null} />
-
       <WorldMap
-        source={source ?? PENDING_SOURCE}
+        source={PROJECT_ZOMBOID_MAP}
         players={players}
         safehouses={overlay?.safehouses ?? []}
         vehicles={overlay?.vehicles ?? []}
@@ -149,7 +121,7 @@ export function MapPage() {
           <DialogHeader>
             <DialogTitle>{t('map.teleportTitle')}</DialogTitle>
             <DialogDescription>
-              {t('map.teleportBody', { x: target?.x, y: target?.y })}
+              {t('map.teleportBody', { x: target?.x, y: target?.y, z: target?.z ?? 0 })}
             </DialogDescription>
           </DialogHeader>
 

@@ -1,3 +1,7 @@
+> Historical plan: the self-rendering and S3 design was retired on 2026-09-06.
+> The panel now loads projectzomboidmap.com images directly. See root CONTEXT.md
+> for the implemented source, controls and verification.
+
 # Brief 08 — Isometric map and live world state
 
 **Status:** not started, requested 2026-09-05

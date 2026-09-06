@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Server\Map\Textures;
+namespace App\Server\Items\Icons;
 
 final class UploadRefused extends \RuntimeException
 {

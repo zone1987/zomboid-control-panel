@@ -31,7 +31,59 @@ Sub-projects 01 through 04 are complete. 05 (live map), 06 (roles) and
 
 ---
 
-## Next concrete step
+## Current direction — 2026-09-06: external map images (implemented)
+
+**Follow-up completed: self-rendering and S3 are now removed entirely.**
+`renderer/`, all backend map-render classes and commands, render progress UI,
+S3 settings/API/dependencies and local render working directories are deleted.
+A migration deletes the five retired S3 settings and queued RenderWorld messages;
+it has been applied locally and the remaining S3-setting count is zero.
+Item-icon chunk uploads were moved to `App\Server\Items\Icons` and no longer
+need renderer textures; all 4,351 existing icons remain. Async mail and scheduler
+workers are retained. The old statements below about retaining the rendering
+backend/data describe the previous task and are superseded by this cleanup.
+Verification: 377 backend tests, 81 frontend tests, frontend build, Symfony
+container lint and Docker image build pass. See the final log entry for scope,
+paths, removed local data and remaining deployment limitations.
+
+
+The user explicitly replaced the self-rendering plan with images from
+projectzomboidmap.com and supplied a working image-tile prototype at
+`/Users/andreasgerhardt/Downloads/screen-map (1).jsx`. Only the map imagery is
+embedded: the panel keeps its own viewer, controls, search and live overlays.
+The follow-up request to place attribution directly right of the coordinates
+is also implemented and verified. No world render is required or requested now.
+
+The default source is `PROJECT_ZOMBOID_MAP` in
+`frontend/src/features/map/map-config.ts`: immutable version
+`https://tiles.projectzomboidmap.com/maps/b42.20.2-r1/base`, geometry read and
+verified against that version's `map_info.json`. The viewer uses inline DZI
+descriptors and OpenSeadragon's HTML drawer, loading ordinary image elements
+directly from the provider. This needs neither cross-origin fetch permission,
+a backend proxy, object storage nor texture uploads. Earlier statements below
+that the external map is ruled out or a full render must start are historical
+and superseded by this explicit user decision and the browser verification.
+
+All 47 floors (-17 through 29) are available. Ground imagery is JPG; other
+floors are transparent WebP. Above ground, layers 0 through the selected floor
+are stacked; underground, layers -17 through the selected basement are stacked,
+without the opaque ground. Coordinates use this source's `originY=-139296`,
+not the former local render's `-143392`.
+
+Current verification: production build green, 94 frontend tests green, linter
+0 errors / 27 warnings. Real external image requests, own controls, floor
+switching, search, attribution layout and a right-click dialog with the selected
+floor verified in a browser. Marker alignment verified with an intercepted test
+player response; no real player was online. Failure display verified with image
+requests blocked, then restored. Backend code was not changed or retested.
+
+Remaining limits: a fixed public base map does not depict player construction
+or mod maps; imagery depends on the provider remaining available. The pinned
+version and metadata must be updated together for a future provider version.
+The old rendering backend and its stored data remain; its UI entry points are
+removed. No data was deleted and no background render was started or stopped.
+
+## Historical next concrete step — superseded by the external map decision
 
 **Start a full world render.** Nothing is running: the run recorded here
 on 2026-09-05 is gone -- no `messenger:consume`, no `main.py`, checked
@@ -1216,3 +1268,256 @@ and `renderer/conf/` had accumulated 19.
 
 **Ruled out, with the measurement:** PMTiles, MBTiles and a return to
 Leaflet -- see "Ruled out, with reasons" above.
+
+### 2026-09-06 — External base map with the panel's own controls (completed)
+
+Request: replace the impractical self-render workflow with projectzomboidmap.com.
+The user supplied `/Users/andreasgerhardt/Downloads/screen-map (1).jsx` as a
+reference and explicitly requested that none of the provider's controls appear.
+The prototype loads `<img>` tiles directly, not an iframe. Adopted that approach
+inside the existing OpenSeadragon integration; no prototype sample players,
+safehouses, deaths or vehicle records were copied into the application.
+
+Verified source evidence on this date:
+
+- `https://projectzomboidmap.com/`: HTTP 200, no X-Frame-Options or frame-ancestors
+  restriction in the response. An iframe was technically possible, but discarded
+  once the supplied prototype and request for own controls clarified the approach.
+- Its public `/assets/index-CT_6K3uo.js` uses
+  `https://tiles.projectzomboidmap.com/maps/b42.20.2-r1/` and cumulative floors.
+- `base/map_info.json`: w=2314368, h=1019040, x0=1036288, y0=-139296,
+  sqr=128, skip=0, cell_size=256, minlayer=-17, maxlayer=30 (exclusive).
+- `base/layer0.dzi`, `layer1.dzi`, `layer-1.dzi`, `layer29.dzi` all HTTP 200:
+  TileSize=1024, Overlap=0, matching dimensions; ground Format=jpg and the
+  sampled non-ground layers Format=webp. The prototype's all-JPG assumption
+  would hide upper floors and basements.
+- The metadata endpoint does not return an Access-Control-Allow-Origin for the
+  panel origin. Ordinary image embedding works in the real browser. Inline
+  metadata avoids cross-origin JSON/XML fetching; the HTML drawer avoids pixel
+  readback required by WebGL. No forged Referer, CORS proxy or bulk download.
+
+Files and behavior:
+
+- `AGENTS.md`: created at project root from the existing project conventions in
+  `CLAUDE.md`, with mandatory CONTEXT-first handling as section 0. Context
+  preservation at 90%, 95% and 98% explicitly retains prior records.
+- `frontend/src/features/map/map-config.ts`: `PROJECT_ZOMBOID_MAP` holds the
+  versioned tile root, verified geometry and 47 floors; `floorFor()` returns an
+  available floor or ground for an invalid deep link.
+- `frontend/src/features/map/tile-source.ts`: emits positioned inline DZI sources
+  for the external map. Ordinary JPG ground plus transparent WebP floor stack;
+  negative floors do not include opaque ground. The descriptor shape is supported
+  by installed OSD 6.1.0 but absent from the installed v5 typings, hence the narrow
+  boundary cast. The existing local DZI source path remains available in code.
+- `frontend/src/features/map/use-map-viewer.ts`: external source uses HTML drawer,
+  `crossOriginPolicy: false`, `loadTilesWithAjax: false`; initial floor is
+  normalized; initial external zoom is 80. A 15-second first-image timeout shows
+  a source-unavailable message and is cleared by the first successful image.
+  Right-click includes the current z level.
+- `frontend/src/features/map/map-page.tsx`: directly selects the external source;
+  removes map-status/render progress polling and render overlay. Server overlay
+  polling remains every three seconds. Coordinate/place searches use zoom 80.
+  Teleport mutation now submits the clicked floor rather than hard-coded z=0.
+- `frontend/src/features/map/coordinates.ts`: `WorldPoint` accepts optional z for
+  a contextual target; existing x/y projection formulas stay intact.
+- `frontend/src/features/map/world-map.tsx`: passes source attribution to own map
+  controls and displays localized failure text with a provider link.
+- `frontend/src/components/layout/app-layout.tsx`: removes StartRenderButton from
+  the global header, eliminating its render polling and obsolete start action.
+- `frontend/src/features/settings/settings-page.tsx`: map settings explain the
+  external imagery, retained own controls, lack of render/storage requirements,
+  and base-map limitations. Texture/render setup cards are no longer mounted.
+  Existing object storage settings and underlying rendering code remain intact.
+- `frontend/src/i18n/locales/en.json` and `frontend/src/i18n/locales/de.json`:
+  `map.external.{title,description,noRender,unavailable}` and floor-aware
+  `map.teleportBody`.
+- `frontend/src/features/map/tile-source.test.ts`: six regression tests cover
+  inline source metadata, cumulative floor order, basement transparency, the
+  full floor range, invalid floor fallback and exact external-map projection.
+
+Verification (green except the explicitly listed limits):
+
+- `ddev exec -d /var/www/html/frontend npm run build`: passes TypeScript and
+  production Vite build; output is served from `backend/public/app`.
+- `ddev exec -d /var/www/html/frontend npm test`: 94 tests across eight files pass.
+- `ddev exec -d /var/www/html/frontend npm run lint`: exit 0, 0 errors, 27 warnings.
+- `git diff --check`: clean.
+- Browser at `/app/servers/01a06d21-0424-7894-a2ac-14d1408a2430/map`: real
+  `img[src*="tiles.projectzomboidmap.com"]` have naturalWidth=1024; no iframe.
+  Layer 1 loads WebP above layer 0 JPG. Search for 11800,6900 lands exactly there;
+  changing floor 2 to 3 preserves `#11800,6900,80` and updates only the floor.
+- Right-click on floor 2 opens a dialog naming Etage 2. No teleport was executed.
+- Marker test: intercepted only the test tab's overlay response with a player at
+  11800,6900, then verified `.pz-player` is centered within two CSS pixels on the
+  corresponding map view. Interception removed afterwards; the real roster was
+  empty, so actual moving-player alignment was not exercised this session.
+- Failure test: blocked the tile origin only in the verification tab, observed
+  the localized role=status message after 15 seconds, restored requests and
+  reloaded; images loaded and the message disappeared.
+- Existing authenticated browser tab was left for the user. Additional verification
+  used a separate tab and did not mutate server data. Temporary screenshot is
+  `/tmp/zomboid-external-map-verified.png`, outside the repository.
+
+No backend changes, backend tests, production deployment, tile storage cleanup,
+renderer removal or server-side gameplay actions in this task. Provider outages
+or a removed pinned version remain external dependencies. The current error
+indicator covers failure to load the first image; a later partial tile outage is
+not globally diagnosed. Sparse basement/upper floor tiles can legitimately 404.
+
+### 2026-09-06 — Attribution beside coordinates (completed)
+
+User screenshot requested moving the credits from above the coordinates to the
+right, in the same row. `frontend/src/features/map/map-controls.tsx` now groups
+its coordinate-copy button and optional attribution link in a bottom-left flex
+row with an 8px gap, vertical centering and wrapping on narrow screens. The link
+reads `© The Indie Stone · projectzomboidmap.com · B42.20.2`, opens the provider
+in a new tab and explains base-map limitations in its title. The previous
+standalone attribution block in `frontend/src/features/map/world-map.tsx` is gone.
+
+Verified browser geometry: coordinate button x=292, width=118.96875, y=796,
+height=30; attribution x=418.96875, width=284.140625, y=799.5, height=23.
+Both vertical centers are y=811 and the horizontal gap is exactly 8px.
+Screenshot visually inspected. Final build and 94 tests green. No open work
+remains for the requested placement.
+
+### 2026-09-06 — Retire self-rendering and S3 completely (completed)
+
+The user explicitly authorized removal of every no-longer-needed map-rendering
+component, the occupancy/lotheader survey and progress window, the entire
+`renderer/` directory, and S3 connection/settings. This task supersedes the
+previous decision to leave those components on disk. Existing unrelated changes
+from the prior map integration were preserved; no commit or deployment was made.
+
+Deleted source and configuration scope:
+
+- `renderer/` in full, including its Python code, configuration, requirements,
+  cached bytecode and local virtual environment (about 58 MB on disk).
+- `backend/src/Server/Map/`: CellFetcher, CellLedger, CellOccupancy, CellSurvey,
+  IsometricTiles, OccupancyMap, RenderProgress, RenderRoot, TileGeometry,
+  TileReader, TileRenderer, TileUploader and the map texture store. No lotheader
+  scanning, tile generation, uploading, occupancy survey or render-state storage
+  remains in the application.
+- `backend/src/Message/RenderWorld.php`,
+  `backend/src/MessageHandler/RenderWorldHandler.php`,
+  `backend/src/Controller/Api/TexturePackController.php`.
+- `backend/src/Command/{BenchmarkUploadCommand,ClearStorageCommand,RenderMapCommand,RenderWorldCommand,TestObjectStorageCommand}.php`.
+  General FTP/SFTP diagnostics remain useful for server administration and icons.
+- `backend/src/Storage/` in full: ObjectStorageFactory, ObjectStorageInterface,
+  ObjectStorageNotConfigured, ObjectStorageProbe. `backend/src/Server/Storage/`
+  is unrelated FTP/SFTP server access and is retained.
+- `backend/src/Controller/Api/MapController.php`: only the authenticated live
+  `GET /api/map/{serverId}/overlay` remains. Removed map status, DZI/tile serving,
+  render start/stop/pause/progress/stream routes and their injected services.
+- `backend/src/Controller/Api/SettingsController.php` and
+  `backend/src/Entity/AppSetting.php`: removed S3 keys from editable/secret lists
+  and removed POST `/api/settings/storage/test`.
+- `backend/composer.json` and `backend/composer.lock`: Composer removed
+  league/flysystem-async-aws-s3, async-aws/s3 and async-aws/core, no other package
+  versions changed. Service configuration in `backend/config/services.yaml`
+  no longer contains renderer, textures, storage or PZMAP parameters.
+- `backend/config/packages/messenger.yaml`: removed RenderWorld routing and the
+  render-specific redelivery override. Kept async mail routing and failure queue.
+- `Dockerfile`: removed renderer COPY, Python virtualenv/pip installation and
+  PZMAP environment declarations; dropped explicit python3/python3-venv packages
+  (supervisor can still bring its own system Python dependency).
+- `docker/supervisord.conf` and `.ddev/config.yaml`: mail consumer now uses
+  3600-second / 256 MB limits instead of render-specific 86400-second / 1 GB
+  limits. Kept production scheduler worker. Removed ddev's entire renderer
+  post-start installation hook. Current ddev container was not restarted, so
+  daemon command changes take effect on next start/restart.
+- `backend/.env` and local ignored `backend/.env.local`: removed only PZMAP
+  declarations without printing their values or other environment values.
+- Root `.gitignore` and `backend/.gitignore`: removed renderer-only entries.
+
+Deleted UI:
+
+- `frontend/src/features/map/{render-overlay,start-render-button,render-timeline,render-figures}.tsx`
+  and `render-estimate.ts`, `render-format.ts`, `render-estimate.test.ts`.
+- `frontend/src/features/settings/{object-storage-card,world-render-card,texture-packs-card}.tsx`,
+  `render-progress.ts`, `texture-packs.ts`.
+- `frontend/src/features/settings/settings-page.tsx`: S3 tab and card removed;
+  remaining tabs are Steam, Google, E-Mail, Item-Icons, Karte.
+- `frontend/src/features/settings/settings.ts`: S3 keys and storage test API removed.
+- `frontend/src/features/settings/instructions.tsx`: removed obsolete storage/map
+  texture instructions and now-unused imports.
+- `frontend/src/features/map/map-config.ts`: removed local ISOMETRIC_DEFAULTS,
+  PENDING_SOURCE, isometricSourceFrom, optional external flag and unused DZI field.
+  The published external metadata, geometry types and quick targets remain.
+- `frontend/src/features/map/map.ts`: removed MapStatus/IsometricSource types and
+  mapStatus API. `tile-source.ts`, `use-map-viewer.ts`, `world-map.tsx` and
+  `map-controls.tsx` now assume the external map directly; no local-source branch
+  or render-wait UI remains. Coordinate tests use published map geometry.
+- `frontend/src/i18n/locales/{de,en}.json`: removed S3, self-render progress/setup,
+  map texture instructions and obsolete no-render strings. Item-icon texture
+  instructions remain because they serve item artwork, not map rendering.
+- `docs/superpowers/briefs/{05-livemap,08-isometric-map}.md`: marked old rendering
+  plans historical with a pointer to current CONTEXT; historical evidence retained.
+
+Shared icon dependency resolved before deleting the renderer:
+
+- `backend/src/Server/Items/Icons/ChunkedUpload.php` and `UploadRefused.php`
+  replace their old map namespace. ChunkedUpload has no TexturePackStore
+  dependency or map-pack-only methods. It keeps arbitrary icon pack name
+  validation, ordered appends, size validation, deletion after extraction, and
+  both PZPK and legacy pack-header acceptance. Error keys use the icons namespace.
+- `backend/src/Controller/Api/IconController.php`: updated type references;
+  existing icon chunk/finish endpoints and extraction behavior retained.
+- Temporary icon uploads now use `backend/var/icons/incoming`; any existing
+  non-map .part files were moved there before deleting the old texture directory.
+- `backend/tests/Unit/Server/Items/Icons/{ChunkedUploadTest,SafeNameTest}.php`:
+  name tests retained and moved, with five meaningful upload tests covering
+  assembly/deletion, legacy packs, invalid content, missing chunk and size mismatch.
+- Retired rendering-only tests under `backend/tests/{Unit,Integration}/Server/Map`,
+  `backend/tests/Unit/Storage` and Functional/MapTileRouteTest were removed.
+  Functional/SettingsTest replaces S3 feature tests with a regression asserting
+  that an obsolete S3 key is rejected (422), not persisted and not listed.
+
+Data cleanup:
+
+- Added and locally ran `backend/migrations/Version20260906043000.php`.
+  It deletes exactly the five s3.* configuration rows and only messages carrying
+  App\Message\RenderWorld, checking PHP-serialized/escaped body and JSON type
+  headers. Mail and other queued messages are not cleared. The migration is
+  explicitly irreversible because obsolete credentials/jobs cannot be restored.
+- `ddev exec -d /var/www/html/backend php bin/console dbal:run-sql
+  "SELECT count(*) AS remaining_s3_settings FROM app_setting WHERE name LIKE 's3.%'"`
+  returned 0. Values were not read or printed. The old doctrine:query:sql command
+  no longer exists; dbal:run-sql is the correct current command.
+- Verified no messenger render worker or Python render process was running before
+  deleting local `backend/var/map` (~687 MB), `backend/var/map-cells`,
+  `backend/var/pz-root`, and `backend/var/textures` (~408 MB). Together with
+  renderer/ this frees roughly 1.1 GiB. `backend/var/icons` remains (~17 MB).
+- No remote bucket data was accessed/deleted, no provider keys revoked, no FTP
+  server data removed and no gameplay commands executed.
+
+Verification:
+
+- Backend suite: `ddev exec -d /var/www/html/backend php bin/phpunit` —
+  377 tests, 724 assertions, green. Expected access-denied logs from permission
+  tests are not test failures. Includes icon upload/extraction tests.
+- Frontend suite: `ddev exec -d /var/www/html/frontend npm test` —
+  81 tests in seven files, green. Count reduction is retirement of renderer tests.
+- Frontend production build passes; final assets written to backend/public/app.
+- `php bin/console lint:container` in ddev passes; dependency wiring is valid.
+- `docker build -t zomboidcontrol:renderer-cleanup .` completes successfully.
+  Existing vendor-stage `composer run-script ... || true` still suppresses the
+  pre-existing dev-environment MakerBundle cache-clear error during the no-dev
+  vendor stage; this cleanup did not change that unrelated behavior.
+- Real browser: settings exposes five tabs and no S3; external map images load
+  with naturalWidth > 0; map source explanation remains. Retired render,
+  texture, local tile and storage-test routes all return 404.
+- Authenticated GET `/api/icons` returned HTTP 200, count=4351, available=true.
+  Initial settings text briefly said no icons while its query was still pending;
+  the subsequent API result confirms the original artwork remains intact.
+- Source audit finds no ObjectStorage, RenderWorld, RenderProgress,
+  TexturePackStore, old Server\Map namespace or local-map fallback references
+  in active backend/frontend source. Historical documentation and migration
+  deliberately mention retired components. `git diff --check` is clean.
+
+No unfinished renderer/S3 removal work remains. Existing image-source limits
+(public provider availability and fixed base-world imagery) remain as documented.
+
+Additional final verification: `docker run --rm --entrypoint php
+zomboidcontrol:renderer-cleanup bin/console lint:container --no-debug` passes
+inside the built production image as well. Final frontend rebuild after removing
+the unused layer DZI field also passes.

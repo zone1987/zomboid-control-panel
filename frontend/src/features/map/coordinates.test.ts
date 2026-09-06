@@ -8,13 +8,9 @@ import {
   worldToImage,
   worldToViewport,
 } from './coordinates'
-import { ISOMETRIC_DEFAULTS, type MapSource } from './map-config'
+import { PROJECT_ZOMBOID_MAP, type MapSource } from './map-config'
 
-const ISOMETRIC: MapSource = {
-  root: '/api/map/iso',
-  geometry: ISOMETRIC_DEFAULTS,
-  layers: [{ level: 0, dzi: 'base/layer0.dzi' }],
-}
+const ISOMETRIC = PROJECT_ZOMBOID_MAP
 
 describe('isometric projection', () => {
   /**
@@ -84,14 +80,11 @@ describe('isometric projection', () => {
  * what the renderer calls GRID_WIDTH, GRID_HEIGHT and LAYER_HEIGHT.
  */
 describe('agreement with pzmap2dzi', () => {
-  const { originX, originY } = ISOMETRIC_DEFAULTS
+  const { originX, originY } = PROJECT_ZOMBOID_MAP.geometry
 
-  // Stated here rather than taken from the defaults: this checks the
-  // formula itself, and the defaults carry whatever omit_levels the
-  // panel renders with -- 2, so scale 4.
   const UNSCALED: MapSource = {
     ...ISOMETRIC,
-    geometry: { ...ISOMETRIC_DEFAULTS, scale: 1 },
+    geometry: { ...PROJECT_ZOMBOID_MAP.geometry, scale: 1 },
   }
 
   it('matches the reference formula on the ground', () => {
@@ -114,7 +107,7 @@ describe('agreement with pzmap2dzi', () => {
   it('divides by the scale a trimmed pyramid declares', () => {
     const trimmed: MapSource = {
       ...ISOMETRIC,
-      geometry: { ...ISOMETRIC_DEFAULTS, scale: 4 },
+      geometry: { ...PROJECT_ZOMBOID_MAP.geometry, scale: 4 },
     }
     const world = { x: 5000, y: 5000 }
 

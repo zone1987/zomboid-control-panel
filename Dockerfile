@@ -45,8 +45,6 @@ FROM php:8.4-fpm-bookworm AS runtime
 ENV APP_ENV=prod \
     APP_DEBUG=0 \
     MESSENGER_WORKERS=1 \
-    PZMAP_RENDERER_PATH=/opt/pzmap2dzi \
-    PZMAP_PYTHON=/opt/pzmap2dzi/.venv/bin/python \
     PHP_FPM_API_MAX_CHILDREN=12 \
     PHP_FPM_SSE_MAX_CHILDREN=8
 
@@ -54,15 +52,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         apache2 libapache2-mod-fcgid supervisor \
         libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2 \
-        python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
-
-# pzmap2dzi renders the isometric map. It is Python, so it gets its own
-# environment rather than the system one Debian keeps for itself.
-COPY renderer /opt/pzmap2dzi
-RUN python3 -m venv /opt/pzmap2dzi/.venv \
-    && /opt/pzmap2dzi/.venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /opt/pzmap2dzi/.venv/bin/pip install --no-cache-dir -r /opt/pzmap2dzi/requirements.txt
 
 COPY --from=vendor /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=vendor /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/

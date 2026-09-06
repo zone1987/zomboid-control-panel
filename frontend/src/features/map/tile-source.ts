@@ -1,6 +1,6 @@
 import type OpenSeadragon from 'openseadragon'
 
-import type { MapSource } from './map-config'
+import { floorFor, type MapSource } from './map-config'
 
 /**
  * What OpenSeadragon accepts as a source.
@@ -11,19 +11,26 @@ import type { MapSource } from './map-config'
  */
 export type TileSpecifier = NonNullable<OpenSeadragon.Options['tileSources']>
 
-/**
- * The tile source for one floor.
- *
- * Built from what pzmap2dzi wrote beside the tiles.
- * An isometric render is a Deep Zoom pyramid with its own .dzi per
- * floor, which OpenSeadragon reads directly. The game's own map is a
- * flat pyramid of 256-pixel tiles named tile<col>x<row>, one floor
- * only, so it needs a source that knows that naming.
- */
 export function tileSourceFor(source: MapSource, floor: number): TileSpecifier {
-  const layer = source.layers.find((entry) => entry.level === floor) ?? source.layers[0]
-
-  return `${source.root}/${layer.dzi}`
+  floor = floorFor(source, floor)
+  // OSD accepts positioned inline DZI sources; its v5 typings omit this form.
+  return source.layers
+    .filter(({ level }) => level <= floor && (floor < 0 ? level < 0 : level >= 0))
+    .map(({ level }) => ({
+        tileSource: {
+          Image: {
+            xmlns: 'http://schemas.microsoft.com/deepzoom/2008',
+            Url: `${source.root}/layer${level}_files/`,
+            Format: level === 0 ? 'jpg' : 'webp',
+            Overlap: 0,
+            TileSize: source.tileSize ?? 1024,
+            Size: { Width: source.geometry.width, Height: source.geometry.height },
+          },
+        },
+        x: 0,
+        y: 0,
+        width: 1,
+      })) as unknown as TileSpecifier
 }
 
 /**

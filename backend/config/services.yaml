@@ -6,12 +6,6 @@
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
-parameters:
-    # Pyramid levels the renderer leaves undrawn, deepest first. Each one
-    # quarters both the render and the upload; 2 keeps interiors and
-    # furniture while bringing the whole world under an afternoon.
-    default_omit_levels: 2
-
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -44,30 +38,6 @@ services:
                 'mailer.from_address': '%env(MAIL_FROM_ADDRESS)%'
                 'mailer.from_name': '%env(MAIL_FROM_NAME)%'
 
-    App\Server\Map\CellFetcher:
-        arguments:
-            # Cells arrive from the game server on demand; the renderer
-            # reads them from here as if they were a local installation.
-            $directory: '%kernel.project_dir%/var/map-cells'
-
-    App\Server\Map\RenderProgress:
-        arguments:
-            $path: '%kernel.project_dir%/var/map/render-progress.json'
-
-    App\Server\Map\RenderRoot:
-        arguments:
-            $directory: '%kernel.project_dir%/var/pz-root'
-
-    App\Server\Map\Textures\TexturePackStore:
-        arguments:
-            # Outside the image: a redeploy would otherwise take 400 MB
-            # of uploaded packs with it.
-            $directory: '%kernel.project_dir%/var/textures'
-
-    App\Server\Map\Textures\ChunkedUpload:
-        arguments:
-            $temporaryDirectory: '%kernel.project_dir%/var/textures/incoming'
-
     App\Security\OAuth\GoogleClientFactory:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
@@ -80,36 +50,16 @@ services:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
 
+    App\Server\Items\Icons\ChunkedUpload:
+        arguments:
+            $temporaryDirectory: '%kernel.project_dir%/var/icons/incoming'
+
     App\Server\Items\Icons\IconStore:
         arguments:
             # Outside the document root and out of git: the pictures are
             # The Indie Stone's, extracted from the operator's own copy.
             $directory: '%kernel.project_dir%/var/icons'
 
-
-    App\Server\Map\IsometricTiles:
-        arguments:
-            # Where the renderer puts its tiles. The path is fixed by
-            # pzmap2dzi, which appends html/map_data/base to whatever
-            # output root it is given.
-            $directory: '%kernel.project_dir%/var/map/iso/html/map_data/base'
-
-    App\Server\Map\TileRenderer:
-        arguments:
-            # Both come from the image, which ships pzmap2dzi and its
-            # own Python. Left overridable so a developer can point at a
-            # checkout instead.
-            $rendererPath: '%env(PZMAP_RENDERER_PATH)%'
-            $python: '%env(PZMAP_PYTHON)%'
-            $projectDirectory: '%kernel.project_dir%'
-            # Each level dropped quarters the render: the whole world is
-            # 724 GB at 0 and 45 GB at 2, and interiors survive both.
-            $omitLevels: '%env(int:default:default_omit_levels:PZMAP_OMIT_LEVELS)%'
-
-    App\Server\Map\CellSurvey:
-        arguments:
-            $rendererPath: '%env(PZMAP_RENDERER_PATH)%'
-            $python: '%env(PZMAP_PYTHON)%'
 
     App\Settings\SupportedLanguages:
         arguments:

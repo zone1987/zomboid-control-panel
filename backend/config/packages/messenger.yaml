@@ -7,12 +7,6 @@ framework:
             # self-hosting this to run and understand.
             async:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
-                options:
-                    # Cancelling a render kills its worker outright, which
-                    # leaves the message marked as delivered. Without this
-                    # it stays that way for ever and the next run queues
-                    # behind a job nobody is doing.
-                    redeliver_timeout: 120
                 retry_strategy:
                     max_retries: 3
                     delay: 10000
@@ -24,8 +18,6 @@ framework:
             # A slow SMTP server would otherwise hold up the request that
             # triggered the mail.
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async
-            # Hours of work; it must not hold a request open.
-            App\Message\RenderWorld: async
 
 when@test:
     framework:

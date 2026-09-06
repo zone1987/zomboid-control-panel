@@ -137,9 +137,9 @@ final class IconController extends AbstractController
      */
     #[Route('/chunk', name: 'api_icons_chunk', methods: ['POST'])]
     #[IsGranted(Permission::EditServers->value)]
-    public function chunk(Request $request, \App\Server\Map\Textures\ChunkedUpload $upload): JsonResponse
+    public function chunk(Request $request, \App\Server\Items\Icons\ChunkedUpload $upload): JsonResponse
     {
-        $name = \App\Server\Map\Textures\ChunkedUpload::safeName((string) $request->request->get('name'));
+        $name = \App\Server\Items\Icons\ChunkedUpload::safeName((string) $request->request->get('name'));
         $file = $request->files->get('chunk');
 
         if ($name === null || $file === null) {
@@ -160,7 +160,7 @@ final class IconController extends AbstractController
 
         try {
             $received = $upload->appendAny($name, $request->request->getInt('offset'), $bytes);
-        } catch (\App\Server\Map\Textures\UploadRefused $refused) {
+        } catch (\App\Server\Items\Icons\UploadRefused $refused) {
             return new JsonResponse(
                 ['status' => 'failed', 'error' => $refused->messageKey()],
                 Response::HTTP_UNPROCESSABLE_ENTITY,
@@ -173,10 +173,10 @@ final class IconController extends AbstractController
     /** Cuts the icons out of a pack that has fully arrived. */
     #[Route('/finish', name: 'api_icons_finish', methods: ['POST'])]
     #[IsGranted(Permission::EditServers->value)]
-    public function finishUpload(Request $request, \App\Server\Map\Textures\ChunkedUpload $upload): JsonResponse
+    public function finishUpload(Request $request, \App\Server\Items\Icons\ChunkedUpload $upload): JsonResponse
     {
         $payload = $request->toArray();
-        $name = \App\Server\Map\Textures\ChunkedUpload::safeName((string) ($payload['name'] ?? ''));
+        $name = \App\Server\Items\Icons\ChunkedUpload::safeName((string) ($payload['name'] ?? ''));
 
         if ($name === null) {
             return new JsonResponse(
@@ -188,7 +188,7 @@ final class IconController extends AbstractController
         try {
             $contents = $upload->takeAny($name, (int) ($payload['bytes'] ?? 0));
             $result = $this->extractor->extract($contents, $name);
-        } catch (\App\Server\Map\Textures\UploadRefused $refused) {
+        } catch (\App\Server\Items\Icons\UploadRefused $refused) {
             return new JsonResponse(
                 ['status' => 'failed', 'error' => $refused->messageKey()],
                 Response::HTTP_UNPROCESSABLE_ENTITY,

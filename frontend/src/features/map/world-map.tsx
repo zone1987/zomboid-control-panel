@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { WorldPoint } from './coordinates'
 import type { MapSource } from './map-config'
@@ -39,6 +40,7 @@ export function WorldMap({
   onPlayerClick,
   onReady,
 }: Props) {
+  const { t } = useTranslation()
   const frame = useRef<HTMLDivElement>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [surface, setSurface] = useState<HTMLElement | null>(null)
@@ -161,6 +163,15 @@ export function WorldMap({
         onChange={viewer.setFloor}
         target={surface}
       />
+
+      {viewer.loadFailed && (
+        <div role="status" className="absolute bottom-24 left-3 right-3 z-10 rounded-md border bg-background/95 p-3 text-sm sm:right-auto sm:max-w-sm">
+          {t('map.external.unavailable')}
+          <a href="https://projectzomboidmap.com/" target="_blank" rel="noopener noreferrer" className="ml-1 text-primary underline">
+            projectzomboidmap.com
+          </a>
+        </div>
+      )}
     </div>
   )
 }

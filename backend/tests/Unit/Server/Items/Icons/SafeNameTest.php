@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Server\Map\Textures;
+namespace App\Tests\Unit\Server\Items\Icons;
 
-use App\Server\Map\Textures\ChunkedUpload;
+use App\Server\Items\Icons\ChunkedUpload;
 use PHPUnit\Framework\TestCase;
 
 /**

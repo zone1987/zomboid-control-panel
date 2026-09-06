@@ -11,11 +11,6 @@ export const SETTING_KEYS = {
   mailEncryption: 'mailer.encryption',
   mailFromAddress: 'mailer.from_address',
   mailFromName: 'mailer.from_name',
-  s3Endpoint: 's3.endpoint',
-  s3Region: 's3.region',
-  s3Bucket: 's3.bucket',
-  s3AccessKey: 's3.access_key',
-  s3SecretKey: 's3.secret_key',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
@@ -45,17 +40,6 @@ export function testSteamKey(): Promise<{ status: string; sample?: string }> {
     method: 'POST',
     body: {},
   })
-}
-
-export type StorageTestResult = {
-  status: string
-  bucket?: string
-  error?: string
-  detail?: string | null
-}
-
-export function testObjectStorage(): Promise<StorageTestResult> {
-  return apiFetch<StorageTestResult>('/settings/storage/test', { method: 'POST', body: {} })
 }
 
 export type DeliverabilityStatus = 'ok' | 'warning' | 'missing'

@@ -1,6 +1,6 @@
 import type { MapGeometry, MapSource } from './map-config'
 
-export type WorldPoint = { x: number; y: number }
+export type WorldPoint = { x: number; y: number; z?: number }
 export type ImagePoint = { x: number; y: number }
 /** OpenSeadragon's own space: x in 0..1 across the image, y to scale. */
 export type ViewportPoint = { x: number; y: number }

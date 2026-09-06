@@ -1,14 +1,5 @@
 import { apiFetch } from '@/lib/api'
 
-export type MapStatus = {
-  available: boolean
-  tileSize: number
-  maxLevel: number
-  world: { width: number; height: number }
-  levels: { level: number; columns: number; rows: number }[]
-  isometric: IsometricSource
-}
-
 export type MapPlayer = {
   username: string
   x: number
@@ -55,35 +46,8 @@ export type MapOverlay = {
   error: string | null
 }
 
-export function mapStatus(): Promise<MapStatus> {
-  return apiFetch('/map')
-}
-
 export function mapOverlay(serverId: string): Promise<MapOverlay> {
   return apiFetch(`/map/${serverId}/overlay`)
-}
-
-/**
- * An isometric render, when the operator has made one.
- *
- * The geometry is read from the render's own map_info.json rather than
- * assumed: it changes with the cell range and the pyramid levels the
- * operator chose, and guessing puts every marker somewhere else.
- */
-export type IsometricSource = {
-  available: boolean
-  /** Floors the render actually covers, from the files it contains. */
-  levels: number[]
-  geometry: {
-    originX: number
-    originY: number
-    squareSize: number
-    scale: number
-    floorHeight: number
-    width: number
-    height: number
-    cellSize: number
-  } | null
 }
 
 export function parseCoordinates(needle: string): { x: number; y: number } | null {
