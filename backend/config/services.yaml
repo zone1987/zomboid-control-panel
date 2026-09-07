@@ -127,6 +127,13 @@ services:
 
 when@test:
     services:
+        # An expected 403 is logged as [error] by the framework logger,
+        # which buries a real failure under hundreds of lines of noise in
+        # the CI output. The tests assert the status code; the log adds
+        # nothing.
+        logger:
+            class: Psr\Log\NullLogger
+
         # Public so a test can swap in a recording double; the console and
         # the moderation endpoints are otherwise untestable without a
         # server on the other end. The alias keeps autowiring intact.
