@@ -30,15 +30,15 @@ services:
       MESSENGER_WORKERS: ${MESSENGER_WORKERS:-1}
       PHP_FPM_API_MAX_CHILDREN: ${PHP_FPM_API_MAX_CHILDREN:-12}
       PHP_FPM_SSE_MAX_CHILDREN: ${PHP_FPM_SSE_MAX_CHILDREN:-8}
-    # `expose` is what a reverse proxy routes to; the published port is
-    # for reaching the panel directly. Behind Coolify, set APP_PORT to a
-    # free port -- 8080 is often already taken there, which fails the
-    # deployment with "Bind for :::8080 failed: port is already
-    # allocated". The proxy uses `expose` either way.
+    # No published port. A reverse proxy -- Coolify's included -- routes
+    # to `expose` and never needs one, while publishing claims the port
+    # on the host and fails the whole deployment when something already
+    # holds it. To reach the panel directly instead, uncomment the
+    # `ports` block below or use docker-compose.local.yaml.
     expose:
       - "80"
-    ports:
-      - "${APP_PORT:-8080}:80"
+    # ports:
+    #   - "${APP_PORT:-8080}:80"
     volumes:
       - secrets:/app/var/secrets
 
