@@ -1,0 +1,43 @@
+MIT License
+
+Copyright (c) 2026 zone1987
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---------------------------------------------------------------------------
+
+Game content is not covered by the licence above.
+
+This panel displays vehicle models, textures, ground tiles and item icons
+from Project Zomboid. Those remain the property of The Indie Stone Ltd and
+are used under their terms, which permit them in a non-commercial fan
+project on condition of a visible notice — the panel's /app/credits page.
+None of that artwork is contained in this repository; it is extracted from
+the operator's own installation of the game at runtime.
+
+The MIT grant above therefore covers this project's own source code, and
+nothing else. Anyone using the code commercially is responsible for not
+shipping Project Zomboid's assets with it, and for asking The Indie Stone
+(info@theindiestone.com) where their terms require it.
+
+Content added by mods belongs to its respective authors and needs their
+permission separately.
+
+ZomboidControl is not affiliated with, endorsed by, or supported by
+The Indie Stone Ltd.

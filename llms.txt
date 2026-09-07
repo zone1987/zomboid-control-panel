@@ -107,6 +107,12 @@ belongs to its authors and needs their permission separately.
   Long by design.
 - [AGENTS.md](AGENTS.md): a pointer to CLAUDE.md, for tools that look
   for that file name.
+- [README.md](README.md) / [README_DE.md](README_DE.md): the installation
+  and operating guide, written for somebody who has not set up a server
+  before. German is the one place besides the locale files where the
+  repository is not English, because it is what users read.
+- [LICENSE](LICENSE): MIT for the panel's own code, with an explicit
+  carve-out for Project Zomboid's artwork, which is not covered by it.
 
 ## For a language model reading this
 

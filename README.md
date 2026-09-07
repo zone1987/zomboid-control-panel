@@ -1,5 +1,14 @@
 # ZomboidControl
 
+[![CI](https://img.shields.io/github/actions/workflow/status/zone1987/zomboid-control-panel/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/zone1987/zomboid-control-panel?logo=github&label=release)](https://github.com/zone1987/zomboid-control-panel/releases/latest)
+[![Image](https://img.shields.io/badge/ghcr.io-zomboid--control--panel-2496ED?logo=docker&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/pkgs/container/zomboid-control-panel)
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](backend/composer.json)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](frontend/package.json)
+[![Licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+
+> 🇩🇪 [Deutsche Fassung](README_DE.md)
+
 **Run your Project Zomboid server from a web browser.**
 
 Who is online and how are they doing? Where is everyone on the map? Change
@@ -616,8 +625,10 @@ why the page exists and why it is linked from everywhere.
 installation. Mod content belongs to its authors and needs their permission
 separately.
 
-The panel's own code is free to use. It is not an official product of The
-Indie Stone and is neither supported nor endorsed by them.
+The panel's own code is under the [MIT licence](LICENSE); the game
+content is not, and the licence file says so explicitly. ZomboidControl is
+not an official product of The Indie Stone and is neither supported nor
+endorsed by them.
 
 ---
 

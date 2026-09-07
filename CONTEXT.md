@@ -49,7 +49,7 @@ paths, removed local data and remaining deployment limitations.
 
 The user explicitly replaced the self-rendering plan with images from
 projectzomboidmap.com and supplied a working image-tile prototype at
-`/Users/andreasgerhardt/Downloads/screen-map (1).jsx`. Only the map imagery is
+`~/Downloads/screen-map (1).jsx`. Only the map imagery is
 embedded: the panel keeps its own viewer, controls, search and live overlays.
 The follow-up request to place attribution directly right of the coordinates
 is also implemented and verified. No world render is required or requested now.
@@ -490,7 +490,7 @@ levels. None of it touches the render duration.
   `Server`, `media`, `db` — **not** under a `~/Zomboid` subdirectory
 - Bridge status file: `Lua/ZomboidControl/status.json` relative to the base
   path
-- Test account: `a.gerhardt1987@gmail.com`, password
+- Test account: `<the maintainer's Google address>`, password
   `ein-ausreichend-langes-passwort`, roles ROLE_ADMIN + ROLE_SERVER_ADMIN,
   with Google, Steam and one passkey linked
 
@@ -1272,7 +1272,7 @@ Leaflet -- see "Ruled out, with reasons" above.
 ### 2026-09-06 — External base map with the panel's own controls (completed)
 
 Request: replace the impractical self-render workflow with projectzomboidmap.com.
-The user supplied `/Users/andreasgerhardt/Downloads/screen-map (1).jsx` as a
+The user supplied `~/Downloads/screen-map (1).jsx` as a
 reference and explicitly requested that none of the provider's controls appear.
 The prototype loads `<img>` tiles directly, not an iframe. Adopted that approach
 inside the existing OpenSeadragon integration; no prototype sample players,
@@ -7001,4 +7001,4 @@ step is needed can only be settled on the user's own installation.
 `docker/entrypoint.sh` (address fallback and the refusal),
 `README.md` / `README_DE.md` (Coolify step 3 rewritten: normally nothing
 to set; the two error messages added to the troubleshooting tables),
-`.env.example`.
+`.env.example`, and `app.version` to **1.0.2**.
