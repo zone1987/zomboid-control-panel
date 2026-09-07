@@ -20,6 +20,9 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
+          # Doctrine appends `_test` in the test environment, so the
+          # database the suite opens is `db_test` -- created here under
+          # that final name, not under the one in DATABASE_URL.
           POSTGRES_DB: db_test
           POSTGRES_USER: db
           POSTGRES_PASSWORD: db
@@ -31,7 +34,7 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://db:db@127.0.0.1:5432/db_test?serverVersion=17&charset=utf8
+      DATABASE_URL: postgresql://db:db@127.0.0.1:5432/db?serverVersion=17&charset=utf8
 
     steps:
       - uses: actions/checkout@v4
