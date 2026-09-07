@@ -159,11 +159,10 @@ first start and kept in a volume. Mail, Google sign-in and the Steam key
 are configured in the panel itself, under *Settings*, each with a test
 button.
 
-Two cases where you do add something under **Environment Variables**:
+One case where you do add something under **Environment Variables**:
 
 | Name             | When                                                             |
 | ---------------- | ----------------------------------------------------------------- |
-| `APP_PORT`       | if the deployment fails with **"Bind for :::8080 failed: port is already allocated"** — pick a free port, e.g. `8091` |
 | `APP_PUBLIC_URL` | if the log says no public address is set, or you want a different address than the one Coolify routes |
 
 > **Keep a copy of the encryption key once it exists.** After the first
@@ -238,8 +237,13 @@ sign-in and the Steam key are configured in the panel itself.
 ### Step 3 — Start it
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yaml -f docker-compose.local.yaml up -d
 ```
+
+The second file publishes the port so you can reach the panel at
+`localhost`. The base file alone has no published port, because a reverse
+proxy does not need one and claiming a port fails the whole deployment
+when something already holds it.
 
 The panel creates its own database and starts. You can watch with:
 
@@ -497,7 +501,7 @@ tells you which value is wrong:
 | `FATAL: database did not become reachable within 60s`          | The database did not come up — check its log.               |
 | `FATAL: no database password appeared`                         | The database container never started. Check its log first.  |
 | `FATAL: no public address is set`                              | Set `APP_PUBLIC_URL`. On Coolify, add `COOLIFY_URL` as an environment variable with an empty value so it reaches the container. |
-| `Bind for :::8080 failed: port is already allocated`           | Something else holds that port. Set `APP_PORT` to a free one, e.g. `8091`. |
+| `Bind for :::8080 failed: port is already allocated`           | Only when publishing a port yourself: set `APP_PORT` to a free one. Coolify publishes none. |
 
 ### "RCON unreachable"
 
@@ -580,7 +584,7 @@ records. There is nothing to set here.
 
 | Variable                   | Default | What it does                                  |
 | -------------------------- | ------- | --------------------------------------------- |
-| `APP_PORT`                 | `8080`  | the port on your machine (Docker only)         |
+| `APP_PORT`                 | `8080`  | the published port, with `docker-compose.local.yaml` only |
 | `MESSENGER_WORKERS`        | `1`     | background workers; raise it for many servers  |
 | `PHP_FPM_API_MAX_CHILDREN` | `12`    | concurrent requests                            |
 | `PHP_FPM_SSE_MAX_CHILDREN` | `8`     | concurrent long-running connections            |

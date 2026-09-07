@@ -7002,3 +7002,51 @@ step is needed can only be settled on the user's own installation.
 `README.md` / `README_DE.md` (Coolify step 3 rewritten: normally nothing
 to set; the two error messages added to the troubleshooting tables),
 `.env.example`, and `app.version` to **1.0.2**.
+
+---
+
+## 2026-09-07 (night) — The published port had to go entirely
+
+1.0.2 shipped with `ports: "${APP_PORT:-8080}:80"` still in the compose
+file, on the reasoning that a local `docker compose up` needs it and
+Coolify operators can override `APP_PORT`. The user deployed again and
+got the same failure:
+
+```
+Bind for 0.0.0.0:8080 failed: port is already allocated
+```
+
+Two things were wrong with that reasoning.
+
+**The override did not take.** The log still shows 8080, so whatever the
+operator set did not reach Compose's interpolation. Rather than chase
+where Coolify puts its variables, the port is simply gone.
+
+**The user checked the reference panel**, which publishes `3001:3001` —
+and asked why ours needs the mapping at all. The honest answer is that
+the reference gets away with it because 3001 is rarely taken. That is
+luck, not a design, and it is not a reason to make every deployment here
+depend on 8080 being free.
+
+So: **the base file publishes nothing.** A reverse proxy — Coolify's
+included — routes to `expose: 80` and never needs a host port, while
+publishing one claims it on the host and fails the entire deployment when
+something already holds it. `docker-compose.local.yaml` publishes it for
+a run without a proxy:
+
+```
+docker compose -f docker-compose.yaml -f docker-compose.local.yaml up -d
+```
+
+Two files after all, which the user had reasonably questioned earlier.
+The difference now is evidence: a single file cannot serve both, because
+Compose rejects an empty port value and an override variable did not
+reach it on the real deployment.
+
+**Verified rather than argued**: 8080 was occupied by a second container,
+then the stack deployed the way Coolify does it. The panel came up
+healthy and answered `{"status":"ok","version":"1.0.2"}` over the Docker
+network — the path a proxy uses — while the other container kept the
+port. The local overlay was then checked separately and still publishes.
+
+Version bumped to **1.0.3**.
