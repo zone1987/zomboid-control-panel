@@ -16,8 +16,12 @@ export function AppLayout() {
       <SidebarProvider>
         <AppSidebar />
 
-        <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        {/* Capped at the viewport so the bars stay put and only the
+            middle scrolls. `position: fixed` would work too, but it
+            takes the bars out of the flow and then they no longer know
+            how wide the sidebar is. */}
+        <SidebarInset className="h-svh overflow-hidden">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumbs />
@@ -30,8 +34,10 @@ export function AppLayout() {
           </header>
 
           {/* min-h-0 so a page that wants the full height can have it:
-              without it flex-1 grows past the viewport instead. */}
-          <main className="pz-surface min-h-0 flex-1 p-6">
+              without it flex-1 grows past the viewport instead. The
+              scrolling lives here rather than on the page, which is
+              what keeps the header and footer still. */}
+          <main className="pz-surface min-h-0 flex-1 overflow-y-auto p-6">
             <PageTransition />
           </main>
 

@@ -841,11 +841,13 @@
       "join": "Beigetreten",
       "kick": "Rauswurf",
       "leave": "Verlassen",
+      "skill": "Fertigkeit",
       "statistic": "Zustandswert",
       "teleport": "Teleport",
       "trait": "Eigenschaft",
       "unban": "Entbannt"
     },
+    "activeMultipliers": "Aktive Buch-Multiplikatoren",
     "addTag": "Merkmal hinzufügen",
     "adjustCondition": "Zustand anpassen",
     "atLevel": "(Stufe {{level}})",
@@ -863,6 +865,7 @@
     "bannedAt": "Gebannt am",
     "bannedShort": "gebannt",
     "bansTab": "Bannliste",
+    "bookActive": "Buch aktiv, ×{{factor}}",
     "bridgeOutdated": "Auf dem Server läuft eine ältere Bridge",
     "bridgeOutdatedHint": "Installiert ist {{installed}}, mitgeliefert wird {{expected}}. Einzelne Angaben — etwa Fertigkeiten und Eigenschaften — fehlen deshalb womöglich. Lade die Bridge in der Serverkonfiguration neu hoch und starte den Server danach neu.",
     "bridgeStale": "Die Daten sind veraltet",
@@ -936,6 +939,7 @@
     },
     "manualTarget": "Manuelles Ziel",
     "moreStats": "Weitere {{count}} Werte",
+    "multiplierHint": "Gelesene Bücher erhöhen den XP-Gewinn zeitweise. Das Spiel zeigt das nur als Pfeile neben dem Fertigkeitsnamen.",
     "needsOnline": "Dafür muss der Spieler online sein.",
     "noBans": "Niemand ist gebannt.",
     "noBansHint": "Hier erscheint, wen du über dieses Dashboard bannst.",
@@ -980,8 +984,11 @@
       "online": "Online"
     },
     "searchList": "Liste durchsuchen …",
+    "setSkillTo": "{{skill}} auf Stufe {{level}} setzen",
     "skill": "Fertigkeit",
     "skillAtLevel": "{{skill}}, Stufe {{level}} von 10",
+    "skillBoost": "Berufsbonus {{boost}} von 3",
+    "skillDetailUnavailable": "Die Fertigkeitsdetails konnten nicht gelesen werden.",
     "skillGroup": {
       "Combat": "Nahkampf",
       "Crafting": "Handwerk",
@@ -1027,8 +1034,10 @@
       "Tracking": "Spurenlesen",
       "Trapping": "Fallenstellen"
     },
+    "skillSet": "Fertigkeitsstufe gesetzt",
     "skills": "Fertigkeiten",
     "skillsNeedOnline": "Fertigkeiten meldet der Server nur für Spieler, die online sind.",
+    "skillsReadOnlyOffline": "Nur lesbar — Spieler ist offline",
     "someone": "jemandem",
     "spawnTab": "Vergeben",
     "spawnVehicles": "Fahrzeuge spawnen",
@@ -1112,6 +1121,9 @@
     "weight": "Gewicht",
     "weightSet": "Das Gewicht steht jetzt auf {{weight}} kg.",
     "whatWasDone": "Was mit diesem Spieler gemacht wurde",
+    "xpGranted": "{{amount}} XP vergeben",
+    "xpReachedLevel": "Stufe {{level}} erreicht",
+    "xpToNextLevel": "{{done}} von {{span}} XP — {{left}} bis Stufe {{level}}",
     "zombieKills": "Zombies getötet"
   },
   "profile": {

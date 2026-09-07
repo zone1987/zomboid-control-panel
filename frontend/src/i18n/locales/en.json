@@ -841,11 +841,13 @@
       "join": "Joined",
       "kick": "Kick",
       "leave": "Left",
+      "skill": "Skill",
       "statistic": "Statistic",
       "teleport": "Teleport",
       "trait": "Trait",
       "unban": "Unban"
     },
+    "activeMultipliers": "Active book multipliers",
     "addTag": "Add a tag",
     "adjustCondition": "Adjust the condition",
     "atLevel": "(level {{level}})",
@@ -863,6 +865,7 @@
     "bannedAt": "Banned on",
     "bannedShort": "banned",
     "bansTab": "Bans",
+    "bookActive": "Book active, ×{{factor}}",
     "bridgeOutdated": "The server is running an older bridge",
     "bridgeOutdatedHint": "Version {{installed}} is installed, {{expected}} ships with this panel. Some fields — skills and traits among them — may therefore be missing. Upload the bridge again from the server configuration and restart the server afterwards.",
     "bridgeStale": "The data is out of date",
@@ -936,6 +939,7 @@
     },
     "manualTarget": "Manual target",
     "moreStats": "{{count}} more values",
+    "multiplierHint": "A read book raises XP gain for a while. The game shows this only as arrows beside the skill name.",
     "needsOnline": "The player has to be online for that.",
     "noBans": "Nobody is banned.",
     "noBansHint": "Anyone you ban through this panel appears here.",
@@ -980,8 +984,11 @@
       "online": "Online"
     },
     "searchList": "Search the list …",
+    "setSkillTo": "Set {{skill}} to level {{level}}",
     "skill": "Skill",
     "skillAtLevel": "{{skill}}, level {{level}} of 10",
+    "skillBoost": "Profession boost {{boost}} of 3",
+    "skillDetailUnavailable": "The skill details could not be read.",
     "skillGroup": {
       "Combat": "Melee",
       "Crafting": "Crafting",
@@ -1027,8 +1034,10 @@
       "Tracking": "Tracking",
       "Trapping": "Trapping"
     },
+    "skillSet": "Skill level set",
     "skills": "Skills",
     "skillsNeedOnline": "The server reports skills only for players who are online.",
+    "skillsReadOnlyOffline": "Read-only — the player is offline",
     "someone": "someone",
     "spawnTab": "Grant",
     "spawnVehicles": "Spawn vehicles",
@@ -1112,6 +1121,9 @@
     "weight": "Weight",
     "weightSet": "The weight is now {{weight}} kg.",
     "whatWasDone": "What was done to this player",
+    "xpGranted": "{{amount}} XP granted",
+    "xpReachedLevel": "Reached level {{level}}",
+    "xpToNextLevel": "{{done}} of {{span}} XP — {{left}} to level {{level}}",
     "zombieKills": "Zombies killed"
   },
   "profile": {

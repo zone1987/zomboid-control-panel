@@ -148,6 +148,146 @@ final class PlayerVitalsController extends AbstractController
     }
 
     /**
+     * What the character sheet shows per skill, beyond the level.
+     *
+     * The XP inside the current level and the next level's threshold,
+     * so a hover can say how much is left; the profession boost the
+     * game colours a skill name by (0..3, gold at 3); and the book
+     * multiplier, which is above zero only while a read book still
+     * applies.
+     */
+    #[Route('/skills', name: 'api_players_skill_detail', methods: ['GET'])]
+    public function skillDetail(string $serverId, string $username): JsonResponse
+    {
+        $server = $this->servers->find($serverId);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $result = $this->bridge->send(
+                $server,
+                BridgeCommand::ReadSkillDetail,
+                ['player' => $username],
+            );
+        } catch (BridgeCommandFailed|InvalidBridgeCommand $exception) {
+            return $this->throughTheBridge($exception);
+        }
+
+        if (!$result->ok || $result->data === null) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'players.skillDetailUnavailable',
+                'detail' => $result->message,
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['status' => 'ok', ...$result->data]);
+    }
+
+    /**
+     * Sets one skill to an exact level.
+     *
+     * Ten clicks on a pip row is the whole interaction, which is why
+     * this takes a level rather than a delta: "make it 7" is what the
+     * operator means, and a delta would need the current value to be
+     * right on both sides at once.
+     *
+     * Unlike a profession, this genuinely reaches the player:
+     * `level0` + `LevelPerk(perk, false)` + `setXPToLevel` all run
+     * server-side, and the XP route below is the one the game itself
+     * uses to tell a client its skills changed.
+     */
+    #[Route('/skill', name: 'api_players_skill', methods: ['POST'])]
+    #[IsGranted(Permission::KickPlayers->value)]
+    public function skill(
+        string $serverId,
+        string $username,
+        Request $request,
+        #[CurrentUser] User $actor,
+    ): JsonResponse {
+        $server = $this->servers->find($serverId);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        $payload = $this->payloadOf($request);
+        $skill = $payload['skill'] ?? null;
+        $level = $payload['level'] ?? null;
+
+        if (!\is_string($skill) || !\in_array($skill, BridgeCommand::SKILLS, true)) {
+            return $this->invalid('skill');
+        }
+
+        if (!is_numeric($level) || $level < 0 || $level > BridgeCommand::MAX_SKILL_LEVEL) {
+            return $this->invalid('level');
+        }
+
+        return $this->act(
+            $server,
+            $username,
+            $actor,
+            BridgeCommand::SetSkillLevel,
+            ['player' => $username, 'skill' => $skill, 'level' => (int) $level],
+            ModerationAction::SKILL,
+            sprintf('%s=%d', $skill, (int) $level),
+        );
+    }
+
+    /**
+     * Adds raw experience to one skill.
+     *
+     * `addXpNoMultiplier` is the route that reaches the client:
+     * `GameServer::addXp` finds the player's connection and calls
+     * `NetworkPlayerAI::updateXpChecker`. The multiplier is the
+     * operator's choice because a server running one makes "500" mean
+     * two different things.
+     */
+    #[Route('/skill/xp', name: 'api_players_skill_xp', methods: ['POST'])]
+    #[IsGranted(Permission::KickPlayers->value)]
+    public function skillXp(
+        string $serverId,
+        string $username,
+        Request $request,
+        #[CurrentUser] User $actor,
+    ): JsonResponse {
+        $server = $this->servers->find($serverId);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        $payload = $this->payloadOf($request);
+        $skill = $payload['skill'] ?? null;
+        $amount = $payload['amount'] ?? null;
+
+        if (!\is_string($skill) || !\in_array($skill, BridgeCommand::SKILLS, true)) {
+            return $this->invalid('skill');
+        }
+
+        if (!is_numeric($amount) || $amount < 1 || $amount > BridgeCommand::MAX_SKILL_XP) {
+            return $this->invalid('amount');
+        }
+
+        return $this->act(
+            $server,
+            $username,
+            $actor,
+            BridgeCommand::AddSkillXp,
+            [
+                'player' => $username,
+                'skill' => $skill,
+                'amount' => $amount + 0,
+                'multiplied' => ($payload['multiplied'] ?? null) === true,
+            ],
+            ModerationAction::EXPERIENCE,
+            sprintf('%s +%s', $skill, $amount),
+        );
+    }
+
+    /**
      * Adds or removes one character trait.
      *
      * **The change is server-side at once, but the player's own screen

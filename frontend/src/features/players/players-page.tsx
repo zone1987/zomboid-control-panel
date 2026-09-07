@@ -156,8 +156,13 @@ export function PlayersPage() {
       )}
 
       {/* The list needs a name's width; the dossier holds ten pip rows
-          two abreast, a slider column and a note field. */}
-      <div className="grid items-start gap-4 lg:grid-cols-[20rem_1fr]">
+          two abreast, a slider column and a note field.
+
+          minmax(0,1fr) rather than 1fr: a bare `1fr` is
+          minmax(auto,1fr), and `auto` is the content's own minimum — so
+          a wide table inside the dossier pushed the whole page wider
+          instead of scrolling within itself. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <PlayerList
           players={players}
           bans={bans?.items ?? []}
@@ -184,7 +189,7 @@ export function PlayersPage() {
         />
       </div>
 
-      <details className="rounded-md border">
+      <details className="min-w-0 rounded-md border">
         <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
           {t('players.historyTab')}
         </summary>

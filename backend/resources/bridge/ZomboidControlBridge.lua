@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.19.0"
+local BRIDGE_VERSION = "0.20.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -1767,6 +1767,254 @@ handlers.readPlayerStats = function(command)
         table.concat(parts, ","),
         weight,
         profession
+    )
+end
+
+--- Resolves a perk by its id, the way describeSkills walks them.
+---
+--- Perks.FromString exists but is not used: it takes the *display* name
+--- while the panel sends the id, and the two differ for four perks
+--- (Woodwork is shown as Carpentry, PlantScavenging as Foraging).
+local function perkById(id)
+    for index = 0, Perks.getMaxIndex() - 1 do
+        local candidate = Perks.fromIndex(index)
+        local perk = PerkFactory.getPerk(candidate)
+
+        if perk ~= nil and perk:getId() == id then
+            return candidate, perk
+        end
+    end
+
+    return nil, nil
+end
+
+--- Sets one skill to an exact level.
+---
+--- Goes through level0 + setXPToLevel rather than setPerkLevelDebug,
+--- which writes PerkInfo.level directly and then only calls
+--- GameClient.sendPerks when GameClient.client is true — so on a server
+--- the level would change with the player's own sheet never told.
+---
+--- LevelPerk(perk) with one argument spends one of the player's real
+--- unspent skill points per call; the two-argument overload does not.
+--- That distinction comes from the reference bridge's own notes and is
+--- confirmed by the two overloads existing on IsoGameCharacter.
+--- Everything the character sheet shows per skill.
+---
+--- Four numbers the level alone cannot give: how much XP sits inside
+--- the current level and how much the next one needs (so a bar can show
+--- the remainder), the profession/trait boost the game colours the name
+--- by (0..3, gold at 3), and the book multiplier, which is > 0 only
+--- while a read book is still in effect.
+---
+--- getXpForLevel and getMultiplier are methods; XPMultiplier's own
+--- fields are not reachable, which is why the float is asked for
+--- directly rather than the object.
+handlers.readSkillDetail = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local ok, entries = pcall(function()
+        local xp = player:getXp()
+        local found = {}
+
+        for index = 0, Perks.getMaxIndex() - 1 do
+            local candidate = Perks.fromIndex(index)
+            local perk = PerkFactory.getPerk(candidate)
+
+            local parent = perk ~= nil and perk:getParent() or nil
+            local isCategory = parent == nil or parent:getId() == "None"
+
+            if perk ~= nil and not isCategory then
+                local level = player:getPerkLevel(candidate)
+
+                -- Total XP the character holds in this skill.
+                local held = xp ~= nil and xp:getXP(candidate) or 0
+
+                -- What this level started at and what the next needs.
+                local floorXp = level > 0 and perk:getTotalXpForLevel(level) or 0
+                local nextXp = level < 10 and perk:getTotalXpForLevel(level + 1) or floorXp
+
+                local boost = 0
+                local multiplier = 0
+
+                if xp ~= nil then
+                    pcall(function() boost = xp:getPerkBoost(candidate) or 0 end)
+                    pcall(function() multiplier = xp:getMultiplier(candidate) or 0 end)
+                end
+
+                table.insert(found, string.format(
+                    '"%s":{"level":%d,"xp":%.1f,"levelFloor":%.1f,"nextLevel":%.1f,"boost":%d,"multiplier":%.2f}',
+                    escape(perk:getId()),
+                    level,
+                    held,
+                    floorXp,
+                    nextXp,
+                    boost,
+                    multiplier
+                ))
+            end
+        end
+
+        return found
+    end)
+
+    if not ok or entries == nil then
+        return false, "the server would not report the skills"
+    end
+
+    return true, "skills read", "{\"skills\":{" .. table.concat(entries, ",") .. "}}"
+end
+
+handlers.setSkillLevel = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local id = tostring(command.skill or "")
+    local wanted = tonumber(command.level)
+
+    if id == "" or wanted == nil then
+        return false, "a skill and a level are needed"
+    end
+
+    wanted = math.floor(wanted)
+
+    if wanted < 0 or wanted > 10 then
+        return false, "a level runs from 0 to 10"
+    end
+
+    local ok, result = pcall(function()
+        local candidate, perk = perkById(id)
+
+        if candidate == nil then
+            return { found = false }
+        end
+
+        local before = player:getPerkLevel(candidate)
+
+        -- Back to nothing first, so going down works as well as up.
+        player:level0(candidate)
+
+        if wanted > 0 then
+            for _ = 1, wanted do
+                player:LevelPerk(candidate, false)
+            end
+
+            -- Lands the within-level XP exactly on the boundary instead
+            -- of leaving it wherever the loop stopped.
+            local xp = player:getXp()
+
+            if xp ~= nil then
+                pcall(function() xp:setXPToLevel(candidate, wanted) end)
+            end
+        end
+
+        return {
+            found = true,
+            before = before,
+            after = player:getPerkLevel(candidate),
+            name = perk:getName(),
+        }
+    end)
+
+    if not ok or result == nil then
+        return false, "the server would not take that level"
+    end
+
+    if not result.found then
+        return false, string.format("the game has no skill called %s", id)
+    end
+
+    if result.after ~= wanted then
+        return false, string.format(
+            "the level stayed at %d instead of %d",
+            result.after,
+            wanted
+        )
+    end
+
+    return true, "skill level set", string.format(
+        '{"skill":"%s","before":%d,"after":%d}',
+        escape(id),
+        result.before,
+        result.after
+    )
+end
+
+--- Adds raw experience to one skill.
+---
+--- addXpNoMultiplier is the one route that reaches the player: it tests
+--- GameServer.server and hands off to GameServer.addXp, which finds the
+--- player's connection and calls NetworkPlayerAI.updateXpChecker. The
+--- character's own XP:AddXP would change the number server-side with
+--- the client never told.
+handlers.addSkillXp = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local id = tostring(command.skill or "")
+    local amount = tonumber(command.amount)
+
+    if id == "" or amount == nil then
+        return false, "a skill and an amount are needed"
+    end
+
+    if amount <= 0 or amount > 1000000 then
+        return false, "the amount is out of range"
+    end
+
+    local multiplied = command.multiplied == true or command.multiplied == "true"
+
+    local ok, result = pcall(function()
+        local candidate, perk = perkById(id)
+
+        if candidate == nil then
+            return { found = false }
+        end
+
+        local xp = player:getXp()
+        local before = xp ~= nil and xp:getXP(candidate) or 0
+        local levelBefore = player:getPerkLevel(candidate)
+
+        if multiplied then
+            addXp(player, candidate, amount)
+        else
+            addXpNoMultiplier(player, candidate, amount)
+        end
+
+        return {
+            found = true,
+            xpBefore = before,
+            xpAfter = xp ~= nil and xp:getXP(candidate) or 0,
+            levelBefore = levelBefore,
+            levelAfter = player:getPerkLevel(candidate),
+            name = perk:getName(),
+        }
+    end)
+
+    if not ok or result == nil then
+        return false, "the server would not take that experience"
+    end
+
+    if not result.found then
+        return false, string.format("the game has no skill called %s", id)
+    end
+
+    return true, "experience added", string.format(
+        '{"skill":"%s","level":%d,"levelBefore":%d,"xp":%.1f}',
+        escape(id),
+        result.levelAfter,
+        result.levelBefore,
+        result.xpAfter
     )
 end
 

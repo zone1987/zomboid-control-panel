@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import de from '@/i18n/locales/de.json'
 import { groupSkills, SKILL_CATEGORIES, SKILL_LABELS, skillLabel, unknownSkills } from './skills'
+import { levelProgress, type SkillDetail } from './players'
 
 /**
  * The skill table is the game's own, taken from `PerkFactory`'s bytecode.
@@ -90,5 +91,55 @@ describe('the skill table', () => {
     for (const id of Object.keys(SKILL_LABELS)) {
       expect(everySkill).toContain(id)
     }
+  })
+})
+
+/**
+ * The XP inside a level, from the game's own cumulative thresholds:
+ * `getTotalXpForLevel(n)` sums `getXpForLevel(1..n)`, so it is compared
+ * against `getXP`, which is also a total.
+ */
+describe('progress through a level', () => {
+  const detail = (over: Partial<SkillDetail> = {}): SkillDetail => ({
+    level: 3,
+    xp: 150,
+    levelFloor: 100,
+    nextLevel: 200,
+    boost: 0,
+    multiplier: 0,
+    ...over,
+  })
+
+  it('splits the level into what is done and what is left', () => {
+    const progress = levelProgress(detail())
+
+    expect(progress).not.toBeNull()
+    expect(progress?.done).toBe(50)
+    expect(progress?.needed).toBe(50)
+    expect(progress?.fraction).toBeCloseTo(0.5)
+  })
+
+  /** At the ceiling there is no next level, so there is no bar. */
+  it('reports nothing at level ten', () => {
+    expect(levelProgress(detail({ level: 10, levelFloor: 900, nextLevel: 900 }))).toBeNull()
+  })
+
+  /** A skill just levelled sits exactly on its floor. */
+  it('reads zero at the start of a level', () => {
+    const progress = levelProgress(detail({ xp: 100 }))
+
+    expect(progress?.done).toBe(0)
+    expect(progress?.fraction).toBe(0)
+    expect(progress?.needed).toBe(100)
+  })
+
+  /** XP past the threshold must not draw a bar over its own end. */
+  it('never exceeds a full level', () => {
+    expect(levelProgress(detail({ xp: 500 }))?.fraction).toBe(1)
+  })
+
+  /** A negative remainder would read as "needs -50 XP". */
+  it('never asks for negative experience', () => {
+    expect(levelProgress(detail({ xp: 500 }))?.needed).toBe(0)
   })
 })

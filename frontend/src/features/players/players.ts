@@ -297,3 +297,76 @@ export const BAN_DURATIONS = [
   { id: '30d', minutes: 43200 },
   { id: 'permanent', minutes: null },
 ] as const
+
+export const MAX_SKILL_LEVEL = 10
+
+/** A cap on one grant, matching the bridge's own. */
+export const MAX_SKILL_XP = 500_000
+
+export function setSkillLevel(
+  serverId: string,
+  username: string,
+  skill: string,
+  level: number,
+): Promise<{ reply: string; before?: number; after?: number }> {
+  return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/skill`, {
+    method: 'POST',
+    body: JSON.stringify({ skill, level }),
+  })
+}
+
+export function addSkillXp(
+  serverId: string,
+  username: string,
+  skill: string,
+  amount: number,
+  multiplied: boolean,
+): Promise<{ reply: string; level?: number; levelBefore?: number; xp?: number }> {
+  return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/skill/xp`, {
+    method: 'POST',
+    body: JSON.stringify({ skill, amount, multiplied }),
+  })
+}
+
+export type SkillDetail = {
+  level: number
+  /** Total XP held in this skill. */
+  xp: number
+  /** Where the current level began. */
+  levelFloor: number
+  /** What the next level needs; equals levelFloor at the ceiling. */
+  nextLevel: number
+  /** The profession and trait boost, 0..3 — the game golds a 3. */
+  boost: number
+  /** Above zero only while a read book still applies. */
+  multiplier: number
+}
+
+export function readSkillDetail(
+  serverId: string,
+  username: string,
+): Promise<{ skills: Record<string, SkillDetail> }> {
+  return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/skills`)
+}
+
+/** How far through the current level, and what is left of it. */
+export function levelProgress(detail: SkillDetail): {
+  done: number
+  needed: number
+  fraction: number
+} | null {
+  const span = detail.nextLevel - detail.levelFloor
+
+  // At level 10 there is no next level, so there is no progress to show.
+  if (span <= 0) {
+    return null
+  }
+
+  const done = Math.max(0, detail.xp - detail.levelFloor)
+
+  return {
+    done,
+    needed: Math.max(0, detail.nextLevel - detail.xp),
+    fraction: Math.min(1, done / span),
+  }
+}

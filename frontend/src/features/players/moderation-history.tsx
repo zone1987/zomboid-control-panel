@@ -68,7 +68,10 @@ export function ModerationHistory({ serverId }: { serverId: string }) {
 
               <TableCell className="font-medium">{entry.username}</TableCell>
 
-              <TableCell className="text-sm text-muted-foreground">
+              {/* The one free-text column, so the only one that must
+                  wrap: shadcn's TableCell is whitespace-nowrap, which
+                  made a long reason widen the table instead. */}
+              <TableCell className="max-w-md text-sm whitespace-normal break-words text-muted-foreground">
                 {entry.reason === null
                   ? t('common.none')
                   : t(reasonKey(entry.reason) ?? entry.reason, {

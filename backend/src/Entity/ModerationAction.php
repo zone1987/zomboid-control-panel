@@ -61,6 +61,9 @@ class ModerationAction
     /** A character trait added or removed through the bridge. */
     public const TRAIT = 'trait';
 
+    /** One skill set to an exact level through the bridge. */
+    public const SKILL = 'skill';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

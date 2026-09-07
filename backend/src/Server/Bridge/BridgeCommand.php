@@ -35,7 +35,70 @@ enum BridgeCommand: string
     case HealPlayer = 'healPlayer';
     case ReadPlayerStats = 'readPlayerStats';
     case SetPlayerStat = 'setPlayerStat';
+    /** The game's own ceiling for every skill. */
+    public const MAX_SKILL_LEVEL = 10;
+
+    /**
+     * A cap on one grant, not on a skill's total.
+     *
+     * Level 10 in the dearest skill is roughly 200k, so this leaves room
+     * to fill one from nothing while still refusing a typo of six zeroes.
+     */
+    public const MAX_SKILL_XP = 500000;
+
+    /**
+     * Every trainable skill, by the perk id the bridge resolves.
+     *
+     * Generated from the same six categories the interface groups by,
+     * which came from `PerkFactory`'s constant pool. Category perks
+     * (Combat, Firearm, Crafting, Survivalist, PhysicalCategory,
+     * FarmingCategory) are headings and deliberately absent: they have
+     * no level to set.
+     *
+     * @var list<string>
+     */
+    public const SKILLS = [
+        'Axe',
+        'Blunt',
+        'SmallBlunt',
+        'LongBlade',
+        'SmallBlade',
+        'Spear',
+        'Maintenance',
+        'Aiming',
+        'Reloading',
+        'Woodwork',
+        'Carving',
+        'Cooking',
+        'Electricity',
+        'Glassmaking',
+        'FlintKnapping',
+        'Masonry',
+        'Blacksmith',
+        'Mechanics',
+        'Pottery',
+        'Tailoring',
+        'MetalWelding',
+        'Doctor',
+        'Fishing',
+        'PlantScavenging',
+        'Tracking',
+        'Trapping',
+        'Fitness',
+        'Strength',
+        'Lightfoot',
+        'Nimble',
+        'Sprinting',
+        'Sneak',
+        'Farming',
+        'Husbandry',
+        'Butchering',
+    ];
+
     case ReadTraits = 'readTraits';
+    case ReadSkillDetail = 'readSkillDetail';
+    case SetSkillLevel = 'setSkillLevel';
+    case AddSkillXp = 'addSkillXp';
     case SetTrait = 'setTrait';
     case SetPlayerWeight = 'setPlayerWeight';
     case SetSnow = 'setSnow';
@@ -171,6 +234,20 @@ enum BridgeCommand: string
                 'weight' => self::number($arguments, 'weight', 30, 200),
             ],
             self::ReadTraits => ['player' => self::text($arguments, 'player')],
+            self::ReadSkillDetail => ['player' => self::text($arguments, 'player')],
+            self::SetSkillLevel => [
+                'player' => self::text($arguments, 'player'),
+                'skill' => self::skill($arguments),
+                // Ten is the game's own ceiling, and the bridge refuses
+                // anything else rather than clamping it silently.
+                'level' => (int) self::number($arguments, 'level', 0, self::MAX_SKILL_LEVEL),
+            ],
+            self::AddSkillXp => [
+                'player' => self::text($arguments, 'player'),
+                'skill' => self::skill($arguments),
+                'amount' => self::number($arguments, 'amount', 1, self::MAX_SKILL_XP),
+                'multiplied' => ($arguments['multiplied'] ?? false) === true,
+            ],
             self::SetTrait => [
                 'player' => self::text($arguments, 'player'),
                 'trait' => self::characterTrait($arguments),
@@ -300,6 +377,27 @@ enum BridgeCommand: string
         }
 
         return $stat;
+    }
+
+    /**
+     * A skill the game actually has, by its id.
+     *
+     * The ids are the perks' own, not their display names: the game
+     * shows `Woodwork` as "Carpentry" and `PlantScavenging` as
+     * "Foraging", so a name-based lookup would miss four of them. The
+     * bridge resolves the same ids through `PerkFactory`.
+     *
+     * @param array<string, mixed> $arguments
+     */
+    private static function skill(array $arguments): string
+    {
+        $skill = $arguments['skill'] ?? null;
+
+        if (!\is_string($skill) || !\in_array($skill, self::SKILLS, true)) {
+            throw new InvalidBridgeCommand('"skill" must be a skill the game defines.');
+        }
+
+        return $skill;
     }
 
     /**

@@ -104,7 +104,7 @@ export function PlayerDossier({
 
         <TabsContent value="skills">
           <div className="rounded-md border p-4">
-            <SkillGrid player={player} />
+            <SkillGrid serverId={serverId} player={player} />
           </div>
         </TabsContent>
 
