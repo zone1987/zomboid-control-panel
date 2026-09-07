@@ -6832,3 +6832,78 @@ the panel cannot reach can install the bridge by hand.
    anonymous token fetches the manifest with 200, so `docker compose
    pull` works with no login.
 3. `uitest@localhost.test` still exists (unchanged from the entry above).
+
+---
+
+## 2026-09-07 (later still) — 1.0.0 shipped, and the fault the release itself found
+
+### The release went out
+
+Tag `v1.0.0` on `ad95795`. Everything in the chain ran and was checked
+afterwards rather than assumed:
+
+| Thing | Verified how |
+|---|---|
+| Pipeline | all four jobs green, first time ever |
+| Image tags | `1.0.0`, `1.0`, `latest`, `main`, two shas listed on GHCR |
+| Package visibility | anonymous token fetches the manifest, 200 — no login needed |
+| GitHub release | not a draft, not a prerelease, both assets attached |
+| Bridge download | fetched anonymously from `/releases/latest/download/`, checksum verifies, byte-identical to the repository copy, `BRIDGE_VERSION = "0.21.0"` |
+| The whole user path | cloned the tag, `cp .env.example .env`, one variable, `docker compose up -d` → 14 migrations, `/api/health` reports `1.0.0`, `"database":"ok"` |
+| First registration | in the browser on a fresh container: wizard → account → login → dashboard, 0 console errors, and the wizard then refuses a second account with 409 |
+
+### The fault it found
+
+The Security tab on the released image said **"Du verwaltest den
+Schlüssel selbst"** — while the container had generated the key itself.
+
+The cause: the entrypoint runs as root and wrote
+`/app/var/secrets/credentials-key` as `0600 root:root`, but PHP runs as
+`www-data`. `is_readable()` was false, and the endpoint collapsed that
+into "not generated".
+
+That is rule 6c exactly, in a place I had not looked for it: *cannot
+read* and *the operator set it* became one value. The consequence is the
+worst kind — the operator is told there is nothing to save, while the
+only copy of the key that protects every stored FTP and RCON password
+sits unreadable inside a container.
+
+**It was only found by logging into the released image in a browser.**
+Every local test passed, because in ddev the key comes from `.env.local`
+and the "operator set it themselves" branch is the correct answer there.
+
+Two fixes:
+
+- `docker/entrypoint.sh` now `chown`s the secrets directory and the two
+  generated files to `www-data` (`750` / `640`). The **database password
+  deliberately stays `0600 root:root`** — the panel never reads it, only
+  the entrypoint does, and it is written by the other container.
+- The endpoint reports **three states**, not two:
+  `{generated, key, unreadable}`. A key that exists but cannot be read
+  returns `generated: true, unreadable: true`, and the card shows a
+  destructive alert naming the path inside the container.
+
+`GeneratedSecretsTest::testAKeyItCannotReadIsNotReportedAsTheOperatorsOwn`
+guards it, staged with `chmod 0000` and skipping where the test user can
+read it anyway (root in some CI images). Proven by restoring the 1.0.0
+behaviour and watching it fail.
+
+Verified on a rebuilt image: `-rw-r----- www-data` for both generated
+files, `-rw------- root` for the database password, `www-data` can read
+the key, the endpoint returns 64 hex characters, and the card shows the
+"save this now" warning with a working reveal.
+
+### The git flow changed, and it is now a rule
+
+The user's instruction, verbatim: *"In Zukunft werden ALLE Anpassungen
+die wir durchführen immer erst in einem Feature Branch committet,
+gepusht. Du erstellt dann einen pull request into main, dann mergest du
+das feature in main rein und erstellst dann tag und release."*
+
+Written into `CLAUDE.md` as **rule 1c**: branch → push → PR → CI green →
+merge → bump `app.version` → tag → watch the release. Nothing lands on
+`main` directly now that `main` is what people install.
+
+This change is the first to follow it: branch `fix/generated-key-unreadable`,
+version bumped to **1.0.1** because it fixes something an operator of
+1.0.0 can see.

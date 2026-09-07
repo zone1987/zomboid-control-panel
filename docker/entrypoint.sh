@@ -19,7 +19,8 @@ export SERVER_NAME WEBAUTHN_RELYING_PARTY_ID WEBAUTHN_RELYING_PARTY_NAME
 
 _secret_dir=/app/var/secrets
 mkdir -p "$_secret_dir"
-chmod 700 "$_secret_dir"
+chown www-data:www-data "$_secret_dir"
+chmod 750 "$_secret_dir"
 
 # Built from the password in the shared volume, which the database
 # container wrote. An explicit DATABASE_URL wins, for an external one.
@@ -58,8 +59,11 @@ generate_secret() {
     if [ ! -s "$_file" ]; then
         _generated=$(od -An -tx1 -N"$_bytes" /dev/urandom | tr -d ' \n')
         printf '%s' "$_generated" > "$_file"
-        chmod 600 "$_file"
     fi
+
+    # The panel reads these back as www-data to show the key.
+    chown www-data:www-data "$_file"
+    chmod 640 "$_file"
 
     cat "$_file"
 }
