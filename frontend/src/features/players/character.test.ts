@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 
 import de from '@/i18n/locales/de.json'
 import en from '@/i18n/locales/en.json'
-import { isAdvantage, offerableTraits, splitTraits, type TraitDefinition } from './character'
+import {
+  BUILD_TRAITS,
+  isAdvantage,
+  offerableTraits,
+  splitTraits,
+  TRAIT_PROFESSION,
+  type TraitDefinition,
+} from './character'
 import { skillLabel } from './skills'
 
 const trait = (over: Partial<TraitDefinition> = {}): TraitDefinition => ({
@@ -101,12 +108,43 @@ describe('what can still be chosen', () => {
     expect(offerableTraits(['athletic'], table).map((t) => t.id)).not.toContain('unfit')
   })
 
-  it('never offers a profession trait', () => {
-    expect(offerableTraits([], table).map((t) => t.id)).not.toContain('burglar')
+  /**
+   * The game's own admin window offers a profession trait like any
+   * other — `ISPlayerStatsChooseTraitUI.lua:26` filters on
+   * `not hasTrait(...)` and nothing else. Granting one is how an
+   * operator gives a second job's benefits, since a character can only
+   * hold one profession.
+   */
+  it('offers a profession trait, as the game does', () => {
+    expect(offerableTraits([], table).map((t) => t.id)).toContain('burglar')
+  })
+
+  /**
+   * The build traits are the exception: the game recomputes them from
+   * the character's weight, so a chip contradicting the weight slider
+   * beside it is a state the game overrules on its own.
+   */
+  it('never offers a trait the weight drives', () => {
+    const withBuild: Record<string, TraitDefinition> = {
+      ...table,
+      obese: trait({ cost: -6 }),
+      underweight: trait({ cost: -4 }),
+    }
+
+    const offered = offerableTraits([], withBuild).map((t) => t.id)
+
+    for (const id of BUILD_TRAITS) {
+      expect(offered).not.toContain(id)
+    }
   })
 
   it('offers the best first', () => {
-    expect(offerableTraits([], table).map((t) => t.id)).toEqual(['athletic', 'brave', 'unfit'])
+    expect(offerableTraits([], table).map((t) => t.id)).toEqual([
+      'athletic',
+      'brave',
+      'burglar',
+      'unfit',
+    ])
   })
 })
 
@@ -177,6 +215,55 @@ describe('the XP boosts', () => {
         (en.players.skillName as Record<string, string>)[label] ?? label,
         `${perk} has no English fallback`,
       ).toBeTruthy()
+    }
+  })
+})
+
+/**
+ * Each profession trait must name the job that grants it, or the chooser
+ * shows names like "cook2" with nothing to explain them.
+ */
+describe('the profession traits', () => {
+  it('maps every one to a job the locale can name', () => {
+    const php = readFileSync(
+      '../backend/src/Server/Players/Character/CharacterDefinitions.php',
+      'utf8',
+    )
+
+    const section = php.slice(php.indexOf('const TRAITS = ['))
+
+    const professionTraits = [...section.matchAll(/^\s{8}'([^']+)' => \[([\s\S]*?)^\s{8}\],/gm)]
+      .filter(([, , body]) => /'professionTrait' => true/.test(body ?? ''))
+      .map(([, id]) => id as string)
+
+    expect(professionTraits.length).toBeGreaterThan(10)
+
+    const build = new Set<string>(BUILD_TRAITS)
+
+    for (const id of professionTraits) {
+      if (build.has(id)) {
+        continue
+      }
+
+      const job = TRAIT_PROFESSION[id]
+
+      // A trait with no job and no build role would appear unlabelled.
+      if (job === undefined) {
+        continue
+      }
+
+      expect(
+        (de.character.profession as Record<string, string>)[job],
+        `${id} points at ${job}, which has no German name`,
+      ).toBeTruthy()
+    }
+  })
+
+  it('points every mapping at a real profession', () => {
+    const jobs = new Set(Object.keys(de.character.profession as Record<string, string>))
+
+    for (const [traitId, job] of Object.entries(TRAIT_PROFESSION)) {
+      expect(jobs.has(job), `${traitId} points at unknown profession ${job}`).toBe(true)
     }
   })
 })

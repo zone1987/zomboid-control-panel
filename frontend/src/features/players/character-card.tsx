@@ -16,6 +16,7 @@ import { TraitTooltip } from './trait-tooltip'
 import { skillLabel } from './skills'
 import {
   offerableTraits,
+  TRAIT_PROFESSION,
   readCharacterSheet,
   setTrait,
   splitTraits,
@@ -353,10 +354,13 @@ function AddTrait({
     return name.includes(needle) || id.toLowerCase().includes(needle)
   })
 
-  // A column each, as a real split rather than a wrap: mixed together in
-  // two columns the two kinds were indistinguishable at a glance.
-  const advantages = matches.filter(({ definition }) => definition.cost > 0)
-  const drawbacks = matches.filter(({ definition }) => definition.cost <= 0)
+  // Three groups. A profession trait is neither an advantage nor a
+  // drawback — it is a second job — so it sits apart rather than being
+  // sorted by a cost of 0 into the drawbacks.
+  const jobs = matches.filter(({ id }) => TRAIT_PROFESSION[id] !== undefined)
+  const rest = matches.filter(({ id }) => TRAIT_PROFESSION[id] === undefined)
+  const advantages = rest.filter(({ definition }) => definition.cost > 0)
+  const drawbacks = rest.filter(({ definition }) => definition.cost <= 0)
 
   return (
     <section className="space-y-3 border-t pt-4">
@@ -387,6 +391,55 @@ function AddTrait({
             <OfferColumn tone="good" traits={advantages} busy={busy} onAdd={onAdd} />
             <OfferColumn tone="bad" traits={drawbacks} busy={busy} onAdd={onAdd} />
           </div>
+
+          {/* What an operator granting "another profession" is really
+              after: the trait a job carries. The game's own admin window
+              offers these too. */}
+          {jobs.length > 0 && (
+            <div className="space-y-2 border-t pt-3">
+              <p className="flex items-center gap-1.5 font-mono text-[11px] tracking-wide uppercase">
+                <Briefcase aria-hidden className="size-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">{t('character.jobTraits')}</span>
+                <span className="tabular-nums text-muted-foreground opacity-60">
+                  {jobs.length}
+                </span>
+              </p>
+
+              <div className="grid gap-1 sm:grid-cols-2">
+                {jobs.map(({ id, definition }) => (
+                  <TraitTooltip key={id} id={id} definition={definition}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors',
+                        'border-l-2 border-l-primary/40 hover:bg-muted/50 disabled:opacity-50',
+                      )}
+                      onClick={() => onAdd(id)}
+                    >
+                      <CharacterIcon icon={definition.icon} label={id} />
+
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {t(`character.trait.${id}`, { defaultValue: id })}
+                      </span>
+
+                      {/* The job it comes from, which is the only thing
+                          that makes these names mean anything. */}
+                      <span className="shrink-0 truncate text-[11px] text-muted-foreground">
+                        {t(`character.profession.${TRAIT_PROFESSION[id]}`, {
+                          defaultValue: TRAIT_PROFESSION[id] ?? '',
+                        })}
+                      </span>
+
+                      <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+                    </button>
+                  </TraitTooltip>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground">{t('character.jobTraitsHint')}</p>
+            </div>
+          )}
 
           {/* The game forbids some pairs, so they are absent rather than
               offered and refused. Said, so the gap is not a mystery. */}

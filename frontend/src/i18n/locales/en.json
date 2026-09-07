@@ -57,6 +57,8 @@
     "drawbacks": "Drawbacks",
     "exclusionsHidden": "Traits that clash with one the player already has are not offered.",
     "fromProfession": "Granted by the profession",
+    "jobTraits": "Profession traits",
+    "jobTraitsHint": "A profession grants exactly one of these. A character can only hold one profession — an extra profession trait is the only way to give them a second job’s benefits.",
     "noProfession": "No profession recorded.",
     "noTraitMatch": "No trait matches the search.",
     "noTraits": "No traits reported.",
@@ -1064,6 +1066,7 @@
     "reasonHint": "Shown to the player and kept in the history.",
     "reasonPlaceholder": "e.g. griefing",
     "removeTag": "Remove \"{{tag}}\"",
+    "resetSkill": "Reset {{skill}} to level 0",
     "roster": "List",
     "scope": {
       "all": "All",

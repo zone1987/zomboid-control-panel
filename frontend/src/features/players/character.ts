@@ -28,6 +28,44 @@ export function readCharacterSheet(): Promise<CharacterSheet> {
   return apiFetch<CharacterSheet>('/character')
 }
 
+/**
+ * Which job grants each profession trait.
+ *
+ * From the installation's `GrantedTraits`. The game's own admin window
+ * offers these like any other trait — its only condition is
+ * `not hasTrait(...)` — so the panel offers them too, but in a group of
+ * their own and named by the job they come from. A player given
+ * `burglar` reads as a second profession, which is what an operator
+ * granting several jobs in-game is actually doing.
+ */
+export const TRAIT_PROFESSION: Record<string, string> = {
+  axeman: 'lumberjack',
+  blacksmith2: 'smither',
+  burglar: 'burglar',
+  cook2: 'chef',
+  desensitized: 'veteran',
+  herbalist_prof: 'parkranger',
+  inventive_prof: 'repairman',
+  mechanics2: 'mechanics',
+  nightowl: 'securityguard',
+  nutritionist2: 'fitnessinstructor'
+}
+
+/**
+ * Traits the game drives from the character's weight.
+ *
+ * Withheld on purpose, unlike the profession traits: the game sets these
+ * from the weight itself, so a chip contradicting the weight slider
+ * beside it would be a state the game immediately overrules.
+ */
+export const BUILD_TRAITS = [
+  'emaciated',
+  'very underweight',
+  'underweight',
+  'overweight',
+  'obese',
+] as const
+
 /** Where the game's own artwork is served from. */
 export function iconUrl(name: string): string {
   return `/api/character/icons/${encodeURIComponent(name)}.png`
@@ -122,8 +160,10 @@ export function offerableTraits(
     }
   }
 
+  const build = new Set<string>(BUILD_TRAITS)
+
   return Object.entries(table)
-    .filter(([id, definition]) => !owned.has(id) && !definition.professionTrait && !blocked.has(id))
+    .filter(([id]) => !owned.has(id) && !blocked.has(id) && !build.has(id))
     .map(([id, definition]) => ({ id, definition }))
     .sort((a, b) => b.definition.cost - a.definition.cost)
 }

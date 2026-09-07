@@ -35,6 +35,16 @@ enum BridgeCommand: string
     case HealPlayer = 'healPlayer';
     case ReadPlayerStats = 'readPlayerStats';
     case SetPlayerStat = 'setPlayerStat';
+    /**
+     * Traits the game drives from the character's weight.
+     *
+     * Refused rather than offered: the game recomputes these from the
+     * weight, so setting one by hand is a state it overrules on its own.
+     *
+     * @var list<string>
+     */
+    public const BUILD_TRAITS = ['emaciated', 'very underweight', 'underweight', 'overweight', 'obese'];
+
     /** The game's own ceiling for every skill. */
     public const MAX_SKILL_LEVEL = 10;
 
@@ -419,9 +429,13 @@ enum BridgeCommand: string
             throw new InvalidBridgeCommand('"trait" must be a trait the game defines.');
         }
 
-        if (CharacterDefinitions::TRAITS[$trait]['professionTrait'] === true) {
+        // The game's own admin window offers a profession trait like any
+        // other — its only condition is `not hasTrait(...)` — so these
+        // are allowed. Granting `burglar` is how an operator gives a
+        // second profession, which is not expressible any other way.
+        if (\in_array($trait, self::BUILD_TRAITS, true)) {
             throw new InvalidBridgeCommand(sprintf(
-                '"%s" is granted by a profession and cannot be set on its own.',
+                '"%s" follows the character\'s weight and cannot be set on its own.',
                 $trait,
             ));
         }

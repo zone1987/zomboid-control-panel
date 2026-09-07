@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { BookOpen, ChevronsRight, GraduationCap } from 'lucide-react'
+import { BookOpen, ChevronsRight, GraduationCap, RotateCcw } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { ApiError, errorField } from '@/lib/api'
@@ -56,7 +56,15 @@ export function SkillGrid({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['players', serverId] })
+  // Both: the roster carries the levels the list and the dossier use,
+  // and the detail query is the one that asks the game directly. After a
+  // write the roster still holds the old value until the bridge writes
+  // its file again, so refreshing only that made the pips fall back.
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['players', serverId] }),
+      queryClient.invalidateQueries({ queryKey: ['skill-detail', serverId, player.username] }),
+    ])
 
   // What was asked for but not yet confirmed. Held against the skill it
   // belongs to, so a refetch arriving mid-flight cannot leave a stale
@@ -97,8 +105,16 @@ export function SkillGrid({
     retry: false,
   })
 
-  const groups = groupSkills(player.skills)
-  const extra = unknownSkills(player.skills)
+  // The live reading wins where it exists: the roster's copy is only as
+  // fresh as the bridge's last write, which is what made a set level
+  // appear, vanish and reappear.
+  const levels =
+    detail === undefined
+      ? player.skills
+      : Object.fromEntries(Object.entries(detail.skills).map(([id, e]) => [id, e.level]))
+
+  const groups = groupSkills(levels)
+  const extra = unknownSkills(levels)
   const trained = groups.reduce((sum, group) => sum + group.trained, 0)
 
   const boosted = Object.entries(detail?.skills ?? {}).filter(
@@ -262,6 +278,24 @@ function SkillRow({
   const boosted = (detail?.boost ?? 0) >= 3
   const hasBook = (detail?.multiplier ?? 0) > 0
 
+  // How far into the *next* level, drawn inside the next empty pip.
+  //
+  // Null while a level change is in flight, since the old progress no
+  // longer describes the value being shown. No minimum width either: a
+  // floor of 6 % turned 0.6 of 75 XP into a visible sliver, which reads
+  // as progress where there is effectively none.
+  const percent = progress === null ? 0 : Math.round(progress.fraction * 100)
+
+  const partial =
+    progress === null || inFlight || settled >= MAX_SKILL_LEVEL || percent < 1
+      ? null
+      : percent
+
+  // The game calls this "ready to be trained": full XP without the
+  // level, which happens when a level is reset and the XP stays. Marked
+  // rather than drawn as a full pip, so it cannot be mistaken for one.
+  const readyToLevel = partial === 100
+
   return (
     <div className="flex items-center gap-2">
       {/* The name is where a pointer lands, so it carries the whole
@@ -323,10 +357,24 @@ function SkillRow({
                 key={pip}
                 title={pip === settled ? (remainder ?? undefined) : undefined}
                 className={cn(
-                  'h-1.5 flex-1 rounded-full',
+                  'relative h-1.5 flex-1 overflow-hidden rounded-full',
                   pip <= settled ? 'bg-primary' : 'bg-muted',
                 )}
-              />
+              >
+                {partial !== null && pip === settled + 1 && (
+                  <span
+                    className={cn(
+                      'absolute inset-y-0 left-0 rounded-full',
+                      readyToLevel
+                        ? 'bg-primary/70 ring-1 ring-primary'
+                        : hasBook
+                          ? 'bg-sky-400/70'
+                          : 'bg-primary/45',
+                    )}
+                    style={{ width: `${partial}%` }}
+                  />
+                )}
+              </span>
             )
           }
 
@@ -345,7 +393,7 @@ function SkillRow({
             >
               <span
                 className={cn(
-                  'h-1.5 w-full rounded-full transition-colors',
+                  'relative h-1.5 w-full overflow-hidden rounded-full transition-colors',
                   pip <= shown
                     ? hovered !== null
                       ? pip <= (hovered === settled ? 0 : hovered)
@@ -356,23 +404,29 @@ function SkillRow({
                   // Breathing while the bridge has not answered yet.
                   inFlight && pip <= settled && 'pz-pending',
                 )}
-              />
+              >
+                {/* The pip in progress fills part-way, which is what the
+                    game itself draws: "50% xp mean a rect filled at 50%"
+                    (ISSkillProgressBar.lua:178). A bar beside the row was
+                    my own invention and needed a legend. */}
+                {partial !== null && pip === settled + 1 && (
+                  <span
+                    className={cn(
+                      'absolute inset-y-0 left-0 rounded-full',
+                      readyToLevel
+                        ? 'bg-primary/70 ring-1 ring-primary'
+                        : hasBook
+                          ? 'bg-sky-400/70'
+                          : 'bg-primary/45',
+                    )}
+                    style={{ width: `${partial}%` }}
+                  />
+                )}
+              </span>
             </button>
           )
         })}
       </div>
-
-      {/* The partial level, so a skill at 6 with almost 7 does not read
-          the same as one that just reached 6.
-
-          Only from level 1 up: "1 %" beside a level-0 skill looked like
-          a reading nobody asked for, and a skill nobody has touched has
-          no progress worth a number. */}
-      <span className="w-8 shrink-0 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-        {progress !== null && !inFlight && level > 0 && progress.fraction > 0
-          ? `${Math.round(progress.fraction * 100)} %`
-          : ''}
-      </span>
 
       <span
         className={cn(
@@ -383,6 +437,30 @@ function SkillRow({
       >
         {settled}
       </span>
+
+      {/* Clicking the pip that is already the level also sets zero, but
+          nobody finds that: it is a control you have to guess. This one
+          says what it does, and takes no room when there is nothing to
+          reset. */}
+      {editable ? (
+        <button
+          type="button"
+          disabled={busy || settled === 0}
+          aria-label={t('players.resetSkill', { skill: name })}
+          title={t('players.resetSkill', { skill: name })}
+          className={cn(
+            'shrink-0 rounded p-0.5 transition-colors',
+            settled === 0
+              ? 'invisible'
+              : 'text-muted-foreground/60 hover:bg-muted hover:text-destructive',
+          )}
+          onClick={() => onSet(0)}
+        >
+          <RotateCcw className="size-3" />
+        </button>
+      ) : (
+        <span aria-hidden className="w-4 shrink-0" />
+      )}
     </div>
   )
 }

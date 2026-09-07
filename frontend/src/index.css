@@ -156,6 +156,26 @@
     scrollbar-gutter: stable;
   }
 
+  /* Tailwind 4 sets `cursor: default` on buttons, unlike 3, so nothing
+     in the panel showed a pointer. Done here rather than per component:
+     the rule is "if it can be clicked, say so", and a class on every
+     button is a rule nobody can keep.
+
+     A disabled control keeps the default cursor — the pointer would
+     promise something that will not happen. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  label[for],
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: default;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-synthesis-weight: none;

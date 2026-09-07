@@ -57,6 +57,8 @@
     "drawbacks": "Nachteile",
     "exclusionsHidden": "Eigenschaften, die sich mit einer vorhandenen ausschließen, werden nicht angeboten.",
     "fromProfession": "Vom Beruf verliehen",
+    "jobTraits": "Berufs-Eigenschaften",
+    "jobTraitsHint": "Ein Beruf verleiht genau eine solche Eigenschaft. Ein Charakter kann nur einen Beruf haben — eine zusätzliche Berufs-Eigenschaft ist der einzige Weg, ihm die Vorteile eines zweiten zu geben.",
     "noProfession": "Kein Beruf hinterlegt.",
     "noTraitMatch": "Keine Eigenschaft passt zur Suche.",
     "noTraits": "Keine Eigenschaften gemeldet.",
@@ -1064,6 +1066,7 @@
     "reasonHint": "Wird dem Spieler angezeigt und im Verlauf festgehalten.",
     "reasonPlaceholder": "z. B. Griefing",
     "removeTag": "„{{tag}}“ entfernen",
+    "resetSkill": "{{skill}} auf Stufe 0 zurücksetzen",
     "roster": "Liste",
     "scope": {
       "all": "Alle",
