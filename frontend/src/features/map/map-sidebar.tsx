@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, Home, Users } from 'lucide-react'
 
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { WorldPoint } from './coordinates'
@@ -19,12 +20,17 @@ type Props = {
  * Collapsible, because on a narrow screen the map matters more than the
  * list -- and because an operator watching one player does not need the
  * panel open the whole time.
+ *
+ * On a phone it starts collapsed: open, it is 224px wide against a 390px
+ * screen and sat on top of the search field.
  */
 export function MapSidebar({ players, safehouses, onGoTo }: Props) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(true)
+  const isMobile = useIsMobile()
+  const [open, setOpen] = useState<boolean | null>(null)
+  const shown = open ?? !isMobile
 
-  if (!open) {
+  if (!shown) {
     return (
       <button
         type="button"

@@ -1,6 +1,9 @@
 services:
   app:
     image: ghcr.io/zone1987/zomboid-control-panel:${APP_VERSION:-latest}
+    # `latest` moves, so a cached image of that name is not the current
+    # one: a deployment kept running 1.0.2 after 1.0.3 was published.
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       database:

@@ -55,7 +55,12 @@ export function MapSearch({ players, onGoTo, onNotFound }: Props) {
 
   return (
     <>
-      <div className="pointer-events-auto absolute left-14 right-3 top-3 z-10 max-w-xl sm:right-auto sm:w-96">
+      {/* Bounded on the right by the sidebar rather than by a width:
+          `left-14` is relative to the map, which the app's own sidebar
+          has already narrowed, so any fixed width overlapped the panel
+          on a mid-sized window. Below `md` the collapsed button needs
+          5rem; above it the open panel needs 15.5rem. */}
+      <div className="pointer-events-auto absolute left-14 right-20 top-3 z-10 md:right-64 xl:max-w-xl">
         <div className="flex h-9 items-center rounded-md border border-border/60 bg-background/85 shadow-lg backdrop-blur">
           <Search className="pointer-events-none ml-2.5 size-4 shrink-0 text-muted-foreground" />
           <input

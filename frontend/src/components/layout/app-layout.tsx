@@ -61,8 +61,11 @@ function PageTransition() {
   // min-h-full rather than h-full: a child at exactly 100% height
   // overhangs the scroller's own bottom padding, so the last element sat
   // flush against the footer. pb-4 is the gap, on the child.
+  //
+  // A column, so a page that wants the remaining height asks for `flex-1`
+  // instead of computing it from header and padding sizes that change.
   return (
-    <div key={pathname} className="pz-page min-h-full pb-4">
+    <div key={pathname} className="pz-page flex min-h-full flex-col pb-4">
       <Outlet />
     </div>
   )

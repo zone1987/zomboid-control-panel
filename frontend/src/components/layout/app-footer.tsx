@@ -19,7 +19,7 @@ import { PanelVersionLine } from './panel-version-line'
  */
 export function AppFooter() {
   return (
-    <footer className="flex h-9 shrink-0 items-center gap-2 border-t px-4">
+    <footer className="flex h-9 shrink-0 items-center gap-2 overflow-hidden border-t px-4">
       <PanelVersionLine labelled />
 
       <FooterDivider />
