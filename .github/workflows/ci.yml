@@ -244,19 +244,17 @@ jobs:
         if: failure()
         run: docker logs ci-app
 
-      # arm64 as well as amd64: Apple Silicon and the cheap ARM instances
-      # most hosters now sell cannot run an amd64-only image. The proving
-      # steps above stay single-arch, because a multi-arch build cannot
-      # be loaded into the local daemon to be started.
-      - name: Set up QEMU for the arm64 build
-        uses: docker/setup-qemu-action@v3
-
+      # amd64 only, deliberately. Building arm64 here means QEMU
+      # emulation on an amd64 runner -- over twenty minutes of every
+      # push, for an architecture this deployment does not use. An ARM
+      # host (a Hetzner CAX, Apple Silicon) needs a native arm64 runner
+      # added, not emulation switched back on.
       - name: Push the image that was proven to start
         uses: docker/build-push-action@v6
         with:
           context: .
           target: runtime
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
