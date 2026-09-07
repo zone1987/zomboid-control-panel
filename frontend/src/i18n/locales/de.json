@@ -1806,7 +1806,18 @@
       "good": "Alles in Ordnung",
       "noSender": "Noch keine Absenderadresse",
       "partial": "Teilweise eingerichtet"
-    }
+    },
+    "securityTab": "Sicherheit",
+    "encryptionKeyTitle": "Verschlüsselungsschlüssel",
+    "encryptionKeyDescription": "Verschlüsselt die gespeicherten FTP- und RCON-Passwörter.",
+    "encryptionKeyOwnTitle": "Du verwaltest den Schlüssel selbst",
+    "encryptionKeyOwnBody": "Dieser Server benutzt den Schlüssel aus CREDENTIALS_ENCRYPTION_KEY. Er wird hier nicht angezeigt, weil du ihn bereits hast — bewahre ihn getrennt von deinen Datenbanksicherungen auf.",
+    "encryptionKeyWarnTitle": "Sichere diesen Schlüssel jetzt",
+    "encryptionKeyWarnBody": "Er wurde beim ersten Start erzeugt und existiert nur in diesem Container. Ohne ihn stellt eine Datenbanksicherung alles wieder her — außer den FTP- und RCON-Passwörtern. Kopiere ihn in deinen Passwortmanager.",
+    "encryptionKeyShow": "Anzeigen",
+    "encryptionKeyHide": "Verbergen",
+    "encryptionKeyCopy": "Kopieren",
+    "encryptionKeyCopied": "Kopiert"
   },
   "setup": {
     "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen.",

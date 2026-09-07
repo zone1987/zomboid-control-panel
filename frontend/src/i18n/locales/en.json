@@ -1806,7 +1806,18 @@
       "good": "Everything in order",
       "noSender": "No sender address yet",
       "partial": "Partly set up"
-    }
+    },
+    "securityTab": "Security",
+    "encryptionKeyTitle": "Encryption key",
+    "encryptionKeyDescription": "Encrypts the stored FTP and RCON passwords.",
+    "encryptionKeyOwnTitle": "You manage the key yourself",
+    "encryptionKeyOwnBody": "This server uses the key from CREDENTIALS_ENCRYPTION_KEY. It is not shown here because you already have it — keep it separately from your database backups.",
+    "encryptionKeyWarnTitle": "Save this key now",
+    "encryptionKeyWarnBody": "It was generated on the first start and exists only in this container. Without it, a database backup restores everything except the FTP and RCON passwords. Copy it into your password manager.",
+    "encryptionKeyShow": "Show",
+    "encryptionKeyHide": "Hide",
+    "encryptionKeyCopy": "Copy",
+    "encryptionKeyCopied": "Copied"
   },
   "setup": {
     "alreadyCompleted": "Setup has already been completed.",

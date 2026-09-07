@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabGroupLabel } from '@/components/ui/tab-group-label'
 import { RetentionCard } from './retention-card'
+import { EncryptionKeyCard } from './encryption-key-card'
 import {
   Select,
   SelectContent,
@@ -191,12 +192,19 @@ export function SettingsPage() {
           <TabsTrigger value="privacy" className="justify-start">
             {t('settings.privacyTab')}
           </TabsTrigger>
+          <TabsTrigger value="security" className="justify-start">
+            {t('settings.securityTab')}
+          </TabsTrigger>
         </TabsList>
 
         <div className="min-w-0">
 
         <TabsContent value="privacy">
           <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
+        </TabsContent>
+
+        <TabsContent value="security">
+          <EncryptionKeyCard />
         </TabsContent>
 
         <TabsContent value="discord">

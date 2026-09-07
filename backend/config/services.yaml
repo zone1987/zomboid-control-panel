@@ -11,6 +11,7 @@ parameters:
     app.version: '1.0.0'
     app.repository: '%env(default:app.default_repository:GITHUB_REPOSITORY)%'
     app.default_repository: 'zone1987/zomboid-control-panel'
+    app.default_secrets_path: '%kernel.project_dir%/var/secrets'
     app.https_default: true
 
 services:
@@ -30,6 +31,10 @@ services:
     App\Security\Encryption\CredentialCipher:
         arguments:
             $hexKey: '%env(CREDENTIALS_ENCRYPTION_KEY)%'
+
+    App\Controller\Api\GeneratedSecretsEndpoint:
+        arguments:
+            $generatedSecretsPath: '%env(default:app.default_secrets_path:GENERATED_SECRETS_PATH)%'
 
     App\Panel\PanelUpdateChecker:
         arguments:

@@ -73,6 +73,14 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test
+
       - name: Type-check and build
         working-directory: frontend
         run: npm run build
@@ -177,3 +185,77 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+
+  release:
+    name: Publish the release
+    runs-on: ubuntu-latest
+    needs: [image]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The tag is the single source of truth for the version, and the two
+      # places the panel declares it must agree with it. A release naming
+      # 1.0.0 while the running panel reports 0.9.0 would make the update
+      # banner permanently wrong, and nobody would notice from the outside.
+      - name: Check the tag matches the declared versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          declared=$(grep -oP "app\.version: '\K[^']+" backend/config/services.yaml)
+          bridge=$(grep -oP 'BRIDGE_VERSION = "\K[^"]+' backend/resources/bridge/ZomboidControlBridge.lua)
+
+          echo "tag=$tag  app.version=$declared  bridge=$bridge"
+
+          if [ "$tag" != "$declared" ]; then
+            echo "::error::Tag $tag does not match app.version $declared in backend/config/services.yaml."
+            exit 1
+          fi
+
+          echo "BRIDGE_VERSION=$bridge" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$tag" >> "$GITHUB_ENV"
+
+      # Shipped as its own download so an operator whose FTP the panel
+      # cannot reach still has a way to install the bridge by hand.
+      - name: Collect the release assets
+        run: |
+          mkdir -p dist
+          cp backend/resources/bridge/ZomboidControlBridge.lua dist/
+          ( cd dist && sha256sum ZomboidControlBridge.lua > ZomboidControlBridge.lua.sha256 )
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ZomboidControl ${{ env.APP_VERSION }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            dist/ZomboidControlBridge.lua
+            dist/ZomboidControlBridge.lua.sha256
+          body: |
+            ## Install
+
+            ```bash
+            docker compose pull && docker compose up -d
+            ```
+
+            Or pin this version with `APP_VERSION=${{ env.APP_VERSION }}` in
+            your `.env`. Full instructions, including Coolify, are in the
+            [README](https://github.com/${{ github.repository }}#readme).
+
+            **Image:** `ghcr.io/${{ github.repository }}:${{ env.APP_VERSION }}`
+
+            ## The Lua bridge (${{ env.BRIDGE_VERSION }})
+
+            The panel uploads the bridge itself under *Servers → Bridge →
+            Install*, which is the way to do it. `ZomboidControlBridge.lua`
+            is attached below for the case where the panel cannot reach your
+            FTP: drop it into your server's `media/lua/server/` directory and
+            restart the game server.
+
+            A bridge on disk is not yet a running bridge — the game loads it
+            at start, and the panel's bridge page reports the version that is
+            actually answering, not the file.

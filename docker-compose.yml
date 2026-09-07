@@ -1,6 +1,8 @@
 services:
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-andreasgerhardt/zomboidcontrol}:${APP_VERSION:-latest}
+    image: ghcr.io/zone1987/zomboid-control-panel:${APP_VERSION:-latest}
+    # Without this, an image+build pair rebuilds from source locally.
+    pull_policy: missing
     build:
       context: .
       target: runtime
@@ -11,25 +13,31 @@ services:
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
-      APP_SECRET: ${APP_SECRET:?set APP_SECRET, e.g. openssl rand -hex 16}
-      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:?set a 64-char hex key, e.g. openssl rand -hex 32}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-zomboid}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-zomboid}?serverVersion=17&charset=utf8
+      # Generated on first start when left empty, and kept in the secrets
+      # volume. Set them to migrate an existing installation.
+      APP_SECRET: ${APP_SECRET:-}
+      CREDENTIALS_ENCRYPTION_KEY: ${CREDENTIALS_ENCRYPTION_KEY:-}
+      # Left empty on purpose: the entrypoint builds it from the password
+      # the database generated. Set it to point at an external database.
+      DATABASE_URL: ${DATABASE_URL:-}
+      POSTGRES_DB: ${POSTGRES_DB:-zomboid}
+      POSTGRES_USER: ${POSTGRES_USER:-zomboid}
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
-      MAILER_DSN: ${MAILER_DSN:-null://null}
-      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@localhost}
-      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-ZomboidControl}
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:?set the public https URL}
-      SERVER_NAME: ${SERVER_NAME:-localhost}
-      WEBAUTHN_RELYING_PARTY_ID: ${WEBAUTHN_RELYING_PARTY_ID:?set the bare domain, without scheme or port}
+      # Derived from APP_PUBLIC_URL by the entrypoint unless set here.
+      SERVER_NAME: ${SERVER_NAME:-}
+      WEBAUTHN_RELYING_PARTY_ID: ${WEBAUTHN_RELYING_PARTY_ID:-}
       WEBAUTHN_RELYING_PARTY_NAME: ${WEBAUTHN_RELYING_PARTY_NAME:-ZomboidControl}
-      OAUTH_GOOGLE_ID: ${OAUTH_GOOGLE_ID:-}
-      OAUTH_GOOGLE_SECRET: ${OAUTH_GOOGLE_SECRET:-}
-      STEAM_WEB_API_KEY: ${STEAM_WEB_API_KEY:-}
       MESSENGER_WORKERS: ${MESSENGER_WORKERS:-1}
       PHP_FPM_API_MAX_CHILDREN: ${PHP_FPM_API_MAX_CHILDREN:-12}
       PHP_FPM_SSE_MAX_CHILDREN: ${PHP_FPM_SSE_MAX_CHILDREN:-8}
+    # A reverse proxy routes to `expose` and needs no published port.
+    expose:
+      - "80"
     ports:
       - "${APP_PORT:-8080}:80"
+    volumes:
+      - secrets:/app/var/secrets
 
   database:
     image: postgres:17-alpine
@@ -37,9 +45,28 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-zomboid}
       POSTGRES_USER: ${POSTGRES_USER:-zomboid}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD_FILE: /run/secrets/database-password
+    # POSTGRES_PASSWORD wins when set; otherwise one is generated. Either
+    # way it lands in the file the panel reads, so both sides agree.
+    # Written before postgres starts, which reads the file immediately.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p /run/secrets
+        if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+          printf '%s' "$$POSTGRES_PASSWORD" > /run/secrets/database-password
+        elif [ ! -s /run/secrets/database-password ]; then
+          tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 48 > /run/secrets/database-password
+        fi
+        chmod 600 /run/secrets/database-password
+        unset POSTGRES_PASSWORD
+        exec docker-entrypoint.sh postgres
     volumes:
       - database:/var/lib/postgresql/data
+      - secrets:/run/secrets
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zomboid} -d ${POSTGRES_DB:-zomboid}"]
       interval: 10s
@@ -49,3 +76,4 @@ services:
 
 volumes:
   database:
+  secrets:

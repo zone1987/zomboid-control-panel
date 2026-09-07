@@ -114,3 +114,20 @@ export const MAIL_PRESETS = [
   { id: 'sendgrid', label: 'SendGrid', host: 'smtp.sendgrid.net', port: '587', encryption: 'tls' },
   { id: 'brevo', label: 'Brevo', host: 'smtp-relay.brevo.com', port: '587', encryption: 'tls' },
 ] as const
+
+export type GeneratedSecrets = {
+  /** False when the operator set the key themselves; it is theirs already. */
+  generated: boolean
+  key: string | null
+}
+
+/**
+ * The encryption key, for a deployment that generated its own.
+ *
+ * A container that makes the key leaves nobody holding a copy, and a
+ * database restored without it loses every stored FTP and RCON password.
+ * This is the only place an operator can obtain it.
+ */
+export function readGeneratedSecrets(): Promise<GeneratedSecrets> {
+  return apiFetch<GeneratedSecrets>('/settings/generated-secrets')
+}
