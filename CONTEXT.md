@@ -7050,3 +7050,113 @@ network — the path a proxy uses — while the other container kept the
 port. The local overlay was then checked separately and still publishes.
 
 Version bumped to **1.0.3**.
+
+---
+
+## 2026-09-07 (late) — The map was invisible on the deployed panel
+
+The user reported three things at once on the real installation: the map
+did not load, Discord rejected the bot token, and Google would not
+connect. Two of them had a single cause.
+
+### `{{SERVICE_URL_APP}}` arrived verbatim
+
+`/api/settings` on the deployment returned:
+
+```
+discordInteractionUrl: {{SERVICE_URL_APP}}/api/discord/interactions
+googleRedirectUri:     {{SERVICE_URL_APP}}/api/connect/google/check
+discordReachable:      false
+```
+
+`APP_PUBLIC_URL` held Coolify's **magic-variable syntax as text**.
+Coolify substitutes `SERVICE_URL_*` and `SERVICE_FQDN_*` for *services*
+(one-click) and leaves them untouched for an *application*, which is what
+this is. So every URL the panel built was broken, and the Discord page
+showed "slash commands do not work here" on a perfectly public domain.
+
+The user replaced it with the real address; `discordReachable` went
+**false → true** immediately.
+
+`docker/entrypoint.sh` now refuses an unresolved template rather than
+using it: a value containing `{{`, `}}` or `${` is discarded with a
+message naming the cause, and the fallback to `COOLIFY_URL` applies. It
+was the silent kind of failure — nothing logged, nothing broken until
+Discord and Google both failed for reasons that looked unrelated.
+
+**The Discord token was a separate, real fault**: `POST
+/api/settings/discord/test` answers `401 discord.unauthorised`, which is
+Discord's own answer, not ours. `RestDiscordClient` sends
+`Bot <trimmed token>` correctly. Most likely the token was reset in the
+developer portal. A token for application `1540899820892590201` must
+begin `MTU0MDg5OTgyMDg5MjU5MDIwMQ`, which the operator can check without
+us. Google was simply not configured: `googleIdConfigured: false`.
+
+### The map: zero height, not a loading failure
+
+Every tile fetched with 200 and `naturalWidth` 1024. The container was
+**1193 × 0**:
+
+- `.pz-map` had `size-full`, i.e. `height: 100%`
+- its parent's height came from `min-h-[30rem]`, not `height`
+
+A percentage height against a min-height resolves to zero. So the map
+loaded perfectly and was squashed flat.
+
+Three fixes, each measured:
+
+1. **`absolute inset-0`** on `.pz-map` instead of `size-full`. 0 → 480px.
+2. **The layout's page wrapper is a flex column** (`app-layout.tsx`), so
+   the map page asks for `flex-1` instead of computing a height from
+   header and padding sizes that go stale. `h-[calc(100svh-7.5rem)]` was
+   tried first and was 40px too generous — it made `main` scroll. 480 →
+   650px on a 806px window, 1284px on a 1440px one, and no scrollbar
+   either way.
+3. **`min-h-[30rem]` stays**, so a short window scrolls to a usable map
+   rather than showing a sliver.
+
+### Overlapping controls, and a Tailwind trap
+
+The user reported the search field sitting under the players panel, and
+asked for things to collapse or move on narrow screens rather than
+overlap. A probe that compares every pair of absolutely positioned
+overlays found it at several widths, not just on a phone.
+
+- **The sidebar starts collapsed below `md`** — open it is 224px against
+  a 390px screen. Derived from `useIsMobile` as `open ?? !isMobile`,
+  not copied into state by an effect (rule 10g2).
+- **The search is bounded by the sidebar**, not given a width:
+  `left-14 right-20 md:right-64`. `left-14` is relative to the *map*,
+  which the app's own sidebar has already narrowed, so every fixed width
+  overlapped somewhere.
+- **`max-w-xl` beat the right offset** and had to move to `xl:`.
+
+**The trap worth remembering**: `md:right-[15.5rem]` appeared in the
+built JavaScript but **not in the built CSS** — Tailwind 4 did not
+generate that arbitrary value here, so the class did nothing and the
+overlap persisted through two rebuilds. Checking the CSS bundle rather
+than the source is what found it. `md:right-64` is on Tailwind's own
+scale and is always generated.
+
+Verified with no overlaps at 390, 768, 871, 1024 and 2560 px wide.
+
+### Footer
+
+`Panel v1.0.2 → v1.0.3` wrapped out of the fixed 2.25rem footer. Now
+`whitespace-nowrap` with `overflow-hidden` on the bar, and below `sm`
+only the icon and the version on offer — the label and the version being
+replaced are what the operator already knows.
+
+**The connection lights collapse below `lg` rather than `md`**, at the
+user's request: four labelled lights are 286px of an 871px window and
+crowded the version and credits out of the bar.
+
+### Still open
+
+**The deployment is running 1.0.2 while 1.0.3 is released.** The registry
+digests for `latest` and `1.0.3` are identical, so Coolify used a cached
+image rather than pulling. The compose file lost `pull_policy` when
+`build:` was removed; whether Coolify's own redeploy pulls reliably is
+not yet settled on the real installation.
+
+Version bumped to **1.0.4**.

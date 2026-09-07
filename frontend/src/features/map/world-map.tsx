@@ -145,7 +145,9 @@ export function WorldMap({
   const levels = source.layers.map((layer) => layer.level)
 
   return (
-    <div ref={frame} className="pz-map relative size-full overflow-hidden rounded-md bg-muted/30">
+    // `absolute inset-0` rather than `size-full`: the parent's height comes
+    // from `min-h`, and a percentage height against that resolves to zero.
+    <div ref={frame} className="pz-map absolute inset-0 overflow-hidden rounded-md bg-muted/30">
       <div
         ref={(node) => {
           viewer.containerRef(node)

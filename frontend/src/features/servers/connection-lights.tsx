@@ -47,8 +47,9 @@ const DOT: Record<ConnectionState, string> = {
  *
  * All four on a wide screen, because that is the whole point — one
  * glance and you know which leg is broken. Collapsed to a single
- * summary dot on a narrow one, where four labels would crowd out the
- * breadcrumb.
+ * summary dot below `lg`, which includes tablets: four labelled lights
+ * are 286px of a 871px window, and they crowd the footer's own version
+ * and credits out of it.
  */
 export function ConnectionLights() {
   const { t } = useTranslation()
@@ -75,7 +76,7 @@ export function ConnectionLights() {
   return (
     <>
       {/* Wide: every light, labelled. */}
-      <div className="hidden items-center gap-3 md:flex">
+      <div className="hidden items-center gap-3 lg:flex">
         {CONNECTION_ORDER.map((name) => (
           <Light key={name} name={name} connection={data[name]} to={settingsFor(name, serverId)} />
         ))}
@@ -83,7 +84,7 @@ export function ConnectionLights() {
 
       {/* Narrow: one dot that opens the four. */}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild className="md:hidden">
+        <DropdownMenuTrigger asChild className="lg:hidden">
           <Button
             variant="ghost"
             size="sm"

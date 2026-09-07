@@ -6,20 +6,44 @@ set -e
 : "${PHP_FPM_API_MAX_CHILDREN:=12}"
 : "${PHP_FPM_SSE_MAX_CHILDREN:=8}"
 
+# An unresolved template is not an address. `{{SERVICE_URL_APP}}` is
+# Coolify's magic-variable syntax, which it substitutes for *services*
+# and leaves untouched for an *application* -- so it arrives verbatim and
+# every URL the panel builds from it is broken, silently.
+unresolved() {
+    case "$1" in
+        *'{{'*|*'}}'*|'$'*|*'${'*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+if [ -n "${APP_PUBLIC_URL:-}" ] && unresolved "$APP_PUBLIC_URL"; then
+    echo "WARNING: APP_PUBLIC_URL is an unresolved template: $APP_PUBLIC_URL" >&2
+    echo "Coolify substitutes SERVICE_URL_* only for services, not for an" >&2
+    echo "application. Leave APP_PUBLIC_URL empty to use COOLIFY_URL, or" >&2
+    echo "set it to the address itself." >&2
+    APP_PUBLIC_URL=""
+fi
+
 # Coolify puts the configured domain in COOLIFY_URL, so a deployment
 # there needs nothing typed at all. It may hold several, comma separated
 # -- the first is the one to build links from.
 if [ -z "${APP_PUBLIC_URL:-}" ] && [ -n "${COOLIFY_URL:-}" ]; then
     APP_PUBLIC_URL=$(printf '%s' "$COOLIFY_URL" | cut -d, -f1 | tr -d ' ')
+
+    if unresolved "$APP_PUBLIC_URL"; then
+        echo "WARNING: COOLIFY_URL is an unresolved template too." >&2
+        APP_PUBLIC_URL=""
+    fi
 fi
 
 if [ -z "${APP_PUBLIC_URL:-}" ]; then
     echo "FATAL: no public address is set." >&2
     echo "Set APP_PUBLIC_URL to the address people type, e.g." >&2
     echo "  APP_PUBLIC_URL=https://zomboid.example.com" >&2
-    echo "On Coolify, COOLIFY_URL is used automatically when it is" >&2
-    echo "exposed to the container; add it as an environment variable" >&2
-    echo "with an empty value if this message appears there." >&2
+    echo "On Coolify, leave it empty and COOLIFY_URL is used instead --" >&2
+    echo "add COOLIFY_URL as an environment variable with an empty value" >&2
+    echo "if this message appears there." >&2
     exit 1
 fi
 

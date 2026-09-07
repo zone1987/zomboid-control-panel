@@ -39,8 +39,8 @@ export function PanelVersionLine({
 
   if (!hasUpdate(data)) {
     return (
-      <p className={cn('font-mono text-xs text-muted-foreground', className)}>
-        {label}v{data.current}
+      <p className={cn('shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground', className)}>
+        <span className="hidden sm:inline">{label}</span>v{data.current}
       </p>
     )
   }
@@ -51,13 +51,22 @@ export function PanelVersionLine({
       target="_blank"
       rel="noreferrer"
       className={cn(
-        'flex items-center gap-1.5 font-mono text-xs text-primary hover:underline',
+        // The footer is a fixed 2.25rem, so wrapping pushes the line out
+        // of it rather than making room.
+        'flex shrink-0 items-center gap-1.5 whitespace-nowrap font-mono text-xs text-primary hover:underline',
         className,
       )}
       title={t('panel.updateAvailable', { version: data.latest })}
+      aria-label={t('panel.updateAvailable', { version: data.latest })}
     >
-      <ArrowUpCircle className="size-3" />
-      {label}v{data.current} → v{data.latest}
+      <ArrowUpCircle className="size-3 shrink-0" />
+      {/* Narrow screens get the icon and the version on offer: the label
+          and the version being replaced are what the operator already
+          knows, and the footer is a fixed height with no room to wrap. */}
+      <span className="hidden sm:inline">
+        {label}v{data.current} →{' '}
+      </span>
+      v{data.latest}
     </a>
   )
 }

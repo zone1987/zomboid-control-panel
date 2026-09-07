@@ -86,9 +86,12 @@ export function MapPage() {
   }, [])
 
   return (
-    // Fills whatever the layout leaves, rather than guessing the header
-    // height and leaving a strip along the bottom.
-    <div className="relative h-full min-h-[30rem] w-full">
+    // `flex-1` against the layout's column rather than a percentage: the
+    // scrolling parent only has `min-h`, so `h-full` resolves to zero,
+    // and any arithmetic over header and padding sizes goes stale the
+    // moment one of them changes. `min-h` keeps it usable on a short
+    // window, where scrolling to the map is better than a sliver of it.
+    <div className="relative min-h-[30rem] w-full flex-1">
       <WorldMap
         source={PROJECT_ZOMBOID_MAP}
         players={players}
