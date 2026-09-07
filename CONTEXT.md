@@ -5671,3 +5671,197 @@ Dashboard / Server → Übersicht · Konfiguration.
 - [ ] **The item picker for `spawnItems`**, and presets.
 - [ ] **Twelve INI options have no explanation in any language** —
       listed in the earlier entry; the panel must write those itself.
+
+### Requested next: a version per configuration, keyed by content hash
+
+**The user's idea, and it is the right mechanism:** the panel should
+keep a version of each settings file that can be restored — **including
+changes made on the server rather than through the panel.** A content
+hash detects a change whoever made it; the panel cannot know about an
+edit somebody made over FTP, but it can notice the file is no longer the
+one it last saw.
+
+Their two rules, which settle the awkward parts:
+
+1. **Hash the content; a new hash means a new version.** So an edit made
+   outside the panel is captured the next time the file is read, with no
+   need to poll for authorship or trust a timestamp.
+2. **A panel save makes one version, at the save** — not one per changed
+   option. That matches the batched save being built now: the operator
+   changes twelve values and gets one version, which is also what they
+   would want to roll back to.
+
+Design notes for when it is built:
+
+- The existing `ConfigBackup` already writes copies **on the server**
+  (`<name>.zc-bak-<stamp>`, five kept). That covers "restore what was
+  there before *my* write" and nothing else — it cannot see an edit made
+  over FTP, and it is capped at five. A version table is the other half,
+  not a replacement.
+- **Store the whole file, not a diff.** These are 15–45 kB of text; a
+  year of daily versions is a few megabytes, and a full copy is what
+  makes a restore trivially correct.
+- **`sha256` of the raw bytes** as the identity. Compare before storing,
+  so re-reading an unchanged file does not create a version.
+- **Where the hash gets compared**: every read the panel already does —
+  the config page, and the periodic reads if any. No new timer needed,
+  the same way the statistics sampling piggybacks on the roster read.
+- **A version needs an origin**: `panel` (with the account) or
+  `external` ("changed on the server, first seen at …"). Two different
+  facts, and CLAUDE.md 6c says not to collapse them.
+- **Restoring is a whole-file overwrite**, which is the one operation
+  the reference panel blocks while the server is running — and which
+  must go through the same backup, read-back and reload path as a normal
+  save.
+- Retention alongside `STATS_RETENTION_DAYS`, and **never prune the last
+  version of a file**.
+
+Not started. The editing controls come first, since a version is only
+useful once something creates one.
+
+---
+
+## 2026-09-07 — The config editor is editable, and every option is named
+
+**Verified by clicking, not from the console.** 680 backend tests, 347
+frontend tests, both locales, live server.
+
+### Saving works, end to end
+
+The save bar appears the moment a row differs, says how many, and offers
+Discard beside Save. Clicked in the browser: `MaxPlayers` 32 → 33
+produced
+
+```
+PATCH  {"changes":{"MaxPlayers":33}}
+200    {"status":"written","written":["MaxPlayers"],
+        "backup":{"state":"backed-up","path":"Server/servertest.ini.zc-bak-…"},
+        "apply":"applied","restartNeeded":false}
+```
+
+and `showoptions` on the running server answered `MaxPlayers=33`. **One
+click, live on the server, no restart.** Set back to 32 the same way.
+
+Note the request body: **one key, not 144.** CLAUDE.md 6d.
+
+### The draft state, and why it is shaped that way
+
+`useConfigDraft` holds each edit as `{text, from}` — the text typed and
+the value it was started from. That gives three properties no effect
+could:
+
+- **A refetch mid-typing does not overwrite the field.** The edit is
+  matched against the value it belongs to, so a query returning the same
+  value leaves it alone. (CLAUDE.md 10g2.)
+- **An edit against a value that has since moved is dropped**, because
+  somebody else changed the file underneath and that edit is not one
+  anybody meant.
+- **A half-typed number stays typeable**: `1.` and `-` survive on the
+  way to `1.5` and `-1`, which storing a parsed number would not allow.
+
+The derivation is a pure function (`rowsFor`, `pendingFrom`), so all of
+it is tested without a DOM — `@testing-library` is not installed and
+none was added for this.
+
+**Nothing unusable is ever sent.** A row holding text that is not a
+value of its type, or a number outside the game's own bounds, is marked
+on the row, keeps the Save button disabled, and is excluded from the
+body. The game clamps silently (`setAdminValue` proved that), so a
+refusal here is the only warning there is.
+
+The save bar keys off `touched` rather than `count`: a row holding only
+an out-of-bounds number has nothing to send, and a bar that vanished
+left the operator no way to discard it. **Found in the browser.**
+
+### Every option now has a readable name
+
+The user asked for it, with the reasoning that the technical key is
+shown underneath anyway. Measured first, rather than translating
+blindly:
+
+| Set | Named by the game | Named by us |
+|---|---|---|
+| Sandbox (270) | **253** | 17 |
+| INI (144) | **0** (only 2 stray keys) | **144** |
+
+So `frontend/src/features/config/labels.ts` supplies 161 names in both
+languages. **The game's own wording always wins** — it is what a player
+already knows — and the panel's table is consulted only where the game
+has nothing. An option a mod adds is in no table and keeps its key,
+which is honest and is marked "von einem Mod" on the row.
+
+`labels.test.ts` is the guard: every base-game option has a name, no
+entry exists for an option the game does not define, no two names
+collide in either language, none reads as a sentence (≤6 words, no
+trailing punctuation), and no German name uses an ASCII substitution
+for an umlaut.
+
+The 144 INI names were drafted by a subagent from the game's own German
+tooltips and then checked here. Two of its flagged uncertainties were
+settled against the bytecode: `DefaultPort` is 16261 and `UDPPort`
+16262, so they really are two ports; and `AntiCheatSafety` really is the
+overall switch beside nine per-subsystem ones.
+
+### Three interface findings from the game's own data
+
+1. **80 of the game's labels end in a colon**, because on its own screen
+   they sit to the *left* of the control. Here they sit above it, where
+   "Tageslänge:" reads as an unfinished sentence. Stripped.
+2. **27 of its explanations carry `<br>`** as a line break — markup for
+   its own renderer, which showed verbatim as a mistake in ours. Turned
+   into a real break, rendered with `whitespace-pre-line`, and the
+   escaped quotes unescaped.
+3. **Ten of the eleven INI enums are `AntiCheat*` and share one set of
+   labels.** `EnumServerOption::getValueTranslationByIndex` builds
+   `UI_ServerOption_AntiCheat_option<N>` from a **fixed** prefix in the
+   constant pool, not from the option's name — so "bannen / rauswerfen /
+   log / deaktiviert" exists once, and looking for
+   `UI_ServerOption_AntiCheatSpeed_option1` finds nothing. That is why
+   these first reached the panel as the bare numbers 1–4.
+   `BadWordPolicy` is the eleventh and the game labels none of its
+   three, so it has none here either.
+
+### Controls, per type
+
+| Type | Control |
+|---|---|
+| boolean | switch, with Ein/Aus beside it |
+| enum | select showing the game's own choice names |
+| integer, double | text field with the range underneath |
+| string | text field |
+| text | **read-only for now**, and says so — multi-line prose needs more than a single-line field |
+
+An enum whose stored value is outside the known set keeps that value
+selected and labels it "Unbekannt (7)" rather than being coerced to a
+default. CLAUDE.md 6c.
+
+### A search now opens what it matched
+
+`defaultOpen` only applies on the first render, so typing a term left
+the matching group shut with its count promising a result inside.
+Now controlled, and held against the value it was decided under —
+the same `{from, value}` shape as the draft — so a search opening a
+group does not then fight the operator clicking it, and clearing the
+search does not slam everything shut.
+
+### Files
+
+New: `frontend/src/features/config/labels.ts`, `value-control.tsx`,
+`use-config-draft.ts`, plus `labels.test.ts` and
+`use-config-draft.test.ts`. Extended: `config.ts` (`writeConfig`,
+`parseInput`, `outsideBounds`, `isEditable`, `cleanExplanation`),
+`config-page.tsx` (save bar, mutation), `value-row.tsx` (controls,
+"war: X", undo per row), `SchemaExtractor` (INI enum choices),
+`Permission::EditServerConfig`.
+
+### Still open on the config editor
+
+- [ ] **Backups are created and pruned but nothing shows them.** No
+      listing, no restore in the interface.
+- [ ] **`text` values are read-only** (`PublicDescription`,
+      `ServerWelcomeMessage`).
+- [ ] **The item picker for `spawnItems`**, and presets.
+- [ ] **Versioning by content hash** — the user's request, recorded in
+      full in the entry above. Not started.
+- [ ] The sandbox still needs a restart; the bridge-side
+      `initSandboxVars()` route is the open candidate.

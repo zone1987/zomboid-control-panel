@@ -254,11 +254,20 @@ final class SchemaExtractor
                     'defaultIsGenerated' => ($declared['defaultIsGenerated'] ?? false) === true,
                     // The INI has no translated names, only tooltips.
                     'tooltips' => [],
+                    'choices' => [],
                 ];
 
                 foreach (self::LANGUAGES as $language) {
+                    $entries = $text[$language] ?? [];
+
                     $option['tooltips'][$language] =
-                        ($text[$language] ?? [])['UI_ServerOption_'.$name.'_tooltip'] ?? null;
+                        $entries['UI_ServerOption_'.$name.'_tooltip'] ?? null;
+
+                    $choices = $this->iniChoices($name, (int) ($option['numValues'] ?? 0), $entries);
+
+                    if ($choices !== []) {
+                        $option['choices'][$language] = $choices;
+                    }
                 }
 
                 $options[$name] = $option;
@@ -656,6 +665,44 @@ final class SchemaExtractor
         }
 
         $found[$name] = $entry;
+    }
+
+    /**
+     * The choice labels for an INI enum.
+     *
+     * Ten of the eleven are the `AntiCheat*` options, and
+     * `EnumServerOption::getValueTranslationByIndex` builds their key
+     * from a **fixed** prefix in the constant pool —
+     * `UI_ServerOption_AntiCheat_option<N>`, shared by all ten — rather
+     * than from the option's own name. So "ban / kick / log / disabled"
+     * exists once and is found only by knowing that. Looking for
+     * `UI_ServerOption_AntiCheatSpeed_option1` finds nothing, which is
+     * how these first reached the panel as the bare numbers 1 to 4.
+     *
+     * `BadWordPolicy` is the eleventh and the game translates no labels
+     * for it, so it has none here either.
+     *
+     * @param array<string, string> $entries
+     *
+     * @return array<int, string|null>
+     */
+    private function iniChoices(string $name, int $numValues, array $entries): array
+    {
+        if ($numValues < 1) {
+            return [];
+        }
+
+        $prefix = str_starts_with($name, 'AntiCheat') ? 'AntiCheat' : $name;
+        $choices = [];
+        $found = false;
+
+        for ($index = 1; $index <= $numValues; ++$index) {
+            $label = $entries['UI_ServerOption_'.$prefix.'_option'.$index] ?? null;
+            $choices[$index] = $label;
+            $found = $found || $label !== null;
+        }
+
+        return $found ? $choices : [];
     }
 
     /**

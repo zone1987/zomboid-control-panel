@@ -303,6 +303,7 @@ final class ServerIniSchema
                 'EN' => 'Default starting port for player data. If UDP, this is this one of two ports used.',
                 'DE' => 'Der UDP-Port mit dem sich die Spieler zum Server verbinden.',
             ],
+            'choices' => [],
         ],
         'PublicName' => [
             'key' => 'PublicName',
@@ -318,6 +319,7 @@ final class ServerIniSchema
                 'EN' => 'Name of the server displayed in the in-game browser and, if applicable, the Steam browser',
                 'DE' => 'Wird im Server-Browser angezeigt und möglicherweise auch im Steam-Server-Browser',
             ],
+            'choices' => [],
         ],
         'PublicDescription' => [
             'key' => 'PublicDescription',
@@ -333,6 +335,7 @@ final class ServerIniSchema
                 'EN' => 'Description displayed in the in-game public server browser. Typing \\n will create a new line in your description',
                 'DE' => 'Beschreibung wird im Server-Browser angezeigt. Mit \\n wird eine neue Zeile ihinzugefügt',
             ],
+            'choices' => [],
         ],
         'Public' => [
             'key' => 'Public',
@@ -348,6 +351,7 @@ final class ServerIniSchema
                 'EN' => 'Shows the server on the in-game browser. (Note: Steam-enabled servers are always visible in the Steam server browser)',
                 'DE' => 'Listet den Server im Server-Browser. (Server mit Steam aktivierung werden auch im Steam-Server-Browser angezeigt)',
             ],
+            'choices' => [],
         ],
         'Password' => [
             'key' => 'Password',
@@ -363,6 +367,7 @@ final class ServerIniSchema
                 'EN' => 'Clients must know this password to join the server. (Ignored when hosting a server via the Host button)',
                 'DE' => 'Spieler müssen das Passwort kennen um dem Server beizutreten.',
             ],
+            'choices' => [],
         ],
         'PauseEmpty' => [
             'key' => 'PauseEmpty',
@@ -378,6 +383,7 @@ final class ServerIniSchema
                 'EN' => 'Game time stops when there are no players online',
                 'DE' => 'Die Spielwelt-Zeit wird angehalten wenn sich kein Spieler auf dem Server befindet',
             ],
+            'choices' => [],
         ],
         'ResetID' => [
             'key' => 'ResetID',
@@ -393,6 +399,7 @@ final class ServerIniSchema
                 'EN' => 'Reset ID determines if the server has undergone a soft-reset. If this number does match the client, the client must create a new character. Used in conjunction with PlayerServerID. It is strongly advised that you backup these IDs somewhere',
                 'DE' => 'Diese Nummer wird nach einem Soft-Reset geändert. Eine Änderung dieser Zahl löscht die Client-Sicherungsdateien (aber nicht Client-Spieler-Dateien).',
             ],
+            'choices' => [],
         ],
         'UDPPort' => [
             'key' => 'UDPPort',
@@ -408,6 +415,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'MaxAccountsPerUser' => [
             'key' => 'MaxAccountsPerUser',
@@ -423,6 +431,7 @@ final class ServerIniSchema
                 'EN' => 'Limits the number of different accounts a single Steam user may create on this server. Ignored when using the Hosts button.',
                 'DE' => 'Begrenzt die Anzahl der Konten die ein Steam Benutzer auf diesem Server erstellen darf. Wird ignoriert wenn es sich um einen über Steam gehosteten Server handelt.',
             ],
+            'choices' => [],
         ],
         'SteamScoreboard' => [
             'key' => 'SteamScoreboard',
@@ -438,6 +447,7 @@ final class ServerIniSchema
                 'EN' => 'Show Steam usernames and avatars in the Players list.',
                 'DE' => 'Steam-Benutzernamen und Avatare in der Spielerliste anzeigen.\\nAN: true\\nAUS: false\\nNUR ADMINS: admin',
             ],
+            'choices' => [],
         ],
         'BackupsCount' => [
             'key' => 'BackupsCount',
@@ -453,6 +463,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'BackupsOnStart' => [
             'key' => 'BackupsOnStart',
@@ -468,6 +479,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'BackupsOnVersionChange' => [
             'key' => 'BackupsOnVersionChange',
@@ -483,6 +495,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'BackupsPeriod' => [
             'key' => 'BackupsPeriod',
@@ -498,6 +511,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'MaxPlayers' => [
             'key' => 'MaxPlayers',
@@ -513,6 +527,7 @@ final class ServerIniSchema
                 'EN' => 'Maximum number of players that can be on the server at one time. This excludes admins.<br>WARNING: Server player counts above 32 will potentially result in poor map streaming and desync. Please advance with caution.',
                 'DE' => 'Maximale Anzahl von Spielern, die auf dem Server gleichzeitig sein können, ohne Admins. <br>WARNUNG: Server-Spielerzahlen über 32 führen möglicherweise zu schlechtem Karten-Streaming und Desynchronisation. Gehe bitte vorsichtig vor.',
             ],
+            'choices' => [],
         ],
         'Open' => [
             'key' => 'Open',
@@ -528,6 +543,7 @@ final class ServerIniSchema
                 'EN' => 'Clients may join without already having an account in the whitelist. If set to false, administrators must manually create username/password combos.',
                 'DE' => 'Unregistrierte Spieler können sich mit dem Server verbinden.',
             ],
+            'choices' => [],
         ],
         'DropOffWhiteListAfterDeath' => [
             'key' => 'DropOffWhiteListAfterDeath',
@@ -543,6 +559,7 @@ final class ServerIniSchema
                 'EN' => 'Remove player accounts from the whitelist after death. This prevents players creating a new character after death on Open=false servers',
                 'DE' => 'Enfernt Spielerkonten aus der weißen Liste nach dem Tod. Verhindert einen neuen Charakter nach dem Tod zu erstellen.',
             ],
+            'choices' => [],
         ],
         'DisplayUserName' => [
             'key' => 'DisplayUserName',
@@ -558,6 +575,7 @@ final class ServerIniSchema
                 'EN' => 'Display usernames above player\'s heads in-game.',
                 'DE' => 'Zeigt den Benutzernamen über den Köpfen der Spieler an.',
             ],
+            'choices' => [],
         ],
         'ShowFirstAndLastName' => [
             'key' => 'ShowFirstAndLastName',
@@ -573,6 +591,7 @@ final class ServerIniSchema
                 'EN' => 'Display first & last name above player\'s heads.',
                 'DE' => 'Vor- und Nachnamen über Spielercharakteren anzeigen.',
             ],
+            'choices' => [],
         ],
         'SpawnItems' => [
             'key' => 'SpawnItems',
@@ -588,6 +607,7 @@ final class ServerIniSchema
                 'EN' => 'Item types new players spawn with.\\nSeparate multiple item types with commas.\\nExample: Base.Axe,Base.Bag_BigHikingBag',
                 'DE' => 'Gegenstände mit dem neue Spieler spawnen.\\nMehrere Gegenstände mittels einem Komma trennen.\\nz.B.: Base.Axe, Base.BigHikingBag',
             ],
+            'choices' => [],
         ],
         'PingLimit' => [
             'key' => 'PingLimit',
@@ -603,6 +623,7 @@ final class ServerIniSchema
                 'EN' => 'Ping limit, in milliseconds, before a player is kicked from the server. (Set to 0 to disable)',
                 'DE' => 'Der Ping-Limit in Millisekunden, bevor eine Spieler vom Server gekickt wird. Setze es auf 0, um es zu deaktivieren',
             ],
+            'choices' => [],
         ],
         'ServerPlayerID' => [
             'key' => 'ServerPlayerID',
@@ -618,6 +639,7 @@ final class ServerIniSchema
                 'EN' => 'ServerPlayerID determines if a character is from another server, or single player. This value may be changed by soft resets. If this number does match the client, the client must create a new character. This is used in conjunction with ResetID. It is strongly advised that you backup these IDs somewhere',
                 'DE' => 'Wird in den Client-Spieler-Dateien geschrieben, so dass Spieler keine Sicherungsdateien von \'Einzelspieler\' oder einem anderen Server verwenden können.',
             ],
+            'choices' => [],
         ],
         'SleepAllowed' => [
             'key' => 'SleepAllowed',
@@ -633,6 +655,7 @@ final class ServerIniSchema
                 'EN' => 'Players are allowed to sleep when their survivor becomes tired, but they do not NEED to sleep',
                 'DE' => 'Die Spieler können zu jeder Zeit schlafen.',
             ],
+            'choices' => [],
         ],
         'SleepNeeded' => [
             'key' => 'SleepNeeded',
@@ -648,6 +671,7 @@ final class ServerIniSchema
                 'EN' => 'Players get tired and need to sleep. (Ignored if SleepAllowed=false)',
                 'DE' => 'Spieler werden müde und müssen schlafen.  Wird ignoriert, wenn SleepAllowed: false',
             ],
+            'choices' => [],
         ],
         'PlayerRespawnWithSelf' => [
             'key' => 'PlayerRespawnWithSelf',
@@ -663,6 +687,7 @@ final class ServerIniSchema
                 'EN' => 'Players can respawn in-game at the coordinates where they died',
                 'DE' => 'Die Spieler können im Spiel respawnen, wo sie starben.',
             ],
+            'choices' => [],
         ],
         'PlayerRespawnWithOther' => [
             'key' => 'PlayerRespawnWithOther',
@@ -678,6 +703,7 @@ final class ServerIniSchema
                 'EN' => 'Players can respawn in-game at a split screen / Remote Play player\'s location',
                 'DE' => 'Die Spieler können auf einem geteilten Bildschirm, beim Mitspieler respawnen.',
             ],
+            'choices' => [],
         ],
         'RemovePlayerCorpsesOnCorpseRemoval' => [
             'key' => 'RemovePlayerCorpsesOnCorpseRemoval',
@@ -693,6 +719,7 @@ final class ServerIniSchema
                 'EN' => 'If enabled, when HoursForCorpseRemoval triggers, it will also remove player\'s corpses from the ground.',
                 'DE' => 'Bei TRUE (AN). Wenn HoursForCorpseRemoval ausgelöst wird, wird es auch die Leichen der Spieler entfernen.',
             ],
+            'choices' => [],
         ],
         'TrashDeleteAll' => [
             'key' => 'TrashDeleteAll',
@@ -708,6 +735,7 @@ final class ServerIniSchema
                 'EN' => 'If true, player can use the "delete all" button on bins.',
                 'DE' => 'Wenn aktiv, kann der Spieler den Button Alles löschen für Mülleimer verwenden.',
             ],
+            'choices' => [],
         ],
         'PVPMeleeWhileHitReaction' => [
             'key' => 'PVPMeleeWhileHitReaction',
@@ -723,6 +751,7 @@ final class ServerIniSchema
                 'EN' => 'If true, player can hit again when struck by another player.',
                 'DE' => 'Wenn aktiv, kann ein Spieler zuschlagen, während er von einem anderen Spieler getroffen wird.',
             ],
+            'choices' => [],
         ],
         'MouseOverToSeeDisplayName' => [
             'key' => 'MouseOverToSeeDisplayName',
@@ -738,6 +767,7 @@ final class ServerIniSchema
                 'EN' => 'If true, players will have to mouse over someone to see their display name.',
                 'DE' => 'Wenn aktiv, muss mit der Maus über einen Spielercharakter gezielt werden, um den Spielernamen anzuzeigen.',
             ],
+            'choices' => [],
         ],
         'UsernameDisguises' => [
             'key' => 'UsernameDisguises',
@@ -753,6 +783,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'HideDisguisedUserName' => [
             'key' => 'HideDisguisedUserName',
@@ -768,6 +799,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'HidePlayersBehindYou' => [
             'key' => 'HidePlayersBehindYou',
@@ -783,6 +815,7 @@ final class ServerIniSchema
                 'EN' => 'If true, automatically hide the player you can\'t see (like zombies).',
                 'DE' => 'Wenn aktiv, verschwinden Spielercharaktere außerhalb des Sichtfelds des Spielers (wie Zombies).',
             ],
+            'choices' => [],
         ],
         'PlayerBumpPlayer' => [
             'key' => 'PlayerBumpPlayer',
@@ -798,6 +831,7 @@ final class ServerIniSchema
                 'EN' => 'Governs whether players bump (and knock over) other players when running through them.',
                 'DE' => 'Spieler stoßen/schieben andere Spieler, wenn sie durch sie hindurchlaufen.',
             ],
+            'choices' => [],
         ],
         'MapRemotePlayerVisibility' => [
             'key' => 'MapRemotePlayerVisibility',
@@ -813,6 +847,7 @@ final class ServerIniSchema
                 'EN' => 'Controls display of remote players on the in-game map.\\n1=Hidden 2=Friends 3=Friends and nearby players 4=Everyone',
                 'DE' => 'Steuert die Anzeige von anderen Spielern auf der Karte im Spiel.\\n1',
             ],
+            'choices' => [],
         ],
         'AllowCoop' => [
             'key' => 'AllowCoop',
@@ -828,6 +863,7 @@ final class ServerIniSchema
                 'EN' => 'Allow co-op/splitscreen players',
                 'DE' => 'Koop-/Splitscreen-Spieler zulassen',
             ],
+            'choices' => [],
         ],
         'ClientCommandFilter' => [
             'key' => 'ClientCommandFilter',
@@ -843,6 +879,7 @@ final class ServerIniSchema
                 'EN' => 'Semicolon-separated list of commands that will not be written to the cmd.txt server log. For example: \\n-vehicle. Inputting * means do NOT write any vehicle command. Inputting: \\n+vehicle.installPart means DO write that command',
                 'DE' => 'Semikolon-getrennte Liste von Befehlen, die nicht in die cmd.txt-Serverprotokoll geschrieben werden.\\n-.vehicle.* bedeutet, dass kein Fahrzeugbefehl geschrieben wird.\\n+vehicle.installPart bedeutet, dass dieser Befehl geschrieben wird.',
             ],
+            'choices' => [],
         ],
         'ClientActionLogs' => [
             'key' => 'ClientActionLogs',
@@ -858,6 +895,7 @@ final class ServerIniSchema
                 'EN' => 'Semicolon-separated list of actions that will be written to the ClientActionLogs.txt server log.',
                 'DE' => 'Strichpunkt getrennte Liste von Aktionen, die in das Serverprotokoll ClientActionLogs.txt geschrieben werden.',
             ],
+            'choices' => [],
         ],
         'PerkLogs' => [
             'key' => 'PerkLogs',
@@ -873,6 +911,7 @@ final class ServerIniSchema
                 'EN' => 'Track changes in player perk levels in PerkLog.txt server log',
                 'DE' => 'Zeichne Änderungen an den Vorteilstufen der Spieler PerkLog.txt-Serverprotokoll auf',
             ],
+            'choices' => [],
         ],
         'DisableRadioStaff' => [
             'key' => 'DisableRadioStaff',
@@ -888,6 +927,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from players with an access level',
                 'DE' => 'Deaktiviert die Funkübertragungen von Spielern mit beliebiger Zugriffsstufe.',
             ],
+            'choices' => [],
         ],
         'DisableRadioAdmin' => [
             'key' => 'DisableRadioAdmin',
@@ -903,6 +943,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from players with \'admin\' access level',
                 'DE' => 'Deaktiviert die Funkübertragungen von Spielern mit der Zugriffsstufe \'admin\'.',
             ],
+            'choices' => [],
         ],
         'DisableRadioGM' => [
             'key' => 'DisableRadioGM',
@@ -918,6 +959,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from players with \'gm\' access level',
                 'DE' => 'Deaktiviert die Funkübertragungen von Spielern mit der Zugriffsstufe \'gm\'.',
             ],
+            'choices' => [],
         ],
         'DisableRadioOverseer' => [
             'key' => 'DisableRadioOverseer',
@@ -933,6 +975,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from players with \'overseer\' access level',
                 'DE' => 'Deaktiviert die Funkübertragungen von Spielern mit der Zugriffsstufe \'overseer\'.',
             ],
+            'choices' => [],
         ],
         'DisableRadioModerator' => [
             'key' => 'DisableRadioModerator',
@@ -948,6 +991,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from players with \'moderator\' access level',
                 'DE' => 'Deaktiviert die Funkübertragungen von Spielern mit der Zugriffsstufe \'moderator\'.',
             ],
+            'choices' => [],
         ],
         'DisableRadioInvisible' => [
             'key' => 'DisableRadioInvisible',
@@ -963,6 +1007,7 @@ final class ServerIniSchema
                 'EN' => 'Disables radio transmissions from invisible players',
                 'DE' => 'Deaktiviert Funkübertragungen von unsichtbaren Spielern.',
             ],
+            'choices' => [],
         ],
         'NoFire' => [
             'key' => 'NoFire',
@@ -978,6 +1023,7 @@ final class ServerIniSchema
                 'EN' => 'All forms of fire are disabled - except for campfires',
                 'DE' => 'Alle arten von Feuer sind deaktiviert, ausgenommen Lagerfeuer',
             ],
+            'choices' => [],
         ],
         'PVP' => [
             'key' => 'PVP',
@@ -993,6 +1039,7 @@ final class ServerIniSchema
                 'EN' => 'Players can hurt and kill other players',
                 'DE' => 'Die Spieler können andere Spieler verletzten.',
             ],
+            'choices' => [],
         ],
         'SafetySystem' => [
             'key' => 'SafetySystem',
@@ -1008,6 +1055,7 @@ final class ServerIniSchema
                 'EN' => 'Players can enter and leave PVP on an individual basis. A player can only hurt another player when at least one of them is in PVP mode - as shown by the unobscured skull and crossbones on the left of the screen. When SafetySystem=false, players are free to hurt each other at any time if PVP is enabled.',
                 'DE' => 'Die Spieler können PVP-Modus einzeln betreten und verlassen. Ein Spieler kann einen anderen Spieler nur verletzen, wenn ein oder beide Spieler im PvP-Modus befinden. Wenn SafetySystem',
             ],
+            'choices' => [],
         ],
         'ShowSafety' => [
             'key' => 'ShowSafety',
@@ -1023,6 +1071,7 @@ final class ServerIniSchema
                 'EN' => 'Display a skull icon over the head of players who have entered PVP mode',
                 'DE' => 'Zeigt ein Totenschädel-Symbol über die Köpfe der Spieler, die sich im PVP-Modus befinden.',
             ],
+            'choices' => [],
         ],
         'SafetyToggleTimer' => [
             'key' => 'SafetyToggleTimer',
@@ -1038,6 +1087,7 @@ final class ServerIniSchema
                 'EN' => 'The time it takes for a player to enter and leave PVP mode',
                 'DE' => 'Die Zeit die ein Spieler zum betreten oder verlassen des PVP-Modus braucht.',
             ],
+            'choices' => [],
         ],
         'SafetyCooldownTimer' => [
             'key' => 'SafetyCooldownTimer',
@@ -1053,6 +1103,7 @@ final class ServerIniSchema
                 'EN' => 'The delay before a player can enter or leave PVP mode again, having recently done so',
                 'DE' => 'Die Verzögerung bevor ein Spieler wieder den PVP-Modus betreten oder verlassen kann.',
             ],
+            'choices' => [],
         ],
         'PVPMeleeDamageModifier' => [
             'key' => 'PVPMeleeDamageModifier',
@@ -1068,6 +1119,7 @@ final class ServerIniSchema
                 'EN' => 'Damage multiplier for PVP melee attacks.',
                 'DE' => 'Schadensmultiplikator für PVP-Nahkampfangriffe',
             ],
+            'choices' => [],
         ],
         'PVPFirearmDamageModifier' => [
             'key' => 'PVPFirearmDamageModifier',
@@ -1083,6 +1135,7 @@ final class ServerIniSchema
                 'EN' => 'Damage multiplier for PVP ranged attacks.',
                 'DE' => 'Schadensmultiplikator für PVP-Fernkampfangriffe',
             ],
+            'choices' => [],
         ],
         'SafehousePreventsLootRespawn' => [
             'key' => 'SafehousePreventsLootRespawn',
@@ -1098,6 +1151,7 @@ final class ServerIniSchema
                 'EN' => 'Items will not respawn in buildings that players have claimed as a safehouse',
                 'DE' => 'Gegenstände respawnen nicht in Gebäuden, die Spieler als Versteck markiert haben',
             ],
+            'choices' => [],
         ],
         'ItemNumbersLimitPerContainer' => [
             'key' => 'ItemNumbersLimitPerContainer',
@@ -1113,6 +1167,7 @@ final class ServerIniSchema
                 'EN' => 'Maximum number of items that can be placed in a container.  Zero means there is no limit. (PLEASE NOTE: This includes individual small items such as nails. A limit of 50 will mean only 50 nails can be stored.)',
                 'DE' => 'Maximale Anzahl von Gegenständen, die in einem Behälter gelegt werden können. Null bedeutet keine Begrenzung.',
             ],
+            'choices' => [],
         ],
         'War' => [
             'key' => 'War',
@@ -1128,6 +1183,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'WarStartDelay' => [
             'key' => 'WarStartDelay',
@@ -1143,6 +1199,7 @@ final class ServerIniSchema
                 'EN' => 'Time in seconds before the war starts.',
                 'DE' => 'Zeit in Sekunden, bevor der Krieg beginnt.',
             ],
+            'choices' => [],
         ],
         'WarDuration' => [
             'key' => 'WarDuration',
@@ -1158,6 +1215,7 @@ final class ServerIniSchema
                 'EN' => 'War duration in seconds.',
                 'DE' => 'Kriegsdauer in Sekunden.',
             ],
+            'choices' => [],
         ],
         'WarSafehouseHitPoints' => [
             'key' => 'WarSafehouseHitPoints',
@@ -1173,6 +1231,7 @@ final class ServerIniSchema
                 'EN' => 'Safehouse hit points limit.',
                 'DE' => 'Trefferpunkt-Limit eines Verstecks.',
             ],
+            'choices' => [],
         ],
         'Faction' => [
             'key' => 'Faction',
@@ -1188,6 +1247,7 @@ final class ServerIniSchema
                 'EN' => 'Players can create factions when true',
                 'DE' => 'Wenn es TRUE (AN) ist, wird den Spielern erlaubt, Fraktionen/Gruppen zu bilden.',
             ],
+            'choices' => [],
         ],
         'FactionDaySurvivedToCreate' => [
             'key' => 'FactionDaySurvivedToCreate',
@@ -1203,6 +1263,7 @@ final class ServerIniSchema
                 'EN' => 'Players must survive this number of in-game days before being allowed to create a faction',
                 'DE' => 'Du musst X Tage überleben, bevor du eine Fraktionen/Gruppe erschaffen kannst.',
             ],
+            'choices' => [],
         ],
         'FactionPlayersRequiredForTag' => [
             'key' => 'FactionPlayersRequiredForTag',
@@ -1218,6 +1279,7 @@ final class ServerIniSchema
                 'EN' => 'Number of players required as faction members before the faction owner can create a group tag',
                 'DE' => 'Wieviele Spieler sind nötig, bevor der Fraktions/-Gruppenbesitzer ein spezielles Tag erstellen kann.',
             ],
+            'choices' => [],
         ],
         'AdminSafehouse' => [
             'key' => 'AdminSafehouse',
@@ -1233,6 +1295,7 @@ final class ServerIniSchema
                 'EN' => 'Only admins can claim safehouses',
                 'DE' => 'Administratoren können ein Versteck beanspruchen.',
             ],
+            'choices' => [],
         ],
         'PlayerSafehouse' => [
             'key' => 'PlayerSafehouse',
@@ -1248,6 +1311,7 @@ final class ServerIniSchema
                 'EN' => 'Both admins and players can claim safehouses',
                 'DE' => 'Nicht-Administratoren können eine Versteck beanspruchen.',
             ],
+            'choices' => [],
         ],
         'SafehouseAllowTrepass' => [
             'key' => 'SafehouseAllowTrepass',
@@ -1263,6 +1327,7 @@ final class ServerIniSchema
                 'EN' => 'Allow non-members to enter a safehouse without being invited',
                 'DE' => 'Erlaubt Nicht-Mitgliedern das Versteck zu betreten.',
             ],
+            'choices' => [],
         ],
         'SafehouseAllowFire' => [
             'key' => 'SafehouseAllowFire',
@@ -1278,6 +1343,7 @@ final class ServerIniSchema
                 'EN' => 'Allow fire to damage safehouses',
                 'DE' => 'Das Versteck kann durch Feuer schaden nehmen.',
             ],
+            'choices' => [],
         ],
         'SafehouseAllowLoot' => [
             'key' => 'SafehouseAllowLoot',
@@ -1293,6 +1359,7 @@ final class ServerIniSchema
                 'EN' => 'Allow non-members to take items from safehouses',
                 'DE' => 'Erlaubt Nicht-Mitgliedern eines Verstecks, Gegenstände zu entnehmen.',
             ],
+            'choices' => [],
         ],
         'SafehouseAllowRespawn' => [
             'key' => 'SafehouseAllowRespawn',
@@ -1308,6 +1375,7 @@ final class ServerIniSchema
                 'EN' => 'Players will respawn in a safehouse that they were a member of before they died',
                 'DE' => 'Spieler spawnen im Versteck das beansprucht wurde, bevor sie starben.',
             ],
+            'choices' => [],
         ],
         'SafehouseDaySurvivedToClaim' => [
             'key' => 'SafehouseDaySurvivedToClaim',
@@ -1323,6 +1391,7 @@ final class ServerIniSchema
                 'EN' => 'Players must have survived this number of in-game days before they are allowed to claim a safehouse',
                 'DE' => 'Spieler müssen so viele Spielwelt-Tage überlebt haben, bevor sie ein Versteck beanspruchen können.',
             ],
+            'choices' => [],
         ],
         'SafeHouseRemovalTime' => [
             'key' => 'SafeHouseRemovalTime',
@@ -1338,6 +1407,7 @@ final class ServerIniSchema
                 'EN' => 'Players are automatically removed from a safehouse they have not visited for this many real-world hours',
                 'DE' => 'Spieler werden automatisch aus einem Versteck entfernt, wenn diese nicht innerhalb der Echtzeit-Stunden das Versteck besucht haben.',
             ],
+            'choices' => [],
         ],
         'DisableSafehouseWhenOwnerConnected' => [
             'key' => 'DisableSafehouseWhenOwnerConnected',
@@ -1353,6 +1423,7 @@ final class ServerIniSchema
                 'EN' => 'Safehouse acts like a normal house if an owner of the safehouse is connected (so secure when the owner is offline)',
                 'DE' => 'Das Safehouse verhält sich wie ein normales Haus, wenn der Besitzer des Safehouses online ist (ist also sicher, wenn der Besitzer offline ist)',
             ],
+            'choices' => [],
         ],
         'SafehouseAllowNonResidential' => [
             'key' => 'SafehouseAllowNonResidential',
@@ -1368,6 +1439,7 @@ final class ServerIniSchema
                 'EN' => 'Governs whether players can claim non-residential buildings.',
                 'DE' => 'Regelt ob Spieler Nichtwohngebäude beanspruchen können.',
             ],
+            'choices' => [],
         ],
         'SafehouseDisableDisguises' => [
             'key' => 'SafehouseDisableDisguises',
@@ -1383,6 +1455,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'GlobalChat' => [
             'key' => 'GlobalChat',
@@ -1398,6 +1471,7 @@ final class ServerIniSchema
                 'EN' => 'Toggles global chat on or off.',
                 'DE' => 'Schaltet den globalen Chat ein oder aus.',
             ],
+            'choices' => [],
         ],
         'AnnounceDeath' => [
             'key' => 'AnnounceDeath',
@@ -1413,6 +1487,7 @@ final class ServerIniSchema
                 'EN' => 'If checked, every time a player dies a global message will be displayed in the chat',
                 'DE' => 'Wenn aktiv, jedes Mal wenn ein Spieler stirbt wird eine Nachricht im Chat angezeigt',
             ],
+            'choices' => [],
         ],
         'AnnounceAnimalDeath' => [
             'key' => 'AnnounceAnimalDeath',
@@ -1428,6 +1503,7 @@ final class ServerIniSchema
                 'EN' => 'If checked, every time an animal dies a global message will be displayed in the chat',
                 'DE' => 'Wenn aktiv, jedes Mal wenn ein Tier stirbt wird eine Nachricht im Chat angezeigt',
             ],
+            'choices' => [],
         ],
         'ServerWelcomeMessage' => [
             'key' => 'ServerWelcomeMessage',
@@ -1443,6 +1519,7 @@ final class ServerIniSchema
                 'EN' => 'The first welcome message visible in the chat panel. This will be displayed immediately after player login. you can use RGB colours to chance the colour of the welcome message. You can also use < LINE>, without the space, to create a separate lines within your text. Use: \\<RGB:1,0,0> This message will show up red!',
                 'DE' => 'Die erste Nachricht die im Chat-Panel sichtbar wird, sobald sich ein Spieler angemeldet hat. Du kannst RGB Farben nutzen um die Nachricht anzupassen, darüber hinaus kannst du < LINE> (ohne Leerzeichen) nutzen um Linien zu teilen. Mit \\<RGB:1,0,0> Wird diese Nachricht rot dargestellt!',
             ],
+            'choices' => [],
         ],
         'ChatMessageCharacterLimit' => [
             'key' => 'ChatMessageCharacterLimit',
@@ -1458,6 +1535,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'ChatMessageSlowModeTime' => [
             'key' => 'ChatMessageSlowModeTime',
@@ -1473,6 +1551,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'RCONPort' => [
             'key' => 'RCONPort',
@@ -1488,6 +1567,7 @@ final class ServerIniSchema
                 'EN' => 'The port for the RCON (Remote Console)',
                 'DE' => 'Der Port für das RCON (Remote Console)',
             ],
+            'choices' => [],
         ],
         'RCONPassword' => [
             'key' => 'RCONPassword',
@@ -1503,6 +1583,7 @@ final class ServerIniSchema
                 'EN' => 'RCON password (Pick a strong password)',
                 'DE' => 'RCON Passwort (Wähle ein starkes Passwort)',
             ],
+            'choices' => [],
         ],
         'DiscordEnable' => [
             'key' => 'DiscordEnable',
@@ -1518,6 +1599,7 @@ final class ServerIniSchema
                 'EN' => 'Enables global text chat integration with a Discord channel',
                 'DE' => 'Aktiviert globalen Text Chat integration mit einem Discord Chat',
             ],
+            'choices' => [],
         ],
         'DiscordToken' => [
             'key' => 'DiscordToken',
@@ -1533,6 +1615,7 @@ final class ServerIniSchema
                 'EN' => 'Discord bot access token',
                 'DE' => 'Discord Bot-Zugriffstoken',
             ],
+            'choices' => [],
         ],
         'DiscordChatChannel' => [
             'key' => 'DiscordChatChannel',
@@ -1548,6 +1631,7 @@ final class ServerIniSchema
                 'EN' => 'The Discord chat channel name',
                 'DE' => 'Der Name des Discord Chats',
             ],
+            'choices' => [],
         ],
         'DiscordLogChannel' => [
             'key' => 'DiscordLogChannel',
@@ -1563,6 +1647,7 @@ final class ServerIniSchema
                 'EN' => 'The Discord logs channel name',
                 'DE' => 'Der Name des Discord-Protokollkanals',
             ],
+            'choices' => [],
         ],
         'DiscordCommandChannel' => [
             'key' => 'DiscordCommandChannel',
@@ -1578,6 +1663,7 @@ final class ServerIniSchema
                 'EN' => 'The Discord commands channel name',
                 'DE' => 'Der Discord-Befehlskanalname',
             ],
+            'choices' => [],
         ],
         'UPnP' => [
             'key' => 'UPnP',
@@ -1593,6 +1679,7 @@ final class ServerIniSchema
                 'EN' => 'Attempt to configure a UPnP-enabled internet gateway to automatically setup port forwarding rules. The server will fall back to default ports if this fails',
                 'DE' => 'Versuche Port-Weiterleitungsregeln an einem UPnP fähigen Internet-Gateway automatisch zu konfigurieren.',
             ],
+            'choices' => [],
         ],
         'DoLuaChecksum' => [
             'key' => 'DoLuaChecksum',
@@ -1608,6 +1695,7 @@ final class ServerIniSchema
                 'EN' => 'Kick clients whose game files don\'t match the server\'s.',
                 'DE' => 'Kickt Spieler, deren Spiel-Dateien nicht mit dem  des Servers übereinstimmen.',
             ],
+            'choices' => [],
         ],
         'AllowDestructionBySledgehammer' => [
             'key' => 'AllowDestructionBySledgehammer',
@@ -1623,6 +1711,7 @@ final class ServerIniSchema
                 'EN' => 'Allow players to destroy world objects with sledgehammers',
                 'DE' => 'Welt-Objekte können mit einem Vorschlaghammer zerstört werden.',
             ],
+            'choices' => [],
         ],
         'SledgehammerOnlyInSafehouse' => [
             'key' => 'SledgehammerOnlyInSafehouse',
@@ -1638,6 +1727,7 @@ final class ServerIniSchema
                 'EN' => 'Allow players to destroy world objects only in their safehouse (require AllowDestructionBySledgehammer to true).',
                 'DE' => 'Erlaube Spielern, Objekte nur in ihrem Unterschlupf zu zerstören (erfordere AllowDestructionBySledgehammer auf true).',
             ],
+            'choices' => [],
         ],
         'SaveWorldEveryMinutes' => [
             'key' => 'SaveWorldEveryMinutes',
@@ -1653,6 +1743,7 @@ final class ServerIniSchema
                 'EN' => 'Loaded parts of the map are saved after this set number of real-world minutes have passed. (The map is usually saved only after clients leave a loaded area)',
                 'DE' => 'Geladene Teile der Karte werden gespeichert, nachdem die angegebenen Echtzeit-Minuten vergangen sind. In der Regel wird die Karte gespeichert, nachdem der Spieler einen geladenen Bereich verlassen hat.',
             ],
+            'choices' => [],
         ],
         'FastForwardMultiplier' => [
             'key' => 'FastForwardMultiplier',
@@ -1668,6 +1759,7 @@ final class ServerIniSchema
                 'EN' => 'Governs how fast time passes while players sleep. Value multiplies the speed of the time that passes during sleeping.',
                 'DE' => 'Wie schnell vergeht die Zeit, wenn alle schlafen?',
             ],
+            'choices' => [],
         ],
         'AllowNonAsciiUsername' => [
             'key' => 'AllowNonAsciiUsername',
@@ -1683,6 +1775,7 @@ final class ServerIniSchema
                 'EN' => 'Allow use of non-ASCII (cyrillic etc) characters in usernames',
                 'DE' => 'Die Verwendung von nicht-ASCII (kyrillischen...) Zeichen im Benutzernamen ist erlaubt oder nicht.',
             ],
+            'choices' => [],
         ],
         'SpeedLimit' => [
             'key' => 'SpeedLimit',
@@ -1698,6 +1791,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'VoiceEnable' => [
             'key' => 'VoiceEnable',
@@ -1713,6 +1807,7 @@ final class ServerIniSchema
                 'EN' => 'VOIP is enabled when checked',
                 'DE' => 'Wenn TRUE (AN), Sprachchat ist aktiviert.',
             ],
+            'choices' => [],
         ],
         'VoiceMinDistance' => [
             'key' => 'VoiceMinDistance',
@@ -1728,6 +1823,7 @@ final class ServerIniSchema
                 'EN' => 'The minimum tile distance over which VOIP sounds can be heard.',
                 'DE' => 'Die minimale Entfernung in Feldern, über die der Sprachchat zu hören ist.',
             ],
+            'choices' => [],
         ],
         'VoiceMaxDistance' => [
             'key' => 'VoiceMaxDistance',
@@ -1743,6 +1839,7 @@ final class ServerIniSchema
                 'EN' => 'The maximum tile distance over which VOIP sounds can be heard.',
                 'DE' => 'Die maximale Entfernung in Feldern, über die der Sprachchat zu hören ist.',
             ],
+            'choices' => [],
         ],
         'Voice3D' => [
             'key' => 'Voice3D',
@@ -1758,6 +1855,7 @@ final class ServerIniSchema
                 'EN' => 'Toggle directional audio for VOIP',
                 'DE' => 'Richtungs-Audio für den Sprachchat.',
             ],
+            'choices' => [],
         ],
         'PVPLogToolChat' => [
             'key' => 'PVPLogToolChat',
@@ -1773,6 +1871,7 @@ final class ServerIniSchema
                 'EN' => 'PVP is logged to admin chat',
                 'DE' => 'PvP ist mit Admin-Chat verbunden',
             ],
+            'choices' => [],
         ],
         'PVPLogToolFile' => [
             'key' => 'PVPLogToolFile',
@@ -1788,6 +1887,7 @@ final class ServerIniSchema
                 'EN' => 'PVP is logged to file',
                 'DE' => 'PvP ist mit Datei verbunden',
             ],
+            'choices' => [],
         ],
         'ChatStreams' => [
             'key' => 'ChatStreams',
@@ -1803,6 +1903,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'SwitchZombiesOwnershipEachUpdate' => [
             'key' => 'SwitchZombiesOwnershipEachUpdate',
@@ -1818,6 +1919,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'SpawnPoint' => [
             'key' => 'SpawnPoint',
@@ -1833,6 +1935,7 @@ final class ServerIniSchema
                 'EN' => 'Force every new player to spawn at these set x,y,z world coordinates. Find desired coordinates at map.projectzomboid.com. (Ignored when 0,0,0)',
                 'DE' => 'Jeden neuen Spieler bei den angebenen Weltkoordinaten \'x,y,z\' spawnen lassen. Wird ignoriert wenn: 0,0,0',
             ],
+            'choices' => [],
         ],
         'SafetyDisconnectDelay' => [
             'key' => 'SafetyDisconnectDelay',
@@ -1848,6 +1951,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'Mods' => [
             'key' => 'Mods',
@@ -1863,6 +1967,7 @@ final class ServerIniSchema
                 'EN' => 'Enter the mod loading ID here. It can be found in \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\info.txt',
                 'DE' => 'Gib hier die Mod-Lade-ID ein. Diese kann gefunden werden unter: \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\info.txt',
             ],
+            'choices' => [],
         ],
         'Map' => [
             'key' => 'Map',
@@ -1878,6 +1983,7 @@ final class ServerIniSchema
                 'EN' => 'Enter the foldername of the mod found in \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\media\\maps\\',
                 'DE' => 'Gib hier den Ordnernamen der Mod ein wo diese zu finden ist. - \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\media\\maps\\',
             ],
+            'choices' => [],
         ],
         'DenyLoginOnOverloadedServer' => [
             'key' => 'DenyLoginOnOverloadedServer',
@@ -1893,6 +1999,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'MaxSafezoneSize' => [
             'key' => 'MaxSafezoneSize',
@@ -1908,6 +2015,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'WebhookAddress' => [
             'key' => 'WebhookAddress',
@@ -1923,6 +2031,7 @@ final class ServerIniSchema
                 'EN' => 'The Slack incoming webhook URL',
                 'DE' => 'Die Slack-Webhook-URL',
             ],
+            'choices' => [],
         ],
         'KnockedDownAllowed' => [
             'key' => 'KnockedDownAllowed',
@@ -1938,6 +2047,7 @@ final class ServerIniSchema
                 'EN' => 'WIP: Activating this setting may cause visual desynchronization of player positions.',
                 'DE' => 'In Arbeit: Die Aktivierung dieser Einstellung kann zu einer visuellen Desynchronisation der Spielerpositionen führen.',
             ],
+            'choices' => [],
         ],
         'SneakModeHideFromOtherPlayers' => [
             'key' => 'SneakModeHideFromOtherPlayers',
@@ -1953,6 +2063,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'UltraSpeedDoesnotAffectToAnimals' => [
             'key' => 'UltraSpeedDoesnotAffectToAnimals',
@@ -1968,6 +2079,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'WorkshopItems' => [
             'key' => 'WorkshopItems',
@@ -1983,6 +2095,7 @@ final class ServerIniSchema
                 'EN' => 'List Workshop Mod IDs for the server to download. Each must be separated by a semicolon. Example: WorkshopItems=514427485;513111049',
                 'DE' => 'Liste von Workshop Mod IDs für den Server zum Download. Getrennt durch ein Semikolon ( ; ). Beispiel: WorkshopItems=514427485;513111049',
             ],
+            'choices' => [],
         ],
         'SteamVAC' => [
             'key' => 'SteamVAC',
@@ -1998,6 +2111,7 @@ final class ServerIniSchema
                 'EN' => 'Enable the Steam VAC system',
                 'DE' => 'Aktiviert das Steam-VAC-System',
             ],
+            'choices' => [],
         ],
         'LoginQueueEnabled' => [
             'key' => 'LoginQueueEnabled',
@@ -2013,6 +2127,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'LoginQueueConnectTimeout' => [
             'key' => 'LoginQueueConnectTimeout',
@@ -2028,6 +2143,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'server_browser_announced_ip' => [
             'key' => 'server_browser_announced_ip',
@@ -2043,6 +2159,7 @@ final class ServerIniSchema
                 'EN' => 'Set the IP from which the server is broadcast. This is for network configurations with multiple IP addresses, such as server farms',
                 'DE' => 'Leg hier die IP fest unter dem der Server zu erreichen ist. Für Netzwerkkonfigurationen mit mehreren IP-Adressen wie Serverfarmen',
             ],
+            'choices' => [],
         ],
         'BloodSplatLifespanDays' => [
             'key' => 'BloodSplatLifespanDays',
@@ -2058,6 +2175,7 @@ final class ServerIniSchema
                 'EN' => 'Number of days before old blood splats are removed.<br>Removal happens when map chunks are loaded.<br>Zero means they will never disappear',
                 'DE' => 'Anzahl der Tage, bevor alte Blutspritzer entfernt werden.<br>Entfernung erfolgt, wenn Kartenteile geladen werden.<br>Zero bedeutet nie entfernen.',
             ],
+            'choices' => [],
         ],
         'BanKickGlobalSound' => [
             'key' => 'BanKickGlobalSound',
@@ -2073,6 +2191,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
         'CarEngineAttractionModifier' => [
             'key' => 'CarEngineAttractionModifier',
@@ -2088,6 +2207,7 @@ final class ServerIniSchema
                 'EN' => 'Modify the range of zombie attraction to cars. (Lower values can help with lag.)',
                 'DE' => 'Ändert den Bereich, in dem Autos Zombies anziehen, niedrigere Werte können bei Server-Lags helfen.',
             ],
+            'choices' => [],
         ],
         'DisableVehicleTowing' => [
             'key' => 'DisableVehicleTowing',
@@ -2103,6 +2223,7 @@ final class ServerIniSchema
                 'EN' => 'Disables vehicle towing',
                 'DE' => 'Deaktiviert das Abschleppen von Fahrzeugen',
             ],
+            'choices' => [],
         ],
         'DisableTrailerTowing' => [
             'key' => 'DisableTrailerTowing',
@@ -2118,6 +2239,7 @@ final class ServerIniSchema
                 'EN' => 'Disables trailer towing',
                 'DE' => 'Deaktiviert das Abschleppen von Anhängern',
             ],
+            'choices' => [],
         ],
         'DisableBurntTowing' => [
             'key' => 'DisableBurntTowing',
@@ -2133,6 +2255,7 @@ final class ServerIniSchema
                 'EN' => 'Disables burnt vehicle towing',
                 'DE' => 'Deaktiviert das Abschleppen von ausgebrannten Fahrzeugen',
             ],
+            'choices' => [],
         ],
         'BadWordListFile' => [
             'key' => 'BadWordListFile',
@@ -2148,6 +2271,7 @@ final class ServerIniSchema
                 'EN' => 'Path to the file with the list of words to be prohibited. Each word must be on a separate line',
                 'DE' => 'Pfad zur Datei mit der Liste der zu verbietenden Wörter. Jedes Wort muss in einer separaten Zeile stehen',
             ],
+            'choices' => [],
         ],
         'GoodWordListFile' => [
             'key' => 'GoodWordListFile',
@@ -2163,6 +2287,7 @@ final class ServerIniSchema
                 'EN' => 'Path to the file with the list of words that should be allowed, even if they contain bad word. Each word should be on a separate line.',
                 'DE' => 'Pfad zur Datei mit der Liste der erlaubten Wörter, auch wenn sie Schimpfwörter enthalten. Jedes Wort muss in einer separaten Zeile stehen.',
             ],
+            'choices' => [],
         ],
         'BadWordPolicy' => [
             'key' => 'BadWordPolicy',
@@ -2178,6 +2303,7 @@ final class ServerIniSchema
                 'EN' => 'What to do with the sender of a bad word in the chat: 1 - ban, 2 - kick, 3 - record the violation in the database, 4 - mute',
                 'DE' => 'Was tun bei jemandem, der im Chat ein Schimpfwort benutzt? 1 - Bannen, 2 - Kicken, 3 - Verstoß in der Datenbank protokollieren, 4 - Stummschalten',
             ],
+            'choices' => [],
         ],
         'BadWordReplacement' => [
             'key' => 'BadWordReplacement',
@@ -2193,6 +2319,7 @@ final class ServerIniSchema
                 'EN' => 'The symbol or piece of text that will replace the bad word',
                 'DE' => 'Das Symbol oder der Textabschnitt, der das Schimpfwort ersetzen soll',
             ],
+            'choices' => [],
         ],
         'AntiCheatSafety' => [
             'key' => 'AntiCheatSafety',
@@ -2207,6 +2334,20 @@ final class ServerIniSchema
             'tooltips' => [
                 'EN' => 'Disables safety system anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz.',
+            ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
             ],
         ],
         'AntiCheatSpeed' => [
@@ -2223,6 +2364,20 @@ final class ServerIniSchema
                 'EN' => 'Disables character speed anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Charaktergeschwindigkeit.',
             ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
+            ],
         ],
         'AntiCheatNoClip' => [
             'key' => 'AntiCheatNoClip',
@@ -2237,6 +2392,20 @@ final class ServerIniSchema
             'tooltips' => [
                 'EN' => 'Disables character no-clipping anti-cheat protection.',
                 'DE' => 'Deaktiviert denCharakter no-clip Anti-Cheat.',
+            ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
             ],
         ],
         'AntiCheatHit' => [
@@ -2253,6 +2422,20 @@ final class ServerIniSchema
                 'EN' => 'Disables character hit anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Charaktertreffer.',
             ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
+            ],
         ],
         'AntiCheatPacketException' => [
             'key' => 'AntiCheatPacketException',
@@ -2267,6 +2450,20 @@ final class ServerIniSchema
             'tooltips' => [
                 'EN' => 'Disables packet exception checks anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat für Packetprüfung.',
+            ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
             ],
         ],
         'AntiCheatPermission' => [
@@ -2283,6 +2480,20 @@ final class ServerIniSchema
                 'EN' => 'Disables player permissions anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Spielerbefugnisse.',
             ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
+            ],
         ],
         'AntiCheatXP' => [
             'key' => 'AntiCheatXP',
@@ -2297,6 +2508,20 @@ final class ServerIniSchema
             'tooltips' => [
                 'EN' => 'Disables player XP anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Spieler-EP.',
+            ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
             ],
         ],
         'AntiCheatSafeHouse' => [
@@ -2313,6 +2538,20 @@ final class ServerIniSchema
                 'EN' => 'Disables safehouse anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Verstecke.',
             ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
+            ],
         ],
         'AntiCheatPlayer' => [
             'key' => 'AntiCheatPlayer',
@@ -2327,6 +2566,20 @@ final class ServerIniSchema
             'tooltips' => [
                 'EN' => 'Disables player anti-cheat protection.',
                 'DE' => 'Deaktiviert den Spieler Anti-Cheat.',
+            ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
             ],
         ],
         'AntiCheatChecksum' => [
@@ -2343,6 +2596,20 @@ final class ServerIniSchema
                 'EN' => 'Disables checksum anti-cheat protection.',
                 'DE' => 'Deaktiviert den Anti-Cheat-Schutz für Checksummen.',
             ],
+            'choices' => [
+                'EN' => [
+                    1 => 'ban',
+                    2 => 'kick',
+                    3 => 'log',
+                    4 => 'disabled',
+                ],
+                'DE' => [
+                    1 => 'bannen',
+                    2 => 'rauswerfen',
+                    3 => 'log',
+                    4 => 'deaktiviert',
+                ],
+            ],
         ],
         'MultiplayerStatisticsPeriod' => [
             'key' => 'MultiplayerStatisticsPeriod',
@@ -2358,6 +2625,7 @@ final class ServerIniSchema
                 'EN' => 'Sets the multiplayer update period in seconds. Statistics is disabled if value is 0.',
                 'DE' => 'Setzt die Aktualisierungsrate für Multiplayer in Sekunden. Statistiken deaktiviert wenn der Wert 0 ist.',
             ],
+            'choices' => [],
         ],
         'DisableScoreboard' => [
             'key' => 'DisableScoreboard',
@@ -2373,6 +2641,7 @@ final class ServerIniSchema
                 'EN' => 'Disables scoreboard.',
                 'DE' => 'Deakiviert das Scoreboard.',
             ],
+            'choices' => [],
         ],
         'HideAdminsInPlayerList' => [
             'key' => 'HideAdminsInPlayerList',
@@ -2388,6 +2657,7 @@ final class ServerIniSchema
                 'EN' => 'Hides admins in the player list.',
                 'DE' => 'Admins werden in der Spielerliste nicht angezeigt.',
             ],
+            'choices' => [],
         ],
         'MaxPacketsPerSecond' => [
             'key' => 'MaxPacketsPerSecond',
@@ -2403,6 +2673,7 @@ final class ServerIniSchema
                 'EN' => 'Sets the limit for processing network packets from each client on the server.',
                 'DE' => 'Legt das Limit für die Verarbeitung von Netzwerkpaketen von jedem Client auf dem Server fest.',
             ],
+            'choices' => [],
         ],
         'ShowCoordinates' => [
             'key' => 'ShowCoordinates',
@@ -2418,6 +2689,7 @@ final class ServerIniSchema
                 'EN' => 'Shows player character coordinates in the lower right corner.',
                 'DE' => 'Zeigt die Koordinaten der Spielfigur in der unteren rechten Ecke an.',
             ],
+            'choices' => [],
         ],
         'Seed' => [
             'key' => 'Seed',
@@ -2433,6 +2705,7 @@ final class ServerIniSchema
                 'EN' => 'The worldgen seed used to generate the world.<br>If you want to change this, put a new value in and delete map_worldgen.bin in your save directory.',
                 'DE' => 'Der für die Weltgenerierung verwendete Seed.<br>Wenn du diesen ändern möchtest, gib einen neuen Wert ein und lösche die Datei map_worldgen.bin in deinem Speicherordner.',
             ],
+            'choices' => [],
         ],
         'UsePhysicsHitReaction' => [
             'key' => 'UsePhysicsHitReaction',
@@ -2448,6 +2721,7 @@ final class ServerIniSchema
                 'EN' => NULL,
                 'DE' => NULL,
             ],
+            'choices' => [],
         ],
     ];
 }

@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api'
+import { INI_LABELS, SANDBOX_LABELS } from './labels'
 
 /** Which file a page is showing. */
 export type ConfigKind = 'sandbox' | 'ini'
@@ -63,24 +64,57 @@ export function readConfig(serverId: string, kind: ConfigKind): Promise<ConfigFi
 }
 
 /**
- * The label to show, falling back through the game's own translations
- * to the technical key.
+ * The label to show, in order of who says it best.
  *
- * The INI has no translated names at all — only tooltips — so its rows
- * show the key, which is also what a forum post or a wiki page names.
+ * The game's own translation first, because it is the wording a player
+ * already knows. Then the panel's own table, which exists because the
+ * game translates none of the 144 INI options and 17 of the sandbox
+ * ones. The technical key last — it is never lost, since the row shows
+ * it underneath either way.
  */
 export function labelOf(value: ConfigValue, language: string): string {
+  const german = language.startsWith('de')
   const localised = value.labels
-  const preferred = language.startsWith('de') ? localised?.DE : localised?.EN
+  const fromGame = (german ? localised?.DE : localised?.EN) ?? localised?.EN
 
-  return preferred ?? localised?.EN ?? value.key
+  if (fromGame !== null && fromGame !== undefined && fromGame !== '') {
+    // 80 of the game's labels end in a colon, because on its own screen
+    // they sit to the left of the control. Here they sit above it, and
+    // "Tageslänge:" over a select reads as an unfinished sentence.
+    return fromGame.replace(/\s*:\s*$/, '')
+  }
+
+  const ours = SANDBOX_LABELS[value.key] ?? INI_LABELS[value.key]
+
+  if (ours !== undefined) {
+    return german ? ours.de : ours.en
+  }
+
+  return value.key
 }
 
 export function tooltipOf(value: ConfigValue, language: string): string | null {
   const localised = value.tooltips
   const preferred = language.startsWith('de') ? localised?.DE : localised?.EN
+  const text = preferred ?? localised?.EN ?? null
 
-  return preferred ?? localised?.EN ?? null
+  return text === null ? null : cleanExplanation(text)
+}
+
+/**
+ * The game's explanation, as prose rather than as its own markup.
+ *
+ * 27 of them carry `<br>` as a line break — it is markup for the game's
+ * own text renderer, and shown verbatim it reads as a mistake. Turned
+ * into a real break, and the escaped quotes the translations use are
+ * unescaped for the same reason.
+ */
+export function cleanExplanation(text: string): string {
+  return text
+    .replaceAll(/<br\s*\/?>/gi, '\n')
+    .replaceAll('\\"', '"')
+    .replaceAll(/[ \t]+\n/g, '\n')
+    .trim()
 }
 
 /**
@@ -128,4 +162,98 @@ export function matches(value: ConfigValue, term: string, language: string): boo
     labelOf(value, language).toLowerCase().includes(needle) ||
     (tooltipOf(value, language) ?? '').toLowerCase().includes(needle)
   )
+}
+
+/** What the panel may hear back from a save. */
+export type ConfigApplyOutcome =
+  | 'applied'
+  | 'restartNeeded'
+  | 'reloadUnconfirmed'
+  | 'reloadUnknown'
+  | 'noRcon'
+
+export type ConfigBackupState = 'backed-up' | 'nothing-to-back-up' | 'failed'
+
+export type ConfigWriteResult = {
+  status: 'written'
+  path: string
+  written: string[]
+  backup: { state: ConfigBackupState; path: string | null; error: string | null }
+  apply: ConfigApplyOutcome
+  /** True for every outcome but `applied` — in doubt, a restart is needed. */
+  restartNeeded: boolean
+  applyMessage: string
+}
+
+/**
+ * Saves the values that changed, and only those.
+ *
+ * A full snapshot would resend every one of 270 values, which is how the
+ * reference panel destroyed duplicate keys and overwrote masked secrets
+ * with their own mask. The body carries the edits alone.
+ */
+export function writeConfig(
+  serverId: string,
+  kind: ConfigKind,
+  changes: Record<string, boolean | number | string>,
+): Promise<ConfigWriteResult> {
+  return apiFetch(`/servers/${serverId}/config/${kind}`, {
+    method: 'PATCH',
+    body: { changes },
+  })
+}
+
+/**
+ * Whether a value is one this panel offers a control for.
+ *
+ * `text` is multi-line prose (the welcome message) and is left to a
+ * later step rather than squeezed into a single-line field; a value
+ * whose type could not be established has no control that would be
+ * honest. Both are shown, and shown as not editable here.
+ */
+export function isEditable(value: ConfigValue): boolean {
+  return value.type !== 'text'
+}
+
+/**
+ * Parses what somebody typed into the type the file holds.
+ *
+ * Returns null when the text is not a value of that type, so the caller
+ * can refuse rather than write a zero it invented.
+ */
+export function parseInput(value: ConfigValue, text: string): boolean | number | string | null {
+  if (value.type === 'boolean') {
+    return text === 'true'
+  }
+
+  if (value.type === 'integer' || value.type === 'enum') {
+    if (!/^-?\d+$/.test(text.trim())) {
+      return null
+    }
+
+    return Number.parseInt(text, 10)
+  }
+
+  if (value.type === 'double') {
+    const parsed = Number(text.trim().replace(',', '.'))
+
+    return text.trim() === '' || Number.isNaN(parsed) ? null : parsed
+  }
+
+  return text
+}
+
+/**
+ * Whether a number is inside the game's own bounds.
+ *
+ * The game clamps silently — `setAdminValue` proved that — so a value it
+ * would refuse must be caught here rather than written and reported as
+ * saved.
+ */
+export function outsideBounds(value: ConfigValue, next: boolean | number | string): boolean {
+  if (typeof next !== 'number' || value.min === null || value.max === null) {
+    return false
+  }
+
+  return next < value.min || next > value.max
 }
