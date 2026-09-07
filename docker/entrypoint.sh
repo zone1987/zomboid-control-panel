@@ -42,8 +42,10 @@ if [ -z "${DATABASE_URL:-}" ]; then
     _password=$(cat "$_password_file")
     _db="${POSTGRES_DB:-zomboid}"
     _user="${POSTGRES_USER:-zomboid}"
+    _host="${POSTGRES_HOST:-database}"
+    _port="${POSTGRES_PORT:-5432}"
 
-    DATABASE_URL="postgresql://${_user}:${_password}@database:5432/${_db}?serverVersion=17&charset=utf8"
+    DATABASE_URL="postgresql://${_user}:${_password}@${_host}:${_port}/${_db}?serverVersion=17&charset=utf8"
     export DATABASE_URL
 fi
 

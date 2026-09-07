@@ -175,6 +175,71 @@ jobs:
           test "$total" -eq "$running"
           test "$total" -ge 4
 
+      # The path above sets every secret explicitly, which is the least
+      # likely way anybody deploys. This is the documented one: a domain
+      # and nothing else, with the passwords generated inside.
+      - name: Start again with nothing configured
+        run: |
+          docker rm -f ci-app ci-db >/dev/null 2>&1 || true
+          docker volume rm -f ci-secrets >/dev/null 2>&1 || true
+          docker volume create ci-secrets >/dev/null
+
+          docker run -d --name ci-db --network ci-net \
+            -e POSTGRES_DB=zomboid -e POSTGRES_USER=zomboid \
+            -e POSTGRES_PASSWORD_FILE=/run/secrets/database-password \
+            -v ci-secrets:/run/secrets \
+            --entrypoint sh postgres:17-alpine -c '
+              set -e
+              mkdir -p /run/secrets
+              if [ ! -s /run/secrets/database-password ]; then
+                tr -dc "A-Za-z0-9" < /dev/urandom | head -c 48 > /run/secrets/database-password
+              fi
+              chmod 600 /run/secrets/database-password
+              exec docker-entrypoint.sh postgres'
+
+          docker run -d --name ci-app --network ci-net -p 8099:80 \
+            -e APP_PUBLIC_URL=http://localhost:8099 \
+            -e POSTGRES_HOST=ci-db \
+            -v ci-secrets:/app/var/secrets \
+            zomboidcontrol:candidate
+
+      - name: The unconfigured start must work too
+        run: |
+          for i in $(seq 1 40); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' ci-app 2>/dev/null || echo missing)
+            [ "$status" = "healthy" ] && break
+            [ "$status" = "unhealthy" ] && break
+            sleep 3
+          done
+
+          if [ "$status" != "healthy" ]; then
+            echo "::error::The image did not become healthy with nothing configured."
+            docker logs ci-app
+            exit 1
+          fi
+
+          set -e
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/api/health)" = 200
+          curl -s http://localhost:8099/api/health | grep -q '"database":"ok"'
+
+          # Generated rather than demanded, and each the right length.
+          test "$(docker exec ci-app sh -c 'wc -c < /app/var/secrets/app-secret')" -eq 32
+          test "$(docker exec ci-app sh -c 'wc -c < /app/var/secrets/credentials-key')" -eq 64
+
+          before=$(docker exec ci-app cat /app/var/secrets/credentials-key)
+          docker restart ci-app >/dev/null
+
+          for i in $(seq 1 40); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' ci-app 2>/dev/null || echo missing)
+            [ "$status" = "healthy" ] && break
+            sleep 3
+          done
+
+          test "$status" = "healthy"
+          after=$(docker exec ci-app cat /app/var/secrets/credentials-key)
+          test "$before" = "$after"
+          echo "Secrets survived a restart."
+
       - name: Report container logs when something failed
         if: failure()
         run: docker logs ci-app
