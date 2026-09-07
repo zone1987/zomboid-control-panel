@@ -451,6 +451,22 @@ convenient thing rather than the true one.
   `php bin/console cache:clear`, which cost fifteen minutes of debugging
   correct code.
 
+## 10f2. `apiFetch` stringifies the body; a caller must not
+
+Three new calls sent `JSON.stringify(...)` as the body while `apiFetch`
+does that itself, so Symfony received a JSON **string** holding JSON.
+`toArray()` read nothing, every field came back null, and the 422 named
+the first field it checked — pointing at the payload's *contents* while
+the fault was its *shape*.
+
+- **Pass the object**: `body: { skill, level }`, never
+  `body: JSON.stringify({ skill, level })`.
+- **A 422 naming a field can be a lie about the cause.** When every
+  field looks absent, print the raw body before doubting the values.
+  `$request->getContent()` next to `$payload` settles it in one request.
+- `frontend/src/lib/api.test.ts` guards both directions: the client must
+  keep stringifying, and no feature module may do it twice.
+
 ## 10g1. A grid `1fr` is not zero-minimum
 
 Reported twice from the browser and both times it looked like a
@@ -502,6 +518,26 @@ const shown = edit !== null && edit.from === current ? edit.value : current
 - **A fact about the browser is not state.** `useState(browserSupportsWebAuthn)`
   reads once at mount; an effect made the passkey button flicker in on
   the second render.
+
+## 10g3. Let the control show the wait
+
+A click that changes server state has three states worth drawing, and
+one component can carry all of them.
+
+- **Show the asked-for value at once**, hold it against the thing it
+  belongs to (`{skill, level}`, not a bare number), and render
+  `hovered ?? asked ?? server`.
+- **Animate while it is unconfirmed.** `.pz-pending` is a 900 ms opacity
+  breath on the already-filled marks, so the wait *is* the indicator —
+  no second spinner, and the preview doubles as the progress.
+- **Clear it after the refetch, not before.** Clearing on success alone
+  drops the display to the stale value for one render before it rises
+  again.
+- **On failure, clear immediately.** Leaving an optimistic value on
+  screen after a refusal is the worst of the three states.
+- **Prove it mid-flight.** Click, sample after ~30 ms, sample again
+  after the round trip: filled and pulsing, then filled and settled. A
+  screenshot after the fact cannot show the middle state at all.
 
 ## 10h. Doctrine, migrations and the test database
 

@@ -4486,6 +4486,167 @@ running.
 tests across 30 files green, 0 lint errors (21 deliberate warnings),
 `luac -p` clean, build clean.**
 
+## Everything verified with a player online, and the bug that hid (2026-09-07)
+
+Bridge 0.20.0 restarted with the user in the game, so the whole chain
+could finally be exercised. **And the most important lesson of the day
+came from the user, not the code**: "Du musst bitte IMMER alles mit dem
+playwright browser mcp testen. Über die Konsole reicht es grundsätzlich
+nie aus." Written into CLAUDE.md as rule 6b — on Coolify the operator
+has barely any console access, so a feature that works only from the CLI
+is not a feature.
+
+### The skills reparation, proven
+
+`readSkillDetail` against the live server, with real data where 0.18
+returned `{}`:
+
+| Skill | Level | XP | Boost |
+|---|---|---|---|
+| Strength | 9 | 337 527 / 487 500 | 3 → 125 % |
+| Fitness | 5 | 37 503 / 67 500 | 3 → 125 % |
+| Lightfoot, Nimble, Sneak | 2 | 225 / 525 | 2 → 100 % |
+
+Those last three are exactly what the **Burglar** grants
+(`Lightfoot +2, Nimble +2, Sneak +2`), so the chain profession → boost →
+skill holds end to end.
+
+Setting a level: `Woodwork 0 → 3`, read back as level 3 with **xp 525 ==
+levelFloor 525** — `setXPToLevel` landing it exactly on the boundary
+rather than wherever the loop stopped. Then 400 XP → 925, still level 3
+(threshold 1275); 400 more → 1325, **level 3 → 4** with the bridge
+reporting `levelBefore: 3`.
+
+**The user confirmed it in the game**: "Ich habe jetzt Tischlerei auf
+stufe 3." That is the answer to the question that decided the whole
+design — the change reaches the client, unlike a profession.
+
+### The bug the console had hidden
+
+Then: "Wenn ich selbst versuche eine Fertigkeit zu setzen bekomme ich nur
+eine kurze Fehlermeldung und es geht nicht." Both `setSkillLevel` and
+`setTrait` worked from `app:bridge:send` and **failed from the button**.
+
+Found by clicking the pip in Playwright and reading the request:
+
+```
+raw:     "{\"skill\":\"Cooking\",\"level\":5}"   ← a string, quoted
+payload: []                                        ← empty
+```
+
+**`apiFetch` stringifies the body itself**
+(`api.ts:58`), and three new callers did it again, so Symfony received a
+JSON *string* holding JSON. `toArray()` read nothing, every field came
+back null, and the 422 blamed `skill` — pointing at the payload's
+*contents* while the fault was its *shape*. I spent several minutes
+suspecting the enum, an opcache and the route before probing the actual
+body.
+
+Three call sites, all mine: `setSkillLevel`, `addSkillXp`, `setTrait`.
+`frontend/src/lib/api.test.ts` now reads the client and every feature
+module and fails if any caller double-encodes; reverting one fails it
+with the file named.
+
+### Then the whole flow, by clicking
+
+| Action | Result |
+|---|---|
+| Pip "Kochen level 5" | row reads **Kochen 5** |
+| Trait "Dickhäutig +8" | appears among the held, offers drop 64 → 60 |
+| Trait "Kurzsichtig −2" | added from the drawbacks column |
+| Remove both | back to six traits |
+
+One bug found on the way: the offer list kept offering what had just
+been added, because `invalidateQueries` was fired and not awaited, so it
+rendered from the previous roster.
+
+### The pips became the loading indicator
+
+The user's idea, and better than a spinner: "Könnte man es nicht so
+machen das der balken beim klick darauf so grün animiert ist bis ein
+fehler gemeldet wird oder die Bridge den wert zurück gibt."
+
+`asked` holds `{skill, level}` while a request is in flight; the row
+renders `hovered ?? asked ?? server` and adds `.pz-pending` (a 900 ms
+opacity breath) to the filled pips and the count. Cleared **after** the
+refetch, or the pips would drop to the old value for one render. On
+error it clears at once, so the pips snap back to the truth rather than
+showing a level the server refused.
+
+Measured mid-flight in the browser:
+
+| | filled | pulsing | count |
+|---|---|---|---|
+| before | 0 | 0 | 0 |
+| **30 ms after the click** | **6** | **6** | **6, pulsing** |
+| 4 s later | 6 | 0 | 6 |
+
+`prefers-reduced-motion` already covers it globally, so the value still
+shows and only the breathing stops.
+
+### The trait descriptions
+
+Asked for as a tooltip. `UIDescription` exists on **84 of 97** traits,
+resolved in both languages from the game's `DE/UI.json` and `EN/UI.json`
+with no misses. The other thirteen (`brawler`, `hunter`, `fit`,
+`tailor` …) have no prose at all but **all carry XP boosts** — Brawler is
+`Axe=1;Blunt=1` — so the boosts are shown and stand in as the
+description. The tooltip also names the clashing traits, which the page
+previously only mentioned in general.
+
+**Twenty of those strings contain the game's own `<br>`.** Stored as
+real newlines in the locale and rendered with `whitespace-pre-line`, so
+nothing reaches the DOM as markup — checked for both an escaped and a
+real `<br>` in the document.
+
+### Reported from the screen, all fixed
+
+| Report | Cause |
+|---|---|
+| "Ich kann auch keine Eigenschaften hinzufügen" | the double-encoded body above |
+| "hier fehlen die deutschen übersetzungen" (condition tab) | that tab printed the raw ids; both it and `Beruf: burglar` now go through the game's own names |
+| "das klebt zu nah zusammen" | two `SectionMark`s had no gap below them |
+| "einmal deutsch und einmal englisch" | every toast repeated the bridge's English reply under a translated heading. The bridge's replies are English restatements of the same sentence, so they are dropped; **RCON's replies are real server prose and stay** |
+| "eine ganz klare trennung zwischen Vorteilen und Nachteilen" | the offer was two columns of one mixed list; now a column each, with its own heading and count |
+| "der aktualisieren button ist überflüssig" | the list refetches every 3 s; the button went, the timestamp stayed |
+| "was sind das für angaben" (the `7 %`) | the partial level, now shown only from level 1 up — "1 %" beside an untrained skill read as noise |
+| "die noch benötigten xp beim hovern fehlen" | the remainder was on the *pip*, not the name, which is where a pointer lands |
+
+Also: the profession boost now reads as the game's own XP rate
+(50/75/100/125 %, from `ISPlayerStatsUI.lua:729-737`) rather than
+"3 of 3".
+
+### Where the trait work stands
+
+Adding and removing works by clicking, both directions, verified. The
+chooser is always present — hidden behind `player.online &&` it was
+*absent* rather than disabled, and I wrongly told the user it was "there,
+just collapsed" when it was not rendered at all. Two sections had that
+bug; the second only surfaced because the user asked.
+
+**Professions stay read-only**, and the evidence is in the earlier entry:
+every write path ends in a `GameClient.client` guard, `ExtraInfoPacket`
+carries no professions, and the reference bridge's 9132 lines never
+mention them.
+
+### Still open
+
+- **Multiple professions.** The user can grant several in-game; the
+  panel shows one. `SurvivorDesc.characterProfession` is a single field,
+  so what the user sees is most likely the **profession traits**
+  (`burglar`, `cook2`, `axeman` …). Those are deliberately withheld from
+  the chooser, since setting one without its job leaves the sheet
+  inconsistent. **Awaiting the user's decision** on whether to offer
+  them separately.
+- **`brave` is still on the character** from a CLI test, plus whatever
+  the browser runs left; the two test traits were removed.
+- The temporary `uitest@localhost.test` account still exists.
+
+**Verification: 594 backend tests / 11909 assertions green, 298 frontend
+tests across 31 files green, 0 lint errors (21 deliberate warnings),
+build clean, and every interaction above exercised by clicking in a
+browser rather than by command.**
+
 ## 1. Waiting on you, not on me
 
 - [ ] **Upload bridge 0.18.4 and restart.** 0.18.3 is live and works;
