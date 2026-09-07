@@ -94,6 +94,34 @@ final class GeneratedSecretsTest extends FunctionalTestCase
         self::assertNull($payload['key']);
     }
 
+    /**
+     * Found on the released 1.0.0 image: the entrypoint generated the key
+     * as root with 0600, PHP runs as www-data, and the endpoint reported
+     * "you set this yourself" — telling the operator there was nothing to
+     * save while the only copy sat unreadable inside the container.
+     */
+    public function testAKeyItCannotReadIsNotReportedAsTheOperatorsOwn(): void
+    {
+        $file = $this->directory.'/credentials-key';
+        file_put_contents($file, str_repeat('ef', 32));
+        chmod($file, 0000);
+
+        $this->signIn([Permission::EditSettings]);
+
+        $payload = $this->fetch();
+
+        if (is_readable($file)) {
+            chmod($file, 0600);
+            self::markTestSkipped('this user can read a 0000 file, so the case cannot be staged');
+        }
+
+        chmod($file, 0600);
+
+        self::assertTrue($payload['unreadable'], 'an unreadable key must say so');
+        self::assertTrue($payload['generated'], 'the key does exist, it just cannot be read');
+        self::assertNull($payload['key']);
+    }
+
     public function testTheKeyIsRefusedWithoutTheSettingsPermission(): void
     {
         file_put_contents($this->directory.'/credentials-key', str_repeat('cd', 32));
@@ -105,7 +133,7 @@ final class GeneratedSecretsTest extends FunctionalTestCase
         self::assertSame(403, $this->client->getResponse()->getStatusCode());
     }
 
-    /** @return array{generated: bool, key: ?string} */
+    /** @return array{generated: bool, key: ?string, unreadable: bool} */
     private function fetch(): array
     {
         $warnings = [];

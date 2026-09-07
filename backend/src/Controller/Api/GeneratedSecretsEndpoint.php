@@ -37,16 +37,23 @@ final class GeneratedSecretsEndpoint extends AbstractController
 
         // Checked rather than suppressed: `@` hides the warning from the
         // log but not from a dev environment, which turns it into a 500.
-        if (!is_file($file) || !is_readable($file)) {
-            return new JsonResponse(['generated' => false, 'key' => null]);
+        if (!is_file($file)) {
+            return new JsonResponse(['generated' => false, 'key' => null, 'unreadable' => false]);
+        }
+
+        // A key that exists but cannot be read is its own state. Reporting
+        // it as "you set this yourself" would tell the operator there is
+        // nothing to save, when in fact the only copy is in this container.
+        if (!is_readable($file)) {
+            return new JsonResponse(['generated' => true, 'key' => null, 'unreadable' => true]);
         }
 
         $key = file_get_contents($file);
 
         if (!is_string($key) || trim($key) === '') {
-            return new JsonResponse(['generated' => false, 'key' => null]);
+            return new JsonResponse(['generated' => false, 'key' => null, 'unreadable' => false]);
         }
 
-        return new JsonResponse(['generated' => true, 'key' => trim($key)]);
+        return new JsonResponse(['generated' => true, 'key' => trim($key), 'unreadable' => false]);
     }
 }

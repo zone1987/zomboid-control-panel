@@ -119,6 +119,8 @@ export type GeneratedSecrets = {
   /** False when the operator set the key themselves; it is theirs already. */
   generated: boolean
   key: string | null
+  /** A generated key exists but the panel cannot read it back. */
+  unreadable: boolean
 }
 
 /**

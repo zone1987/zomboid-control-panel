@@ -64,6 +64,44 @@ without a trailing full stop.
 The body explains *why*, not what the diff already shows. Commits before
 this rule was adopted are left as they are.
 
+## 1c. Every change goes through a branch, a PR and a release
+
+**Binding since 1.0.0 was tagged.** The panel is now something people
+install from a release, so `main` is what they get and nothing lands on
+it directly.
+
+The flow, in order, for every change without exception:
+
+1. **Branch off `main`** — `feat/…`, `fix/…`, `docs/…`, `chore/…`,
+   matching the Conventional Commits type of the work.
+2. **Commit and push the branch.**
+3. **Open a pull request into `main`** (`gh pr create`). Its body says
+   what changed and what was verified, the way a commit body does.
+4. **Wait for CI to pass on the PR.** A red pipeline is not merged and
+   not overridden.
+5. **Merge into `main`.**
+6. **Bump `app.version`** in `backend/config/services.yaml` when the
+   change ships to users, and **tag** `vX.Y.Z` on `main`.
+7. **The tag builds the release** — the image, the GitHub release, and
+   the bridge as a download. Watch it finish; a release job that failed
+   leaves users on the previous version with no warning.
+
+Two things the pipeline enforces so they cannot be forgotten:
+
+- **The tag must match `app.version`.** The release job refuses
+  otherwise, because a release named 1.0.1 while the panel reports 1.0.0
+  makes the in-panel update notice permanently wrong.
+- **The image is proven to start before it is pushed**, twice: once with
+  every secret supplied, once with only `APP_PUBLIC_URL`.
+
+Versioning is semantic: a fix that changes nothing for the operator is a
+patch, a new capability is a minor, and anything that makes an existing
+installation need attention on upgrade is a major.
+
+**Bump `BRIDGE_VERSION` separately.** The bridge has its own version and
+its own upgrade path — an operator has to upload it and restart the game
+server — so it moves only when the Lua actually changed.
+
 ## 2. No prose comments
 
 Multi-line explanatory blocks are not wanted. Reasoning belongs in

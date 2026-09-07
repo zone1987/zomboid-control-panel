@@ -44,6 +44,16 @@ export function EncryptionKeyCard() {
       <CardContent className="space-y-4">
         {isPending && <Skeleton className="h-24 w-full" />}
 
+        {/* Generated but unreadable is its own state: the only copy is in
+            the container, and calling it "yours" would say the opposite. */}
+        {!isPending && data?.unreadable === true && (
+          <Alert variant="destructive">
+            <ShieldAlert className="size-4" />
+            <AlertTitle>{t('settings.encryptionKeyUnreadableTitle')}</AlertTitle>
+            <AlertDescription>{t('settings.encryptionKeyUnreadableBody')}</AlertDescription>
+          </Alert>
+        )}
+
         {/* A key the operator set is not shown: they already hold it, and
             returning it would only widen where it exists. */}
         {!isPending && data?.generated === false && (

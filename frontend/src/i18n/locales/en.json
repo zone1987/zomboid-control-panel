@@ -1817,7 +1817,9 @@
     "encryptionKeyShow": "Show",
     "encryptionKeyHide": "Hide",
     "encryptionKeyCopy": "Copy",
-    "encryptionKeyCopied": "Copied"
+    "encryptionKeyCopied": "Copied",
+    "encryptionKeyUnreadableTitle": "The key cannot be shown",
+    "encryptionKeyUnreadableBody": "This server generated a key on first start, but the panel is not allowed to read the file. You will find it in the container at /app/var/secrets/credentials-key — save it from there."
   },
   "setup": {
     "alreadyCompleted": "Setup has already been completed.",
