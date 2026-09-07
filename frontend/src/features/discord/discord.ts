@@ -3,6 +3,16 @@ import { ApiError, apiFetch } from '@/lib/api'
 /** How much of the game's chat may leave the game. */
 export type ChatScope = 'general' | 'noShouting' | 'allPublic'
 
+export type DiscordRole = {
+  id: string
+  name: string
+  /** Discord's own colour as an integer; 0 means "no colour set". */
+  colour: number
+  position: number
+  /** Managed by an integration, so it cannot be assigned by hand. */
+  managed: boolean
+}
+
 export type DiscordChannel = {
   id: string
   name: string
@@ -52,6 +62,15 @@ export function getDiscordSetup(serverId: string): Promise<DiscordSetup> {
 
 export function getDiscordChannels(serverId: string): Promise<{ channels: DiscordChannel[] }> {
   return apiFetch(`/servers/${serverId}/discord/channels`)
+}
+
+export function getDiscordRoles(serverId: string): Promise<{ roles: DiscordRole[] }> {
+  return apiFetch(`/servers/${serverId}/discord/roles`)
+}
+
+/** Discord's integer colour as CSS, or null where none is set. */
+export function roleColour(role: DiscordRole): string | null {
+  return role.colour === 0 ? null : `#${role.colour.toString(16).padStart(6, '0')}`
 }
 
 export function updateDiscordSetup(

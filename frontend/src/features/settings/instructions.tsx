@@ -1,6 +1,8 @@
 import { Trans, useTranslation } from 'react-i18next'
 import { ExternalLink } from 'lucide-react'
 
+import { Copyable } from '@/components/ui/copyable'
+
 
 function StepList({ items }: { items: string[] }) {
   return (
@@ -91,6 +93,44 @@ export function MailerInstructions() {
     <div className="space-y-2">
       <p>{t('settings.mailerIntro')}</p>
       <p className="text-xs text-muted-foreground">{t('settings.mailerNote')}</p>
+    </div>
+  )
+}
+
+/**
+ * Where the three Discord values come from.
+ *
+ * All three sit on the same page of the developer portal, but under
+ * different headings, and the interaction URL has to go *back* into
+ * Discord — which is the step people miss, because it is the only one
+ * that does not consist of copying something out.
+ */
+export function DiscordInstructions({ interactionUrl }: { interactionUrl: string }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-2">
+      <StepList
+        items={[
+          t('settings.discordStep1'),
+          t('settings.discordStep2'),
+          t('settings.discordStep3'),
+          t('settings.discordStep4'),
+        ]}
+      />
+
+      <p>
+        <DocLink href="https://discord.com/developers/applications">
+          discord.com/developers/applications
+        </DocLink>
+      </p>
+
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">{t('settings.discordInteractionUrl')}</p>
+        <Copyable value={interactionUrl} />
+      </div>
+
+      <p className="text-xs text-muted-foreground">{t('settings.discordNote')}</p>
     </div>
   )
 }

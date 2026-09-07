@@ -201,6 +201,11 @@ final class EventNotifierTest extends TestCase
                 return [];
             }
 
+            public function roles(string $guildId): array
+            {
+                return [];
+            }
+
             public function registerCommands(string $applicationId, string $guildId, array $commands): void
             {
             }

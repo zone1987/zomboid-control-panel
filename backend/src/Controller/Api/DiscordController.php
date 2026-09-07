@@ -100,6 +100,32 @@ final class DiscordController extends AbstractController
         }
     }
 
+    /** The guild's roles, so a command is granted by name. */
+    #[Route('/roles', name: 'api_discord_roles', methods: ['GET'])]
+    public function roles(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        $guildId = $server->getDiscordConfig()?->getGuildId();
+
+        if ($guildId === null) {
+            return new JsonResponse(['status' => 'failed', 'error' => 'discord.noGuild'], Response::HTTP_CONFLICT);
+        }
+
+        try {
+            return new JsonResponse(['roles' => $this->discord->roles($guildId)]);
+        } catch (DiscordException $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+    }
+
     /** Which guild this server belongs to, and how chat is handled. */
     #[Route('', name: 'api_discord_update', methods: ['PATCH'])]
     public function update(string $id, Request $request): JsonResponse

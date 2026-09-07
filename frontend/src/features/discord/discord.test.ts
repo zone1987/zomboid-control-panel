@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   activeEventCount,
+  roleColour,
   setupGaps,
   ungrantedCommands,
   type DiscordCommandSetting,
@@ -139,5 +140,25 @@ describe('the event names', () => {
 
       expect(missing, `${locale} is missing: ${missing.join(', ')}`).toEqual([])
     }
+  })
+})
+
+describe('a role’s colour', () => {
+  /** Discord stores it as an integer; the picker needs CSS. */
+  it('renders as a six-digit hex value', () => {
+    expect(roleColour({ id: '1', name: 'x', colour: 0x5865f2, position: 1, managed: false })).toBe(
+      '#5865f2',
+    )
+  })
+
+  it('pads a dark colour rather than shortening it', () => {
+    expect(roleColour({ id: '1', name: 'x', colour: 0x0000ff, position: 1, managed: false })).toBe(
+      '#0000ff',
+    )
+  })
+
+  /** Zero is Discord's "no colour", not black. */
+  it('is null when no colour is set', () => {
+    expect(roleColour({ id: '1', name: 'x', colour: 0, position: 1, managed: false })).toBeNull()
   })
 })

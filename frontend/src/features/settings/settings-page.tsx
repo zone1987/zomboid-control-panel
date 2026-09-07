@@ -23,11 +23,17 @@ import { CredentialField } from './credential-field'
 import { DeliverabilityCard } from './deliverability-card'
 import { VehicleModelsCard } from './vehicle-models-card'
 import { IconPacksCard } from './icon-packs-card'
-import { GoogleOAuthInstructions, MailerInstructions, SteamKeyInstructions } from './instructions'
+import {
+  DiscordInstructions,
+  GoogleOAuthInstructions,
+  MailerInstructions,
+  SteamKeyInstructions,
+} from './instructions'
 import {
   listSettings,
   MAIL_PRESETS,
   SETTING_KEYS,
+  testDiscordToken,
   testMail,
   testSteamKey,
   updateSettings,
@@ -37,7 +43,7 @@ import {
 type Draft = Partial<Record<SettingKey, string>>
 
 /** The tabs that hold editable fields; the rest upload files instead. */
-const SAVABLE_TABS = ['steam', 'google', 'mail', 'privacy']
+const SAVABLE_TABS = ['steam', 'google', 'discord', 'mail', 'privacy']
 
 export function SettingsPage() {
   const { t } = useTranslation()
@@ -88,6 +94,25 @@ export function SettingsPage() {
       toast.error(detail === '' ? t('settings.mailFailed') : `${t('settings.mailFailed')} ${detail}`, {
         duration: 12_000,
       })
+    },
+  })
+
+  const probeDiscord = useMutation({
+    mutationFn: testDiscordToken,
+    // The bot's own name is the useful half: it proves the token
+    // belongs to the application the operator meant, not merely that it
+    // is a valid token somewhere.
+    onSuccess: (result) => toast.success(t('settings.discordTokenWorks', { name: result.bot })),
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        toast.error(t('discord.noToken'))
+
+        return
+      }
+
+      const body = error instanceof ApiError ? (error.payload as { error?: string }) : undefined
+
+      toast.error(body?.error === undefined ? t('discord.refused') : t(body.error))
     },
   })
 
@@ -147,6 +172,9 @@ export function SettingsPage() {
           <TabsTrigger value="google" className="justify-start">
             Google
           </TabsTrigger>
+          <TabsTrigger value="discord" className="justify-start">
+            Discord
+          </TabsTrigger>
           <TabsTrigger value="mail" className="justify-start">
             {t('settings.mailTab')}
           </TabsTrigger>
@@ -169,6 +197,54 @@ export function SettingsPage() {
 
         <TabsContent value="privacy">
           <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
+        </TabsContent>
+
+        <TabsContent value="discord">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('settings.discordTitle')}</CardTitle>
+              <CardDescription>{t('settings.discordDescription')}</CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <CredentialField
+                id="discord-application-id"
+                label={t('settings.discordApplicationId')}
+                placeholder="1234567890123456789"
+                instructions={
+                  <DiscordInstructions interactionUrl={data?.discordInteractionUrl ?? ''} />
+                }
+                {...field(SETTING_KEYS.discordApplicationId)}
+              />
+
+              <CredentialField
+                id="discord-public-key"
+                label={t('settings.discordPublicKey')}
+                placeholder="a1b2c3…"
+                {...field(SETTING_KEYS.discordPublicKey)}
+              />
+
+              <CredentialField
+                id="discord-bot-token"
+                label={t('settings.discordBotToken')}
+                {...field(SETTING_KEYS.discordBotToken)}
+              />
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  probeDiscord.isPending || !data?.items[SETTING_KEYS.discordBotToken]?.configured
+                }
+                onClick={() => probeDiscord.mutate()}
+              >
+                <PlugZap className="size-4" />
+                {probeDiscord.isPending ? t('common.loading') : t('settings.testToken')}
+              </Button>
+
+              <p className="text-muted-foreground text-xs">{t('settings.discordNextStep')}</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="steam">

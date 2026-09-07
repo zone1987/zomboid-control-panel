@@ -1,13 +1,16 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { reasonFor, saveDiscordCommand, type DiscordCommandSetting, type DiscordSetup } from './discord'
+import {
+  reasonFor,
+  saveDiscordCommand,
+  type DiscordCommandSetting,
+  type DiscordSetup,
+} from './discord'
+import { RolePicker } from './role-picker'
 
 /**
  * Which Discord roles may run which command.
@@ -68,24 +71,13 @@ function CommandRow({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const stored = command.roleIds.join(', ')
-  const [edit, setEdit] = useState<{ from: string; value: string } | null>(null)
-  const shown = edit !== null && edit.from === stored ? edit.value : stored
-
+  // Saved as it is chosen rather than behind a button: picking a role
+  // from a list is already a deliberate act, and 21 rows each with
+  // their own unsaved state is a page nobody can keep track of.
   const save = useMutation({
-    mutationFn: () =>
-      saveDiscordCommand(
-        serverId,
-        command.name,
-        shown
-          .split(',')
-          .map((role) => role.trim())
-          .filter((role) => role !== ''),
-      ),
+    mutationFn: (roleIds: string[]) => saveDiscordCommand(serverId, command.name, roleIds),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['discord', serverId] })
-      setEdit(null)
-      toast.success(t('discord.saved'))
     },
     onError: (error) => toast.error(t('discord.saveFailed'), { description: reasonFor(error, t) }),
   })
@@ -114,23 +106,12 @@ function CommandRow({
           </Badge>
         )}
 
-        <Input
-          value={shown}
-          disabled={disabled}
-          inputMode="numeric"
-          placeholder={t('discord.commandList.roles')}
-          aria-label={t('discord.commandList.roles')}
-          className="w-full font-mono sm:w-64"
-          onChange={(event) => setEdit({ from: stored, value: event.target.value })}
+        <RolePicker
+          serverId={serverId}
+          selected={command.roleIds}
+          disabled={disabled || save.isPending}
+          onChange={(roleIds) => save.mutate(roleIds)}
         />
-
-        <Button
-          size="sm"
-          disabled={disabled || save.isPending || shown === stored}
-          onClick={() => save.mutate()}
-        >
-          {t('discord.save')}
-        </Button>
       </div>
     </div>
   )

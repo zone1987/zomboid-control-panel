@@ -33,6 +33,19 @@ interface DiscordClientInterface
     public function channels(string $guildId): array;
 
     /**
+     * The guild's roles, for the operator to pick from.
+     *
+     * Names and colours, so a permission is granted by choosing
+     * "Moderator" rather than by pasting a nineteen-digit id — the same
+     * reason the channels are listed.
+     *
+     * @return list<array{id: string, name: string, colour: int, position: int, managed: bool}>
+     *
+     * @throws DiscordException
+     */
+    public function roles(string $guildId): array;
+
+    /**
      * Replaces the guild's slash commands with the ones given.
      *
      * Guild-scoped rather than global: a guild registration is live

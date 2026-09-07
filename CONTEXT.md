@@ -6299,3 +6299,99 @@ its `final`.
 
 Six tests, including the one that matters: four steady readings produce
 no events at all.
+
+---
+
+## 2026-09-07 — Discord is live: real token, real roles, real messages
+
+**The user configured a Discord application, so everything up to now
+tested only in isolation has been run against Discord itself.** 775
+backend tests, 358 frontend tests.
+
+### What was proved against the real API
+
+| Step | Result |
+|---|---|
+| `POST /settings/discord/test` | `{"status":"ok","bot":"Zomboid Bot","id":"1540899820892590201"}` |
+| `GET /discord/roles` | one role, `Zomboid Bot`, correctly flagged `managed: true` |
+| `GET /discord/channels` | `wohnzimmer`, `logs`, `admin` — text channels only, as filtered |
+| `POST /discord/events/moderation.kick/test` | **`sent`** — the message arrived in `#logs` |
+| `POST /discord/register` | **`registered`, 4 commands** — Discord accepted the whole catalogue |
+
+**The registration passing on the first attempt is the meaningful
+part**: Discord rejects the entire set for a bad name, an over-long
+description, or an optional option placed before a required one, and
+`CommandCatalogueTest` had asserted all three. Those assertions were
+guesses about Discord's rules until now.
+
+### A bug the real channel showed
+
+The test message read **"Beispiel\-Admin"**: the escape list included
+`-`, `>` and `#`, which are markdown only at the *start* of a line — a
+list item, a quote, a heading. Escaping them everywhere turned an
+ordinary hyphenated name into something uglier than the problem it
+solved.
+
+Now those three are escaped only where the value itself begins a line
+(`/^(\s*)([-#>])/mu`), and the always-escaped set is `\ * _ ~ \` | [ ] (
+)`. Two tests: a hyphen mid-word survives, a leading `- item` is still
+defused.
+
+**This is exactly what the browser rule is for.** The unit tests were
+green, the escaping was "correct", and it looked wrong the moment a real
+Discord client rendered it.
+
+### The settings tab
+
+Three fields on the Settings page under `discord` — the tab name is
+lower case because `settings-page.test` reads the source for
+`TabsTrigger value="([a-z]+)"`.
+
+- **Application id** and **public key** are shown in plaintext: the key
+  verifies rather than signs, and Discord displays it on its own
+  application page. Only the **bot token** is in `SECRET_KEYS`.
+- **The interaction URL is offered as a `Copyable`**, built from
+  `APP_PUBLIC_URL` rather than from the request — behind a proxy the
+  request host is the container's, which Discord could never reach.
+- **The order of the steps is stated**, because it is not reversible:
+  Discord probes the URL the moment it is saved and refuses it unless
+  the public key is already stored here. So save here first, then paste
+  into Discord.
+- **`POST /settings/discord/test`** asks Discord who the token belongs
+  to. The bot's *name* coming back is the useful half — a valid token
+  from another application would otherwise look fine until the first
+  command failed.
+
+### Roles are picked, not typed
+
+The user asked for it and it was the right call: an id is nineteen
+digits that all look alike, and a mistyped one grants a command to
+nothing at all, silently.
+
+`GET /guilds/{id}/roles` gives names, colours and positions.
+`RolePicker` shows them in Discord's own order (highest first, which is
+how Discord lists them), with the colour dot Discord uses, and marks a
+role an integration manages — granting a command to one of those is
+usually a mistake.
+
+Two decisions worth keeping:
+
+- **`@everyone` is not offered.** It is every member by definition, so
+  offering it as a permission would mean "anybody", which an operator
+  can express more honestly by saying so.
+- **A role the bot can no longer see stays selected**, shown by its id.
+  Dropping it would quietly revoke a permission somebody set.
+- **Saved as chosen**, without a button: picking from a list is already
+  deliberate, and 21 rows each with their own unsaved state is a page
+  nobody can keep track of.
+
+### Still open
+
+- [ ] **A slash command has never been *run* from Discord.** The
+      catalogue is registered and the endpoint verified, but no role is
+      assigned to any command yet — `CommandAuthorisation` refuses
+      everything until one is, which is correct and means the command
+      path is still untested end to end.
+- [ ] **Discord → game** needs the gateway process.
+- [ ] The user's guild has only the bot's own role, so a real
+      permission test needs a role created there first.

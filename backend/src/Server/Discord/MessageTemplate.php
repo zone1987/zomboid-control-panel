@@ -25,8 +25,16 @@ namespace App\Server\Discord;
  */
 final readonly class MessageTemplate
 {
-    /** Characters Discord reads as formatting. */
-    private const MARKDOWN = ['\\', '*', '_', '~', '`', '|', '>', '#', '-', '[', ']', '(', ')'];
+    /**
+     * Characters Discord reads as formatting anywhere in a line.
+     *
+     * `-`, `>` and `#` are deliberately absent: they are markdown only
+     * at the *start* of a line — a list item, a quote, a heading — and
+     * escaping them everywhere turned "Beispiel-Admin" into
+     * "Beispiel\-Admin", which is uglier than the problem it solved.
+     * The line-start cases are handled separately below.
+     */
+    private const MARKDOWN = ['\\', '*', '_', '~', '`', '|', '[', ']', '(', ')'];
 
     /**
      * @param array<string, scalar|null> $tokens
@@ -77,6 +85,11 @@ final readonly class MessageTemplate
         foreach (self::MARKDOWN as $character) {
             $value = str_replace($character, '\\'.$character, $value);
         }
+
+        // Only at the start of a line, and only where the value itself
+        // begins one -- a value dropped mid-sentence cannot become a
+        // heading or a list item.
+        $value = (string) preg_replace('/^(\s*)([-#>])/mu', '$1\\\\$2', $value);
 
         // Not markdown, and not escapable: a mention is a structural
         // reference Discord resolves before formatting. allowed_mentions

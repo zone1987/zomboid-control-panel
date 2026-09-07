@@ -12,6 +12,9 @@ export const SETTING_KEYS = {
   mailFromAddress: 'mailer.from_address',
   mailFromName: 'mailer.from_name',
   playerRetentionDays: 'players.retention_days',
+  discordBotToken: 'discord.bot_token',
+  discordApplicationId: 'discord.application_id',
+  discordPublicKey: 'discord.public_key',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
@@ -26,6 +29,8 @@ export type SettingState = {
 export type SettingsResponse = {
   items: Record<SettingKey, SettingState>
   googleRedirectUri: string
+  /** Where Discord posts its interactions; the operator pastes it in. */
+  discordInteractionUrl: string
 }
 
 export function listSettings(): Promise<SettingsResponse> {
@@ -41,6 +46,18 @@ export function testSteamKey(): Promise<{ status: string; sample?: string }> {
     method: 'POST',
     body: {},
   })
+}
+
+/**
+ * Asks Discord whether the token works and whose it is.
+ *
+ * The bot's own name coming back is what proves the operator pasted
+ * this application's token rather than another one — a token of the
+ * right shape that belongs elsewhere would otherwise look fine until
+ * the first command failed.
+ */
+export function testDiscordToken(): Promise<{ status: string; bot?: string; id?: string }> {
+  return apiFetch('/settings/discord/test', { method: 'POST', body: {} })
 }
 
 export type DeliverabilityStatus = 'ok' | 'warning' | 'missing'

@@ -81,6 +81,43 @@ final readonly class RestDiscordClient implements DiscordClientInterface
         return $found;
     }
 
+    public function roles(string $guildId): array
+    {
+        $found = [];
+
+        foreach ($this->request('GET', '/guilds/'.$guildId.'/roles') as $role) {
+            if (!is_array($role)) {
+                continue;
+            }
+
+            $name = (string) ($role['name'] ?? '');
+
+            // @everyone is every member by definition, so offering it as
+            // a permission would mean "anybody", which the operator can
+            // express more honestly by saying so.
+            if ($name === '@everyone') {
+                continue;
+            }
+
+            $found[] = [
+                'id' => (string) ($role['id'] ?? ''),
+                'name' => $name,
+                'colour' => (int) ($role['color'] ?? 0),
+                'position' => (int) ($role['position'] ?? 0),
+                // A role Discord manages for an integration cannot be
+                // assigned by hand, so granting a command to it would
+                // usually be a mistake. Shown, but marked.
+                'managed' => ($role['managed'] ?? false) === true,
+            ];
+        }
+
+        // Discord returns them unordered; its own lists run highest
+        // first, which is the order an operator recognises.
+        usort($found, static fn (array $a, array $b): int => $b['position'] <=> $a['position']);
+
+        return $found;
+    }
+
     public function registerCommands(string $applicationId, string $guildId, array $commands): void
     {
         // PUT replaces the whole set, so a command removed from the

@@ -83,6 +83,26 @@ final class MessageTemplateTest extends TestCase
         }
     }
 
+    /**
+     * A hyphen mid-word is not markdown, and escaping it made
+     * "Beispiel-Admin" read as "Beispiel\\-Admin" — noticed in a real
+     * Discord channel, which is where an over-eager escape shows.
+     */
+    public function testDoesNotEscapeAHyphenInsideAWord(): void
+    {
+        self::assertSame('Beispiel-Admin', $this->render('{admin}', ['admin' => 'Beispiel-Admin']));
+    }
+
+    /** At the start of a line it *is* markdown, so it is defused. */
+    public function testEscapesAListOrHeadingMarkerAtTheStartOfALine(): void
+    {
+        foreach (['- item', '# heading', '> quote'] as $markup) {
+            $rendered = $this->render('{text}', ['text' => $markup]);
+
+            self::assertStringStartsWith('\\', $rendered, $markup);
+        }
+    }
+
     /** Blanking a typo hides it; leaving it visible is how it is found. */
     public function testAnUnknownTokenStaysAsItIs(): void
     {

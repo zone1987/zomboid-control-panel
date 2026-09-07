@@ -79,6 +79,10 @@ final class SettingsController extends AbstractController
             // Generated server-side: a dev server on another port would
             // otherwise show a redirect URI Google never calls.
             'googleRedirectUri' => $this->googleRedirectUri(),
+            // Discord will not accept an application until this URL
+            // answers its signed probe, so the operator needs it to
+            // hand and should not have to assemble it themselves.
+            'discordInteractionUrl' => $this->discordInteractionUrl(),
         ]);
     }
 
@@ -92,6 +96,18 @@ final class SettingsController extends AbstractController
         $path = $this->urls->generate('api_connect_google_check');
 
         return rtrim($this->publicUrl, '/').$path;
+    }
+
+    /**
+     * Where Discord posts its interactions.
+     *
+     * Built from the panel's public URL rather than from the request,
+     * for the same reason as the Google one: behind a proxy the request
+     * host is the container's, which Discord could never reach.
+     */
+    private function discordInteractionUrl(): string
+    {
+        return rtrim($this->publicUrl, '/').$this->urls->generate('api_discord_interactions');
     }
 
     #[Route('', name: 'api_settings_update', methods: ['PATCH'])]
@@ -178,6 +194,36 @@ final class SettingsController extends AbstractController
     public function deliverability(\App\Mail\DeliverabilityChecker $checker): JsonResponse
     {
         return new JsonResponse($checker->check($this->settings));
+    }
+
+    /**
+     * Whether the bot token works, and who it belongs to.
+     *
+     * Asking Discord rather than checking the shape: a token that looks
+     * right and has been revoked is the case worth catching, and the
+     * bot's own name coming back is proof the operator pasted the right
+     * application's token rather than another one.
+     */
+    #[Route('/discord/test', name: 'api_settings_test_discord', methods: ['POST'])]
+    public function testDiscordToken(\App\Server\Discord\DiscordClientInterface $discord): JsonResponse
+    {
+        if (!$this->settings->isConfigured(AppSetting::DISCORD_BOT_TOKEN)) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => 'discord.noToken',
+            ], Response::HTTP_CONFLICT);
+        }
+
+        try {
+            $bot = $discord->self();
+        } catch (\App\Server\Discord\DiscordException $exception) {
+            return new JsonResponse([
+                'status' => 'failed',
+                'error' => $exception->messageKey(),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['status' => 'ok', 'bot' => $bot['username'], 'id' => $bot['id']]);
     }
 
     #[Route('/steam/test', name: 'api_settings_test_steam', methods: ['POST'])]
