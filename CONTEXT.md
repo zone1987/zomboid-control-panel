@@ -4897,3 +4897,584 @@ because each one's *size* is the first question, and that is yours.
 | One moderation seam | `backend/src/Server/Players/ModerationRecorder.php` |
 | Climate page | `frontend/src/features/events/climate-page.tsx` |
 | Units | `frontend/src/features/events/units.ts` |
+
+---
+
+## 2026-09-07 — Step 0, stage A: the bridge survives a reloadlua
+
+**Status: code written, nothing built or tested.** ddev is stopped for
+another project, so no test has run and nothing is committed. Building
+and verifying is the next session's first job.
+
+### The finding that inverted the plan
+
+The plan said `Events.X.Add` appends rather than replaces, so a
+`reloadlua` would leave `onTick` running twice, and it prescribed
+`Events.X.Remove` in a reload guard. **The bytecode says the opposite,
+and the guard as planned would have caused the very doubling it was
+meant to prevent.**
+
+Evidence, in the order it was gathered against
+`/Volumes/ESD-USB/ProjectZomboid/projectzomboid.jar`:
+
+| Class | What it shows |
+|---|---|
+| `zombie.Lua.Event` | `Add`/`Remove` are `rawset` into a plain Lua table by `register()` — Lua-callable, **not** the public-field trap |
+| `Event$Remove.call` | opens `getstatic LuaCompiler.rewriteEvents; ifeq 8; iconst_0; ireturn` — **while rewriteEvents is set, Remove returns without touching the callback list** |
+| `LuaClosure.<init>` | reads `rewriteEvents`; when set, calls `LuaEventManager.reroute(prototype, closure)` for **every** closure built during the load |
+| `LuaEventManager.reroute` | walks every event's `callbacks`; where `prototype.filename` **and** `prototype.name` both match, `ArrayList.set` — **replaces**, does not append |
+| `LuaManager.RunLua(String, boolean)` | the boolean becomes `rewriteEvents` (`iload_1; putstatic`), reset to `0` at the end |
+| `LuaManager.RunLuaInternal` | re-adds the path to `loaded` (`ArrayList.add`), so reloading is **repeatable** |
+| `LuaManager.LoadDirBase(String, boolean)` | collects `media/lua` paths into `loadList` and runs each through `RunLua(String)` — which is what puts them in `loaded` |
+
+So: `reloadlua` passes `true`, the game rewires the registrations
+itself, and registering again on re-execution is **correct**. Calling
+`Remove` first is a silent no-op, and the following `Add` appends a
+second callback that `reroute` can no longer replace — the doubling.
+
+**Confirmed by the user: the bridge always lives at `media/lua/server`
+on the server.** With `LoadDirBase` covering `media/lua`, our file is in
+`LuaManager.loaded`, so `reloadlua`'s `endsWith` match finds it.
+
+### What changed
+
+`backend/resources/bridge/ZomboidControlBridge.lua` → **0.21.0**
+
+- The `OnServerStarted` block became a **named** `local function
+  onServerStarted()` (it was an inline anonymous function). Two reasons:
+  `reroute` matches on `prototype.name`, and a reload must be able to
+  call it directly.
+- A module-tail guard: `ZomboidControlBridge` global holds `onTick`,
+  `onServerStarted`, `version` and `registered`. `local reloaded =
+  ZomboidControlBridge.registered == true` detects re-execution — a
+  local cannot, it is fresh each run.
+- **No `Events.X.Remove` anywhere.** Both handlers are simply registered
+  again; `reroute` replaces them.
+- On a reload, `onServerStarted()` is called directly, because the event
+  will not fire on a server that never stopped. **This is what stops the
+  command replay**: without `readCursor()` the bridge restarts at
+  sequence 1 and re-runs all 600-plus commands ever sent.
+- The load line now says `reloaded.` or `loaded.`, which is the cheapest
+  way to tell the two apart in the server log.
+- `SESSION_ID` is deliberately new after a reload (module level, `:105`).
+  Correct: the item and vehicle catalogues are re-read, which is what
+  `ItemCatalogue::stillCurrent` is for. **Do not "tidy" this.**
+
+`llms.txt` — bridge version 0.20.0 → 0.21.0 (`DocumentationTest`
+asserts it).
+
+`backend/tests/Unit/Server/Bridge/BridgeReloadSafetyTest.php` — **new**,
+six guards, each naming a failure that would only appear in production:
+
+1. `testNoEventIsUnregistered` — no `Events.X.Remove` in the Lua.
+2. `testEveryEventHandlerIsANamedFunction` — every `Events.X.Add` is
+   given a named function, never an inline one.
+3. `testTheStartBlockIsCallableOnAReload` — `onServerStarted` is named
+   and the reload branch calls it.
+4. `testTheReloadIsDetectedThroughAGlobal` — the marker is a global.
+5. `testTheCursorIsReadInTheStartBlock` — `readCursor()`, `writeItems`,
+   `writeVehicleCatalogue` and `writeProbe` are inside the block a
+   reload calls.
+6. Both regex-based tests read `self::code()`, which strips comments —
+   the first draft failed on its own explanatory comment mentioning
+   `Events.X.Remove`. **The rules bind code, not prose.**
+
+All six were checked with an equivalent Python script against the real
+file (`luac -p` also passes), because PHP only exists inside ddev. That
+is a check, **not** the test run.
+
+### What is NOT done, and must not be claimed
+
+- **No `ddev exec php bin/phpunit` has run.** The new test file has not
+  been executed once.
+- **Stage B is not built and must not be**: `BridgeInstaller` still
+  never calls `reloadlua`, and the interface still always says "restart
+  needed". Per the user's binding condition — *"wenn wir nicht sicher
+  sind das es funktioniert dann muss der server eben neugestartet
+  werden"* — the automatic reload comes only after the eleven live
+  checks pass, reproduced twice.
+- **The eleven live checks have not run.** They need an upload and one
+  restart to get 0.21.0 in place.
+
+### Next concrete steps, in order
+
+1. `ddev start`, then `ddev exec -d /var/www/html/backend "php bin/phpunit
+   --filter BridgeReloadSafety"`, then the full suite.
+2. Upload bridge 0.21.0 and **restart once** — the named
+   `onServerStarted` and the guard have to be running before a reload can
+   be tested at all.
+3. Then the eleven checks from the plan
+   (`docs/superpowers/plans/03-seven-features.md`, "Woran es gemessen
+   wird"). The two that decide it: **check 5** (send one command, count
+   the executions — no doubling) and **check 9** (the cursor did not
+   reset to 1).
+4. Only if all eleven pass, twice: stage B in `BridgeInstaller::install()`
+   with its four distinct verdicts.
+
+**Nothing is committed.** The user asked that nothing be committed while
+building and testing are impossible.
+
+---
+
+## 2026-09-07 — Step 0 stage A measured, and the sandbox schema generator
+
+**ddev is running again, so everything below is measured rather than
+reasoned.** 636 tests green (13434 assertions).
+
+### Step 0 stage A: eight of eleven checks pass
+
+Bridge 0.21.0 uploaded and the server restarted **once** by the user.
+Measured against the live server:
+
+| # | Check | Result |
+|---|---|---|
+| 1 | upload without restart | pending (needs stage A to be proven first) |
+| 2 | `reloadlua ZomboidControlBridge.lua` | **NOT RUN — blocked** (see below) |
+| 3 | `ping` | **pass** — `pong` |
+| 4 | version read back | **pass** — running bridge reports 0.21.0 |
+| 5 | send one command, count | **pass** — cursor 742 → 743, exactly +1, so **no doubled onTick** |
+| 6 | `players.json` written | **pass** — fresh, `Stale: no` |
+| 7 | `items.json`, `vehicle-catalogue.json` | **pass** — both present, 0.21.0, sessionId matches the cursor |
+| 8 | `probe.json` | **pass** — regenerated, 0.21.0 |
+| 9 | **command cursor** | **pass** — `lastCommandSeq: 741` after the restart, **not 1**; the 741 commands ever sent were not replayed |
+| 10 | reload twice | pending (needs check 2) |
+| 11 | loop still alive after 30 s | **pass** — a later `Written` timestamp |
+
+**Check 2 could not be run by the assistant**: `app:rcon … reloadlua`
+was refused by the harness's safety classifier, because it changes the
+state of a running game server. **The user has to issue it.** The exact
+command, from the project root:
+
+```
+ddev exec -d /var/www/html/backend "php bin/console app:rcon G-Portal reloadlua ZomboidControlBridge.lua"
+```
+
+Expected: `Lua file reloaded`. If it says `Unknown Lua file`, **stage B
+is off** and step 0 ends there, per the user's binding condition.
+
+After a successful reload, checks 3–9 are repeated (the same commands as
+above) plus check 10, the reload run a second time. Only then is stage B
+built.
+
+### The bytecode finding that inverted the reload guard
+
+Recorded in the entry above, and it is the reason the guard has **no**
+`Events.X.Remove`: `RunLua(path, true)` sets
+`LuaCompiler.rewriteEvents`, `LuaClosure`'s constructor then routes
+every new closure through `LuaEventManager.reroute`, which **replaces**
+a callback whose `prototype.filename` and `prototype.name` both match.
+`Event$Remove.call` meanwhile returns before touching the list while
+that flag is set — so removing would be a silent no-op and the
+following `Add` would append the duplicate. Check 5 above (+1, not +2)
+is the live confirmation that registering again is correct.
+
+`LoadDirBase(String, boolean)` collects every `media/lua` path into
+`loadList` and runs each through `RunLua(String)`, which is what puts it
+in `LuaManager.loaded`. **The user confirmed the bridge always lives at
+`media/lua/server`**, so `reloadlua`'s `endsWith` match will find it.
+
+### Step 2: the schema generator is built and green
+
+**All values are derived from the game; not one is typed.** 270 sandbox
+options and 98 INI options, each with type, bounds, choice labels and
+the game's own explanation, in English and German.
+
+New files:
+
+| File | What it is |
+|---|---|
+| `backend/tools/dump-game-config.sh` | **host** step: javap over 9 classes plus 6 game files into `backend/var/game-config.json` |
+| `backend/tools/dump-game-config.php` | the same in PHP, for a host that has PHP (this one does not) |
+| `backend/src/Command/GenerateConfigSchemaCommand.php` | `app:config:schema`, reads the dump, writes the classes |
+| `backend/src/Server/Config/SchemaExtractor.php` | the extraction, ~700 lines |
+| `backend/src/Server/Config/SchemaWriter.php` | renders the two classes and the fixture |
+| `backend/src/Server/Config/LuaTableReader.php` | reads a SandboxVars file |
+| `backend/src/Server/Config/LuaTableWriter.php` | replaces values in place |
+| `backend/src/Server/Config/OptionType.php` | the game's own type strings |
+| `backend/src/Server/Config/SandboxSchema.php` | **generated**, 270 options |
+| `backend/src/Server/Config/ServerIniSchema.php` | **generated**, 98 options |
+| `backend/tests/Fixtures/config-schema.json` | the drift gate |
+| `backend/tests/Fixtures/sandbox-apocalypse.lua` | the game's own template, for the round trip |
+
+**Why the generator is split in two.** The extraction needs the game's
+files and `javap`; the generation needs the project's autoloader. This
+host has no PHP, and the ddev container has neither `/Volumes` nor a
+JDK — so no single environment can do both. The host script writes a
+JSON dump, PHP reads it. `installations/` was created at the user's
+request (gitignored) for `local/` and `server/`; once the desktop game
+is in `installations/local`, both halves can see it and the dump step
+becomes optional.
+
+### Nine findings, each one a value that would have been wrong
+
+1. **`getPageName()` is not the grouping.** It is set only in
+   `addCustomOption`, so it is `null` for every base-game option and
+   carries a *mod's* page. The real grouping is `SettingsTable` in
+   `ServerSettingsScreen.lua` — `[1]` for the INI (22 groups), `[2]` for
+   the sandbox (10). **This is the user's "settings that belong together
+   stay together", taken from the game rather than invented.**
+2. **A field name does not give an option name.** `pvp` is `PVP`,
+   `isPublic` is `Public`, `uPnp` is `UPnP`, `udpPort` is `UDPPort`.
+   Deriving one from the other lost options silently, so the type now
+   comes from the factory the constructor called, with the name read as
+   a string literal.
+3. **`ServerOptions` uses no factories at all** — it calls
+   `new BooleanServerOption(...)` directly. Reading only
+   `newXOption` left **all 98** INI options untyped.
+4. **A translation key is not the option name.** `Zombies` translates
+   through `ZombieCount`, `ZombieLore.Speed` through `ZSpeed`. Building
+   the label from the name yields nothing.
+5. **The five nested tables are inner classes** whose constructors name
+   their options in full (`"ZombieLore.Speed"`), while their *fields*
+   carry only the short name. Both are read, differently.
+6. **Two options are typed by a Java enum**
+   (`newEnumOption(name, Class, Enum)`): `InjurySeverity` and
+   `DamageToPlayerFromHitByACar`. Their choices and default exist only
+   in `InjurySeverity` / `DamageModifier`, so they arrived with **no
+   bounds at all** until those classes were added to the dump. Found by
+   the bounds guard, not by reading.
+7. **`ResetID` and `ServerPlayerID` are generated per server**
+   (`Rand.Next`). The literal in the run is Rand.Next's *argument*, so
+   presenting it as the default would show 1000000000 as "the default"
+   on every server. They are marked `defaultIsGenerated` with a null
+   default. The flag had to become part of the operand run: as an object
+   field it leaked and marked `PVP` too.
+8. **A commented-out entry is not an option.** `-- { name = "LootRespawn" }`
+   and `UniqueHomeVHS` produced keys that exist in no class and no file.
+9. **13 options are in the file but on no page** (`Farming`,
+   `StartYear`, `NightLength`, the loot factors) and
+   `LootItemRemovalList` is in the class but not in the template. They
+   are on every real server, so they go in an `Advanced` group rather
+   than being dropped — **an editor that cannot see them would delete
+   them on save.**
+
+### The three file-corruption traps, proven against the real template
+
+`SandboxRoundTripTest` runs against the game's own `Apocalypse.lua`:
+
+- **269 values read, 86 of them nested** in five sections. The reference
+  panel flattened these and lost them.
+- **`WorldItemRemovalList` holds 8 commas inside one string.** Splitting
+  on commas truncates it after `Base.Hat` — the corruption that stopped
+  a server booting for the reference.
+- **`Farming` is two options**: `3` (skill growth, enum 1–5) at the top
+  level and `1.0` (XP multiplier, double 0–1000) under
+  `MultiplierConfig`. The key is therefore always `Section.Name`.
+- **Every one of the 269 values written back and read again** comes back
+  exactly as written, with no key gained or lost.
+- **`luac -p` accepts the written file** — and `luac` is present in the
+  ddev container, so that test really runs rather than skipping.
+
+`LuaTableWriter` also keeps CRLF, keeps hand-written spacing
+(`PVP   =   true`), leaves an unknown (mod) option untouched, refuses a
+duplicate key rather than guessing, and never matches a name that
+appears inside a string.
+
+### Tests written, all green
+
+| File | Tests |
+|---|---|
+| `tests/Unit/Server/Config/LuaTableReaderTest.php` | 6 |
+| `tests/Unit/Server/Config/LuaTableWriterTest.php` | 13 |
+| `tests/Unit/Server/Config/SandboxRoundTripTest.php` | 5 |
+| `tests/Unit/Server/Config/ConfigSchemaTest.php` | 13 |
+| `tests/Unit/Server/Bridge/BridgeReloadSafetyTest.php` | 6 |
+
+`ConfigSchemaTest` is the drift gate: the classes must match the
+fixture, every option must have a type and every numeric one bounds,
+every enum must have one label per value, and every option must belong
+to exactly one group. **A game update that moves a bound fails here
+after regeneration rather than clamping a value on a live server.**
+
+### The game's own coverage, measured
+
+- **243 of 270** sandbox options have a German tooltip. The other 27
+  have none in the game either — `DayLength` has 27 choice labels and no
+  explanation. The test asserts a floor of 240, not equality.
+- **86 of 98** INI options have one. The other 12 (`UDPPort`, the four
+  `Backups*`, `War`, `SpeedLimit`, the two chat limits, the three
+  disguise ones) have **no tooltip in any language**. Per the user's
+  requirement that the settings be genuinely understandable, **the panel
+  has to write those twelve itself** — see the TODO below.
+
+### Still open on step 2
+
+- [ ] **The RCON reload check** (step 0 check 2), which only the user can
+      run — the command is quoted above.
+- [ ] **Twelve INI options need our own explanation**, because the game
+      has none. Named in full above.
+- [ ] **`Version` has no type** — it is the file format's own number
+      rather than a setting, and `ConfigSchemaTest` excludes it by name.
+      Decide whether the editor hides it entirely.
+- [ ] Nothing of the editor itself exists yet: no `ConfigFileLocator`,
+      no backup handling, no controller, no permission, no interface.
+      The generator and the file reader/writer are the foundation only.
+- [ ] `buildId` is `null` — this copy is not a Steam install, so there is
+      no `appmanifest_108600.acf` to stamp provenance from. The field
+      exists and will fill in on a Steam copy.
+
+**Nothing is committed.** The user asked that nothing untested be
+committed; the tests are now green, so this is ready to commit when the
+user says so.
+
+### One decision for the user: the game's translated strings in git
+
+`backend/tests/Fixtures/config-schema.json` (341 kB) is the drift gate,
+and it currently carries **the game's own translated labels and tooltips
+verbatim**, in English and German — roughly 700 strings of The Indie
+Stone's text.
+
+That is a step beyond the precedent. `climate-api.json` holds only
+*method names* (facts about an API); this holds authored prose. CLAUDE.md
+10b keeps the game's content out of the repository, and
+`sandbox-apocalypse.lua` was removed from `tests/Fixtures/` for exactly
+that reason — `SandboxRoundTripTest` now reads the template from
+`backend/var/game-config.json`, which is ignored, and skips when it is
+absent.
+
+Three options, none of them urgent:
+
+1. **Leave it.** The schema is unusable as a substitute for the game,
+   and the credits page already carries the required notice.
+2. **Strip the strings from the fixture** and keep only the structural
+   facts (key, type, bounds, choice counts, group, translation key).
+   The labels then come from the dump at generation time and live only
+   in the generated PHP class — which is also committed, so this only
+   moves the question.
+3. **Keep the strings out of git entirely**: generate labels into a file
+   under `backend/var/` and have the panel read them at run time. Costs
+   the "no installation needed at run time" property, which is worth
+   more than this.
+
+**Recommendation: option 1**, and say so in CLAUDE.md 10b as an explicit
+exception for *option metadata* as opposed to artwork and code. Awaiting
+the user's decision; nothing depends on it.
+
+### The installations moved into the project, and what that settled
+
+The user placed both copies under `installations/` (gitignored). Their
+names are the reverse of what they suggest, which matters for anyone
+pointing a tool at them:
+
+| Path | What it actually is |
+|---|---|
+| `installations/server/` | the **game installation** — `projectzomboid.jar`, `media/lua`, every translation. This is the source for the schema. |
+| `installations/local/` | the Zomboid **data folder** from a Windows machine — Saves, Logs, `options.ini`, `Lua/`. No jar, so not a schema source. |
+
+`dump-game-config.sh` now tries, in order: an explicit argument,
+`installations/server`, `installations/local`, then the mounted volume.
+
+**Two things this settled by measurement:**
+
+1. **The server installation and the USB copy produce a byte-identical
+   schema** (270 sandbox / 98 INI, `a == b` exactly). Same jar size,
+   64514905 bytes. So the generator is deterministic and the dedicated
+   server has the same option set as the desktop game — which was an
+   open question worth answering before building an editor on it.
+2. **The provenance stamp now works without Steam.** Neither copy has an
+   `appmanifest_108600.acf`, so `buildId` was null. `zombie.core.Core`'s
+   static initialiser opens `bipush 42; bipush 20`, which is the only
+   place the version exists as a literal — `getVersionNumber()` builds
+   it from these at run time. `SandboxSchema::BUILD_ID` is now
+   **`B42.20`**, and `ConfigSchemaTest` asserts it is present and
+   well-shaped.
+
+The dump step is still needed: the ddev container can see
+`/var/www/html/installations/server` but has no JDK, so `javap` has to
+run on the host. Only the bytecode actually needs it — the Lua and JSON
+files PHP could read directly — but one uniform path is clearer than
+two.
+
+**637 tests green, 13446 assertions.** Nothing committed.
+
+---
+
+## 2026-09-07 — Step 0 stage A: ALL ELEVEN CHECKS PASS
+
+Measured live against G-Portal with bridge 0.21.0. **The reload works,
+and the user's binding condition is met.**
+
+| # | Check | Measured |
+|---|---|---|
+| 1 | upload without restart | file already in place from the restart |
+| 2 | `reloadlua ZomboidControlBridge.lua` | **`Lua file reloaded`** |
+| 3 | `ping` | **`pong`** after the reload |
+| 4 | version read back | **0.21.0** from the running bridge |
+| 5 | **send commands, count** | **744 → 747 for three commands: exactly +3, no doubling** |
+| 6 | `players.json` | rewritten, carrying the **new** sessionId |
+| 7 | `items.json`, `vehicle-catalogue.json` | both rewritten, new sessionId `1788777309435` |
+| 8 | `probe.json` | rewritten |
+| 9 | **command cursor** | **743 → 744, not 1** — `readCursor()` was reached |
+| 10 | **reload twice** | second reload also `Lua file reloaded`, `pong`, 747 → 748 (+1), sessionId `1788777370154` |
+| 11 | loop alive after 30 s | `Written` advanced 12:36:20 → 12:36:26 → 12:36:29, `Stale: no` |
+
+**The two that decide it:**
+
+- **Check 5 is the confirmation of the bytecode reading.** Three
+  commands moved the cursor by exactly three. Had `Events.X.Add`
+  appended as the plan assumed, `onTick` would have run twice and the
+  cursor would have advanced by six. The guard as originally planned —
+  with `Events.X.Remove` — would have *produced* that doubling, because
+  `Event$Remove.call` returns without acting while `rewriteEvents` is
+  set. `LuaEventManager.reroute` replacing the callback is what actually
+  happens, and now it is measured, not inferred.
+- **Check 9**: the cursor went 743 → 744 rather than resetting to 1. The
+  744 commands ever sent were not replayed. That is `onServerStarted()`
+  being called directly by the reload branch.
+
+**A new `SESSION_ID` per reload is correct and must not be "fixed"**:
+it is how `ItemCatalogue::stillCurrent` knows the catalogues were
+re-read, and both catalogues did carry the new id.
+
+### Consequence: stage B is now authorised
+
+The user's condition was: *"wenn wir nicht sicher sind das es
+funktioniert dann muss der server eben neugestartet werden. Wir müssen
+absolut sicher sein das reloadlua an der stelle funktioniert und nur
+dann bauen wir das auch so."* All eleven pass and the reload was
+performed twice, so **stage B may be built**:
+
+`BridgeInstaller::install()` calls `reloadlua` after the upload and
+**verifies** rather than believing, with four distinct verdicts:
+
+| Outcome | What the interface says |
+|---|---|
+| reloaded **and** version read back matches | "Bridge active, no restart needed" |
+| `Unknown Lua file` | "Uploaded — restart needed" |
+| reloaded but **version does not match** | "Uploaded, but the old version is still running. Restart." |
+| bridge **stops answering** | "Uploaded, but the bridge is not answering. Restart." |
+
+The last three must never collapse into "applied". A timeout, an
+unparseable answer or a read-back that did not happen is **"restart
+needed"** — CLAUDE.md 6c.
+
+**Note for whoever runs these again:** the assistant's `app:rcon` call
+is refused by the harness safety classifier on some invocations, since
+it changes a running server's state. It went through this time. If it is
+refused, the user has to issue it.
+
+### Also: `app:fetch --max` reads from the *end*
+
+`readTail` reads backwards from the end of the file, so
+`--max=120` on `items.json` returned the tail and no `sessionId`. Use a
+ceiling larger than the file (`--max=20000000`) when the field you want
+is near the front. `BridgeInstaller.php:69` already does this with
+262144 for the version line.
+
+---
+
+## 2026-09-07 — Step 0 stage B: the panel reloads the bridge itself
+
+**Verified in the browser by clicking the button, not from the console.**
+652 backend tests and 301 frontend tests green, build clean.
+
+### What a bridge upload now does
+
+`POST /api/servers/{id}/bridge` uploads the file **and** loads it into
+the running server, then proves it. The response carries three new
+fields:
+
+```json
+{"status":"installed","path":"media/lua/server/ZomboidControlBridge.lua",
+ "version":"0.21.0","reload":"active","restartNeeded":false,
+ "reloadMessage":"bridge.reload.active"}
+```
+
+Measured live: clicking **Erneut hochladen** produced the toast
+*"Bridge 0.21.0 hochgeladen. — Aktiv — kein Neustart nötig. Die neue
+Fassung antwortet bereits."*, the response above, and on the server the
+session id moved `1788777370154` → `1788778048228` with
+`lastCommandSeq` at 749 rather than 1. **So the click really re-executed
+the module and really kept the command cursor.**
+
+### Six outcomes, and only one of them skips the restart
+
+`BridgeReloadOutcome` (`backend/src/Server/Bridge/BridgeReloadOutcome.php`):
+
+| Case | Meaning |
+|---|---|
+| `active` | reloaded **and** the running bridge reports the version we shipped |
+| `notReloaded` | the game answered `Unknown Lua file` |
+| `wrongVersion` | reloaded, but a different version is answering |
+| `notAnswering` | reloaded, then nothing fresh was ever written |
+| `unknown` | RCON unreachable, or an answer we do not recognise |
+| `noRcon` | no RCON credentials, so there is nothing to reload through |
+
+`needsRestart()` is true for all five failures, and a test walks every
+case to assert that only `active` can ever say otherwise. Both locales
+have a sentence for each under `bridge.reload.*`, and a functional test
+reads the locale files to prove none is missing — a new outcome cannot
+reach the operator as a raw key.
+
+### How the verdict is reached, and why the session id matters
+
+`BridgeReloader::verify()` does **not** read the file it just uploaded.
+It reads what the *running* bridge writes into `server.json`, and it
+requires **two** things:
+
+1. a **different session id** than before the reload — `SESSION_ID` is
+   minted at module level, so a new value is the proof the module
+   re-executed; and
+2. the version in that fresh reading to equal what was uploaded.
+
+Without the session-id check, a `server.json` left over from before the
+reload would read as success. That is the same trap as the snow setting:
+write, read back your own write, report success, while the game held
+something else. A test (`testAStaleReadingIsNotConfirmation`) feeds only
+pre-reload readings — version included — and asserts `notAnswering`.
+
+The read-back retries six times at 500 ms. The delay is a constructor
+parameter so the suite passes 0: with the real wait the ten tests took
+10 s to prove nothing.
+
+### New files and changes
+
+| File | What |
+|---|---|
+| `src/Server/Bridge/BridgeReloadOutcome.php` | **new** — the six outcomes |
+| `src/Server/Bridge/BridgeReloader.php` | **new** — reload plus verification |
+| `src/Server/Bridge/RunningBridgeReading.php` | **new** — a two-field interface so the verdict cannot be influenced by weather or game time, and so the reader is doubleable without unsealing it |
+| `src/Server/Bridge/ServerInfoReader.php` | implements it; now also exposes `sessionId` |
+| `src/Controller/Api/ServerController.php` | `installBridge` reloads after uploading |
+| `frontend/src/features/servers/servers.ts` | `BridgeInstallResult` with the reload fields |
+| `frontend/src/features/servers/bridge-card.tsx` | success toast on `active`, **warning** toast otherwise; also invalidates the roster query, since that is where the running version is read from |
+| `frontend/src/i18n/locales/{de,en}.json` | `bridge.reload.*`, six sentences each |
+| `tests/Unit/Server/Bridge/BridgeReloaderTest.php` | **new**, 10 tests |
+| `tests/Functional/BridgeInstallTest.php` | **new**, 5 tests |
+
+**A reload that fails is not an upload that failed.** The upload has
+already succeeded at that point, so the endpoint still answers 200 —
+reporting failure would be a lie in the other direction. Only the
+`restartNeeded` flag changes.
+
+### Two things learnt while testing
+
+- **`ServerController` carries `#[IsGranted(ViewServers)]` on the
+  class**, so uploading a bridge needs `ViewServers` *and*
+  `ManageBridge`. A user with only `ManageBridge` gets 403 before the
+  action runs — which looks exactly like a missing permission on the
+  method. Worth knowing before adding the config editor's permission.
+- **A functional POST needs `CONTENT_TYPE: application/json`**, or it is
+  treated as a form post and the CSRF guard answers 403.
+
+### What is NOT proven
+
+- **Only the success path was clicked.** The five failure outcomes are
+  covered by unit tests, and `toast.warning` is already used in four
+  places with its own icon and `richColors`, so the rendering is
+  established — but no failure toast was produced in a browser. Doing so
+  would mean breaking the one real server's RCON config, which the user
+  has forbidden.
+- `usleep` in a controller holds an FPM worker for up to 3 s on a failed
+  reload. Acceptable for an operator-initiated upload, but worth
+  remembering if this ever moves somewhere hot.
+
+### Where this leaves the workflow
+
+**A bridge change no longer needs a server restart** — upload from the
+panel and the new handler set is live, with the panel saying plainly
+when it is not. The five restarts this cost during the players work
+would now be zero.
+
+Next: the sandbox editor interface (step 2's remaining half). Nothing of
+it exists yet — no `features/config/`, no route, no navigation entry.

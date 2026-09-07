@@ -20,3 +20,20 @@
 # Scratch task list. What is open belongs in CONTEXT.md, which is the
 # one place a new session reads.
 /TODO.md
+
+# The operator's own Project Zomboid installations, placed here so both
+# the host and the ddev container can read them -- the schema generator
+# needs the game's files and javap, and neither exists in both places
+# otherwise. Two are expected, and they are not interchangeable:
+#
+#   installations/local/   the desktop game: has projectzomboid.jar, the
+#                          settings screen and every translation, so it
+#                          is what the schema is generated from
+#   installations/server/  the dedicated server build: fewer files, and
+#                          the one whose option set a server actually
+#                          has. Worth diffing against local when a value
+#                          the panel offers is refused by the server.
+#
+# The artwork and code are The Indie Stone's and never belong in a
+# repository; see CLAUDE.md 10b.
+/installations/
