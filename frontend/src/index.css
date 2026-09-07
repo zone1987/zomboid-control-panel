@@ -330,6 +330,22 @@
   animation: pz-row-in 220ms ease-out;
 }
 
+@keyframes pz-pending {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* A value already applied locally but not yet confirmed by the server.
+   The pulse is the waiting: the pips show what was asked for at once,
+   and keep breathing until the bridge answers or the value snaps back.
+
+   Honoured by the reduced-motion block above, which leaves the shown
+   value in place and only stops the breathing. */
+.pz-pending {
+  animation: pz-pending 900ms ease-in-out infinite;
+}
+
 /* A card that can be reached lifts very slightly and warms its border,
    so "clickable" is legible without a pointer. */
 .pz-interactive {

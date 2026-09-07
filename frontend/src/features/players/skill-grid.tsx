@@ -58,25 +58,34 @@ export function SkillGrid({
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['players', serverId] })
 
-  const report = (successKey: string) => ({
-    onSuccess: async (result: { reply: string }) => {
-      await refresh()
-      toast.success(t(successKey), {
-        description: result.reply === '' ? undefined : result.reply,
-      })
+  // What was asked for but not yet confirmed. Held against the skill it
+  // belongs to, so a refetch arriving mid-flight cannot leave a stale
+  // number showing on a different row.
+  const [asked, setAsked] = useState<{ skill: string; level: number } | null>(null)
+
+  const level = useMutation({
+    mutationFn: (input: { skill: string; level: number }) => {
+      setAsked(input)
+
+      return setSkillLevel(serverId, player.username, input.skill, input.level)
     },
-    onError: (error: unknown) =>
+    onSuccess: async () => {
+      // Cleared only after the fresh roster is in, or the pips would
+      // drop back to the old value for one render before rising again.
+      await refresh()
+      setAsked(null)
+      toast.success(t('players.skillSet'))
+    },
+    onError: (error: unknown) => {
+      // The pips snap back to the truth: showing a level the server
+      // refused would be the worst of the three states.
+      setAsked(null)
       toast.error(
         error instanceof ApiError
           ? (errorField(error, 'detail') ?? t('errors.generic'))
           : t('errors.generic'),
-      ),
-  })
-
-  const level = useMutation({
-    mutationFn: (input: { skill: string; level: number }) =>
-      setSkillLevel(serverId, player.username, input.skill, input.level),
-    ...report('players.skillSet'),
+      )
+    },
   })
 
   // The thresholds, the boost and the book multiplier: none of them is
@@ -136,6 +145,7 @@ export function SkillGrid({
                   label={skill.label}
                   level={skill.level}
                   detail={detail?.skills[skill.id]}
+                  pending={asked?.skill === skill.id ? asked.level : null}
                   editable={player.online}
                   busy={level.isPending}
                   onSet={(wanted) => level.mutate({ skill: skill.id, level: wanted })}
@@ -207,6 +217,7 @@ function SkillRow({
   label,
   level,
   detail,
+  pending,
   editable,
   busy,
   onSet,
@@ -214,6 +225,8 @@ function SkillRow({
   label: string
   level: number
   detail: SkillDetail | undefined
+  /** Asked for and not yet confirmed; null when nothing is in flight. */
+  pending: number | null
   editable: boolean
   busy: boolean
   onSet: (level: number) => void
@@ -222,7 +235,14 @@ function SkillRow({
   const [hovered, setHovered] = useState<number | null>(null)
 
   const name = t(`players.skillName.${label}`, { defaultValue: label })
-  const shown = hovered ?? level
+
+  // Three sources, in order: the pointer, an unconfirmed request, the
+  // server. Clicking a pip fills it at once and the row breathes until
+  // the bridge answers — the wait is the animation rather than a
+  // separate spinner, and a refusal snaps it back.
+  const inFlight = pending !== null
+  const settled = pending ?? level
+  const shown = hovered ?? settled
 
   const progress = detail === undefined ? null : levelProgress(detail)
   const number = (value: number) => Math.round(value).toLocaleString(i18n.language)
@@ -264,7 +284,7 @@ function SkillRow({
         }
         className={cn(
           'flex w-28 shrink-0 items-center gap-1 truncate text-sm',
-          level === 0 && !boosted && 'text-muted-foreground',
+          settled === 0 && !boosted && 'text-muted-foreground',
           // The game golds a skill its profession boosts by three.
           boosted && 'text-amber-400',
         )}
@@ -288,12 +308,12 @@ function SkillRow({
       >
         {Array.from({ length: MAX_SKILL_LEVEL }, (_, index) => {
           const pip = index + 1
-          const wanted = pip === level ? 0 : pip
+          const wanted = pip === settled ? 0 : pip
 
           // Hovering the level you already have asks what is left of it;
           // hovering any other says what a click would set.
           const hint =
-            pip === level && remainder !== null
+            pip === settled && remainder !== null
               ? remainder
               : t('players.setSkillTo', { skill: name, level: wanted })
 
@@ -301,10 +321,10 @@ function SkillRow({
             return (
               <span
                 key={pip}
-                title={pip === level ? (remainder ?? undefined) : undefined}
+                title={pip === settled ? (remainder ?? undefined) : undefined}
                 className={cn(
                   'h-1.5 flex-1 rounded-full',
-                  pip <= level ? 'bg-primary' : 'bg-muted',
+                  pip <= settled ? 'bg-primary' : 'bg-muted',
                 )}
               />
             )
@@ -328,11 +348,13 @@ function SkillRow({
                   'h-1.5 w-full rounded-full transition-colors',
                   pip <= shown
                     ? hovered !== null
-                      ? pip <= (hovered === level ? 0 : hovered)
+                      ? pip <= (hovered === settled ? 0 : hovered)
                         ? 'bg-primary'
                         : 'bg-primary/30'
                       : 'bg-primary'
                     : 'bg-muted group-hover:bg-primary/40',
+                  // Breathing while the bridge has not answered yet.
+                  inFlight && pip <= settled && 'pz-pending',
                 )}
               />
             </button>
@@ -347,7 +369,7 @@ function SkillRow({
           a reading nobody asked for, and a skill nobody has touched has
           no progress worth a number. */}
       <span className="w-8 shrink-0 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-        {progress !== null && level > 0 && progress.fraction > 0
+        {progress !== null && !inFlight && level > 0 && progress.fraction > 0
           ? `${Math.round(progress.fraction * 100)} %`
           : ''}
       </span>
@@ -355,10 +377,11 @@ function SkillRow({
       <span
         className={cn(
           'w-4 shrink-0 text-right font-mono text-xs tabular-nums',
-          level === 0 ? 'text-muted-foreground/50' : 'font-medium',
+          settled === 0 ? 'text-muted-foreground/50' : 'font-medium',
+          inFlight && 'pz-pending text-primary',
         )}
       >
-        {level}
+        {settled}
       </span>
     </div>
   )
@@ -399,7 +422,6 @@ function ExperienceRow({
         result.level !== undefined && result.level !== result.levelBefore
           ? t('players.xpReachedLevel', { level: result.level })
           : t('players.xpGranted', { amount }),
-        { description: result.reply === '' ? undefined : result.reply },
       )
       onDone()
     },

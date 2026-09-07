@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SectionMark } from '@/components/layout/section-mark'
 import { CharacterIcon } from './character-icon'
+import { TraitTooltip } from './trait-tooltip'
 import { skillLabel } from './skills'
 import {
   offerableTraits,
@@ -62,12 +63,12 @@ export function CharacterCard({
     // Awaited, not fired and forgotten: without this the offer list
     // renders from the old roster and keeps offering the trait that was
     // just added, until the next three-second poll.
-    onSuccess: async (result, input) => {
+    onSuccess: async (_result, input) => {
       await queryClient.invalidateQueries({ queryKey: ['players', serverId] })
 
-      toast.success(t(input.adding ? 'character.traitAdded' : 'character.traitRemoved'), {
-        description: result.reply === '' ? undefined : result.reply,
-      })
+      // No description: the bridge answers "trait added", which is this
+      // heading in English. RCON replies carry real prose; these do not.
+      toast.success(t(input.adding ? 'character.traitAdded' : 'character.traitRemoved'))
     },
     onError: (error) =>
       toast.error(
@@ -274,8 +275,8 @@ function TraitColumn({
       ) : (
         <div className="space-y-1">
           {traits.map(({ id, definition }) => (
+            <TraitTooltip key={id} id={id} definition={definition}>
             <div
-              key={id}
               className={cn(
                 'flex items-center gap-2 rounded-md border px-2 py-1.5',
                 // A shape as well as a hue: the border side carries the
@@ -308,6 +309,7 @@ function TraitColumn({
                 <Minus className="size-3.5" />
               </Button>
             </div>
+            </TraitTooltip>
           ))}
         </div>
       )}
@@ -429,8 +431,8 @@ function OfferColumn({
       ) : (
         <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
           {traits.map(({ id, definition }) => (
+            <TraitTooltip key={id} id={id} definition={definition}>
             <button
-              key={id}
               type="button"
               disabled={busy}
               className={cn(
@@ -459,6 +461,7 @@ function OfferColumn({
 
               <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
             </button>
+            </TraitTooltip>
           ))}
         </div>
       )}

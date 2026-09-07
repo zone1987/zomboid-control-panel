@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import { RefreshCw, TrendingUp, Users } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getServer } from '@/features/servers/servers'
 import { BanDialog } from './ban-dialog'
@@ -36,7 +35,7 @@ export function PlayersPage() {
     queryFn: () => getServer(id),
   })
 
-  const { data, isPending, dataUpdatedAt, refetch, isFetching } = useQuery({
+  const { data, isPending, dataUpdatedAt, isFetching } = useQuery({
     queryKey: ['players', id, false],
     queryFn: () => listPlayers(id, false),
     refetchInterval: 3_000,
@@ -107,20 +106,19 @@ export function PlayersPage() {
           </p>
         </div>
 
-        {/* A visible timestamp beats silent polling: it says the number
+        {/* The timestamp without a button: the list refetches every
+            three seconds, so a manual refresh only repeats what already
+            happens. The time still earns its place — it says the number
             is current without anybody having to trust that it is. */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            {t('players.updatedAt', {
-              time: new Date(dataUpdatedAt).toLocaleTimeString(i18n.language),
-            })}
-          </span>
-
-          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
-            <RefreshCw className={isFetching ? 'size-4 animate-spin' : 'size-4'} />
-            {t('common.refresh')}
-          </Button>
-        </div>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <RefreshCw
+            aria-hidden
+            className={isFetching ? 'size-3 animate-spin' : 'size-3 opacity-40'}
+          />
+          {t('players.updatedAt', {
+            time: new Date(dataUpdatedAt).toLocaleTimeString(i18n.language),
+          })}
+        </span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
