@@ -148,4 +148,9 @@ final class RecordingFileBrowser implements FileBrowserInterface
             $this->contents = $contents;
         }
     }
+
+    public function delete(FtpConfig $config, string $path): void
+    {
+        unset($this->uploads[$path]);
+    }
 }

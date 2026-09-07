@@ -80,6 +80,10 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/servers/server-detail-page'), 'ServerDetailPage'),
                     },
                     {
+                      path: 'servers/:id/config',
+                      lazy: lazyRoute(() => import('@/features/config/config-page'), 'ConfigPage'),
+                    },
+                    {
                       path: 'servers/:id/players',
                       lazy: lazyRoute(() => import('@/features/players/players-page'), 'PlayersPage'),
                     },

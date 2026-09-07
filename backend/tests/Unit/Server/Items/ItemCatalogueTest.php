@@ -189,4 +189,8 @@ final class StubFileBrowser implements FileBrowserInterface
     public function upload(FtpConfig $config, string $path, string $contents): void
     {
     }
+
+    public function delete(FtpConfig $config, string $path): void
+    {
+    }
 }

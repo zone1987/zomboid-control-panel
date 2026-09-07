@@ -28,6 +28,17 @@ namespace App\Server\Config;
 final class LuaTableReader
 {
     /**
+     * The name a server's own file assigns the table to.
+     *
+     * The game's template is `return { ... }`, but a *server* writes
+     * `SandboxVars = { ... }`. Treated as a section, that name would be
+     * prefixed onto all 270 keys, so every one of them would look like
+     * an option this build has never heard of. Found by reading a live
+     * server's file rather than the template.
+     */
+    private const ROOT_ASSIGNMENTS = ['SandboxVars'];
+
+    /**
      * @return array<string, bool|float|int|string>
      */
     public function read(string $source): array
@@ -67,7 +78,8 @@ final class LuaTableReader
             $offset += strlen($match[0]);
 
             if ($offset < $length && $source[$offset] === '{') {
-                $path[] = $key;
+                // The outermost table's own name is not a section.
+                $path[] = $path === [] && in_array($key, self::ROOT_ASSIGNMENTS, true) ? null : $key;
                 ++$offset;
                 continue;
             }
@@ -78,7 +90,7 @@ final class LuaTableReader
                 continue;
             }
 
-            $values[implode('.', [...$path, $key])] = $value;
+            $values[implode('.', [...array_filter($path, static fn (?string $part): bool => $part !== null), $key])] = $value;
         }
 
         return $values;

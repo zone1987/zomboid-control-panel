@@ -7,6 +7,7 @@ import {
   Package,
   ScrollText,
   Skull,
+  SlidersHorizontal,
   Sparkles,
   Terminal,
   Thermometer,
@@ -25,7 +26,7 @@ import type { Permission } from '@/features/auth/types'
  * out content, administering the panel. One flat list of eight put
  * looking things up beside intervening beside configuring.
  */
-export type ServerSection = 'live' | 'world' | 'content' | 'diagnostics'
+export type ServerSection = 'config' | 'live' | 'world' | 'content' | 'diagnostics'
 
 /**
  * A page nested under another, for the event categories.
@@ -68,6 +69,16 @@ export const EVENT_CHILDREN: ServerChildPage[] = [
 ]
 
 export const SERVER_PAGES: ServerPage[] = [
+  // The settings files, above the day-to-day pages: this is where a
+  // server is set up, and it belongs beside the server's own overview
+  // rather than among the things you do once it is running.
+  {
+    path: 'config',
+    label: 'nav.config',
+    icon: SlidersHorizontal,
+    permission: 'servers.config',
+    section: 'config',
+  },
   {
     path: 'players',
     label: 'nav.players',
@@ -119,6 +130,7 @@ export const SERVER_PAGES: ServerPage[] = [
 
 /** The bands in the order the sidebar shows them, with their headings. */
 export const SERVER_SECTIONS: { id: ServerSection; label: string }[] = [
+  { id: 'config', label: 'nav.serverSection' },
   { id: 'live', label: 'nav.sectionLive' },
   { id: 'world', label: 'nav.sectionWorld' },
   { id: 'content', label: 'nav.sectionContent' },

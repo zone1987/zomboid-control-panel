@@ -254,6 +254,11 @@ final class FakeFiles implements FileBrowserInterface
         $this->written[$path] = $contents;
     }
 
+    public function delete(\App\Entity\FtpConfig $config, string $path): void
+    {
+        unset($this->written[$path]);
+    }
+
     public function fileExists(\App\Entity\FtpConfig $config, string $path): bool
     {
         return isset($this->contents[$path]);

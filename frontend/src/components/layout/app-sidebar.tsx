@@ -120,8 +120,10 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* No heading: its one entry is the panel-wide entry point and
+            names itself. A heading reading "Übersicht" above an entry
+            reading "Übersicht" said the same word twice. */}
         <SidebarGroup>
-          <SidebarGroupLabel>{t('nav.overview')}</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive('/')} tooltip={t('nav.dashboard')}>
@@ -134,27 +136,19 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        {(can('servers.view') || can('players.view')) && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{t('nav.serverSection')}</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/servers')} tooltip={t('nav.servers')}>
-                  <Link to="/servers">
-                    <Server />
-                    <span>{t('nav.servers')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
-
         {SERVER_SECTIONS.map((section) => {
           const pages = pagesOf(section.id).filter((page) => can(page.permission))
 
+          // The server list is not a page under a server, so it is not in
+          // SERVER_PAGES -- but it heads the same band, because both are
+          // about setting a server up rather than running one. Kept here
+          // rather than in a group of its own, which put two headings
+          // reading "Server" one under the other.
+          const listsServers =
+            section.id === 'config' && (can('servers.view') || can('players.view'))
+
           // A heading with nothing under it is worse than no heading.
-          if (pages.length === 0) {
+          if (pages.length === 0 && !listsServers) {
             return null
           }
 
@@ -162,6 +156,21 @@ export function AppSidebar() {
             <SidebarGroup key={section.id}>
               <SidebarGroupLabel>{t(section.label)}</SidebarGroupLabel>
               <SidebarMenu>
+                {listsServers && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive('/servers')}
+                      tooltip={t('nav.servers')}
+                    >
+                      <Link to="/servers">
+                        <Server />
+                        <span>{t('nav.servers')}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+
                 {pages.map((page) => {
                   if (activeServer === undefined) {
                     return (

@@ -5478,3 +5478,196 @@ would now be zero.
 
 Next: the sandbox editor interface (step 2's remaining half). Nothing of
 it exists yet — no `features/config/`, no route, no navigation entry.
+
+---
+
+## 2026-09-07 — Measured: reloadlua does NOT apply sandbox values
+
+**The user asked that saved configuration be reloaded automatically,
+"ohne dass ich extra dafür etwas tun muss". Measured on the live server,
+and the answer differs per file.**
+
+### The measurement, and why it is conclusive
+
+`readUtilities` reads `ElecShutModifier` out of the *running*
+`SandboxOptions`, and the file holds the same option — so the two can be
+compared directly.
+
+| Step | Result |
+|---|---|
+| file `ElecShutModifier` 14 → 15, written and read back | **written**, verified |
+| running server before reload | `shutAt: 14` (correctly still the old value) |
+| `reloadlua servertest_SandboxVars.lua` | **`Lua file reloaded`** |
+| running server after reload | **`shutAt: 14` — unchanged** |
+| `reloadoptions` | `Options reloaded` |
+| running server after that | **`shutAt: 14` — still unchanged** |
+| file set back to 14, verified | restored; server untouched |
+
+**`Lua file reloaded` is not `applied`.** The command found the file and
+re-executed it; the value the game reads did not move. This is exactly
+the shape CLAUDE.md 6c warns about, and it would have been shipped as
+"übernommen" had it not been measured.
+
+### The cause, in the game's own files
+
+`media/lua/shared/Sandbox/SandboxVars.lua` is four lines:
+
+```lua
+SandboxVars = require "Sandbox/Apocalypse"
+getSandboxOptions():initSandboxVars()
+```
+
+`initSandboxVars()` walks `SandboxOptions.options` and pulls each value
+**out of the Lua table into the Java option** — that is the step that
+makes a value real. A *server's* file
+(`Server/servertest_SandboxVars.lua`) assigns the table and **does not
+call it**:
+
+```lua
+SandboxVars = {
+    VERSION = 6,
+    ...
+}
+```
+
+So `reloadlua` on a server's sandbox file refreshes the Lua table and
+leaves the Java options holding what they loaded at start. The game
+reads the Java options. `reloadoptions` cannot help either — its
+bytecode never touches `SandboxOptions`, which was already established.
+
+**This is the reference panel's "half way" warning, confirmed from the
+other direction**: they wrote the Java option and left the table stale;
+here the table is fresh and the option is stale.
+
+### What this settles for the editor
+
+| File | Reload | Verdict |
+|---|---|---|
+| **server.ini** | `reloadoptions` | **works** — `ServerOptions.init()` re-reads the INI, and `sendOptionsToClients()` pushes it to everyone connected. Bytecode-established; still to be measured per value. |
+| **SandboxVars.lua** | neither | **restart needed**, and the interface must say so |
+
+A possible third route exists and is **not** built on a guess: the
+bridge could call `getSandboxOptions():initSandboxVars()` itself after
+an upload, since it runs inside the game and the method is public and
+Lua-reachable (`SandboxVars.lua` calls it). That would need a new
+handler, an upload and a measurement of its own — and it is now cheap,
+because the bridge reloads without a restart. Filed as the next
+candidate rather than assumed to work.
+
+### The write path works, verified against the live server
+
+`app:config:set sandbox ElecShutModifier 15` and back:
+
+- **backup created** each time
+  (`servertest_SandboxVars.lua.zc-bak-20260907-111721`, and a second)
+- **only the one value changed**: the file is still exactly 44,505 bytes
+  after two writes, so nothing else moved
+- **read back and compared per key** before reporting success
+- the server ended in its original state (14 in the file, 14 in the
+  game), which was checked rather than assumed
+
+### Editing only — never deleting
+
+**User's requirement: "Diese Einstellungen dürfen nicht löschbar
+sondern nur bearbeitbar sein."** `ConfigWriter` enforces it structurally
+rather than by convention:
+
+- a key the request names must **already exist** in the file, or the
+  write is refused (`ConfigWriteRefused`, `config.unknownKeys`)
+- a key the file holds and the request omits is **untouched**
+- there is no code path that removes a line; `IniWriter` and
+  `LuaTableWriter` only ever substitute the text after the `=`
+- a duplicate key is refused rather than guessed at
+
+So a mod's option survives a save, and so do comments and hand-written
+spacing.
+
+### New files
+
+| File | What |
+|---|---|
+| `src/Server/Config/ConfigKind.php` | sandbox or ini, as an enum |
+| `src/Server/Config/ConfigFileLocator.php` | finds the files by pattern; `Server/` verified on the live host |
+| `src/Server/Config/ConfigReader.php` | describes what the file holds through the schema |
+| `src/Server/Config/ConfigWriter.php` | backup → replace → write → **read back** → restore on mismatch |
+| `src/Server/Config/ConfigBackup.php` | three states, sorted **by name** not timestamp, keeps 5 |
+| `src/Server/Config/IniWriter.php` | reads and edits an INI in place |
+| `src/Server/Config/ConfigWriteRefused.php` | a write that was not done, with its reason |
+| `src/Controller/Api/ServerConfigController.php` | `/files` and `/{kind}` |
+| `src/Command/ConfigFilesCommand.php` | `app:config:files`, with `--read` and `--unknown` |
+| `src/Command/ConfigSetCommand.php` | `app:config:set`, the write path without a browser |
+| `frontend/src/features/config/config.ts` | types plus label, tooltip, choice and search helpers |
+| `frontend/src/features/config/config-page.tsx` | tabs, search, groups as accordions |
+| `frontend/src/features/config/value-row.tsx` | one setting with its explanation |
+| `Permission::EditServerConfig = 'servers.config'` | plus both locales |
+
+`FileBrowserInterface` gained `delete()` (for pruning backups only), and
+the three test doubles implementing it were updated.
+
+### Two bugs the live read found that no test would have
+
+1. **A server writes `SandboxVars = { ... }`, the game's template
+   writes `return { ... }`.** Treated as a section, that name was
+   prefixed onto all 270 keys, so *every* option read as unknown. Fixed
+   in `LuaTableReader` with a named root assignment, and asserted.
+2. **The INI holds 144 values; the schema knew 98.** The game's settings
+   screen lists only 98 of the 144 `ServerOptions` defines. The other 46
+   now go in an `Advanced` group, exactly as the sandbox's 13 do —
+   otherwise the editor could not see them, and a save would drop them.
+
+After both: **270 sandbox values and 144 INI values read from the live
+server, none unknown.**
+
+### Navigation, as the user asked
+
+`Server` → `Server` was the same word twice. Now:
+
+```
+Dashboard                 (no heading; it names itself)
+Server
+  Übersicht               ← was "Server"
+  Konfiguration           ← new
+Betrieb / Welt / Inhalte / Diagnose
+```
+
+`nav.overview` was removed, `nav.dashboard` became "Dashboard", and
+`nav.servers` became "Übersicht". The config page is a **page in
+`SERVER_PAGES`**, not a special case in the sidebar — which is what
+makes `RequirePagePermission` guard its route and the breadcrumbs work
+without further code. Its section reuses the `Server` heading and the
+server-list entry moved into it, so there is only one such heading.
+
+### Verified in the browser
+
+Clicked through at `/app/servers/<id>/config`: **270 Werte** from
+`Server/servertest_SandboxVars.lua`, ten groups with counts (Zombies 47,
+Charakter 68, Beute 37 …), both tabs present, the sidebar reading
+Dashboard / Server → Übersicht · Konfiguration.
+
+**Two failures the browser caught first**, both worth remembering:
+
+- `npm run build` had not been re-run, so the router served no `/config`
+  route and the page showed the error boundary. Vite was not running.
+- After the build, the **service worker** kept serving the previous
+  `index.html`, whose asset hashes no longer existed — eleven MIME-type
+  errors. Fixed by unregistering it and clearing the caches from the
+  page. **In a browser test after a build, clear the service worker
+  first**, or the failure looks like a code fault.
+
+### Still open
+
+- [ ] **Editing in the interface.** The rows are read-only: the write
+      path exists and is tested from the console, but no control on the
+      page changes anything yet. The user has asked explicitly that
+      every setting be editable, so this is the next step.
+- [ ] **`PUT /config/{kind}`** — the endpoint for it, with the refusal
+      cases mapped to statuses.
+- [ ] **Automatic reload after saving** — the user asked for it. INI:
+      `reloadoptions`, to be measured per value. Sandbox: **not
+      possible** as things stand; the bridge-side `initSandboxVars()`
+      route is the candidate.
+- [ ] **Backup listing and restore in the interface** — the backups are
+      created and pruned, nothing shows them.
+- [ ] **The item picker for `spawnItems`**, and presets.
+- [ ] **Twelve INI options have no explanation in any language** —
+      listed in the earlier entry; the panel must write those itself.

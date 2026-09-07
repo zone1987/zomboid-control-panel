@@ -15,6 +15,7 @@ export type Permission =
   | 'servers.view'
   | 'servers.edit'
   | 'servers.bridge'
+  | 'servers.config'
   | 'users.invite'
   | 'users.manage'
   | 'settings.edit'

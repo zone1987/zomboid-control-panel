@@ -167,6 +167,15 @@ final readonly class ServerFileBrowser implements FileBrowserInterface
         }
     }
 
+    public function delete(FtpConfig $config, string $path): void
+    {
+        try {
+            $this->storage->create($config)->delete($this->normalise($path));
+        } catch (\Throwable $exception) {
+            throw $this->translate($exception);
+        }
+    }
+
     /**
      * Rejects traversal outright: the base path is the boundary, and a
      * request that tries to leave it is a bug or an attack, never routine.

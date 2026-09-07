@@ -9049,6 +9049,696 @@
                 "EN": "Toggle directional audio for VOIP",
                 "DE": "Richtungs-Audio für den Sprachchat."
             }
+        },
+        "PVPLogToolChat": {
+            "key": "PVPLogToolChat",
+            "name": "PVPLogToolChat",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "PVP is logged to admin chat",
+                "DE": "PvP ist mit Admin-Chat verbunden"
+            }
+        },
+        "PVPLogToolFile": {
+            "key": "PVPLogToolFile",
+            "name": "PVPLogToolFile",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "PVP is logged to file",
+                "DE": "PvP ist mit Datei verbunden"
+            }
+        },
+        "ChatStreams": {
+            "key": "ChatStreams",
+            "name": "ChatStreams",
+            "type": "string",
+            "group": "Advanced",
+            "default": "s,r,a,w,y,sh,f,all",
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "SwitchZombiesOwnershipEachUpdate": {
+            "key": "SwitchZombiesOwnershipEachUpdate",
+            "name": "SwitchZombiesOwnershipEachUpdate",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "SpawnPoint": {
+            "key": "SpawnPoint",
+            "name": "SpawnPoint",
+            "type": "string",
+            "group": "Advanced",
+            "default": "0,0,0",
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Force every new player to spawn at these set x,y,z world coordinates. Find desired coordinates at map.projectzomboid.com. (Ignored when 0,0,0)",
+                "DE": "Jeden neuen Spieler bei den angebenen Weltkoordinaten 'x,y,z' spawnen lassen. Wird ignoriert wenn: 0,0,0"
+            }
+        },
+        "SafetyDisconnectDelay": {
+            "key": "SafetyDisconnectDelay",
+            "name": "SafetyDisconnectDelay",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 60,
+            "min": 0,
+            "max": 60,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "Mods": {
+            "key": "Mods",
+            "name": "Mods",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Enter the mod loading ID here. It can be found in \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\info.txt",
+                "DE": "Gib hier die Mod-Lade-ID ein. Diese kann gefunden werden unter: \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\info.txt"
+            }
+        },
+        "Map": {
+            "key": "Map",
+            "name": "Map",
+            "type": "string",
+            "group": "Advanced",
+            "default": "Muldraugh, KY",
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Enter the foldername of the mod found in \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\media\\maps\\",
+                "DE": "Gib hier den Ordnernamen der Mod ein wo diese zu finden ist. - \\Steam\\steamapps\\workshop\\modID\\mods\\modName\\media\\maps\\"
+            }
+        },
+        "DenyLoginOnOverloadedServer": {
+            "key": "DenyLoginOnOverloadedServer",
+            "name": "DenyLoginOnOverloadedServer",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "MaxSafezoneSize": {
+            "key": "MaxSafezoneSize",
+            "name": "MaxSafezoneSize",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 20000,
+            "min": 0,
+            "max": 2147483647,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "WebhookAddress": {
+            "key": "WebhookAddress",
+            "name": "WebhookAddress",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "The Slack incoming webhook URL",
+                "DE": "Die Slack-Webhook-URL"
+            }
+        },
+        "KnockedDownAllowed": {
+            "key": "KnockedDownAllowed",
+            "name": "KnockedDownAllowed",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "WIP: Activating this setting may cause visual desynchronization of player positions.",
+                "DE": "In Arbeit: Die Aktivierung dieser Einstellung kann zu einer visuellen Desynchronisation der Spielerpositionen führen."
+            }
+        },
+        "SneakModeHideFromOtherPlayers": {
+            "key": "SneakModeHideFromOtherPlayers",
+            "name": "SneakModeHideFromOtherPlayers",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "UltraSpeedDoesnotAffectToAnimals": {
+            "key": "UltraSpeedDoesnotAffectToAnimals",
+            "name": "UltraSpeedDoesnotAffectToAnimals",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "WorkshopItems": {
+            "key": "WorkshopItems",
+            "name": "WorkshopItems",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "List Workshop Mod IDs for the server to download. Each must be separated by a semicolon. Example: WorkshopItems=514427485;513111049",
+                "DE": "Liste von Workshop Mod IDs für den Server zum Download. Getrennt durch ein Semikolon ( ; ). Beispiel: WorkshopItems=514427485;513111049"
+            }
+        },
+        "SteamVAC": {
+            "key": "SteamVAC",
+            "name": "SteamVAC",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Enable the Steam VAC system",
+                "DE": "Aktiviert das Steam-VAC-System"
+            }
+        },
+        "LoginQueueEnabled": {
+            "key": "LoginQueueEnabled",
+            "name": "LoginQueueEnabled",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "LoginQueueConnectTimeout": {
+            "key": "LoginQueueConnectTimeout",
+            "name": "LoginQueueConnectTimeout",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 60,
+            "min": 20,
+            "max": 1200,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "server_browser_announced_ip": {
+            "key": "server_browser_announced_ip",
+            "name": "server_browser_announced_ip",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Set the IP from which the server is broadcast. This is for network configurations with multiple IP addresses, such as server farms",
+                "DE": "Leg hier die IP fest unter dem der Server zu erreichen ist. Für Netzwerkkonfigurationen mit mehreren IP-Adressen wie Serverfarmen"
+            }
+        },
+        "BloodSplatLifespanDays": {
+            "key": "BloodSplatLifespanDays",
+            "name": "BloodSplatLifespanDays",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 0,
+            "min": 0,
+            "max": 365,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Number of days before old blood splats are removed.<br>Removal happens when map chunks are loaded.<br>Zero means they will never disappear",
+                "DE": "Anzahl der Tage, bevor alte Blutspritzer entfernt werden.<br>Entfernung erfolgt, wenn Kartenteile geladen werden.<br>Zero bedeutet nie entfernen."
+            }
+        },
+        "BanKickGlobalSound": {
+            "key": "BanKickGlobalSound",
+            "name": "BanKickGlobalSound",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": true,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
+        },
+        "CarEngineAttractionModifier": {
+            "key": "CarEngineAttractionModifier",
+            "name": "CarEngineAttractionModifier",
+            "type": "double",
+            "group": "Advanced",
+            "default": 0.5,
+            "min": 0,
+            "max": 10,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Modify the range of zombie attraction to cars. (Lower values can help with lag.)",
+                "DE": "Ändert den Bereich, in dem Autos Zombies anziehen, niedrigere Werte können bei Server-Lags helfen."
+            }
+        },
+        "DisableVehicleTowing": {
+            "key": "DisableVehicleTowing",
+            "name": "DisableVehicleTowing",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables vehicle towing",
+                "DE": "Deaktiviert das Abschleppen von Fahrzeugen"
+            }
+        },
+        "DisableTrailerTowing": {
+            "key": "DisableTrailerTowing",
+            "name": "DisableTrailerTowing",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables trailer towing",
+                "DE": "Deaktiviert das Abschleppen von Anhängern"
+            }
+        },
+        "DisableBurntTowing": {
+            "key": "DisableBurntTowing",
+            "name": "DisableBurntTowing",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables burnt vehicle towing",
+                "DE": "Deaktiviert das Abschleppen von ausgebrannten Fahrzeugen"
+            }
+        },
+        "BadWordListFile": {
+            "key": "BadWordListFile",
+            "name": "BadWordListFile",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Path to the file with the list of words to be prohibited. Each word must be on a separate line",
+                "DE": "Pfad zur Datei mit der Liste der zu verbietenden Wörter. Jedes Wort muss in einer separaten Zeile stehen"
+            }
+        },
+        "GoodWordListFile": {
+            "key": "GoodWordListFile",
+            "name": "GoodWordListFile",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Path to the file with the list of words that should be allowed, even if they contain bad word. Each word should be on a separate line.",
+                "DE": "Pfad zur Datei mit der Liste der erlaubten Wörter, auch wenn sie Schimpfwörter enthalten. Jedes Wort muss in einer separaten Zeile stehen."
+            }
+        },
+        "BadWordPolicy": {
+            "key": "BadWordPolicy",
+            "name": "BadWordPolicy",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 3,
+            "min": 1,
+            "max": 3,
+            "numValues": 3,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "What to do with the sender of a bad word in the chat: 1 - ban, 2 - kick, 3 - record the violation in the database, 4 - mute",
+                "DE": "Was tun bei jemandem, der im Chat ein Schimpfwort benutzt? 1 - Bannen, 2 - Kicken, 3 - Verstoß in der Datenbank protokollieren, 4 - Stummschalten"
+            }
+        },
+        "BadWordReplacement": {
+            "key": "BadWordReplacement",
+            "name": "BadWordReplacement",
+            "type": "string",
+            "group": "Advanced",
+            "default": "[HIDDEN]",
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "The symbol or piece of text that will replace the bad word",
+                "DE": "Das Symbol oder der Textabschnitt, der das Schimpfwort ersetzen soll"
+            }
+        },
+        "AntiCheatSafety": {
+            "key": "AntiCheatSafety",
+            "name": "AntiCheatSafety",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables safety system anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz."
+            }
+        },
+        "AntiCheatSpeed": {
+            "key": "AntiCheatSpeed",
+            "name": "AntiCheatSpeed",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables character speed anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Charaktergeschwindigkeit."
+            }
+        },
+        "AntiCheatNoClip": {
+            "key": "AntiCheatNoClip",
+            "name": "AntiCheatNoClip",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 4,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables character no-clipping anti-cheat protection.",
+                "DE": "Deaktiviert denCharakter no-clip Anti-Cheat."
+            }
+        },
+        "AntiCheatHit": {
+            "key": "AntiCheatHit",
+            "name": "AntiCheatHit",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables character hit anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Charaktertreffer."
+            }
+        },
+        "AntiCheatPacketException": {
+            "key": "AntiCheatPacketException",
+            "name": "AntiCheatPacketException",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 4,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables packet exception checks anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat für Packetprüfung."
+            }
+        },
+        "AntiCheatPermission": {
+            "key": "AntiCheatPermission",
+            "name": "AntiCheatPermission",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables player permissions anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Spielerbefugnisse."
+            }
+        },
+        "AntiCheatXP": {
+            "key": "AntiCheatXP",
+            "name": "AntiCheatXP",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables player XP anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Spieler-EP."
+            }
+        },
+        "AntiCheatSafeHouse": {
+            "key": "AntiCheatSafeHouse",
+            "name": "AntiCheatSafeHouse",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables safehouse anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Verstecke."
+            }
+        },
+        "AntiCheatPlayer": {
+            "key": "AntiCheatPlayer",
+            "name": "AntiCheatPlayer",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables player anti-cheat protection.",
+                "DE": "Deaktiviert den Spieler Anti-Cheat."
+            }
+        },
+        "AntiCheatChecksum": {
+            "key": "AntiCheatChecksum",
+            "name": "AntiCheatChecksum",
+            "type": "enum",
+            "group": "Advanced",
+            "default": 2,
+            "min": 1,
+            "max": 4,
+            "numValues": 4,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables checksum anti-cheat protection.",
+                "DE": "Deaktiviert den Anti-Cheat-Schutz für Checksummen."
+            }
+        },
+        "MultiplayerStatisticsPeriod": {
+            "key": "MultiplayerStatisticsPeriod",
+            "name": "MultiplayerStatisticsPeriod",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 1,
+            "min": 0,
+            "max": 10,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Sets the multiplayer update period in seconds. Statistics is disabled if value is 0.",
+                "DE": "Setzt die Aktualisierungsrate für Multiplayer in Sekunden. Statistiken deaktiviert wenn der Wert 0 ist."
+            }
+        },
+        "DisableScoreboard": {
+            "key": "DisableScoreboard",
+            "name": "DisableScoreboard",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Disables scoreboard.",
+                "DE": "Deakiviert das Scoreboard."
+            }
+        },
+        "HideAdminsInPlayerList": {
+            "key": "HideAdminsInPlayerList",
+            "name": "HideAdminsInPlayerList",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Hides admins in the player list.",
+                "DE": "Admins werden in der Spielerliste nicht angezeigt."
+            }
+        },
+        "MaxPacketsPerSecond": {
+            "key": "MaxPacketsPerSecond",
+            "name": "MaxPacketsPerSecond",
+            "type": "integer",
+            "group": "Advanced",
+            "default": 300,
+            "min": 100,
+            "max": 1000,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Sets the limit for processing network packets from each client on the server.",
+                "DE": "Legt das Limit für die Verarbeitung von Netzwerkpaketen von jedem Client auf dem Server fest."
+            }
+        },
+        "ShowCoordinates": {
+            "key": "ShowCoordinates",
+            "name": "ShowCoordinates",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "Shows player character coordinates in the lower right corner.",
+                "DE": "Zeigt die Koordinaten der Spielfigur in der unteren rechten Ecke an."
+            }
+        },
+        "Seed": {
+            "key": "Seed",
+            "name": "Seed",
+            "type": "string",
+            "group": "Advanced",
+            "default": null,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": "The worldgen seed used to generate the world.<br>If you want to change this, put a new value in and delete map_worldgen.bin in your save directory.",
+                "DE": "Der für die Weltgenerierung verwendete Seed.<br>Wenn du diesen ändern möchtest, gib einen neuen Wert ein und lösche die Datei map_worldgen.bin in deinem Speicherordner."
+            }
+        },
+        "UsePhysicsHitReaction": {
+            "key": "UsePhysicsHitReaction",
+            "name": "UsePhysicsHitReaction",
+            "type": "boolean",
+            "group": "Advanced",
+            "default": false,
+            "min": null,
+            "max": null,
+            "numValues": null,
+            "defaultIsGenerated": false,
+            "tooltips": {
+                "EN": null,
+                "DE": null
+            }
         }
     },
     "sandboxGroups": [
@@ -9580,6 +10270,57 @@
                 "VoiceMinDistance",
                 "VoiceMaxDistance",
                 "Voice3D"
+            ]
+        },
+        {
+            "name": "Advanced",
+            "options": [
+                "PVPLogToolChat",
+                "PVPLogToolFile",
+                "ChatStreams",
+                "SwitchZombiesOwnershipEachUpdate",
+                "SpawnPoint",
+                "SafetyDisconnectDelay",
+                "Mods",
+                "Map",
+                "DenyLoginOnOverloadedServer",
+                "MaxSafezoneSize",
+                "WebhookAddress",
+                "KnockedDownAllowed",
+                "SneakModeHideFromOtherPlayers",
+                "UltraSpeedDoesnotAffectToAnimals",
+                "WorkshopItems",
+                "SteamVAC",
+                "LoginQueueEnabled",
+                "LoginQueueConnectTimeout",
+                "server_browser_announced_ip",
+                "BloodSplatLifespanDays",
+                "BanKickGlobalSound",
+                "CarEngineAttractionModifier",
+                "DisableVehicleTowing",
+                "DisableTrailerTowing",
+                "DisableBurntTowing",
+                "BadWordListFile",
+                "GoodWordListFile",
+                "BadWordPolicy",
+                "BadWordReplacement",
+                "AntiCheatSafety",
+                "AntiCheatSpeed",
+                "AntiCheatNoClip",
+                "AntiCheatHit",
+                "AntiCheatPacketException",
+                "AntiCheatPermission",
+                "AntiCheatXP",
+                "AntiCheatSafeHouse",
+                "AntiCheatPlayer",
+                "AntiCheatChecksum",
+                "MultiplayerStatisticsPeriod",
+                "DisableScoreboard",
+                "HideAdminsInPlayerList",
+                "MaxPacketsPerSecond",
+                "ShowCoordinates",
+                "Seed",
+                "UsePhysicsHitReaction"
             ]
         }
     ]

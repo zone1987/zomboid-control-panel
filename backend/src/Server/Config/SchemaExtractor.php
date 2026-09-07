@@ -133,12 +133,26 @@ final class SchemaExtractor
             ))),
         ];
 
+        $ini = $this->iniOptions($groups['INI']);
+
+        // Same as the sandbox: the game's settings screen lists 98 of
+        // the 144 options ServerOptions defines, and a real server's
+        // file holds all 144. An editor that cannot see the other 46
+        // would delete them on save.
+        $iniGroups = $groups['INI'];
+        $ungroupedIni = array_diff(array_keys($this->iniConstructors()), array_keys($ini));
+
+        if ($ungroupedIni !== []) {
+            $iniGroups[] = ['name' => self::UNGROUPED, 'options' => array_values($ungroupedIni)];
+            $ini = [...$ini, ...$this->iniOptions([end($iniGroups)])];
+        }
+
         return [
             'buildId' => $this->buildId(),
             'sandbox' => $sandbox,
-            'ini' => $this->iniOptions($groups['INI']),
+            'ini' => $ini,
             'sandboxGroups' => $groups['Sandbox'],
-            'iniGroups' => $groups['INI'],
+            'iniGroups' => $iniGroups,
         ];
     }
 

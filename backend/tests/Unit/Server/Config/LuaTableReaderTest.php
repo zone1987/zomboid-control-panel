@@ -85,6 +85,28 @@ final class LuaTableReaderTest extends TestCase
         self::assertSame('hello', $values['Text']);
     }
 
+    /**
+     * A server writes `SandboxVars = { ... }` where the game's template
+     * writes `return { ... }`. Treated as a section, that name would be
+     * prefixed onto all 270 keys and every option would look unknown --
+     * which is exactly what happened against a live server.
+     */
+    public function testTheOutermostTablesOwnNameIsNotASection(): void
+    {
+        $values = $this->read(<<<'LUA'
+            SandboxVars = {
+                Zombies = 4,
+                ZombieLore = {
+                    Speed = 2,
+                },
+            }
+            LUA);
+
+        self::assertSame(4, $values['Zombies']);
+        self::assertSame(2, $values['ZombieLore.Speed'], 'a real section is still part of the key');
+        self::assertArrayNotHasKey('SandboxVars.Zombies', $values);
+    }
+
     public function testIgnoresComments(): void
     {
         $values = $this->read(<<<'LUA'

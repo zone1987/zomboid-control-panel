@@ -40,6 +40,16 @@ interface FileBrowserInterface
     public function upload(FtpConfig $config, string $path, string $contents): void;
 
     /**
+     * Removes one file.
+     *
+     * Used for pruning configuration backups; a missing file is not an
+     * error, because the goal is that it be gone.
+     *
+     * @throws StorageException
+     */
+    public function delete(FtpConfig $config, string $path): void;
+
+    /**
      * Copies a file from the server to a local path, streaming it.
      *
      * For anything large enough that holding it in memory would be
