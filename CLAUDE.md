@@ -143,6 +143,83 @@ works only from `app:bridge:send` is not a feature.
 - **Report only what the browser showed.** If the click was not made,
   say the click was not made.
 
+## 6c. One value carrying two meanings is a defect
+
+The reference panel found this exact shape **six separate times**, and
+every fix was the same: make the ambiguous case its own explicit state,
+and be wrong in the safe direction.
+
+Their six, as a checklist of the shapes it takes:
+
+| Collapsed | Should have been |
+|---|---|
+| backup absent vs. backup **failed** | benign vs. dangerous |
+| `checkServerRunning()` false | stopped vs. **could not tell** |
+| `isRemote` computed from reachability | remote vs. **temporarily unreachable** |
+| `runTaskNow()` returning `undefined` | success vs. failure |
+| unknown select value coerced to default | known vs. **unrecognised, preserved** |
+| `if (!user) return next()` | absent vs. **unauthenticated** |
+
+This is already practice here — `ModerationAction::hasFailed()` is
+three-state, `PanelUpdateChecker` lets `upToDate` be `null` because "not
+knowing is not the same as being current", and the ability rows show
+*unknown* rather than claiming *off*. **Written down so it is a review
+question, not a habit**: for every boolean or nullable return, ask what
+the third state is and whether it is being hidden.
+
+Two rules follow from it:
+
+- **In doubt, say the cautious thing.** A timeout, an unparseable
+  answer, a read-back that did not happen: all of those are "restart
+  needed", never "applied".
+- **Never coerce an unrecognised value.** Tell the operator what it is
+  and that it stays untouched.
+
+## 6d. Send only what changed
+
+The reference panel's interface resent the entire settings object on
+every save. That single habit caused **four separately-fixed bugs** in
+its config editor alone: masked secrets overwritten with their own
+mask, duplicate keys destroyed, hand-written whitespace stripped, and
+capability gating firing on presence rather than on change.
+
+The house pattern already does the right thing — `draft` holds only what
+was touched (`server-detail-page.tsx:46`, `settings-page.tsx:45`) — so
+this is a rule to *keep*, not to adopt:
+
+- A PATCH body carries the changed fields, never a full snapshot.
+- **Gate a permission check on the change, not the presence** of a
+  sensitive key. Resending an unchanged `RCONPassword` must not require
+  the credential permission.
+- A blank secret field means "leave unchanged", so the field is **absent
+  from the request** — `SettingsController` reads `''` as *clear*.
+
+## 6e. Ask the game, then ask its own Lua, then measure
+
+Four traps of the same family have cost five uploads
+(`ClimateBool::getFinalValue`, `Color::getA`, the `ORDERED_STATS` array,
+`SandboxOptions`' fields, `PerkInfo.perk`). The order that works:
+
+1. **`javap -p` the class.** Field or method? Bounds? Overloads?
+2. **`javap -p -c` the bytecode** when behaviour is the question, not
+   existence. It settled that `reloadoptions` never touches sandbox
+   values, that `sendPlayerStatsChange` returns immediately on a server,
+   and that `RunLuaInternal` re-registers a reloaded file — three
+   answers no amount of reading documentation would have given.
+3. **Grep `media/lua/` for how the game does the same job.** A call site
+   under `server/` is the strongest evidence a thing works server-side.
+   `ISPerkLog.lua` gave the perk walk; `ISPlayerStatsUI.lua` gave the
+   `modifyTraitXPBoost` step that `add` alone omits.
+4. **Then measure on the running server**, and read back from a
+   *different* field than the one written.
+
+**Derive tables, never type them.** `CharacterDefinitions.php`,
+`skills.ts` and the coming sandbox schema all come from the
+installation's own files. Where a table is generated, **commit the
+generator and a provenance-stamped fixture** — the reference stamps
+`buildid` from `appmanifest_108600.acf`, which is what makes a drift
+gate meaningful. `climate-api.json` is the pattern we already have.
+
 ## 7. The product standard: it must be intuitive
 
 Stated repeatedly by the user and binding on every decision. Not "has the

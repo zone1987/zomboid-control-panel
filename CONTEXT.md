@@ -4647,6 +4647,161 @@ tests across 31 files green, 0 lint errors (21 deliberate warnings),
 build clean, and every interaction above exercised by clicking in a
 browser rather than by command.**
 
+## Sieben Vorhaben durchgeplant, Reihenfolge steht (2026-09-07)
+
+**Der Plan liegt vollständig in
+`docs/superpowers/plans/03-seven-features.md`** (1800 Zeilen). Dieser
+Eintrag ist der Wegweiser dorthin; die Einzelheiten stehen nicht doppelt.
+
+Der Nutzer wollte die sieben aufgeschobenen Bereiche „ganz genau
+durchplanen, eins nach dem anderen", mit Rückfragen zu jeder Idee. Vier
+Erkundungen liefen dafür: drei über den eigenen Code, eine über die
+Referenz. Dazu `javap` gegen `projectzomboid.jar` und die
+Spielinstallation.
+
+### Die Reihenfolge, und warum
+
+| # | Schritt | hängt ab von |
+|---|---|---|
+| **0** | **Bridge ohne Serverneustart laden** | — |
+| 1 | Statistiken sammeln + Diagramme | — |
+| 2 | Server-Konfigurationseditor | 0 (Messmethode) |
+| 3 | Steam Workshop / Mods | **2** (INI-Zugriff) |
+| 4 | Ereignisstrom | — |
+| 5 | Benachrichtigungsglocke | **4** |
+| 6 | Discord | **4** |
+| 7 | Zeitplaner | 1 (ddev-Zeitgeber) |
+| 8 | Avatare | — |
+
+**Fundament zuerst**, vom Nutzer gewählt: Discord und die Glocke brauchen
+denselben Ereignisstrom (zweimal gebaut wäre zweimal gepflegt), die
+Mod-Verwaltung braucht den INI-Zugriff des Editors, und die
+Statistiktabelle sollte so früh wie möglich anfangen zu sammeln.
+
+### Entscheidungen des Nutzers
+
+| Frage | Entscheidung |
+|---|---|
+| Reihenfolge | Fundament zuerst |
+| Sandbox-Bedienung | gruppiert mit Suche, kein Rohtext als Standard |
+| Sandbox-Gruppierung | aus dem Spiel (`getPageName()`) |
+| **INI-Gruppierung** | **bewusste Handarbeit** — „was zusammengehört, bleibt zusammen" |
+| Konfiguration schreiben | Sicherung + Prüflesen + **fünf Versionen**, wiederherstellbar |
+| Mod-Werte | **müssen erhalten bleiben und angezeigt werden** |
+| Startitems | Modal über den Item-Auswähler, **plus Vorlagen** |
+| Discord-Bot | **voller Bot**, PHP im Panel-Container (fünfter supervisord-Eintrag) |
+| Discord-Umfang | **deutlich mehr als die Referenz** |
+| Discord-Befehle | **alles, was Panel und Spiel können**, geordnet wie das Panel |
+| Discord-Kanäle | **Bot-Token, Kanal je Ereignisart** |
+| Statistiken | **so viel wie möglich** sammeln |
+| Aufbewahrung | ein Jahr, einstellbar |
+| Diagramme | **sofort** mitbauen |
+| **`reloadlua`** | **nur bauen, wenn absolut sicher** — sonst Neustart |
+
+### Die wichtigsten belegten Funde
+
+**Der Sandbox-Editor ist vollständig ableitbar.** Das entschied seinen
+Aufwand. `zombie.SandboxOptions` führt jede Option typisiert
+(`EnumSandboxOption`, `BooleanSandboxOption`, `DoubleSandboxOption`,
+`IntegerSandboxOption`) mit `getMin()`, `getMax()`, `getNumValues()`,
+`getTranslatedName()`, `getTooltip()` und **`getPageName()`** (der
+Gruppe). Dazu `Translate/DE/Sandbox.json` mit **1082 Einträgen**,
+inklusive jeder Auswahloption (`Sandbox_ActiveOnly_option1` = „Beides")
+und **266 Erklärungen**. **274 Werte** in `Apocalypse.lua`, davon 183 im
+Hauptbereich.
+
+**Die INI ebenso: 144 Optionen** in `zombie.network.ServerOptions` (73
+Boolean, 29 Integer, 22 String, 11 Enum, 7 Double, 2 Text) mit
+`getTooltip()` — **aber ohne Gruppierung.** Daher Handarbeit.
+
+**`reloadoptions` fasst die Sandbox nicht an** — im Bytecode geprüft: es
+ruft `ServerOptions.init()`, `sendOptionsToClients()`,
+`ZombiePopulationManager.onConfigReloaded()`,
+`SafetySystemManager.updateOptions()` und `SetServerPassword()`. Für die
+**INI** also genau richtig, für die Sandbox wirkungslos.
+
+**`reloadlua` ist der Weg für Lua — und für unsere Bridge.**
+Bytecode von `ReloadLuaCommand`: durchsucht `LuaManager.loaded` per
+`String.endsWith` (ein Teilstring genügt!), entfernt den Pfad und ruft
+`RunLua(gefundenerPfad, true)`. **`RunLuaInternal` trägt den Pfad wieder
+ein** (Anweisung 367–371), das Neuladen ist also **wiederholbar**.
+
+**Der Haken, den ich dabei fand**: die Bridge registriert zwei Ereignisse
+beim Laden (`:2854`, `:2858`), und `Events.X.Add()` **ersetzt nicht**.
+Ohne Wächter liefe `onTick` doppelt. Und **`OnServerStarted` feuert beim
+Neuladen nicht** — der Erstschreibvorgang, die Kataloge und vor allem
+**`readCursor()`** müssten nachgeholt werden, sonst fängt die Bridge bei
+Befehl 1 an (bei uns über 600). `Events.X.Remove` existiert und wird vom
+Spiel selbst genutzt (`ISCampingMenu.lua:452` u. a.).
+
+**Slash-Befehle brauchen kein Gateway.** Discord ruft **uns** per HTTP
+auf, mit Ed25519-Signatur — und `ext-sodium` ist bei uns Pflicht. Nur
+der **Chat-Empfang** braucht einen Dauerprozess. Daher die Dreiteilung:
+fällt das Gateway aus, laufen Meldungen und Befehle weiter.
+
+**Discord-Unterbefehle und Autovervollständigung** lösen das
+Mengenproblem: 35 Ereignisse + 22 Spielerrouten passen in **acht**
+Befehle, und die Autovervollständigung schlägt echte Spieler, Items und
+Fertigkeiten vor (Auswahllisten sind auf 25 begrenzt, sie nicht).
+
+**Ein Webhook kann nur einen Kanal** — daher der Bot-Token für „Kanal je
+Ereignisart".
+
+**Eine Zeitreihe existiert schon**, die ich früher verneint hatte:
+`RosterWatcher.php:41,45` schreibt bei **jedem** Beitritt und Abgang eine
+Zeile mit `performedAt`. „Spieler über Zeit" ist heute zeichenbar. Nur
+**Kills im Verlauf** braucht eine neue Tabelle.
+**`moderation_action` hat keinen Index auf `performed_at`** — der gehört
+in Schritt 1.
+
+**Der Zeitplaner läuft produktiv, aber nicht lokal**:
+`docker/supervisord.conf:44-51` konsumiert `scheduler_main`,
+`.ddev/config.yaml:313-317` **nicht**. Geplante Aufgaben feuern lokal
+also nie. **Wird in Schritt 1 behoben**, sonst ist nichts prüfbar.
+`src/Schedule.php` ist toter Flex-Rumpf.
+
+**Avatardaten werden geholt und weggeworfen**:
+`SteamProfileFetcher.php:55` liest nur `personaname` aus einer Antwort,
+die `avatarfull` im selben Objekt trägt. `GoogleAuthenticator.php:103`
+ignoriert `getAvatar()`. Kein Skalieren im Backend (nur `imagecopy`),
+**kein WebP/AVIF, keine Formatprüfung**, GD in `composer.json` nicht
+deklariert.
+
+### Zwei Fallstricke aus der Standarddatei
+
+Beide in `Apocalypse.lua` nachweisbar, beide haben die Referenz Geld
+gekostet:
+
+1. **`WorldItemRemovalList` (Zeile 71) enthält neun Kommas in einer
+   Zeichenkette.** Am Komma trennen beschädigt die Datei — die Referenz
+   hat damit einen Server lahmgelegt. **Kein Randfall, es steht in der
+   Vorlage.**
+2. **Sechs verschachtelte Tabellen** (`Basement`, `Map`, `ZombieLore`,
+   `ZombieConfig`, `MultiplierConfig`). Die Referenz hat sie plattgemacht
+   und Werte verloren. Mods legen ihre Werte genauso ab.
+
+### Was die Referenz gelehrt hat
+
+`reference/zomboid-control-panel` hat all das gebaut. **Nur Inspiration**
+— aber ihr Änderungsprotokoll ist ein Katalog bezahlter Fehler. Die
+zwölf übernommenen Erkenntnisse stehen im Plan; die drei wichtigsten:
+
+- **`reloadoptions` wendet Sandbox-Werte nie an** → das Panel muss
+  „Neustart nötig" sagen, nicht „übernommen".
+- **`allowedMentions: {parse: []}` global** — Textersetzung genügt nicht,
+  `<@&rolleId>` ist kein Markup.
+- **Ein Mod entfernen berührt `Mods=`, `WorkshopItems=` *und* `Map=`.**
+
+Und die allgemeinste, die jetzt in CLAUDE.md steht: **ein Wert, der zwei
+Bedeutungen trägt, ist ein Fehler** — sie fanden dieselbe Form sechsmal.
+
+### Nächster Schritt
+
+**Schritt 0, Etappe A**: den Neulade-Wächter in die Bridge, dann die elf
+Prüfungen von Hand durchlaufen. **Scheitert eine, endet der Schritt** —
+der Wächter bleibt, das automatische Neuladen kommt nicht. Die
+Oberfläche sagt bis zum Beweis immer „Neustart nötig".
+
 ## 1. Waiting on you, not on me
 
 - [ ] **Upload bridge 0.18.4 and restart.** 0.18.3 is live and works;
