@@ -282,6 +282,12 @@ was wrong; the pair was unusable.
   carries it, so the catalogue states it once and every renderer shows
   it. `features/events/units.ts` prints it: `withUnit` and
   `formatRange`.
+- **A number's sign may mean opposite things in two tables.** A
+  *trait*'s `cost` is a rating (athletic +10 good, deaf −12 bad); a
+  *profession*'s `cost` is a price, so it inverts (veteran −8 is the
+  dearest, unemployed +8 refunds). Reading one through the other colours
+  every badge backwards. Check both ends of a scale against a case you
+  know before building a colour on it.
 - **Once, at the label that explains it.** On the range, not also on the
   input beside it — "0–120 km/h" above a field reading "95 km/h" says it
   twice, which is noise. The input keeps it in its `aria-label`.
@@ -336,10 +342,44 @@ mod is uploaded by hand — so a mismatch surfaces on a live server as
   `elecShutModifier` is `public` on `SandboxOptions`, and indexing it
   returned null — the live server answered "attempted index:
   getValueAsObject of non-table: null". `getElecShutModifier()` and
-  `set(String, Object)` work. This is the fourth trap of the same family
-  (after `ClimateBool::getFinalValue`, `Color::getA` and the
-  `ORDERED_STATS` array), so the rule is: **`javap` the member, and if
-  it is a field rather than a method, find the method.**
+  `set(String, Object)` work. So the rule is: **`javap` the member, and
+  if it is a field rather than a method, find the method.**
+  `BridgeCommandCoverageTest`'s sibling
+  `testNoPublicJavaFieldIsIndexed` now checks this against every public
+  field of eleven game classes, not just the ones already known.
+- **A field read costs nothing and reports success.** This family has
+  now cost five uploads — `ClimateBool::getFinalValue`, `Color::getA`,
+  the `ORDERED_STATS` array, `SandboxOptions`' fields, and
+  `PerkInfo.perk`, which has **no getter at all**, so every player's
+  skills arrived as `{}` with nothing thrown and nothing logged. The
+  panel drew an empty list and called it a success. **An empty result is
+  a symptom, not an absence of data**: check the read before concluding
+  the server has nothing to say.
+- **Ask the game's own Lua how it does the same job.**
+  `media/lua/` is the reference implementation, and it settled in one
+  grep what the class list could not: `ISPerkLog.lua` walks the perks by
+  index through `PerkFactory.getPerk`, `forageSystem.lua` resolves a
+  trait by `CharacterTrait.get(ResourceLocation.of(name))`, and
+  `ISPlayerStatsUI.lua` shows that adding a trait needs
+  `modifyTraitXPBoost` beside it or the trait is inert. Each of those is
+  a step I would have missed. **A `server/` call site is also the
+  strongest evidence a thing works server-side at all** — which is why
+  traits are settable and professions are not.
+- **A setter with no server-side transport is not a feature.**
+  `setCharacterProfession` exists, but `sendPlayerStatsChange` opens with
+  `getstatic GameClient.client; ifeq` and returns immediately on a
+  server, `GameServer` only *receives* stat changes, and the one real
+  server-side broadcast (`sendPlayerExtraInfo` → `ExtraInfoPacket`)
+  carries roles and cheat flags but no professions or traits. Read the
+  **bytecode of the sync call**, not just the setter. Where the effect
+  cannot reach the player, either say so on screen (traits do) or do not
+  build the control (professions).
+- **The reference bridge is evidence too.**
+  `reference/zomboid-control-panel/pz-mod/PanelBridge/media/lua/server/PanelBridge.lua`
+  is 9132 lines by somebody who read the class files by hand. What it
+  *omits* is as informative as what it does: zero mentions of
+  profession. It also named `sendPlayerExtraInfo` as "the one broadcast
+  mechanism here actually confirmed to exist", which is worth knowing.
 - **Nothing at module level touches an exposed game class.** A
   `local X = WeatherPeriod.STAGE_STORM` runs when the mod loads, and a
   class not yet reachable there takes the **whole bridge** down rather

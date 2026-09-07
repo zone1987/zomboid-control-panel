@@ -4097,6 +4097,240 @@ refusal. Nothing else waits on it.
 
 # TODO — the current list (supersedes every earlier one)
 
+## The players page rebuilt, and the skills that were never there (2026-09-07)
+
+The user's verdict on the dossier was blunt and correct: "Die
+Spielerübersicht hat ja nicht so viel mit dem zu tun was ich dir
+geschickt habe. Wo sind denn die fähigkeiten? Die Spalte für die Spieler
+(links) ist viel zu breit und die rechts viel zu schmal." Plus a
+screenshot with a red arrow at an empty skills panel: "hier geht gar
+nichts".
+
+Four separate causes, each found by measuring rather than guessing.
+
+### 1. The skills were never read at all — the fifth field trap
+
+`describeSkills` walked `player:getPerkList()` and tested
+`info.perk ~= nil`. **`PerkInfo.perk` is a public Java field and
+`PerkInfo` has no `getPerk()` at all** (`javap -p
+'zombie.characters.IsoGameCharacter$PerkInfo'`: two methods, the
+constructor and `getLevel`). A field reads nil from Lua, so the test was
+always false, the loop inserted nothing, and `skills` arrived as `{}`.
+**Nothing threw and nothing was logged** — the panel drew an empty list
+and reported success.
+
+Proof it was live: `SELECT skills::text FROM player_snapshot` returned
+`[]` while `traits` held six entries. Same player, same payload, one
+read broken.
+
+This is the **fifth** trap of one family, after `ClimateBool::getFinalValue`,
+`Color::getA`, the `ORDERED_STATS` array and `SandboxOptions`' own
+fields. So the guard is now general rather than per-case.
+
+**The fix is the game's own route**, from
+`media/lua/shared/Logs/ISPerkLog.lua:10-16`:
+
+```lua
+for index = 0, Perks.getMaxIndex() - 1 do
+    local id = Perks.fromIndex(index)
+    local perk = PerkFactory.getPerk(id)
+    local level = player:getPerkLevel(id)
+```
+
+Three statics and one instance method, no field anywhere.
+`Perks.fromIndex` returns an **id**, not the perk — `PerkFactory.getPerk`
+is the second step, which I would have missed. The category filter is
+`perk:getParent()`, compared **by id against "None"** rather than against
+`Perks.None`, because that constant is itself a static field and a nil
+there would have discarded every skill.
+
+### 2. Two names and one parent that could not be guessed
+
+From `javap -p -c zombie.characters.skills.PerkFactory`'s constant pool:
+
+| id | displayed as |
+|---|---|
+| `Woodwork` | **Carpentry** |
+| `PlantScavenging` | **Foraging** |
+| `Lightfoot` | Lightfooted |
+| `Sneak` | Sneaking |
+
+And **`Doctor` hangs under `Survivalist`**, not under Crafting. Six
+categories, 35 skills, all in `frontend/src/features/players/skills.ts`.
+`skills.test.ts` pins each of these; moving Doctor to Crafting fails it.
+
+### 3. The layout: a table wanted the whole width and got a third
+
+`player-table.tsx` was a five-column `<Table>` inside
+`xl:grid-cols-[1fr_26rem]`. Rule 7 says full width is for a table — it
+had a third of it, and its columns (condition, position, access level)
+duplicated what the dossier shows anyway.
+
+Measured in the browser afterwards: **list 320 px, dossier 785 px**.
+
+- **New** `player-list.tsx` — name, state dot, one line of context, with
+  Online/Alle/Gebannt tabs, a search box and a manual-target field.
+- **New** `dossier-header.tsx` — name, state, SteamID, kick and ban
+  always reachable, plus hours survived and the kill tallies.
+- **New** `moderation-tab.tsx` — access level and teleport as cards;
+  they were behind a `…` row menu, which is right for a list of thirty
+  rows and wrong once a player is already open.
+- **New** `use-moderation.ts` — the four commands in one place, so the
+  dossier and the list cannot drift into two ways of banning somebody.
+- **Deleted** `player-table.tsx` and `ban-list.tsx`: both were dead once
+  the list replaced them.
+
+Seven tabs, one job each: Zustand, Charakter, Fertigkeiten, Moderation,
+Fähigkeiten, Vergeben, Notizen. The skills had been buried at the bottom
+of the condition tab; the abilities had shared a tab with granting XP.
+
+### 4. The kills fell between the bridge and the panel
+
+The bridge has reported `zombieKills`/`survivorKills` since 0.18, and
+**nothing read them** — `PlayerSnapshot::update()` did not take them.
+Added as two nullable columns with their own `recordKills()` rather than
+as arguments fourteen and fifteen of a thirteen-argument method, where a
+transposition would be silent. Migration `Version20260907072720`, run on
+dev **and test**.
+
+### The professions and traits, with the game's own artwork
+
+Asked for mid-session with a screenshot of the character creator: "was
+ich auch toll finden würde wenn wir eine übersicht für die berufe bauen
+könnten mit den icons aus dem spiel … Es gibt gute Fähigkeiten und
+schlechte."
+
+**Changing a profession: proven impossible, and not built.** The chain,
+each step checked:
+
+| Question | Answer |
+|---|---|
+| Setter exists? | `SurvivorDesc::setCharacterProfession` — yes |
+| Called server-side? | Only `client/ISUI/PlayerStats/ISPlayerStatsUI.lua:603`; **never in `server/`** |
+| The sync beside it? | `sendPlayerStatsChange` → `getstatic GameClient.client; ifeq 13` — **immediate return on a server** |
+| A server-side counterpart? | `GameServer::receiveChangePlayerStats` — the server **receives**, it does not send |
+| The reference bridge? | **9132 lines, zero mentions of profession** — its author read the class files by hand and left it out |
+| The one real broadcast? | `sendPlayerExtraInfo` (global, one argument, **no client guard**) sends `ExtraInfoPacket`, which carries roles and 24 cheat flags — **no profession, no traits** |
+
+Building a control there would repeat the snow bug exactly: write, read
+back your own write, report success, watch the game overwrite it.
+
+**Traits: built, with the limit stated on screen.**
+`media/lua/server/XpSystem/XpUpdate.lua:209-242` adds and removes traits
+on a live character, server-side, which is the precedent. The game's own
+sequence is three steps (`ISPlayerStatsUI.lua:591-597`): `traits:add`,
+then **`modifyTraitXPBoost`** — without it the trait is listed but
+inert, since the XP boosts live on the character — then the broadcast.
+The client's own sheet only catches up on reconnect, and
+`character.reconnectNotice` says so.
+
+`CharacterTrait.get(ResourceLocation.of(name))` is the name-based
+lookup, from `shared/Foraging/forageSystem.lua:1718`. Both are static
+methods; the 97 `CharacterTrait` constants are fields and unreachable.
+
+**The data comes from the installation's own generated scripts**,
+`media/scripts/generated/characters/{character_professions,character_traits}.txt`
+→ `backend/src/Server/Players/Character/CharacterDefinitions.php`: 25
+professions, 97 traits, with cost, UI name, icon, XP boosts, granted
+traits and mutual exclusions.
+
+**The sign of `cost` means two different things**, and this is the one
+thing here that could have coloured the whole page backwards:
+
+- **A trait's cost is a rating**: `athletic` +10, `strong` +10 are
+  advantages; `weak` −10, `deaf` −12 are drawbacks.
+- **A profession's cost is a price**, so the sign inverts:
+  `veteran` −8 is the dearest job, `unemployed` **+8** refunds points.
+
+My first reading had it backwards. Hence `isTraitAdvantage` takes a
+trait's cost and nothing else, and the docblock says why a profession
+has no good-or-bad axis.
+
+**The artwork**: `UI2.pack` holds 24 profession and 116 trait sprites —
+found with `strings | grep -c`, since a full grep of the install times
+out on the USB drive. Traits carry **no `IconPathName`**, so the name is
+derived (`athletic` → `trait_athletic`); 14 more live as loose PNGs in
+`media/ui/Traits/`, and **two have no icon in the game at all** ("out of
+shape", "very underweight"), which is why `CharacterIcon` falls back to
+a letter. 152 files in `backend/var/character-icons`, **verified
+gitignored**, extracted with `app:icons:extract --characters`.
+`Sprite::isItemIcon()` became `hasAnyPrefix(array)` so one extractor
+serves both stores.
+
+**The names are the game's own**, 122 keys pulled from its `DE/UI.json`
+and `EN/UI.json` into `character.profession.*` and `character.trait.*` —
+"Einbrecher", "Langsam-Lerner", "Magenleiden", exactly the words in the
+user's screenshot. Before this the dossier showed bare `slowlearner`,
+`weakstomach`, `burglar`.
+
+One collision found and fixed: `character.profession` is the namespace
+of 25 jobs, so it could not also be the section heading —
+`professionTitle` and `traitsTitle` are separate keys now.
+
+The profession is read from its **granted trait** rather than the
+descriptor: the roster does not carry the profession, but each job's own
+trait is in the trait list and belongs to exactly one job.
+
+### New guards, each proven by reverting
+
+- **`testNoPublicJavaFieldIsIndexed`** — every public field of eleven
+  game classes against the Lua, scoped to the variables in `HOLDS` plus
+  the perk locals, because a bare `.name` is usually a Lua table key.
+  1386 assertions. Reverting `describeSkills` fails it with *"perk is a
+  public Java field on PerkInfo and reads nil from Lua"*.
+- **`skills.test.ts`** (10) — the three renamed ids, Doctor's parent, no
+  category listed as a skill, a German name for all 35.
+- **`character.test.ts`** (12) — the cost sign against the generated PHP,
+  profession traits kept apart, exclusions never offered, and **every XP
+  boost resolvable through `skillLabel`** (the boosts name `Lightfoot`
+  while the locale is keyed on `Lightfooted`; three showed untranslated
+  on screen before this).
+- `action-names.test.ts` caught the missing `trait` label by itself,
+  which is what it was written for.
+- `locales.test.ts` caught 35 German skill names with no English
+  counterpart — filled with the display name, which *is* the English
+  word.
+
+### Verified in the browser, as asked
+
+Playwright against the built app at 1440×900, logged in as a temporary
+`uitest@localhost.test` (created with `app:user:create`, **the user's own
+account untouched**):
+
+- Split measured at **320 px / 785 px**.
+- Seven tabs render, all German, no raw keys.
+- `GET /api/character` → 25 professions, 97 traits, `iconsAvailable:
+  true`, `iconCount: 152`.
+- `GET /api/character/icons/*.png` → real PNG bytes; a missing name
+  gives **404**, not a broken image.
+- The Charakter tab drew **7 of 7 icons** with real dimensions
+  (`profession_burglar2` 35×38, `trait_strong` 18×18 …), the profession
+  as **Einbrecher** with "Leichtfüßig +2 / Beweglichkeit +2 /
+  Schleichen +2", **Vorteile 1** (Stark +10) and **Nachteile 4**
+  (Langsam-Lerner −6, Messie −6, Langsam-Heiler −3, Magenleiden −2),
+  and the profession's own trait in its own row without a remove button.
+
+### Not yet verified
+
+**The skills themselves.** The server restarted on 0.19.0 and its
+handlers answer (`readUtilities` returned power and water), but
+`describePlayer` only runs for online players and nobody was on, so
+`skills` is still `[]` in the database. **The one open check is: log in,
+then confirm the pips fill and `skills::text` is no longer `[]`.**
+
+### Housekeeping
+
+- `llms.txt` names 0.19.0 (`DocumentationTest` demanded it, as intended).
+- `vehicles-page.tsx` now reads `?player=`, so the dossier's spawn card
+  does not promise a hand-off it never made. Its own `search` identifier
+  clashed with `useSearchParams` and became `query`.
+- The temporary `uitest@localhost.test` account is **still present** —
+  say the word and it goes.
+
+**Verification: 591 backend tests / 6838 assertions green, 291 frontend
+tests across 30 files green, 0 lint errors (21 deliberate warnings),
+`luac -p` clean, build clean, no game art in git.**
+
 ## 1. Waiting on you, not on me
 
 - [ ] **Upload bridge 0.18.4 and restart.** 0.18.3 is live and works;
