@@ -4331,6 +4331,161 @@ then confirm the pips fill and `skills::text` is no longer `[]`.**
 tests across 30 files green, 0 lint errors (21 deliberate warnings),
 `luac -p` clean, build clean, no game art in git.**
 
+## The skill levels became the control (2026-09-07)
+
+Asked for with a screenshot and an arrow at the pip row: "es ist auch
+wichtig das man die fertigkeiten auch anpassen kann. es wäre praktisch
+wenn man einfach auf die einzelnen stufen klicken könnte. Unten drunter
+sollte man einer Fertigkeit auch manuell XP geben können." Then, in the
+same breath: "für jede Fertigkeitsstufe benötigt man eine bestimmte
+anzahl an XP … Vielleicht könnte man auch anzeigen wie viel man noch bis
+zur nächsten stufe braucht wenn man über die aktuelle stufe hovert. Was
+auch geil wäre sind die Fertigkeitsmultiplikatoren die beim lesen von
+büchern steigen."
+
+### Which write route actually reaches the player
+
+Three candidates, and the bytecode picked the winner:
+
+| Route | Server-side | Client told |
+|---|---|---|
+| `setPerkLevelDebug(perk, int)` | yes | **no** — writes `PerkInfo.level`, then `GameClient.sendPerks` **only if `GameClient.client`** |
+| `level0` + `LevelPerk(perk, false)` + `setXPToLevel` | yes | via the level machinery |
+| **`addXpNoMultiplier(player, perk, float)`** | yes | **yes** — tests `GameServer.server`, hands to `GameServer.addXp`, which resolves the connection and calls `NetworkPlayerAI.updateXpChecker()` |
+
+That last row is the qualitative difference from the profession: there,
+every path ended in a `GameClient.client` guard. Here the *opposite*
+guard exists, and `updateXpChecker` is the mechanism that pushes it out.
+So skills are settable and professions are not, for a reason that is in
+the bytecode rather than in a preference.
+
+**`LevelPerk` has two overloads and they are not equivalent.** The
+one-argument form **spends one of the player's real unspent skill
+points per call** — so filling a skill to 10 would silently cost ten
+points. The two-argument `LevelPerk(perk, false)` does not. That came
+from the reference bridge's own notes
+(`PanelBridge.lua:4306-4312`) and is confirmed by both overloads
+existing on `IsoGameCharacter`. Getting this wrong would have quietly
+robbed players.
+
+**`xp:setXP` does not exist**, despite the obvious name — also from the
+reference bridge, also confirmed: `IsoGameCharacter$XP` has `AddXP` in
+six overloads, `AddXPNoMultiplier`, `getXP`, `setTotalXP` and
+**`setXPToLevel`**, which is what lands the within-level XP exactly on a
+boundary instead of wherever the level loop stopped.
+
+### The three numbers a level cannot give
+
+`handlers.readSkillDetail` (bridge 0.20.0) reports per skill:
+
+- **`xp`, `levelFloor`, `nextLevel`** — `getTotalXpForLevel(n)` is
+  **cumulative**: its bytecode sums `getXpForLevel(1..n)`, so it is
+  comparable against `getXP`, which is also a total. Verified in the
+  bytecode rather than assumed, because a per-level reading would have
+  made every remainder wrong.
+- **`boost`** (0..3) from `getPerkBoost` — the game colours a skill name
+  by it and golds a 3 (`ISCharacterInfo.lua:135-151`), so the panel golds
+  it too.
+- **`multiplier`** from `getMultiplier` — above zero only while a read
+  book still applies. The game shows this **only** as three animating
+  arrows beside the name (`ISCharacterInfo.lua:155-168`) and nowhere in
+  text, so an operator had no way to know one was running. Now there is
+  a band listing them plus a still arrow per row.
+
+`XPMultiplier` itself is fields-only (`multiplier`, `minLevel`,
+`maxLevel`, no getters) — the same trap again — which is why the float is
+asked for through `getMultiplier(perk)` instead of the object.
+
+### The interaction
+
+- **Clicking pip *n* sets level *n*.** Hovering previews it: pips beyond
+  the target dim rather than vanish.
+- **Clicking the pip that is already the level sets zero** — the only
+  reading left for that click, and it removes the need for a reset
+  control.
+- **Hovering the current level reports the remainder**: "1 250 von
+  4 000 XP — 2 750 bis Stufe 7". A percentage sits at the row's end so a
+  skill at 6-nearly-7 does not read like one that just reached 6.
+- **Offline the pips are inert `<span>`s**, not disabled buttons, with
+  "Nur lesbar — Spieler ist offline" beside the count. Verified in the
+  browser: `editablePips: 0`, `role="img"`, label "Axt, Stufe 0 von 10".
+- The XP row sits **beneath the grid** as asked, grouped by the same six
+  categories, with the current level beside each option and the reply
+  naming the level the XP landed on.
+
+### Two browser-reported bugs, both real
+
+**"wenn man den verlauf öffnet wird die ganze seite breiter."** A grid
+`1fr` is `minmax(auto, 1fr)`, and `auto` is the *content's own minimum* —
+so the wide history table pushed the column open instead of scrolling
+inside it. `lg:grid-cols-[20rem_minmax(0,1fr)]` fixes it. Measured
+before and after: `mainScrollWidth` 1154 = `clientWidth` 1154 with the
+history open, grid steady at 1106 px.
+
+**"die texte im verlauf sollten automatisch umbrechen."** shadcn's
+`TableCell` carries `whitespace-nowrap`. Only the reason column is free
+text, so only it gets `whitespace-normal break-words max-w-md` —
+the timestamp and the name should not wrap. Measured: `whiteSpace:
+normal`, `overflowWrap: break-word`, cells two lines high.
+
+**"die top-bar und die footer-bar sollten fixed sein."** Done without
+`position: fixed`, which would take them out of the flow and lose their
+knowledge of the sidebar's width: `SidebarInset` is capped at `h-svh
+overflow-hidden` and the scrolling moved to `<main>`. Measured across a
+scroll: header top **0 → 0**, footer bottom **900 → 900** (the exact
+viewport height), `documentScrolls: false`, inner scroller live.
+
+### The guard that caught my own mistake
+
+**`BridgeSkillListTest`** parses `skills.ts`'s own category arrays and
+compares them with `BridgeCommand::SKILLS`. It immediately failed with
+36 against 35: **`Crafting` had landed among the skills**, because it is
+a *category* and my generator's regex caught its `id:`. A category has
+no level, so `setSkillLevel` on one is a command the game cannot answer.
+Reverting it fails two cases with both messages naming the cause.
+
+**`BridgeClimateCallsTest` now walks the whole inheritance chain.** It
+failed on `getX`, which is **not** on `IsoPlayer` or
+`IsoGameCharacter` — the chain is `IsoPlayer → IsoLivingCharacter →
+IsoGameCharacter → IsoMovingObject → IsoObject → GameEntity`, and `getX`
+lives four classes up. Following one level of `extends` was not enough.
+The fixture now carries 2342 methods and 168 fields for `IsoPlayer`, and
+the guard went from 1386 to **6430 assertions** — it was weaker than it
+looked.
+
+### Files
+
+| What | Where |
+|---|---|
+| Handlers | `resources/bridge/ZomboidControlBridge.lua` — `setSkillLevel`, `addSkillXp`, `readSkillDetail`, plus `perkById` |
+| Commands | `BridgeCommand.php` — `SKILLS` (35), `MAX_SKILL_LEVEL`, `MAX_SKILL_XP`, `skill()` |
+| Routes | `PlayerVitalsController.php` — `POST /skill`, `POST /skill/xp`, `GET /skills` |
+| Interface | `features/players/skill-grid.tsx` (pips, hover, books, XP row) |
+| Helper | `players.ts` — `levelProgress`, `readSkillDetail` |
+| Guards | `BridgeSkillListTest.php`, `skills.test.ts` (+5 progress cases) |
+
+### Verified against the running server
+
+`admin` is offline, so the read path could not be exercised — but the
+write path proved itself through its refusals:
+
+| Request | Answer |
+|---|---|
+| `Axe` → 5 | **502 "unknown action: setSkillLevel"** — everything up to the bridge works; only the upload is missing |
+| `Crafting` → 5 | **422** — the enum refuses a category before the bridge sees it |
+| `Axe` → 11 | **422** — refused rather than silently clamped |
+
+The failed attempt appears in the history as `Axe=5`, which is
+`ModerationRecorder` keeping failures as designed.
+
+**Still to check with a player online**: the pips fill, hovering reports
+the remainder, a click lands, and the books band appears if a book is
+running.
+
+**Verification: 594 backend tests / 11909 assertions green, 296 frontend
+tests across 30 files green, 0 lint errors (21 deliberate warnings),
+`luac -p` clean, build clean.**
+
 ## 1. Waiting on you, not on me
 
 - [ ] **Upload bridge 0.18.4 and restart.** 0.18.3 is live and works;

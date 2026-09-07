@@ -374,6 +374,20 @@ mod is uploaded by hand — so a mismatch surfaces on a live server as
   **bytecode of the sync call**, not just the setter. Where the effect
   cannot reach the player, either say so on screen (traits do) or do not
   build the control (professions).
+- **A guard is only as wide as the class hierarchy it walks.**
+  `BridgeClimateCallsTest` compared calls against one `javap` per class
+  and passed for weeks; the moment a handler called `player:getX()` it
+  failed, because `getX` is on `IsoMovingObject` — **four classes above
+  `IsoPlayer`** (`IsoPlayer → IsoLivingCharacter → IsoGameCharacter →
+  IsoMovingObject → IsoObject → GameEntity`). Follow `extends` to the
+  top when generating the fixture. Doing so took the guard from 1386 to
+  6430 assertions, which is the measure of how much it had been missing.
+- **Two overloads of one method can differ in what they cost.**
+  `LevelPerk(perk)` **spends one of the player's real unspent skill
+  points per call**; `LevelPerk(perk, false)` does not. Filling a skill
+  to 10 through the wrong one would silently rob the player of ten
+  points. When `javap` shows two overloads, find out what the extra
+  argument is *for* before picking one.
 - **The reference bridge is evidence too.**
   `reference/zomboid-control-panel/pz-mod/PanelBridge/media/lua/server/PanelBridge.lua`
   is 9132 lines by somebody who read the class files by hand. What it
@@ -408,6 +422,30 @@ convenient thing rather than the true one.
   environment kept returning 500 from a stale container until
   `php bin/console cache:clear`, which cost fifteen minutes of debugging
   correct code.
+
+## 10g1. A grid `1fr` is not zero-minimum
+
+Reported twice from the browser and both times it looked like a
+different bug: "wenn man den verlauf öffnet wird die ganze seite
+breiter".
+
+- **`grid-cols-[20rem_1fr]` means `minmax(auto, 1fr)`**, and `auto` is
+  the *content's own minimum width*. A table, a log or a long
+  unbreakable string inside that column therefore pushes the whole page
+  wider instead of scrolling within itself. Write
+  **`minmax(0,1fr)`** for any column that holds something wide, and
+  `min-w-0` on a flex child for the same reason.
+- **shadcn's `TableCell` and `TableHead` carry `whitespace-nowrap`.**
+  That is right for a timestamp and wrong for prose, so a free-text
+  column needs `whitespace-normal break-words` plus a `max-w-*`. Only
+  the free-text column — wrapping a date is worse than not.
+- **The bars stay still by capping the shell, not by `position:
+  fixed`.** `SidebarInset` gets `h-svh overflow-hidden` and `<main>`
+  gets `overflow-y-auto`; fixed positioning would take the bars out of
+  the flow and they would no longer know the sidebar's width. Prove it
+  by measuring `getBoundingClientRect()` before and after a scroll —
+  header top and footer bottom must not move, and
+  `document.documentElement.scrollHeight > innerHeight` must be false.
 
 ## 10g2. Never copy server data into state with an effect
 
