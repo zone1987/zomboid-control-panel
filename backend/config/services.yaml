@@ -128,3 +128,10 @@ when@test:
         App\Server\Rcon\RconClientInterface:
             alias: App\Server\Rcon\SourceRconClient
             public: true
+
+        # Same reason: a functional test of the interaction endpoint has
+        # to see what would have been sent to Discord, and there is no
+        # Discord to send it to.
+        App\Server\Discord\DiscordClientInterface:
+            alias: App\Server\Discord\RestDiscordClient
+            public: true

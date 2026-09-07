@@ -7,6 +7,8 @@ namespace App\Server\Players;
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
 use App\Entity\User;
+use App\Server\Events\PanelEvent;
+use App\Server\Events\PanelEventDispatcher;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -24,11 +26,18 @@ use Doctrine\ORM\EntityManagerInterface;
  * watcher -- flush once at the end: turning their single transaction
  * into one per row would be a quiet regression nobody would notice
  * until a busy server slowed down.
+ *
+ * Both shapes hand the action to `PanelEventDispatcher`, which holds it
+ * until Doctrine commits — so a notifier never announces something that
+ * is still inside an open transaction, and `add()`'s batch semantics
+ * survive unchanged.
  */
 final readonly class ModerationRecorder
 {
-    public function __construct(private EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private PanelEventDispatcher $events,
+    ) {
     }
 
     /**
@@ -64,6 +73,7 @@ final readonly class ModerationRecorder
         );
 
         $this->entityManager->persist($entry);
+        $this->events->collect(PanelEvent::ofModeration($entry));
         $this->entityManager->flush();
 
         return $entry;
@@ -100,6 +110,7 @@ final readonly class ModerationRecorder
         );
 
         $this->entityManager->persist($entry);
+        $this->events->collect(PanelEvent::ofModeration($entry));
 
         return $entry;
     }

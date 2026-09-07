@@ -6,10 +6,14 @@ namespace App\Tests\Unit\Server\Players;
 
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
+use App\Server\Events\PanelEventDispatcher;
 use App\Server\Players\ModerationRecorder;
 use App\Server\Players\RosterWatcher;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class RosterWatcherTest extends TestCase
 {
@@ -140,7 +144,18 @@ final class RosterWatcherTest extends TestCase
 
         // The recorder shares the same entity manager, so everything it
         // queues still lands in the recording above.
-        return new RosterWatcher($entityManager, new ModerationRecorder($entityManager));
+        return new RosterWatcher(
+            $entityManager,
+            new ModerationRecorder($entityManager, new PanelEventDispatcher(
+                new class implements MessageBusInterface {
+                    public function dispatch(object $message, array $stamps = []): Envelope
+                    {
+                        return new Envelope($message);
+                    }
+                },
+                new NullLogger(),
+            )),
+        );
     }
 
     private function server(): GameServer

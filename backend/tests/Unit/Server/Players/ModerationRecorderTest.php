@@ -6,23 +6,104 @@ namespace App\Tests\Unit\Server\Players;
 
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
+use App\Server\Events\PanelEventDispatcher;
 use App\Server\Players\ModerationRecorder;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * One place an administrative action is written down.
  *
- * The seam matters more than the saving: a notification feed will later
- * want to see every action go past, and nine literals in eight files is
- * nine places to remember.
+ * The seam matters more than the saving: the notification feed and
+ * Discord both watch every action go past, and nine literals in eight
+ * files was nine places to remember.
  */
 final class ModerationRecorderTest extends TestCase
 {
+    /**
+     * Every recorded action reaches the event stream.
+     *
+     * This is the property the bell and Discord rest on: an action
+     * written without an event is one nobody hears about, and it would
+     * only show up as a silence.
+     */
+    public function testEveryRecordedActionIsCollectedForTheEventStream(): void
+    {
+        $calls = [];
+        $events = self::events();
+        $recorder = new ModerationRecorder(self::entityManager($calls), $events);
+
+        $recorder->record(new GameServer('Test'), ModerationAction::KICK, 'bob', null);
+
+        self::assertCount(1, $events->pending());
+        self::assertSame('moderation.'.ModerationAction::KICK, $events->pending()[0]->type);
+        self::assertSame('bob', $events->pending()[0]->subject);
+    }
+
+    /** The batch form too, or half the actions would be silent. */
+    public function testQueueingAnActionAlsoCollectsAnEvent(): void
+    {
+        $calls = [];
+        $events = self::events();
+        $recorder = new ModerationRecorder(self::entityManager($calls), $events);
+
+        $recorder->add(new GameServer('Test'), ModerationAction::JOIN, 'bob', null);
+
+        self::assertCount(1, $events->pending());
+    }
+
+    /**
+     * Collected, not sent: `add()` writes without flushing, so
+     * announcing at that point could announce a rolled-back row.
+     */
+    public function testNothingIsSentBeforeTheFlush(): void
+    {
+        $calls = [];
+        $sent = 0;
+        $bus = self::bus($sent);
+        $events = new PanelEventDispatcher($bus, new NullLogger());
+
+        (new ModerationRecorder(self::entityManager($calls), $events))
+            ->add(new GameServer('Test'), ModerationAction::JOIN, 'bob', null);
+
+        self::assertSame(0, $sent, 'an event must wait for the commit');
+
+        $events->release();
+
+        self::assertSame(1, $sent);
+        self::assertSame([], $events->pending(), 'released events are not sent twice');
+    }
+
+    private static function events(): PanelEventDispatcher
+    {
+        $ignored = 0;
+
+        return new PanelEventDispatcher(self::bus($ignored), new NullLogger());
+    }
+
+    private static function bus(int &$sent): MessageBusInterface
+    {
+        return new class($sent) implements MessageBusInterface {
+            public function __construct(private int &$sent)
+            {
+            }
+
+            public function dispatch(object $message, array $stamps = []): Envelope
+            {
+                ++$this->sent;
+
+                return new Envelope($message);
+            }
+        };
+    }
+
     public function testRecordingOneActionPersistsAndFlushesIt(): void
     {
         $calls = [];
-        $recorder = new ModerationRecorder(self::entityManager($calls));
+        $recorder = new ModerationRecorder(self::entityManager($calls), self::events());
 
         $entry = $recorder->record(
             new GameServer('Test'),
@@ -48,7 +129,7 @@ final class ModerationRecorderTest extends TestCase
     public function testQueuingOneActionDoesNotFlush(): void
     {
         $calls = [];
-        $recorder = new ModerationRecorder(self::entityManager($calls));
+        $recorder = new ModerationRecorder(self::entityManager($calls), self::events());
 
         $recorder->add(new GameServer('Test'), ModerationAction::JOIN, 'bob', null);
         $recorder->add(new GameServer('Test'), ModerationAction::LEAVE, 'bob', null);

@@ -32,6 +32,27 @@ class AppSetting
     /** Days after which an unseen player snapshot may go; 0 or unset keeps everything. */
     public const PLAYER_RETENTION_DAYS = 'players.retention_days';
 
+    /**
+     * The Discord bot's token, panel-wide rather than per server.
+     *
+     * One application serves every server the panel knows: a token per
+     * server would mean a bot per server, and Discord counts those
+     * against the guild's app limit for no gain.
+     */
+    public const DISCORD_BOT_TOKEN = 'discord.bot_token';
+
+    /** The application id, needed to register slash commands. */
+    public const DISCORD_APPLICATION_ID = 'discord.application_id';
+
+    /**
+     * The application's public key, for verifying interactions.
+     *
+     * Not a secret — it verifies rather than signs, and Discord shows it
+     * on the application page — so it is deliberately not in SECRET_KEYS
+     * and stays readable in the interface.
+     */
+    public const DISCORD_PUBLIC_KEY = 'discord.public_key';
+
 
     /** Values that must never be returned to the frontend in plaintext. */
     public const SECRET_KEYS = [
@@ -39,6 +60,7 @@ class AppSetting
         self::GOOGLE_CLIENT_SECRET,
         self::MAILER_DSN,
         self::MAIL_PASSWORD,
+        self::DISCORD_BOT_TOKEN,
     ];
 
     #[ORM\Id]

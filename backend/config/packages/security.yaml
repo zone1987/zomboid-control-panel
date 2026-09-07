@@ -69,6 +69,12 @@ security:
         - { path: ^/api/connect/(google|steam)/check$, roles: PUBLIC_ACCESS }
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS }
         - { path: ^/api/invitations/accept, roles: PUBLIC_ACCESS }
+
+        # Discord has no session to offer: it signs each interaction with
+        # its application key, and the endpoint verifies that signature
+        # before reading anything. The signature *is* the authentication,
+        # which is why this is the one route without a login.
+        - { path: ^/api/discord/interactions$, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         # As with /api/servers: signing in is the bar here, and the
         # permission on each endpoint decides the rest.

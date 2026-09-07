@@ -5865,3 +5865,214 @@ New: `frontend/src/features/config/labels.ts`, `value-control.tsx`,
       full in the entry above. Not started.
 - [ ] The sandbox still needs a restart; the bridge-side
       `initSandboxVars()` route is the open candidate.
+
+---
+
+## 2026-09-07 — The event stream, and Discord's foundations
+
+**722 tests green.** Working autonomously at the user's instruction
+("arbeite vollautonom", "stelle keine Fragen"), so every decision below
+was taken here and is written down with its reason.
+
+### Step 4: the event stream
+
+One stream serves the notification bell **and** Discord, because
+building it twice means maintaining it twice, and both want the same
+facts in the same order. `ModerationRecorder` was already the single
+seam — its own docblock said a feed would want to watch every action go
+past — so that is where it hooks in.
+
+| File | What |
+|---|---|
+| `src/Server/Events/PanelEvent.php` | one thing that happened, with the tokens a template may use |
+| `src/Server/Events/PanelEventDispatcher.php` | collects, then releases after the commit |
+| `src/Server/Events/PanelEventFlushListener.php` | `postFlush`, which is the whole point |
+| `src/Server/Events/DeliverPanelEvent.php` | the queued instruction |
+
+**Why events are collected rather than sent immediately.**
+`ModerationRecorder::add()` persists *without* flushing — the batch
+callers (the expired-ban lifter, the roster watcher) flush once at the
+end — so a notifier reading a queued action could announce a ban that
+is still inside an open transaction and may roll back. `postFlush`
+rather than `onFlush` for the same reason: at `onFlush` the transaction
+can still fail. A test asserts nothing is sent before the release.
+
+**Why `subject` exists beside `tokens`.** `ModerationAction::username`
+is not always a player: it also holds an action name
+(`EventController`), a command verb (`ConsoleController`) and a bare
+constant (`VehicleSpawnController`). A template rendering "kicked
+{player}" over a command verb produces nonsense, so what the event is
+*about* is a field of its own. CLAUDE.md 6c.
+
+Delivery goes through Messenger: a Discord outage must not fail the kick
+that triggered the message, and a message worth sending is worth
+retrying. A dispatch that itself throws is logged and swallowed — the
+action already happened and is recorded, and losing its announcement
+must not turn that into a failure.
+
+### Step 6: Discord, the parts that need no daemon
+
+**The plan's most important finding held up: almost nothing needs a
+persistent process.** Slash commands arrive as ordinary HTTP POSTs that
+Discord signs; only *receiving* chat needs the gateway. So an outage of
+that one process leaves commands and notifications working — where the
+reference panel, running everything in one process, goes entirely
+silent.
+
+| File | What |
+|---|---|
+| `Discord/InteractionSignature.php` | Ed25519 verification, plus a 5-minute replay window |
+| `Discord/InteractionType.php` | Discord's own enums, named |
+| `Discord/DiscordClientInterface.php` + `RestDiscordClient.php` | REST, with the redaction at the one outbound boundary |
+| `Discord/DiscordMessage.php` | one message, mentions structurally off |
+| `Discord/SecretRedaction.php` | exact-value comparison against every secret the panel holds |
+| `Discord/MessageTemplate.php` | `{token}` substitution, one pass, values escaped |
+| `Discord/CommandCatalogue.php` | four commands, 21 subcommands |
+| `Discord/CommandCapabilities.php` | each subcommand → the panel permission its HTTP twin needs |
+| `Controller/Api/DiscordInteractionController.php` | the endpoint |
+| `AppSetting::DISCORD_BOT_TOKEN` (secret), `_APPLICATION_ID`, `_PUBLIC_KEY` | |
+
+**`ext-sodium` is already a hard requirement of this project**, so
+Ed25519 cost no new dependency. Nothing was added to `composer.json`.
+
+### The public route, and why it is safe
+
+`/api/discord/interactions` is **the panel's only route without a
+login**, added to `security.yaml` as `PUBLIC_ACCESS`. The Ed25519
+signature is the authentication: Discord has no session to offer and no
+secret to send.
+
+Three things Discord enforces, each shaping the endpoint:
+
+1. **A failed check answers 401, never 500.** Discord refuses to
+   register an endpoint whose verification does not work and *disables*
+   one that later accepts a bad signature — so an exception escaping
+   here would switch the bot off. Malformed input answers false rather
+   than throwing.
+2. **A `PING` must return `PONG`**, before anything else is consulted,
+   or the URL cannot be saved at all.
+3. **Three seconds.** An RCON round trip is not reliably inside that, so
+   the deferred-reply type is in `InteractionType` ready for the
+   dispatcher.
+
+**With no public key stored, everything is refused.** An endpoint that
+trusts everything when unconfigured is worse than one that trusts
+nothing.
+
+`DiscordInteractionTest` has nine functional cases including the three
+that would disable the bot: unsigned, tampered body, foreign key. Signed
+with real generated keypairs, not fixtures.
+
+### Decisions taken here, with their reasons
+
+- **A bot token, not a webhook.** A webhook is bound to one channel and
+  must be pasted in by hand; a token can post anywhere the bot can see
+  **and list the channels for the operator to choose**. Per-event
+  channels need that.
+- **The token is panel-wide, not per server.** One application serves
+  every server: a token per server means a bot per server, which
+  Discord counts against the guild's app limit for no gain. It is in
+  `SECRET_KEYS` (encrypted, never returned in plaintext).
+- **The public key is deliberately *not* a secret** — it verifies rather
+  than signs, and Discord shows it on the application page — so it stays
+  readable in the interface.
+- **Guild-scoped command registration**, not global: a guild
+  registration is live in seconds, a global one takes up to an hour,
+  which would make every correction an hour long.
+- **`PUT` to replace the whole command set**, not `POST` per command, so
+  a command removed from the catalogue disappears from Discord instead
+  of lingering for ever.
+- **Only text and announcement channels are offered** (types 0 and 5).
+  A voice channel or a category cannot take a message, and offering one
+  is a dead end.
+- **429 is not retried inline.** Retrying inside the request holds an
+  FPM worker; Messenger's retry is the right place.
+
+### Redaction: the reference's cleverest precaution, adopted
+
+`/server status` and a console broadcast both relay whatever the game
+answered — and Zomboid prints `showoptions` in full to anybody who asks,
+including its own passwords. So **every outgoing message is compared
+against every secret the panel holds**, by exact value:
+
+- **Never by pattern.** A regex guessing what a password looks like
+  misses the ones that do not fit and mangles innocent text that does.
+- **Longest secret first**, so one containing another is masked whole
+  rather than leaving its tail behind.
+- **A check that cannot run does not send.** If the secrets cannot be
+  read, the message is refused — the failure mode of a redactor that
+  gives up is the one that leaks.
+- Scrubbing lives in `RestDiscordClient::sendMessage`, the single
+  outbound boundary: a check somewhere else is one somebody can forget.
+
+### Templates: four rules, four paid-for bugs
+
+`MessageTemplateTest` names each failure rather than the feature:
+
+1. **One pass with a callback** — replacing tokens in sequence let a
+   value containing `$1` be read as a backreference, and a value
+   containing `{server}` be substituted twice.
+2. **Whole-name matching** — `{player}` inside `{playerCount}` produced
+   "bobCount".
+3. **Values escaped, template not** — the operator's `**bold**` works; a
+   player named `**x**` cannot smuggle formatting into somebody else's
+   sentence. The reference escaped neither.
+4. **An unknown token stays visible** — blanking `{plyer}` hides the
+   typo; leaving it is how the operator finds it. `unknownTokens()`
+   reports them at save time.
+
+Mentions are defused structurally as well: `<@`, `<#`, `@everyone` and
+`@here` are broken up in values, on top of `allowed_mentions: {parse:
+[]}` on every message. Escaping alone is not enough — a mention is a
+reference Discord resolves *before* formatting.
+
+### Capability parity, as a test
+
+**Doing something through Discord must not be cheaper than doing it in
+the panel.** `CommandCapabilities::MAP` gives each of the 21 subcommands
+the permission its HTTP twin requires, and
+`CommandCapabilitiesTest::testEverySubcommandNamesAPermission` walks the
+catalogue demanding an entry — **a command added without one fails the
+suite rather than reaching Discord ungated.** An unmapped name returns
+null and is refused, which is the only safe default.
+
+`/server konsole` costs `UseConsole`, the panel's most dangerous
+control. A listing costs only a reading permission, asserted separately
+so nobody quietly raises or lowers one.
+
+`CommandCatalogueTest` checks what Discord would reject: name pattern,
+description length, 25 subcommands per command, 25 options per
+subcommand, 25 choices per list, and **required options before optional
+ones** — Discord refuses the whole registration otherwise, which means
+no commands at all.
+
+Four commands (`/spieler`, `/welt`, `/wetter`, `/server`) rather than
+fifty: one nesting level with 25 options each covers the panel's 35
+events and 22 player routes. Players, items and teleport targets are
+**autocompleted**, because a choice list caps at 25 and nobody should
+type `Base.Trousers_SuitWhite` by hand.
+
+### Still open on Discord
+
+- [ ] **The command dispatcher.** The endpoint verifies and answers, but
+      every command currently replies "not set up yet" (ephemeral, so it
+      does not clutter a channel). Next.
+- [ ] **Autocomplete handlers** — must answer inside three seconds from
+      the database and cache only, never waiting on the bridge.
+- [ ] **Deferred replies** for anything touching RCON or FTP.
+- [ ] **`DiscordConfig` / `DiscordNotification` / `DiscordCommandRight`**
+      entities and their migration.
+- [ ] **The notification side**: hooking `DeliverPanelEvent` to a
+      handler that renders a template and posts it, with all 18 admin
+      action types **off by default**.
+- [ ] **Mapping a Discord user to a panel account.** Decision taken:
+      actions without a linked account record the Discord name as
+      `reason` and `performedBy = null`, exactly as `join`/`leave`
+      already do.
+- [ ] **The gateway process** for chat *from* Discord, and
+      `ChatLine`'s missing channel — **the bridge must not be built
+      before that**, or it would mirror faction and whisper chat into
+      Discord, which is a data-protection fault rather than a cosmetic
+      one.
+- [ ] The interface: a `discord` settings tab (lower case — the tab test
+      reads the source for `TabsTrigger value="([a-z]+)"`).
