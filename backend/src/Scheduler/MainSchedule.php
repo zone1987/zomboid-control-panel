@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Message\LiftExpiredBans;
+use App\Message\MirrorChatToDiscord;
 use App\Message\PurgeStalePlayers;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
@@ -23,6 +24,12 @@ final class MainSchedule implements ScheduleProviderInterface
         )->add(
             // Nothing happens while retention is off, which is the default.
             RecurringMessage::every('1 day', new PurgeStalePlayers()),
+        )->add(
+            // Chat is read over FTP, so this is a poll rather than a
+            // stream. Twenty seconds keeps a conversation readable
+            // without a connection per line; it does nothing at all for
+            // a server with no Discord channel chosen.
+            RecurringMessage::every('20 seconds', new MirrorChatToDiscord()),
         );
     }
 }

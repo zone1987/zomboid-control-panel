@@ -6190,3 +6190,87 @@ the nav entry, and ~120 translation keys in both locales.
       token, no application. Everything up to the HTTP call is tested.
 - [ ] Linking a Discord user to a panel account, so the moderation log
       names a person rather than "Discord: name".
+
+---
+
+## 2026-09-07 — Chat to Discord, and the local scheduler finally runs
+
+**767 tests green.**
+
+### The channel is parsed, which is what made the relay buildable
+
+The plan said the chat bridge must not be built before `ChatLine` reads
+the channel, and that was right: without it the relay cannot tell
+general chat from faction, safehouse or whisper chat, and mirroring
+those is a data-protection fault rather than a cosmetic one.
+
+Established from the game rather than guessed:
+
+- `ChatMessage::toString()` is `ChatMessage{chat=\u0001, author='\u0001',
+  text='\u0001'}` — read from the class's constant pool — and the first
+  field comes from `ChatBase::getTitle()`.
+- On a server that title is the **translation key**, because a server
+  loads no translations. `UI.json` names exactly five:
+  `UI_chat_{main,faction,safehouse,radio,admin}_tab_title_id`.
+- Both spellings are recognised, since a server *with* translations
+  logs the readable title instead.
+
+`ChatLine` gained a `channel` and an `isPublic()`. **An allow-list**:
+only general chat is public, and a tab a future build adds is unknown —
+which counts as private, because the safe direction for something
+nobody has classified is silence. A line the relay itself put into the
+game is marked `discord` so it cannot echo back.
+
+Six tests cover it, including a message containing commas (the channel
+is read from the first field, which never holds a quote) and each of
+the four private tabs by name.
+
+### The mirror
+
+`ChatMirror` polls, like everything else here — the log is read over
+FTP, and a long-lived connection would hold an FPM worker
+(`docker/apache-vhost.conf:5`).
+
+- **Position by file and offset**, the same reading the chat page uses:
+  a different file means the server restarted and the old offset means
+  nothing.
+- **A first run sends nothing.** It remembers where the log is and
+  stops; starting up should not replay an hour of chat into a channel.
+- **At most 20 lines per run**, so a backlog cannot flood a channel.
+- **The scope only narrows.** `isPublic()` is checked first and the
+  setting second, so no setting can widen the relay onto a private
+  channel. The three scopes are the same set today because the log does
+  not distinguish saying from shouting; they are kept apart so the
+  distinction can be made later without a migration.
+- One server failing does not stop the others.
+
+### The local scheduler now runs
+
+**A gap the plan flagged at step 1 and nothing had needed until now.**
+`docker/supervisord.conf:45` consumes `scheduler_main` in production;
+`.ddev/config.yaml` consumed only `async`, so **no scheduled task ever
+fired locally** and anything resting on one could not be tested in a
+browser at all.
+
+Both consumers now run in ddev, matching production. Verified:
+`debug:scheduler` lists all three recurring messages with their next
+run, and `messenger:stats` shows an empty queue with nothing failed —
+so the 20-second mirror really is doing nothing while no server has a
+Discord channel.
+
+### Files
+
+`Server/Discord/ChatMirror.php`, `Message/MirrorChatToDiscord.php`,
+`MessageHandler/MirrorChatToDiscordHandler.php`, the schedule entry,
+`.ddev/config.yaml`, `Server/Chat/ChatLine.php` (channel + allow-list),
+and two test files.
+
+### Still open on Discord
+
+- [ ] **Discord → game** still needs the gateway process. The setting is
+      saved and the interface shows it as unavailable.
+- [ ] **The server events are still not dispatched**: `bridge.quiet`,
+      `server.unreachable` and the two update events have wording,
+      switches and channels, but nothing calls the dispatcher for them.
+- [ ] A deferred reply for commands that outgrow three seconds.
+- [ ] Nothing has been run against a real Discord application.

@@ -309,8 +309,14 @@ web_extra_exposed_ports:
 # for them. Example:
 #hooks:
 
-# Consume asynchronous email jobs, as in the production image.
+# The same two consumers the production image runs, so a scheduled task
+# behaves here as it will there. Without the second one nothing in
+# MainSchedule ever fires locally, and a feature resting on it cannot be
+# tested in a browser at all.
 web_extra_daemons:
   - name: messenger
     command: "php /var/www/html/backend/bin/console messenger:consume async --time-limit=3600 --memory-limit=256M"
+    directory: /var/www/html/backend
+  - name: scheduler
+    command: "php /var/www/html/backend/bin/console messenger:consume scheduler_main --time-limit=3600 --memory-limit=256M"
     directory: /var/www/html/backend

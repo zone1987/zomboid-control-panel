@@ -168,4 +168,94 @@ final class ChatLineTest extends TestCase
 
         self::assertSame($raw, ChatLine::parse($raw)->raw);
     }
+
+    /**
+     * The channel decides whether a line may leave the game, so it is
+     * parsed rather than assumed. A server logs the translation key,
+     * because it loads no translations of its own.
+     */
+    public function testReadsTheChannelFromAServersOwnWording(): void
+    {
+        $line = ChatLine::parse(
+            "[04-09-26 20:41:49.474][info] Got message:ChatMessage{chat=UI_chat_main_tab_title_id, author='bob', text='hello'}.",
+        );
+
+        self::assertSame(ChatLine::CHANNEL_GENERAL, $line->channel);
+        self::assertTrue($line->isPublic());
+    }
+
+    /**
+     * Faction, safehouse, radio and admin chat are private in the game
+     * and must stay private. This is the test that stops a relay
+     * mirroring them.
+     */
+    public function testThePrivateChannelsAreNeverPublic(): void
+    {
+        $private = [
+            'UI_chat_faction_tab_title_id' => ChatLine::CHANNEL_FACTION,
+            'UI_chat_safehouse_tab_title_id' => ChatLine::CHANNEL_SAFEHOUSE,
+            'UI_chat_radio_tab_title_id' => ChatLine::CHANNEL_RADIO,
+            'UI_chat_admin_tab_title_id' => ChatLine::CHANNEL_ADMIN,
+        ];
+
+        foreach ($private as $title => $expected) {
+            $line = ChatLine::parse(
+                sprintf(
+                    "[04-09-26 20:41:49.474][info] Got message:ChatMessage{chat=%s, author='bob', text='secret'}.",
+                    $title,
+                ),
+            );
+
+            self::assertSame($expected, $line->channel, $title);
+            self::assertFalse($line->isPublic(), $title.' must never be mirrored');
+        }
+    }
+
+    /** A server with translations loaded logs the readable title. */
+    public function testReadsAReadableChannelTitleToo(): void
+    {
+        $line = ChatLine::parse(
+            "[04-09-26 20:41:49.474][info] Got message:ChatMessage{chat=Faction, author='bob', text='x'}.",
+        );
+
+        self::assertSame(ChatLine::CHANNEL_FACTION, $line->channel);
+        self::assertFalse($line->isPublic());
+    }
+
+    /**
+     * A tab a future build adds is unknown, and unknown is private:
+     * the safe direction for something nobody has classified is
+     * silence.
+     */
+    public function testAnUnrecognisedChannelIsTreatedAsPrivate(): void
+    {
+        $line = ChatLine::parse(
+            "[04-09-26 20:41:49.474][info] Got message:ChatMessage{chat=UI_chat_invented_tab_title_id, author='bob', text='x'}.",
+        );
+
+        self::assertSame(ChatLine::CHANNEL_UNKNOWN, $line->channel);
+        self::assertFalse($line->isPublic());
+    }
+
+    /** A message from Discord is marked, so a relay cannot echo it back. */
+    public function testAMessageFromDiscordIsMarkedAsSuch(): void
+    {
+        $line = ChatLine::parse(
+            "[04-09-26 20:41:49.474][info] Got message 'hello' by author 'someone' from discord.",
+        );
+
+        self::assertSame(ChatLine::CHANNEL_DISCORD, $line->channel);
+        self::assertFalse($line->isPublic(), 'echoing Discord back into Discord is a loop');
+    }
+
+    /** The channel is read even when the text itself holds a comma. */
+    public function testTheChannelSurvivesACommaInTheMessage(): void
+    {
+        $line = ChatLine::parse(
+            "[04-09-26 20:41:49.474][info] Got message:ChatMessage{chat=UI_chat_main_tab_title_id, author='bob', text='one, two, three'}.",
+        );
+
+        self::assertSame(ChatLine::CHANNEL_GENERAL, $line->channel);
+        self::assertSame('one, two, three', $line->text);
+    }
 }
