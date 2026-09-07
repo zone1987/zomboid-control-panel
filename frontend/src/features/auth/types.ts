@@ -16,6 +16,7 @@ export type Permission =
   | 'servers.edit'
   | 'servers.bridge'
   | 'servers.config'
+  | 'discord.manage'
   | 'users.invite'
   | 'users.manage'
   | 'settings.edit'

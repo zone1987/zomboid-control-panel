@@ -6076,3 +6076,117 @@ type `Base.Trousers_SuitWhite` by hand.
       one.
 - [ ] The interface: a `discord` settings tab (lower case — the tab test
       reads the source for `TabsTrigger value="([a-z]+)"`).
+
+---
+
+## 2026-09-07 — The Discord interface, and a 500 only the browser found
+
+**755 backend tests, 355 frontend tests, clicked through in the
+browser.** Still working autonomously.
+
+### The page
+
+`/app/servers/<id>/discord`, four tabs, and it **opens on what is
+missing**: without a bot token, an application id, a public key and a
+guild nothing can work, each is fixed in a different place, and each is
+named separately. A page that just sat there empty would be one nobody
+could act on.
+
+| Tab | What it does |
+|---|---|
+| Verbindung | guild id, unlink, commands on/off, register the catalogue |
+| Meldungen | 23 events, split into server events and admin actions |
+| Befehle | 21 subcommands, the roles allowed, **and what each costs in the panel** |
+| Chat | mirror channel, scope, and the inward relay shown as unavailable |
+
+Measured in the browser: "Es wird nichts gemeldet", "21 Befehle sind
+niemandem zugewiesen", four named gaps, every switch off, every channel
+empty. Which is exactly right for a server nobody has configured.
+
+**The command list shows the panel permission beside each command** —
+"Im Dashboard: Spieler kicken". A role in Discord is never the whole
+story, and showing the other half stops anybody thinking it is.
+
+**The chat scope carries its own caveat in the control**, not in
+documentation elsewhere: faction, safehouse, radio, admin and whisper
+channels are never mirrored, and somebody choosing "all public chat"
+can see that those are still excluded.
+
+The inward relay is **shown and disabled with its reason**, rather than
+hidden: it needs the gateway process, which does not exist yet.
+
+### The 500, and why the first test would not have caught it
+
+The page failed on load: `Undefined array key "spieler.liste"`.
+`$rights[$name]?->getRoleIds()` — **the null-safe operator handles a
+null value, not a missing key**, and on a fresh setup every key is
+missing.
+
+The instructive part is what happened next. `DiscordSetupTest` was
+written for it, and with the bug restored **it still passed**: in the
+test environment an undefined array key is a PHP *warning* and the
+request answers 200, while dev answers 500. PHPUnit has
+`failOnWarning` but that covers PHPUnit's own warnings; there is no
+`failOnPhpWarning` in the XSD.
+
+So the test installs an error handler around the request and asserts no
+warning was raised. **Proven by reverting**: with the fix removed the
+test now fails.
+
+**This is a general trap and belongs in the rules**: a functional test
+asserting only the status code can pass on a 200 that dev would answer
+500 for. Assert the response *and* that nothing was raised.
+
+### Files
+
+Backend: `Controller/Api/DiscordController.php` (7 routes),
+`Entity/Discord{Config,Notification,CommandRight}.php`,
+`Repository/Discord{Notification,CommandRight}Repository.php`,
+`Server/Discord/{Autocomplete,CommandAuthorisation,CommandRights,
+CommandRunner,CommandVerdict,Interaction,NotifiableEvents,
+NotificationSettings,EventNotifier}.php`,
+`MessageHandler/DeliverPanelEventHandler.php`,
+`Permission::ManageDiscord`, migration `Version20260907122103`.
+
+Frontend: `features/discord/{discord.ts,discord-page.tsx,event-list.tsx,
+command-list.tsx,chat-settings.tsx,channel-picker.tsx,discord.test.ts}`,
+`components/ui/textarea.tsx` (new — the project had none), the route,
+the nav entry, and ~120 translation keys in both locales.
+
+### Decisions taken here
+
+- **Commands are one page, not a settings tab.** The token is
+  panel-wide and lives in Settings; everything else is per server, and
+  a server's Discord setup belongs beside its other server pages.
+- **The channel picker lists channels by name**, loaded once per page
+  and cached for five minutes. A channel the bot can no longer see stays
+  selected and visible rather than silently vanishing.
+- **A template editor only appears for an event somebody switched on.**
+  23 textareas on an unconfigured page is noise.
+- **An unknown `{token}` is a warning, not a refusal.** It stays visible
+  in the message, harms nothing, and that is how the operator notices.
+- **Role ids are typed as a comma-separated list.** A role picker would
+  need the guild's roles, which is another API call and another
+  permission on the bot; the ids are copyable from Discord the same way
+  the guild id is. Worth revisiting if it proves annoying.
+- **`discord.save` and `discord.saved` are different keys.** The button
+  says "Speichern", the toast says "Gespeichert" — caught in the browser
+  where a button read "Gespeichert" before it had saved anything.
+
+### Still open on Discord
+
+- [ ] **The gateway process** for chat *from* Discord, and `ChatLine`'s
+      missing channel. **Not to be built before the channel is parsed** —
+      mirroring faction and whisper chat is a data-protection fault.
+- [ ] **Mirroring chat *to* Discord** — the scope setting exists and is
+      saved, but nothing reads it yet.
+- [ ] **The bridge/server events are not dispatched yet**:
+      `bridge.quiet`, `server.unreachable` and the two update ones have
+      wording, switches and channels, but nothing calls
+      `PanelEventDispatcher::dispatch` for them.
+- [ ] **A deferred reply** for commands that outgrow three seconds. The
+      type is in `InteractionType`, nothing uses it.
+- [ ] **Registering commands has never been run against Discord** — no
+      token, no application. Everything up to the HTTP call is tested.
+- [ ] Linking a Discord user to a panel account, so the moderation log
+      names a person rather than "Discord: name".

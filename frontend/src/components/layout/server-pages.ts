@@ -5,6 +5,7 @@ import {
   Map,
   MessagesSquare,
   Package,
+  MessageCircle,
   ScrollText,
   Skull,
   SlidersHorizontal,
@@ -87,6 +88,13 @@ export const SERVER_PAGES: ServerPage[] = [
     section: 'live',
   },
   { path: 'chat', label: 'nav.chat', icon: MessagesSquare, permission: 'chat.read', section: 'live' },
+  {
+    path: 'discord',
+    label: 'nav.discord',
+    icon: MessageCircle,
+    permission: 'discord.manage',
+    section: 'config',
+  },
   {
     path: 'console',
     label: 'nav.console',

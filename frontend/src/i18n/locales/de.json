@@ -566,6 +566,118 @@
     "subtitle": "Was auf diesem Server gerade los ist.",
     "theWorld": "Welt"
   },
+  "discord": {
+    "channel": "Kanal",
+    "chat": {
+      "intoGame": "Discord-Nachrichten ins Spiel senden",
+      "intoGameHint": "Braucht einen zusätzlichen Prozess und ist noch nicht verfügbar.",
+      "scope": "Was gespiegelt wird",
+      "scopeHint": "Fraktions-, Zufluchts-, Funk-, Admin- und Flüsterkanäle werden nie gespiegelt. Sie sind im Spiel privat und bleiben es.",
+      "scopes": {
+        "allPublic": "Der gesamte öffentliche Chat",
+        "general": "Nur Allgemein",
+        "noShouting": "Allgemein und Nahbereich, ohne Rufen"
+      },
+      "title": "Chat zwischen Discord und dem Spiel",
+      "toDiscord": "Spielchat nach Discord spiegeln"
+    },
+    "chooseChannel": "Kanal wählen",
+    "commandList": {
+      "hint": "Ohne Rolle kann niemand den Befehl ausführen. Zusätzlich gilt immer die Dashboard-Berechtigung.",
+      "noRoles": "Niemand",
+      "permission": "Im Dashboard: {{permission}}",
+      "roles": "Rollen-IDs, durch Komma getrennt",
+      "title": "Wer welche Befehle nutzen darf",
+      "ungranted_one": "Ein Befehl ist niemandem zugewiesen",
+      "ungranted_other": "{{count}} Befehle sind niemandem zugewiesen"
+    },
+    "commandsEnabled": "Slash-Befehle beantworten",
+    "eventNames": {
+      "bridge.back": "Bridge antwortet wieder",
+      "bridge.quiet": "Bridge antwortet nicht mehr",
+      "bridge.updated": "Bridge aktualisiert",
+      "moderation.ability": "Fähigkeit geändert",
+      "moderation.access_level": "Zugriffsstufe geändert",
+      "moderation.ban": "Spieler gesperrt",
+      "moderation.broadcast": "Nachricht an alle",
+      "moderation.console": "Konsolenbefehl",
+      "moderation.event": "Ereignis ausgelöst",
+      "moderation.experience": "Erfahrung vergeben",
+      "moderation.heal": "Spieler geheilt",
+      "moderation.items": "Items vergeben",
+      "moderation.join": "Spieler tritt bei",
+      "moderation.kick": "Spieler geworfen",
+      "moderation.leave": "Spieler verlässt den Server",
+      "moderation.skill": "Fertigkeit geändert",
+      "moderation.statistic": "Zustandswert gesetzt",
+      "moderation.teleport": "Spieler teleportiert",
+      "moderation.trait": "Eigenschaft geändert",
+      "moderation.unban": "Sperre aufgehoben",
+      "panel.updated": "Dashboard aktualisiert",
+      "server.reachable": "Server wieder erreichbar",
+      "server.unreachable": "Server nicht erreichbar"
+    },
+    "events": {
+      "activeCount_one": "Eine Meldung ist aktiv",
+      "activeCount_other": "{{count}} Meldungen sind aktiv",
+      "adminActions": "Admin-Aktionen",
+      "adminHint": "Standardmäßig aus. Diese Meldungen zeigen, was einzelne Personen getan haben — überlegen Sie, in welchen Kanal das gehört.",
+      "noneActive": "Es wird nichts gemeldet",
+      "serverEvents": "Server",
+      "template": "Text",
+      "templateHint": "Verfügbar: {{tokens}}",
+      "test": "Testnachricht senden",
+      "tested": "Testnachricht gesendet",
+      "title": "Was gemeldet wird",
+      "unknownTokens": "Unbekannte Platzhalter: {{tokens}}. Sie bleiben unverändert stehen.",
+      "usesDefault": "Standardtext"
+    },
+    "gaps": {
+      "applicationId": "Es fehlt die Anwendungs-ID aus dem Discord-Entwicklerportal.",
+      "guild": "Diesem Server ist noch kein Discord-Server zugeordnet.",
+      "publicKey": "Es fehlt der öffentliche Schlüssel — ohne ihn werden alle Anfragen von Discord abgelehnt.",
+      "token": "Es fehlt der Bot-Token. Er wird panelweit in den Einstellungen hinterlegt."
+    },
+    "guildId": "Discord-Server-ID",
+    "guildIdHint": "Rechtsklick auf den Server in Discord, „Server-ID kopieren“. Dafür muss der Entwicklermodus aktiv sein.",
+    "loadChannels": "Kanäle laden",
+    "noApplicationId": "Es ist keine Anwendungs-ID hinterlegt.",
+    "noChannel": "Kein Kanal gewählt",
+    "noChannelChosen": "Bitte zuerst einen Kanal wählen.",
+    "noGuild": "Für diesen Server ist kein Discord-Server hinterlegt.",
+    "noToken": "Es ist kein Bot-Token hinterlegt.",
+    "notReady": "Discord ist noch nicht eingerichtet",
+    "rateLimited": "Discord bremst gerade. Bitte kurz warten.",
+    "redactionFailed": "Die Nachricht wurde nicht gesendet, weil die Geheimnisprüfung fehlgeschlagen ist.",
+    "refused": "Discord hat die Anfrage abgelehnt.",
+    "registerCommands": "Befehle in Discord eintragen",
+    "registerHint": "Überträgt die Befehlsliste an diesen Discord-Server. Nötig nach jeder Änderung am Dashboard.",
+    "registered": "{{count}} Befehle wurden eingetragen.",
+    "save": "Speichern",
+    "saveFailed": "Nicht gespeichert",
+    "saved": "Gespeichert",
+    "subtitle": "Befehle, Meldungen und der Chat zwischen Discord und dem Spiel.",
+    "tabs": {
+      "chat": "Chat",
+      "commands": "Befehle",
+      "events": "Meldungen",
+      "general": "Verbindung"
+    },
+    "title": "Discord",
+    "unauthorised": "Discord hat den Token abgelehnt.",
+    "unknownCommand": "Diesen Befehl kennt das Dashboard nicht.",
+    "unknownEvent": "Diese Meldung kennt das Dashboard nicht.",
+    "unlink": "Verbindung lösen",
+    "unlinkHint": "Die Einstellungen bleiben erhalten, falls Sie denselben Discord-Server wieder verbinden.",
+    "unreachable": "Discord ist nicht erreichbar.",
+    "verdict": {
+      "allowed": "Erlaubt.",
+      "commandsOff": "Befehle sind für diesen Server abgeschaltet.",
+      "notAllowed": "Dir fehlt die Rolle für diesen Befehl.",
+      "unknownCommand": "Diesen Befehl kennt das Dashboard nicht.",
+      "wrongGuild": "Dieser Discord-Server ist nicht verbunden."
+    }
+  },
   "errors": {
     "forbidden": "Dafür fehlt dir die Berechtigung.",
     "generic": "Es ist ein Fehler aufgetreten.",
@@ -966,6 +1078,7 @@
     "credits": "Danksagungen",
     "darkTheme": "Dunkles Design",
     "dashboard": "Dashboard",
+    "discord": "Discord",
     "events": "Events",
     "health": "Systemstatus",
     "items": "Items",
@@ -1391,6 +1504,10 @@
       "console.use": {
         "description": "Beliebige Serverbefehle absetzen — auch solche, die den Server beenden.",
         "title": "RCON-Konsole"
+      },
+      "discord.manage": {
+        "description": "Den Discord-Bot einrichten: Kanäle, Meldungen und wer welche Befehle nutzen darf.",
+        "title": "Discord verwalten"
       },
       "events.trigger": {
         "description": "Wetter, Geräusche, Horden und Fahrzeuge in der Welt auslösen.",

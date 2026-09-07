@@ -40,6 +40,11 @@ final class SettingsController extends AbstractController
         // interface asks for the individual fields.
         AppSetting::MAILER_DSN,
         AppSetting::PLAYER_RETENTION_DAYS,
+        // Panel-wide rather than per server: one Discord application
+        // serves every guild it is invited to.
+        AppSetting::DISCORD_BOT_TOKEN,
+        AppSetting::DISCORD_APPLICATION_ID,
+        AppSetting::DISCORD_PUBLIC_KEY,
     ];
 
     public function __construct(

@@ -80,6 +80,10 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/servers/server-detail-page'), 'ServerDetailPage'),
                     },
                     {
+                      path: 'servers/:id/discord',
+                      lazy: lazyRoute(() => import('@/features/discord/discord-page'), 'DiscordPage'),
+                    },
+                    {
                       path: 'servers/:id/config',
                       lazy: lazyRoute(() => import('@/features/config/config-page'), 'ConfigPage'),
                     },

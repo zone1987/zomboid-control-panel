@@ -566,6 +566,118 @@
     "subtitle": "What is happening on this server right now.",
     "theWorld": "World"
   },
+  "discord": {
+    "channel": "Channel",
+    "chat": {
+      "intoGame": "Send Discord messages into the game",
+      "intoGameHint": "Needs an additional process and is not available yet.",
+      "scope": "What is mirrored",
+      "scopeHint": "Faction, safehouse, radio, admin and whisper channels are never mirrored. They are private in the game and stay private.",
+      "scopes": {
+        "allPublic": "All public chat",
+        "general": "General only",
+        "noShouting": "General and local, without shouting"
+      },
+      "title": "Chat between Discord and the game",
+      "toDiscord": "Mirror game chat to Discord"
+    },
+    "chooseChannel": "Choose a channel",
+    "commandList": {
+      "hint": "With no role, nobody can run it. The dashboard permission applies as well, always.",
+      "noRoles": "Nobody",
+      "permission": "In the dashboard: {{permission}}",
+      "roles": "Role IDs, comma separated",
+      "title": "Who may use which command",
+      "ungranted_one": "One command is assigned to nobody",
+      "ungranted_other": "{{count}} commands are assigned to nobody"
+    },
+    "commandsEnabled": "Answer slash commands",
+    "eventNames": {
+      "bridge.back": "Bridge answering again",
+      "bridge.quiet": "Bridge stopped answering",
+      "bridge.updated": "Bridge updated",
+      "moderation.ability": "Ability changed",
+      "moderation.access_level": "Access level changed",
+      "moderation.ban": "Player banned",
+      "moderation.broadcast": "Message to everyone",
+      "moderation.console": "Console command",
+      "moderation.event": "Event triggered",
+      "moderation.experience": "Experience granted",
+      "moderation.heal": "Player healed",
+      "moderation.items": "Items given",
+      "moderation.join": "Player joined",
+      "moderation.kick": "Player kicked",
+      "moderation.leave": "Player left",
+      "moderation.skill": "Skill changed",
+      "moderation.statistic": "Condition value set",
+      "moderation.teleport": "Player teleported",
+      "moderation.trait": "Trait changed",
+      "moderation.unban": "Ban lifted",
+      "panel.updated": "Dashboard updated",
+      "server.reachable": "Server reachable again",
+      "server.unreachable": "Server unreachable"
+    },
+    "events": {
+      "activeCount_one": "One notification is active",
+      "activeCount_other": "{{count}} notifications are active",
+      "adminActions": "Admin actions",
+      "adminHint": "Off by default. These announce what individual people did — think about which channel that belongs in.",
+      "noneActive": "Nothing is announced",
+      "serverEvents": "Server",
+      "template": "Message",
+      "templateHint": "Available: {{tokens}}",
+      "test": "Send a test message",
+      "tested": "Test message sent",
+      "title": "What gets announced",
+      "unknownTokens": "Unknown placeholders: {{tokens}}. They are left as they are.",
+      "usesDefault": "Default wording"
+    },
+    "gaps": {
+      "applicationId": "The application id from the Discord developer portal is missing.",
+      "guild": "No Discord server is linked to this game server yet.",
+      "publicKey": "The public key is missing — without it every request from Discord is refused.",
+      "token": "The bot token is missing. It is stored panel-wide in the settings."
+    },
+    "guildId": "Discord server ID",
+    "guildIdHint": "Right-click the server in Discord and choose \"Copy Server ID\". Developer mode must be on.",
+    "loadChannels": "Load channels",
+    "noApplicationId": "No application id is configured.",
+    "noChannel": "No channel chosen",
+    "noChannelChosen": "Please choose a channel first.",
+    "noGuild": "No Discord server is linked to this game server.",
+    "noToken": "No bot token is configured.",
+    "notReady": "Discord is not set up yet",
+    "rateLimited": "Discord is rate limiting. Please wait a moment.",
+    "redactionFailed": "The message was not sent because the secret check failed.",
+    "refused": "Discord refused the request.",
+    "registerCommands": "Register commands in Discord",
+    "registerHint": "Sends the command list to this Discord server. Needed after any change here.",
+    "registered": "{{count}} commands registered.",
+    "save": "Save",
+    "saveFailed": "Not saved",
+    "saved": "Saved",
+    "subtitle": "Commands, notifications, and chat between Discord and the game.",
+    "tabs": {
+      "chat": "Chat",
+      "commands": "Commands",
+      "events": "Notifications",
+      "general": "Connection"
+    },
+    "title": "Discord",
+    "unauthorised": "Discord rejected the token.",
+    "unknownCommand": "The dashboard does not know this command.",
+    "unknownEvent": "The dashboard does not know this notification.",
+    "unlink": "Unlink",
+    "unlinkHint": "The settings are kept, in case you link the same Discord server again.",
+    "unreachable": "Discord cannot be reached.",
+    "verdict": {
+      "allowed": "Allowed.",
+      "commandsOff": "Commands are switched off for this server.",
+      "notAllowed": "You do not have the role for this command.",
+      "unknownCommand": "The dashboard does not know this command.",
+      "wrongGuild": "This Discord server is not linked."
+    }
+  },
   "errors": {
     "forbidden": "You do not have permission to do that.",
     "generic": "Something went wrong.",
@@ -966,6 +1078,7 @@
     "credits": "Credits",
     "darkTheme": "Dark theme",
     "dashboard": "Dashboard",
+    "discord": "Discord",
     "events": "Events",
     "health": "System health",
     "items": "Items",
@@ -1391,6 +1504,10 @@
       "console.use": {
         "description": "Send any server command — including ones that stop the server.",
         "title": "RCON console"
+      },
+      "discord.manage": {
+        "description": "Set up the Discord bot: channels, notifications, and who may use which command.",
+        "title": "Manage Discord"
       },
       "events.trigger": {
         "description": "Set off weather, sounds, hordes and vehicles in the world.",

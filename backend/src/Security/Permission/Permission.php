@@ -32,6 +32,7 @@ enum Permission: string
     case InviteUsers = 'users.invite';
     case ManageUsers = 'users.manage';
     case EditSettings = 'settings.edit';
+    case ManageDiscord = 'discord.manage';
 
     /**
      * Grouped for the interface, in the order they are shown.
@@ -58,6 +59,7 @@ enum Permission: string
                 self::ReadChat,
                 self::SendChat,
                 self::ViewLog,
+                self::ManageDiscord,
             ],
             'servers' => [
                 self::ViewServers,
