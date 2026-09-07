@@ -632,6 +632,33 @@ one component can carry all of them.
   claiming every past action succeeded is worse than one admitting it
   does not know.
 
+## 10i. A `final` collaborator needs a narrow interface, not unsealing
+
+Three times in one session a unit test could not be written because the
+collaborator was `final`: `ServerInfoReader` for the bridge reload,
+`DiscordNotificationRepository` for the notifier,
+`DiscordCommandRightRepository` for the authorisation. PHPUnit answers
+`ClassIsFinalException`, and the tempting fix is to drop the `final`.
+
+**Do not.** Introduce an interface holding only what the caller
+actually needs, and have the class implement it:
+
+- `RunningBridgeReading` is two fields — version and session id — so a
+  reload verdict cannot be swayed by weather or game time.
+- `NotificationSettings` is one lookup, because announcing depends on
+  whether a row exists and on nothing else about persistence.
+- `CommandRights` likewise.
+
+The narrower dependency is the point and the testability follows. A
+service that takes a whole repository can reach anything in it later;
+one that takes a single-method interface cannot, and the interface
+documents exactly what the collaboration is.
+
+This is already the shape `RconClientInterface` and
+`FileBrowserInterface` have. The `when@test` block in `services.yaml`
+marking them `public: true` is the other half of the same pattern, for
+the cases where a functional test has to swap the real one out.
+
 ## 11. Delegating to subagents
 
 Permitted and encouraged, with rules learnt the hard way:

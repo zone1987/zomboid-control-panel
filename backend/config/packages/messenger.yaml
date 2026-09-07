@@ -19,6 +19,10 @@ framework:
             # triggered the mail.
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async
 
+            # Announcing an event must not hold up the action that
+            # caused it, and a Discord rate limit is worth retrying.
+            App\Server\Events\DeliverPanelEvent: async
+
 when@test:
     framework:
         messenger:

@@ -31,6 +31,9 @@ class GameServer
     #[ORM\OneToOne(targetEntity: RconConfig::class, mappedBy: 'server', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?RconConfig $rconConfig = null;
 
+    #[ORM\OneToOne(targetEntity: DiscordConfig::class, mappedBy: 'server', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?DiscordConfig $discordConfig = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -85,6 +88,16 @@ class GameServer
     public function setRconConfig(?RconConfig $rconConfig): void
     {
         $this->rconConfig = $rconConfig;
+    }
+
+    public function getDiscordConfig(): ?DiscordConfig
+    {
+        return $this->discordConfig;
+    }
+
+    public function setDiscordConfig(?DiscordConfig $discordConfig): void
+    {
+        $this->discordConfig = $discordConfig;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

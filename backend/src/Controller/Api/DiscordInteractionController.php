@@ -5,7 +5,14 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\AppSetting;
+use App\Entity\GameServer;
 use App\Repository\AppSettingRepository;
+use App\Repository\GameServerRepository;
+use App\Server\Discord\Autocomplete;
+use App\Server\Discord\CommandAuthorisation;
+use App\Server\Discord\CommandRunner;
+use App\Server\Discord\CommandVerdict;
+use App\Server\Discord\Interaction;
 use App\Server\Discord\InteractionSignature;
 use App\Server\Discord\InteractionType;
 use Psr\Log\LoggerInterface;
@@ -41,6 +48,10 @@ final class DiscordInteractionController extends AbstractController
 {
     public function __construct(
         private readonly AppSettingRepository $settings,
+        private readonly GameServerRepository $servers,
+        private readonly CommandAuthorisation $authorisation,
+        private readonly CommandRunner $runner,
+        private readonly Autocomplete $autocomplete,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -75,20 +86,81 @@ final class DiscordInteractionController extends AbstractController
             return new JsonResponse(['type' => InteractionType::PONG]);
         }
 
-        $this->logger->info('discord interaction received', [
-            'type' => $type,
-            'command' => $payload['data']['name'] ?? null,
-        ]);
+        $interaction = Interaction::fromPayload($payload);
 
-        // The command dispatcher lands in the next step; until then an
-        // honest refusal beats a silent nothing, and it is ephemeral so
-        // it does not clutter a channel.
+        if ($interaction === null) {
+            return $this->reply('Diese Anfrage konnte nicht gelesen werden.');
+        }
+
+        $server = $this->serverFor($interaction);
+
+        if ($server === null) {
+            return $this->reply('Für diesen Discord-Server ist kein Spielserver hinterlegt.');
+        }
+
+        if ($type === InteractionType::AUTOCOMPLETE) {
+            // Answered from the database alone. Autocomplete has the same
+            // three seconds as everything else, and waiting on the bridge
+            // for a suggestion would spend them.
+            return new JsonResponse([
+                'type' => InteractionType::AUTOCOMPLETE_RESULT,
+                'data' => ['choices' => $this->autocomplete->suggest($server, $interaction)],
+            ]);
+        }
+
+        $verdict = $this->authorisation->decide($server, $interaction);
+
+        if (!$verdict->isAllowed()) {
+            $this->logger->info('a discord command was refused', [
+                'command' => $interaction->name(),
+                'user' => $interaction->userId,
+                'verdict' => $verdict->value,
+            ]);
+
+            return $this->reply($this->explain($verdict));
+        }
+
+        // Inside the three seconds Discord allows: the panel's own
+        // services are local, and the RCON calls behind them have their
+        // own timeouts. A command that does outgrow this gets a deferred
+        // reply rather than a longer wait.
+        return $this->reply($this->runner->run($server, $interaction));
+    }
+
+    /**
+     * Which game server this guild commands.
+     *
+     * One guild, one server: a member of one community must not reach
+     * another's server, which is also checked in the authorisation.
+     */
+    private function serverFor(Interaction $interaction): ?GameServer
+    {
+        foreach ($this->servers->findAll() as $server) {
+            if ($server->getDiscordConfig()?->getGuildId() === $interaction->guildId) {
+                return $server;
+            }
+        }
+
+        return null;
+    }
+
+    private function explain(CommandVerdict $verdict): string
+    {
+        return match ($verdict) {
+            CommandVerdict::CommandsOff => 'Befehle sind für diesen Server abgeschaltet.',
+            CommandVerdict::WrongGuild => 'Dieser Discord-Server ist nicht mit diesem Spielserver verbunden.',
+            CommandVerdict::UnknownCommand => 'Diesen Befehl kennt das Dashboard nicht.',
+            CommandVerdict::NotAllowed => 'Dir fehlt die Rolle für diesen Befehl.',
+            default => 'Das war nicht möglich.',
+        };
+    }
+
+    /** Ephemeral: an answer to one person does not belong in a channel. */
+    private function reply(string $content): JsonResponse
+    {
         return new JsonResponse([
             'type' => InteractionType::MESSAGE,
-            'data' => [
-                'content' => 'Dieser Befehl ist noch nicht eingerichtet.',
-                'flags' => InteractionType::EPHEMERAL,
-            ],
+            'data' => ['content' => $content, 'flags' => InteractionType::EPHEMERAL],
         ]);
     }
 
