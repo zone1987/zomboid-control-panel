@@ -180,6 +180,96 @@ final class BridgeClimateCallsTest extends TestCase
         self::assertStringContainsString('getWaterShutModifier', $lua);
     }
 
+    /**
+     * The perk table is walked by method, never through PerkInfo.
+     *
+     * `PerkInfo.perk` is a public field with **no getter at all**, so
+     * `info.perk` read nil from Lua, the level-0 guard was never
+     * reached, and every player's skills arrived as `{}` — the panel
+     * showed an empty list and reported no error. The route that works
+     * is the one the game's own ISPerkLog takes.
+     */
+    public function testTheSkillsAreReadThroughThePerkTable(): void
+    {
+        $api = self::api();
+        $lua = self::lua();
+
+        // The field with no getter, which is why it cannot be used.
+        self::assertContains('perk', $api['_fieldsPerkInfo']);
+        self::assertNotContains('getPerk', $api['PerkInfo']);
+
+        // testNoPublicJavaFieldIsIndexed covers `info.perk` itself;
+        // here it is the list that route needs which must stay gone.
+        self::assertStringNotContainsString('getPerkList', $lua);
+
+        foreach (['getMaxIndex', 'fromIndex'] as $method) {
+            self::assertContains($method, $api['Perks']);
+            self::assertStringContainsString('Perks.'.$method, $lua);
+        }
+
+        self::assertContains('getPerk', $api['PerkFactory']);
+        self::assertStringContainsString('PerkFactory.getPerk', $lua);
+
+        foreach (['getId', 'getParent'] as $method) {
+            self::assertContains($method, $api['Perk']);
+        }
+
+        self::assertStringContainsString('getPerkLevel', $lua);
+    }
+
+    /**
+     * No public Java field is indexed on a variable holding a game object.
+     *
+     * Five separate uploads shipped this same mistake in five places, so
+     * it is checked against the classes' real fields rather than the
+     * handful already known. Scoped to the variables in HOLDS plus the
+     * perk locals: a bare `.name` is usually a Lua table key, and a
+     * guard that cannot tell those apart gets switched off. A field
+     * reads nil from Lua, and nil does not throw — it produces an empty
+     * result the panel then reports as success.
+     */
+    public function testNoPublicJavaFieldIsIndexed(): void
+    {
+        $api = self::api();
+        $lua = self::stripComments(self::lua());
+
+        // The perk locals are not in HOLDS: they are read inside one
+        // function rather than being a bridge-wide convention.
+        $holders = [...array_keys(self::HOLDS), 'perk', 'parent', 'info'];
+
+        $checked = 0;
+
+        foreach ($api as $key => $members) {
+            if (!str_starts_with($key, '_fields')) {
+                continue;
+            }
+
+            foreach ($members as $field) {
+                foreach ($holders as $holder) {
+                    ++$checked;
+
+                    self::assertStringNotContainsString(
+                        $holder.'.'.$field,
+                        $lua,
+                        sprintf(
+                            '%s is a public Java field on %s and reads nil from Lua; call its getter instead',
+                            $field,
+                            substr($key, 7),
+                        ),
+                    );
+                }
+            }
+        }
+
+        self::assertGreaterThan(100, $checked, 'the fixture no longer lists any public fields');
+    }
+
+    /** Comments name the traps deliberately, so they are not evidence. */
+    private static function stripComments(string $lua): string
+    {
+        return preg_replace('/^\s*--.*$/m', '', $lua) ?? $lua;
+    }
+
     /** @return array<string, list<string>> */
     private static function api(): array
     {

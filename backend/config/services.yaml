@@ -70,11 +70,27 @@ services:
         arguments:
             $temporaryDirectory: '%kernel.project_dir%/var/icons/incoming'
 
+    App\Command\ExtractIconsCommand:
+        arguments:
+            $characterStore: '@character.icon_store'
+
+    App\Controller\Api\CharacterSheetController:
+        arguments:
+            $characterStore: '@character.icon_store'
+        tags: ['controller.service_arguments']
+
     App\Server\Items\Icons\IconStore:
         arguments:
             # Outside the document root and out of git: the pictures are
             # The Indie Stone's, extracted from the operator's own copy.
             $directory: '%kernel.project_dir%/var/icons'
+
+    # The character sheet's own artwork, kept apart from five thousand
+    # item icons so either can be re-extracted without the other.
+    character.icon_store:
+        class: App\Server\Items\Icons\IconStore
+        arguments:
+            $directory: '%kernel.project_dir%/var/character-icons'
 
 
     App\Settings\SupportedLanguages:

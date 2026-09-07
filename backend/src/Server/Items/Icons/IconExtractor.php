@@ -15,6 +15,13 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class IconExtractor
 {
+    /** What the items page needs, and the default. */
+    public const ITEM_ICONS = ['Item_'];
+
+    /** The character sheet's own artwork: professions and traits. */
+    public const CHARACTER_ICONS = ['profession_', 'trait_'];
+
+
     public function __construct(
         private IconStore $store,
         private LoggerInterface $logger,
@@ -22,12 +29,20 @@ final readonly class IconExtractor
     }
 
     /**
+     * @param list<string> $prefixes sprite name prefixes worth keeping
+     * @param IconStore|null $into    where to write, defaulting to the item store
+     *
      * @return array{extracted: int, skipped: int, pages: int}
      *
      * @throws MalformedPack
      */
-    public function extract(string $packBytes, string $packName): array
-    {
+    public function extract(
+        string $packBytes,
+        string $packName,
+        array $prefixes = self::ITEM_ICONS,
+        ?IconStore $into = null,
+    ): array {
+        $store = $into ?? $this->store;
         $pack = SpritePack::parse($packBytes);
 
         $extracted = 0;
@@ -50,7 +65,7 @@ final readonly class IconExtractor
             $height = imagesy($atlas);
 
             foreach ($page->sprites as $sprite) {
-                if (!$sprite->isItemIcon()) {
+                if (!$sprite->hasAnyPrefix($prefixes)) {
                     continue;
                 }
 
@@ -76,7 +91,7 @@ final readonly class IconExtractor
                     continue;
                 }
 
-                $this->store->put($sprite->name, $png);
+                $store->put($sprite->name, $png);
                 ++$extracted;
             }
 

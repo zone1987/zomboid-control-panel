@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.18.4"
+local BRIDGE_VERSION = "0.19.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -246,25 +246,41 @@ end
 
 --- Skills the character has actually trained; level 0 entries are
 --- skipped so the payload stays small.
+---
+--- Walks the perk table the way the game's own ISPerkLog does. The
+--- character's perkList is not usable from Lua: PerkInfo.perk is a
+--- public field with no getter, so it reads nil and every entry was
+--- dropped silently.
 local function describeSkills(player)
-    local perks = player:getPerkList()
+    local ok, entries = pcall(function()
+        local found = {}
 
-    if perks == nil then
-        return "{}"
-    end
+        for index = 0, Perks.getMaxIndex() - 1 do
+            local id = Perks.fromIndex(index)
+            local perk = PerkFactory.getPerk(id)
+            local level = player:getPerkLevel(id)
 
-    local entries = {}
+            -- A perk without a parent is a category heading rather
+            -- than a skill; the game's own character sheet skips those.
+            -- Compared by id, because Perks.None is a static field and
+            -- a nil there must not discard every skill.
+            local parent = perk ~= nil and perk:getParent() or nil
+            local isCategory = parent == nil or parent:getId() == "None"
 
-    for i = 0, perks:size() - 1 do
-        local info = perks:get(i)
-
-        if info ~= nil and info.perk ~= nil then
-            local level = info:getLevel()
-
-            if level > 0 then
-                table.insert(entries, string.format("\"%s\":%d", escape(info.perk:getId()), level))
+            if perk ~= nil and level ~= nil and level > 0 and not isCategory then
+                table.insert(found, string.format(
+                    "\"%s\":%d",
+                    escape(perk:getId()),
+                    level
+                ))
             end
         end
+
+        return found
+    end)
+
+    if not ok or entries == nil then
+        return "{}"
     end
 
     return "{" .. table.concat(entries, ",") .. "}"
@@ -1751,6 +1767,117 @@ handlers.readPlayerStats = function(command)
         table.concat(parts, ","),
         weight,
         profession
+    )
+end
+
+--- Adds or removes one character trait.
+---
+--- The three steps are the game's own, from
+--- client/ISUI/PlayerStats/ISPlayerStatsUI.lua:591-597: add the trait,
+--- then modifyTraitXPBoost so its skill bonuses actually apply, then
+--- push what can be pushed. `add` alone leaves a trait that is listed
+--- but does nothing.
+---
+--- The client's own display does not update until it reconnects:
+--- SyncXp is guarded by GameClient.client and is a no-op on a server,
+--- and the ExtraInfo packet carries roles and cheats but no traits. The
+--- panel says so rather than implying the player sees it at once.
+handlers.setTrait = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    local name = tostring(command.trait or "")
+
+    if name == "" then
+        return false, "no trait was named"
+    end
+
+    local adding = command.adding == true or command.adding == "true"
+
+    local ok, result = pcall(function()
+        -- CharacterTrait.get takes a ResourceLocation, not a string;
+        -- the static fields are unreachable from Lua.
+        local trait = CharacterTrait.get(ResourceLocation.of(name))
+
+        if trait == nil then
+            return { found = false }
+        end
+
+        local traits = player:getCharacterTraits()
+
+        if traits == nil then
+            return { found = true, applied = false, why = "no trait list" }
+        end
+
+        if adding then
+            traits:add(trait)
+        else
+            traits:remove(trait)
+        end
+
+        -- Without this the trait is inert: its XP boosts are held on the
+        -- character, not on the trait.
+        pcall(function() player:modifyTraitXPBoost(trait, not adding) end)
+
+        -- The one server-side broadcast that exists. It carries no
+        -- traits, so this is for anything else riding along rather than
+        -- for the trait itself.
+        pcall(function()
+            if sendPlayerExtraInfo ~= nil then
+                sendPlayerExtraInfo(player)
+            end
+        end)
+
+        return { found = true, applied = traits:get(trait) == adding }
+    end)
+
+    if not ok or result == nil then
+        return false, "the server would not take that trait"
+    end
+
+    if not result.found then
+        return false, string.format("the game has no trait called %s", name)
+    end
+
+    if not result.applied then
+        return false, "the trait did not change"
+    end
+
+    return true, adding and "trait added" or "trait removed", string.format(
+        '{"trait":"%s","adding":%s,"visibleAfterReconnect":true}',
+        escape(name),
+        tostring(adding)
+    )
+end
+
+--- Every trait the character has, by the game's own name for it.
+handlers.readTraits = function(command)
+    local player = findPlayer(command.player)
+
+    if player == nil then
+        return false, "that player is not online"
+    end
+
+    return true, "traits read", string.format(
+        '{"traits":%s,"profession":%s}',
+        describeTraits(player),
+        (function()
+            local ok, name = pcall(function()
+                local desc = player:getDescriptor()
+                local prof = desc ~= nil and desc:getCharacterProfession() or nil
+
+                return prof ~= nil and prof:getName() or nil
+            end)
+
+            if not ok or name == nil then
+                return "null"
+            end
+
+            return string.format('"%s"', escape(name))
+        end)()
     )
 end
 

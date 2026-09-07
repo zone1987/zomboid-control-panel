@@ -16,9 +16,15 @@ final readonly class Sprite
     ) {
     }
 
-    /** Item icons are the only ones the panel has a use for. */
-    public function isItemIcon(): bool
+    /** @param list<string> $prefixes */
+    public function hasAnyPrefix(array $prefixes): bool
     {
-        return str_starts_with($this->name, 'Item_');
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($this->name, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

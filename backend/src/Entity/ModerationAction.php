@@ -58,6 +58,9 @@ class ModerationAction
     /** One of the character statistics set through the bridge. */
     public const STATISTIC = 'statistic';
 
+    /** A character trait added or removed through the bridge. */
+    public const TRAIT = 'trait';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;

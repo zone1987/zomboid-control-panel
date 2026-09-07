@@ -16,6 +16,8 @@ export type Player = {
   accessLevel: string | null
   skills: Record<string, number> | null
   traits: string[] | null
+  zombieKills: number | null
+  survivorKills: number | null
   lastSeenAt: string
   firstSeenAt: string
 }

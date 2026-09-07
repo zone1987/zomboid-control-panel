@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Server\Bridge;
 
+use App\Server\Players\Character\CharacterDefinitions;
+
 /**
  * Something the panel asks the running server to do.
  *
@@ -33,6 +35,8 @@ enum BridgeCommand: string
     case HealPlayer = 'healPlayer';
     case ReadPlayerStats = 'readPlayerStats';
     case SetPlayerStat = 'setPlayerStat';
+    case ReadTraits = 'readTraits';
+    case SetTrait = 'setTrait';
     case SetPlayerWeight = 'setPlayerWeight';
     case SetSnow = 'setSnow';
     case StartBlizzard = 'startBlizzard';
@@ -166,6 +170,12 @@ enum BridgeCommand: string
                 'player' => self::text($arguments, 'player'),
                 'weight' => self::number($arguments, 'weight', 30, 200),
             ],
+            self::ReadTraits => ['player' => self::text($arguments, 'player')],
+            self::SetTrait => [
+                'player' => self::text($arguments, 'player'),
+                'trait' => self::characterTrait($arguments),
+                'adding' => ($arguments['adding'] ?? false) === true,
+            ],
             self::TriggerWeatherStage => [
                 'stage' => self::stage($arguments),
                 'duration' => self::number($arguments, 'duration', 1, self::MAX_STAGE_HOURS),
@@ -290,6 +300,35 @@ enum BridgeCommand: string
         }
 
         return $stat;
+    }
+
+    /**
+     * A trait the game actually defines.
+     *
+     * Checked against the generated table rather than passed through:
+     * an unknown name reaches the bridge, fails there, and the operator
+     * sees "the game has no trait called x" after a round trip. And a
+     * profession trait is refused — those are granted by a job, so
+     * setting one by hand leaves the sheet inconsistent with itself.
+     *
+     * @param array<string, mixed> $arguments
+     */
+    private static function characterTrait(array $arguments): string
+    {
+        $trait = $arguments['trait'] ?? null;
+
+        if (!\is_string($trait) || !isset(CharacterDefinitions::TRAITS[$trait])) {
+            throw new InvalidBridgeCommand('"trait" must be a trait the game defines.');
+        }
+
+        if (CharacterDefinitions::TRAITS[$trait]['professionTrait'] === true) {
+            throw new InvalidBridgeCommand(sprintf(
+                '"%s" is granted by a profession and cannot be set on its own.',
+                $trait,
+            ));
+        }
+
+        return $trait;
     }
 
     /** @param array<string, mixed> $arguments */

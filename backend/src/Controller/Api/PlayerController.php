@@ -483,6 +483,8 @@ final class PlayerController extends AbstractController
             'accessLevel' => $player->getAccessLevel(),
             'skills' => $player->getSkills(),
             'traits' => $player->getTraits(),
+            'zombieKills' => $player->getZombieKills(),
+            'survivorKills' => $player->getSurvivorKills(),
             'lastSeenAt' => $player->getLastSeenAt()->format(\DateTimeInterface::ATOM),
             'firstSeenAt' => $player->getFirstSeenAt()->format(\DateTimeInterface::ATOM),
         ];

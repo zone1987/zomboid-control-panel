@@ -1,77 +1,236 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { RefreshCw, TrendingUp, Users } from 'lucide-react'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getServer } from '@/features/servers/servers'
-import { PlayerTable } from './player-table'
+import { BanDialog } from './ban-dialog'
+import { PlayerList } from './player-list'
 import { PlayerDossier } from './player-dossier'
-import { BanList } from './ban-list'
 import { ModerationHistory } from './moderation-history'
-import type { Player } from './players'
+import { useModeration } from './use-moderation'
+import { listBans, listPlayers, type Player } from './players'
 
 /**
- * The list and one player's dossier, side by side.
+ * The roster and one player's dossier, side by side.
  *
- * The dossier used to be a dialog, so inspecting somebody covered the
- * list and moving on meant close, find, open. Comparing two players is
- * common enough that the column is the right shape — and on a narrow
- * screen the two simply stack, dossier first once a player is chosen.
+ * The dossier used to be a dialog, then a 26rem sliver beside a
+ * five-column table that wanted the whole width. Neither worked: the
+ * table's columns duplicated what the dossier shows, and both were
+ * cramped. So the left column is a *list* — name, state, one line of
+ * context — and the dossier gets the room the actual content needs.
  */
 export function PlayersPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { id = '' } = useParams()
-  const [chosen, setChosen] = useState<Player | null>(null)
 
-  const { data: server, isPending } = useQuery({
+  const [chosen, setChosen] = useState<string | null>(null)
+  const [banning, setBanning] = useState<string | null>(null)
+
+  const { data: server } = useQuery({
     queryKey: ['server', id],
     queryFn: () => getServer(id),
   })
+
+  const { data, isPending, dataUpdatedAt, refetch, isFetching } = useQuery({
+    queryKey: ['players', id, false],
+    queryFn: () => listPlayers(id, false),
+    refetchInterval: 3_000,
+    refetchIntervalInBackground: true,
+    placeholderData: (previous) => previous,
+  })
+
+  const { data: bans } = useQuery({
+    queryKey: ['bans', id],
+    queryFn: () => listBans(id),
+    retry: false,
+  })
+
+  const moderation = useModeration(id)
+
+  const players = useMemo(() => data?.items ?? [], [data?.items])
+  const bridge = data?.bridge
+
+  // Derived, never copied into state: an effect doing this would
+  // overwrite the choice on every three-second refetch.
+  const selected = useMemo<Player | null>(() => {
+    if (chosen === null) {
+      return null
+    }
+
+    const found = players.find((player) => player.username === chosen)
+
+    if (found !== undefined) {
+      return found
+    }
+
+    // A manually typed name, or somebody purged from the roster: still
+    // actionable, so a placeholder rather than nothing.
+    return {
+      username: chosen,
+      steamId: null,
+      online: false,
+      position: { x: null, y: null, z: null },
+      health: null,
+      infected: false,
+      infectionLevel: null,
+      hoursSurvived: null,
+      accessLevel: null,
+      skills: null,
+      traits: null,
+      zombieKills: null,
+      survivorKills: null,
+      lastSeenAt: new Date().toISOString(),
+      firstSeenAt: new Date().toISOString(),
+    }
+  }, [chosen, players])
+
+  const online = players.filter((player) => player.online).length
 
   if (isPending) {
     return <Skeleton className="h-96 w-full" />
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('players.title')}</h1>
-        <p className="text-muted-foreground">
-          {server ? t('players.descriptionFor', { server: server.name }) : t('players.description')}
-        </p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{t('players.title')}</h1>
+          <p className="text-muted-foreground">
+            {server
+              ? t('players.descriptionFor', { server: server.name })
+              : t('players.description')}
+          </p>
+        </div>
+
+        {/* A visible timestamp beats silent polling: it says the number
+            is current without anybody having to trust that it is. */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {t('players.updatedAt', {
+              time: new Date(dataUpdatedAt).toLocaleTimeString(i18n.language),
+            })}
+          </span>
+
+          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => void refetch()}>
+            <RefreshCw className={isFetching ? 'size-4 animate-spin' : 'size-4'} />
+            {t('common.refresh')}
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="players">
-        <TabsList>
-          <TabsTrigger value="players">{t('players.playersTab')}</TabsTrigger>
-          <TabsTrigger value="bans">{t('players.bansTab')}</TabsTrigger>
-          <TabsTrigger value="history">{t('players.historyTab')}</TabsTrigger>
-        </TabsList>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile icon={Users} value={online} label={t('players.onlineNow')} />
+        <StatTile icon={Users} value={players.length} label={t('players.known')} />
+        <StatTile icon={TrendingUp} value={bans?.items.length ?? 0} label={t('players.bansTab')} />
+      </div>
 
-        <TabsContent value="players" className="space-y-4">
-          {/* The list keeps the room it needs for five columns; the
-              dossier takes a fixed share beside it rather than half. */}
-          <div className="grid gap-4 xl:grid-cols-[1fr_26rem]">
-            <PlayerTable
-              serverId={id}
-              selected={chosen?.username ?? null}
-              onSelect={setChosen}
-            />
+      {data?.error && (
+        <Alert variant="destructive">
+          <AlertTitle>{t('players.bridgeUnavailable')}</AlertTitle>
+          <AlertDescription>{t(data.error)}</AlertDescription>
+        </Alert>
+      )}
 
-            <PlayerDossier serverId={id} player={chosen} />
-          </div>
-        </TabsContent>
+      {bridge && bridge.version !== null && bridge.version !== bridge.expectedVersion && (
+        <Alert>
+          <AlertTitle>{t('players.bridgeOutdated')}</AlertTitle>
+          <AlertDescription>
+            {t('players.bridgeOutdatedHint', {
+              installed: bridge.version,
+              expected: bridge.expectedVersion,
+            })}
+          </AlertDescription>
+        </Alert>
+      )}
 
-        <TabsContent value="bans">
-          <BanList serverId={id} />
-        </TabsContent>
+      {bridge?.stale && (
+        <Alert>
+          <AlertTitle>{t('players.bridgeStale')}</AlertTitle>
+          <AlertDescription>{t('players.bridgeStaleHint')}</AlertDescription>
+        </Alert>
+      )}
 
-        <TabsContent value="history">
+      {/* The list needs a name's width; the dossier holds ten pip rows
+          two abreast, a slider column and a note field. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[20rem_1fr]">
+        <PlayerList
+          players={players}
+          bans={bans?.items ?? []}
+          selected={chosen}
+          onSelect={(player) => setChosen(player.username)}
+          onManual={setChosen}
+        />
+
+        <PlayerDossier
+          serverId={id}
+          player={selected}
+          players={players}
+          pending={moderation.pending}
+          onKick={() => selected !== null && moderation.kick.mutate(selected)}
+          onBan={() => selected !== null && setBanning(selected.username)}
+          onAccessLevel={(level) =>
+            selected !== null &&
+            moderation.changeLevel.mutate({ username: selected.username, level })
+          }
+          onTeleport={(destination) =>
+            selected !== null &&
+            moderation.teleport.mutate({ username: selected.username, destination })
+          }
+        />
+      </div>
+
+      <details className="rounded-md border">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+          {t('players.historyTab')}
+        </summary>
+
+        <div className="border-t p-4">
           <ModerationHistory serverId={id} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </details>
+
+      {banning !== null && (
+        <BanDialog
+          username={banning}
+          open
+          pending={moderation.ban.isPending}
+          onOpenChange={(open) => !open && setBanning(null)}
+          onConfirm={(options) => {
+            moderation.ban.mutate({ username: banning, ...options })
+            setBanning(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function StatTile({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: typeof Users
+  value: number
+  label: string
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border p-3">
+      <div className="rounded-md bg-muted p-2">
+        <Icon aria-hidden className="size-4 text-muted-foreground" />
+      </div>
+
+      <div>
+        <p className="font-mono text-xl leading-none font-semibold tabular-nums">{value}</p>
+        <p className="mt-1 font-mono text-[11px] tracking-wide text-muted-foreground uppercase">
+          {label}
+        </p>
+      </div>
     </div>
   )
 }

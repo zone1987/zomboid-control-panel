@@ -69,6 +69,14 @@ class PlayerSnapshot
     #[ORM\Column(type: 'json')]
     private array $traits = [];
 
+    // Nullable because rows written before 0.19 never carried them, and
+    // null means unknown rather than "this player killed nothing".
+    #[ORM\Column(nullable: true)]
+    private ?int $zombieKills = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $survivorKills = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $lastSeenAt;
 
@@ -208,5 +216,25 @@ class PlayerSnapshot
         $this->traits = $traits;
         $this->lastSeenAt = $seenAt;
         $this->online = $online;
+    }
+
+    /**
+     * The tallies, set apart from update() rather than as two more of
+     * its thirteen positional arguments.
+     */
+    public function recordKills(?int $zombies, ?int $survivors): void
+    {
+        $this->zombieKills = $zombies;
+        $this->survivorKills = $survivors;
+    }
+
+    public function getZombieKills(): ?int
+    {
+        return $this->zombieKills;
+    }
+
+    public function getSurvivorKills(): ?int
+    {
+        return $this->survivorKills;
     }
 }

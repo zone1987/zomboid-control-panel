@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { UserSearch } from 'lucide-react'
 
-import { Copyable } from '@/components/ui/copyable'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Empty,
@@ -12,162 +11,144 @@ import {
 } from '@/components/ui/empty'
 import { SectionMark } from '@/components/layout/section-mark'
 import { AbilityRows } from './ability-rows'
+import { DossierHeader } from './dossier-header'
 import { ExperienceCard } from './experience-card'
 import { NotesCard } from './notes-card'
 import { PlayerHistory } from './player-history'
 import { PlayerVitals } from './player-vitals'
+import { CharacterCard } from './character-card'
+import { ModerationTab } from './moderation-tab'
+import { SkillGrid } from './skill-grid'
 import { VitalsCard } from './vitals-card'
-import type { Player } from './players'
+import type { AccessLevel, Player, TeleportDestination } from './players'
+
+const TABS = ['condition', 'character', 'skills', 'moderation', 'abilities', 'grant', 'notes'] as const
 
 /**
  * One player, beside the list rather than on top of it.
  *
- * `PlayerDetail` was a dialog, so inspecting somebody covered the list
- * and moving to the next one meant close, find, open. Comparing two
- * players is the job often enough that the column is the right shape —
- * and the tabs stay visible with nothing selected, so the page says what
- * it can do before it is asked.
- *
- * Kick and ban stay on the row in the list rather than being repeated
- * here: they are one click away already, and two places to ban somebody
- * from is one place too many to keep in step.
+ * Five tabs, one job each. The skills used to be buried at the bottom of
+ * the condition tab where nobody found them, and the abilities shared a
+ * tab with granting experience — two different acts under one heading.
  */
 export function PlayerDossier({
   serverId,
   player,
+  players,
+  pending,
+  onKick,
+  onBan,
+  onAccessLevel,
+  onTeleport,
 }: {
   serverId: string
   player: Player | null
+  players: Player[]
+  pending: boolean
+  onKick: () => void
+  onBan: () => void
+  onAccessLevel: (level: AccessLevel) => void
+  onTeleport: (destination: TeleportDestination) => void
 }) {
   const { t } = useTranslation()
 
+  if (player === null) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-md border p-4">
+          <SectionMark label={t('players.dossier')} state={t('players.noTarget')} />
+        </div>
+
+        <Empty className="rounded-md border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <UserSearch />
+            </EmptyMedia>
+            <EmptyTitle>{t('players.noTarget')}</EmptyTitle>
+            <EmptyDescription>{t('players.noTargetHint')}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
-      {player === null ? (
-        <Header>
-          <SectionMark label={t('players.dossier')} state={t('players.noTarget')} />
-        </Header>
-      ) : (
-        <Header>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden
-                className={
-                  player.online
-                    ? 'size-2 shrink-0 rounded-full bg-emerald-500'
-                    : 'size-2 shrink-0 rounded-full bg-muted-foreground/40'
-                }
-              />
-              <h2 className="truncate text-lg font-semibold">{player.username}</h2>
-            </div>
+      <DossierHeader player={player} pending={pending} onKick={onKick} onBan={onBan} />
 
-            <p className="text-xs text-muted-foreground">
-              {player.online ? t('players.online') : t('players.offline')}
-            </p>
-
-            {/* A ban needs the id, and an id is pasted rather than read. */}
-            {player.steamId !== null && player.steamId !== '' && (
-              <Copyable value={player.steamId} className="mt-1" />
-            )}
-          </div>
-        </Header>
-      )}
-
-      {/* The tabs stay even with nothing chosen, so the page shows what it
-          is for rather than an empty panel. */}
-      <Tabs defaultValue="vitals">
+      <Tabs defaultValue="condition">
         <TabsList>
-          <TabsTrigger value="vitals">{t('players.vitalsTab')}</TabsTrigger>
-          <TabsTrigger value="abilities">{t('players.abilitiesTab')}</TabsTrigger>
-          <TabsTrigger value="spawn">{t('players.spawnTab')}</TabsTrigger>
-          <TabsTrigger value="notes">{t('players.notesTab')}</TabsTrigger>
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab} value={tab}>
+              {t(`players.tab.${tab}`)}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="vitals">
-          {player === null ? (
-            <NoTarget />
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-md border p-4">
-                <PlayerVitals player={player} />
-              </div>
+        <TabsContent value="condition" className="space-y-3">
+          <div className="rounded-md border p-4">
+            <PlayerVitals player={player} />
+          </div>
 
-              {/* Adjustable, and every bound comes from the game. */}
-              <div className="rounded-md border p-4">
-                <SectionMark label={t('players.adjustCondition')} />
-                <VitalsCard
-                  serverId={serverId}
-                  username={player.username}
-                  online={player.online}
-                />
-              </div>
-            </div>
-          )}
+          <div className="rounded-md border p-4">
+            <SectionMark label={t('players.adjustCondition')} />
+            <VitalsCard serverId={serverId} username={player.username} online={player.online} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="character">
+          <div className="rounded-md border p-4">
+            <CharacterCard serverId={serverId} player={player} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="skills">
+          <div className="rounded-md border p-4">
+            <SkillGrid player={player} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="moderation">
+          <ModerationTab
+            serverId={serverId}
+            player={player}
+            players={players}
+            pending={pending}
+            onAccessLevel={onAccessLevel}
+            onTeleport={onTeleport}
+          />
         </TabsContent>
 
         <TabsContent value="abilities">
-          {player === null ? (
-            <NoTarget />
-          ) : (
-            <div className="rounded-md border p-4">
-              <AbilityRows
-                serverId={serverId}
-                username={player.username}
-                online={player.online}
-              />
-            </div>
-          )}
+          <div className="rounded-md border p-4">
+            <AbilityRows
+              serverId={serverId}
+              username={player.username}
+              online={player.online}
+            />
+          </div>
         </TabsContent>
 
-        <TabsContent value="spawn">
-          {player === null ? (
-            <NoTarget />
-          ) : (
-            <div className="rounded-md border p-4">
+        <TabsContent value="grant">
+          <div className="rounded-md border p-4">
+            <SectionMark label={t('players.grantExperience')} />
+            <div className="mt-3">
               <ExperienceCard serverId={serverId} player={player} />
             </div>
-          )}
+          </div>
         </TabsContent>
 
         <TabsContent value="notes" className="space-y-3">
-          {player === null ? (
-            <NoTarget />
-          ) : (
-            <>
-              <div className="rounded-md border p-4">
-                <NotesCard serverId={serverId} username={player.username} />
-              </div>
+          <div className="rounded-md border p-4">
+            <NotesCard serverId={serverId} username={player.username} />
+          </div>
 
-              <div className="rounded-md border p-4">
-                <SectionMark label={t('players.whatWasDone')} />
-                <PlayerHistory serverId={serverId} username={player.username} />
-              </div>
-            </>
-          )}
+          <div className="rounded-md border p-4">
+            <SectionMark label={t('players.whatWasDone')} />
+            <PlayerHistory serverId={serverId} username={player.username} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function Header({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-md border p-4">{children}</div>
-}
-
-/** Named rather than blank: the reason is a missing choice, not a fault. */
-function NoTarget() {
-  const { t } = useTranslation()
-
-  return (
-    <Empty className="rounded-md border border-dashed">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <UserSearch />
-        </EmptyMedia>
-        <EmptyTitle>{t('players.noTarget')}</EmptyTitle>
-        <EmptyDescription>{t('players.noTargetHint')}</EmptyDescription>
-      </EmptyHeader>
-    </Empty>
   )
 }

@@ -99,7 +99,7 @@ final class SpritePackTest extends TestCase
 
         $icons = array_filter(
             $pack->pages[0]->sprites,
-            static fn ($sprite): bool => $sprite->isItemIcon(),
+            static fn ($sprite): bool => $sprite->hasAnyPrefix(['Item_']),
         );
 
         self::assertCount(1, $icons);

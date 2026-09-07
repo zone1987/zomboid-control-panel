@@ -21,6 +21,7 @@ final class ExtractIconsCommand extends Command
     public function __construct(
         private readonly IconExtractor $extractor,
         private readonly IconStore $store,
+        private readonly IconStore $characterStore,
     ) {
         parent::__construct();
     }
@@ -29,13 +30,23 @@ final class ExtractIconsCommand extends Command
     {
         $this
             ->addArgument('path', InputArgument::REQUIRED, 'A .pack file, or a directory of them')
-            ->addOption('clear', null, InputOption::VALUE_NONE, 'Empty the store first');
+            ->addOption('clear', null, InputOption::VALUE_NONE, 'Empty the store first')
+            ->addOption(
+                'characters',
+                null,
+                InputOption::VALUE_NONE,
+                'Cut profession and trait icons instead of item icons',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $path = (string) $input->getArgument('path');
+
+        $characters = $input->getOption('characters') === true;
+        $store = $characters ? $this->characterStore : $this->store;
+        $prefixes = $characters ? IconExtractor::CHARACTER_ICONS : IconExtractor::ITEM_ICONS;
 
         $files = is_dir($path) ? (glob($path.'/*.pack') ?: []) : [$path];
 
@@ -46,7 +57,7 @@ final class ExtractIconsCommand extends Command
         }
 
         if ($input->getOption('clear')) {
-            $this->store->clear();
+            $store->clear();
         }
 
         $total = 0;
@@ -61,7 +72,7 @@ final class ExtractIconsCommand extends Command
             }
 
             try {
-                $result = $this->extractor->extract($contents, basename($file));
+                $result = $this->extractor->extract($contents, basename($file), $prefixes, $store);
             } catch (MalformedPack $exception) {
                 // Tile packs hold no item icons and may use another
                 // layout; skipping them is expected, not a failure.
@@ -85,7 +96,7 @@ final class ExtractIconsCommand extends Command
             ));
         }
 
-        $io->success(sprintf('%d icons extracted; the store holds %d.', $total, $this->store->count()));
+        $io->success(sprintf('%d icons extracted; the store holds %d.', $total, $store->count()));
 
         return Command::SUCCESS;
     }

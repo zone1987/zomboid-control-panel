@@ -148,6 +148,54 @@ final class PlayerVitalsController extends AbstractController
     }
 
     /**
+     * Adds or removes one character trait.
+     *
+     * **The change is server-side at once, but the player's own screen
+     * does not update until they reconnect** — `SyncXp` is guarded by
+     * `GameClient.client` and does nothing on a server, and the one
+     * server-side broadcast that exists (`ExtraInfo`) carries roles and
+     * cheat flags, not traits. The interface says so rather than
+     * implying an immediate effect.
+     *
+     * Professions are deliberately absent: `setCharacterProfession`
+     * exists but nothing carries it to the client, and the game itself
+     * only ever calls it client-side. A control that reports success
+     * while changing nothing the player can see is worse than none.
+     */
+    #[Route('/trait', name: 'api_players_trait', methods: ['POST'])]
+    #[IsGranted(Permission::KickPlayers->value)]
+    public function trait(
+        string $serverId,
+        string $username,
+        Request $request,
+        #[CurrentUser] User $actor,
+    ): JsonResponse {
+        $server = $this->servers->find($serverId);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        $payload = $this->payloadOf($request);
+        $trait = $payload['trait'] ?? null;
+        $adding = ($payload['adding'] ?? null) === true;
+
+        if (!\is_string($trait) || $trait === '') {
+            return $this->invalid('trait');
+        }
+
+        return $this->act(
+            $server,
+            $username,
+            $actor,
+            BridgeCommand::SetTrait,
+            ['player' => $username, 'trait' => $trait, 'adding' => $adding],
+            ModerationAction::TRAIT,
+            sprintf('%s %s', $adding ? '+' : '-', $trait),
+        );
+    }
+
+    /**
      * Restores every body part, which is what the game's own heal does.
      *
      * Not undone by anything: a healed character stays healed, so this

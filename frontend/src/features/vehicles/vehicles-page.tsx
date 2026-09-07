@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Car, Search, Star, Users, X } from 'lucide-react'
@@ -56,7 +56,10 @@ export function VehiclesPage() {
   const [types, setTypes] = useState<string[]>([])
   const [needle, setNeedle] = useState('')
   const [chosen, setChosen] = useState<SpawnableVehicle | null>(null)
-  const [player, setPlayer] = useState('')
+  // Carried in from the dossier's spawn card, so choosing a player
+  // twice is not the price of arriving from there.
+  const [query] = useSearchParams()
+  const [player, setPlayer] = useState(query.get('player') ?? '')
   const [visible, setVisible] = useState(PAGE_SIZE)
 
   const search = (value: string) => {

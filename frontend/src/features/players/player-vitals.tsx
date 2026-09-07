@@ -6,16 +6,11 @@ import type { Player } from './players'
 /**
  * What the bridge already reports about a character.
  *
- * This was the whole of a dialog; it is now the first tab of a column,
- * because inspecting a player and comparing them with the next one is
- * the same job — and a dialog makes it close, find, open.
+ * The facts and the traits. The skills have their own tab: buried at
+ * the bottom of this one, nobody found them.
  */
 export function PlayerVitals({ player }: { player: Player }) {
   const { t, i18n } = useTranslation()
-
-  const skills = Object.entries(player.skills ?? {})
-    .filter(([, level]) => level > 0)
-    .sort(([, a], [, b]) => b - a)
 
   const format = (value: string) => new Date(value).toLocaleString(i18n.language)
 
@@ -52,31 +47,6 @@ export function PlayerVitals({ player }: { player: Player }) {
 
             <Fact label={t('players.firstSeen')}>{format(player.firstSeenAt)}</Fact>
           </dl>
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-medium">{t('players.skills')}</h3>
-
-            {skills.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('players.noSkills')}</p>
-            ) : (
-              <div className="space-y-1.5">
-                {skills.map(([name, level]) => (
-                  <div key={name} className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 truncate text-sm">{name}</span>
-
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${Math.min(100, (level / 10) * 100)}%` }}
-                      />
-                    </div>
-
-                    <span className="w-6 shrink-0 text-right text-sm tabular-nums">{level}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
 
           <section className="space-y-2">
             <h3 className="text-sm font-medium">{t('players.traits')}</h3>

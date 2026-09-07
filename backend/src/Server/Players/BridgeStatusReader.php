@@ -162,6 +162,16 @@ final readonly class BridgeStatusReader
             $seenAt,
             $online,
         );
+
+        $snapshot->recordKills(
+            $this->intOrNull($entry['zombieKills'] ?? null),
+            $this->intOrNull($entry['survivorKills'] ?? null),
+        );
+    }
+
+    private function intOrNull(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     /** @return array<string, int> */
