@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Server\Players;
 
+use App\Server\Events\BridgeLiveness;
 use App\Entity\GameServer;
 use App\Entity\PlayerSnapshot;
 use App\Server\Bridge\BridgeFiles;
@@ -20,7 +21,7 @@ use Psr\Log\LoggerInterface;
  * The bridge is the only way to see game state: Lua on the server has no
  * network access, so it writes a file and this reads it back over SFTP.
  */
-final readonly class BridgeStatusReader
+final readonly class BridgeStatusReader implements BridgeLiveness
 {
 
     /** Past this the file is no longer evidence of who is playing. */
@@ -47,6 +48,17 @@ final readonly class BridgeStatusReader
      *
      * @return array{playerCount: int, generatedAt: \DateTimeImmutable, bridgeVersion: string, stale: bool}
      */
+    /**
+     * Whether the bridge has stopped writing.
+     *
+     * The same reading `refresh()` produces, narrowed to the one fact a
+     * liveness check may rest on.
+     */
+    public function isStale(GameServer $server): bool
+    {
+        return $this->refresh($server)['stale'];
+    }
+
     public function refresh(GameServer $server): array
     {
         $config = $server->getFtpConfig();

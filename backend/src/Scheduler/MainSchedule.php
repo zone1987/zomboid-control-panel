@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Scheduler;
 
+use App\Message\CheckBridgeState;
 use App\Message\LiftExpiredBans;
 use App\Message\MirrorChatToDiscord;
 use App\Message\PurgeStalePlayers;
@@ -30,6 +31,11 @@ final class MainSchedule implements ScheduleProviderInterface
             // without a connection per line; it does nothing at all for
             // a server with no Discord channel chosen.
             RecurringMessage::every('20 seconds', new MirrorChatToDiscord()),
+        )->add(
+            // Longer than the bridge's own 120-second staleness window,
+            // so a single slow write cannot look like an outage. Only a
+            // change is announced, never the state.
+            RecurringMessage::every('60 seconds', new CheckBridgeState()),
         );
     }
 }

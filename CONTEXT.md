@@ -6274,3 +6274,28 @@ and two test files.
       switches and channels, but nothing calls the dispatcher for them.
 - [ ] A deferred reply for commands that outgrow three seconds.
 - [ ] Nothing has been run against a real Discord application.
+
+### The server events now fire
+
+`BridgeWatcher` notices when the bridge stops answering and when it
+comes back, on a 60-second schedule — longer than the bridge's own
+120-second staleness window, so a single slow write cannot look like an
+outage.
+
+**The transition is the event, not the state.** Announcing "the bridge
+is quiet" on every poll teaches the operator to ignore the channel,
+which is worse than silence — the reference panel's alert fatigue,
+learnt from a status that flipped on every reconnect. So the last state
+is remembered and only a change is dispatched, and **a first
+observation is remembered without announcing**: the panel starting up
+is not news about the server.
+
+Three states, not two: "not read yet" is neither up nor down.
+
+`BridgeLiveness` is another narrow interface per CLAUDE.md 10i — one
+question, `isStale()`, so a player count or a version cannot sway a
+decision about liveness. `BridgeStatusReader` implements it and keeps
+its `final`.
+
+Six tests, including the one that matters: four steady readings produce
+no events at all.
