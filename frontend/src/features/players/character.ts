@@ -53,7 +53,7 @@ export function setTrait(
 ): Promise<{ reply: string }> {
   return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/trait`, {
     method: 'POST',
-    body: JSON.stringify({ trait, adding }),
+    body: { trait, adding },
   })
 }
 

@@ -103,7 +103,13 @@ export function VitalsCard({
         </Button>
 
         {data.profession !== null && (
-          <Badge variant="secondary">{t('players.professionIs', { job: data.profession })}</Badge>
+          <Badge variant="secondary">
+            {t('players.professionIs', {
+              job: t(`character.profession.${data.profession}`, {
+                defaultValue: data.profession,
+              }),
+            })}
+          </Badge>
         )}
 
         <WeightRow serverId={serverId} username={username} weight={data.weight} onDone={refresh} />

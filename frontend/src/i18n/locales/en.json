@@ -55,7 +55,6 @@
     "advantages": "Advantages",
     "drawbacks": "Drawbacks",
     "exclusionsHidden": "Traits that clash with one the player already has are not offered.",
-    "filterByTone": "Filter by kind",
     "fromProfession": "Granted by the profession",
     "noProfession": "No profession recorded.",
     "noTraitMatch": "No trait matches the search.",
@@ -92,11 +91,6 @@
     "reconnectNotice": "A changed trait takes effect on the server at once. The player only sees it in their own character sheet after reconnecting — the game does not transmit traits while play is running. That is also why the profession cannot be changed.",
     "removeTrait": "Remove {{trait}}",
     "searchTraits": "Search traits …",
-    "tone": {
-      "all": "All",
-      "bad": "Drawbacks",
-      "good": "Advantages"
-    },
     "trait": {
       "adrenalinejunkie": "Adrenaline Junkie",
       "agoraphobic": "Agoraphobic",

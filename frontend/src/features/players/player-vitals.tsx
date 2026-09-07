@@ -55,9 +55,12 @@ export function PlayerVitals({ player }: { player: Player }) {
               <p className="text-sm text-muted-foreground">{t('players.noTraits')}</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
+                {/* The game's own name, not the script id: this tab
+                    showed `slowlearner` where the character tab reads
+                    "Langsam-Lerner". */}
                 {(player.traits ?? []).map((trait) => (
                   <Badge key={trait} variant="secondary" className="text-xs">
-                    {trait}
+                    {t(`character.trait.${trait}`, { defaultValue: trait })}
                   </Badge>
                 ))}
               </div>

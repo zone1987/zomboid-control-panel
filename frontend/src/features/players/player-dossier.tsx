@@ -94,7 +94,10 @@ export function PlayerDossier({
 
           <div className="rounded-md border p-4">
             <SectionMark label={t('players.adjustCondition')} />
-            <VitalsCard serverId={serverId} username={player.username} online={player.online} />
+
+            <div className="mt-3">
+              <VitalsCard serverId={serverId} username={player.username} online={player.online} />
+            </div>
           </div>
         </TabsContent>
 
@@ -138,7 +141,10 @@ export function PlayerDossier({
 
           <div className="rounded-md border p-4">
             <SectionMark label={t('players.whatWasDone')} />
-            <PlayerHistory serverId={serverId} username={player.username} />
+
+            <div className="mt-3">
+              <PlayerHistory serverId={serverId} username={player.username} />
+            </div>
           </div>
         </TabsContent>
       </Tabs>

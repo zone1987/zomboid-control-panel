@@ -55,7 +55,6 @@
     "advantages": "Vorteile",
     "drawbacks": "Nachteile",
     "exclusionsHidden": "Eigenschaften, die sich mit einer vorhandenen ausschließen, werden nicht angeboten.",
-    "filterByTone": "Nach Art filtern",
     "fromProfession": "Vom Beruf verliehen",
     "noProfession": "Kein Beruf hinterlegt.",
     "noTraitMatch": "Keine Eigenschaft passt zur Suche.",
@@ -92,11 +91,6 @@
     "reconnectNotice": "Eine geänderte Eigenschaft wirkt auf dem Server sofort. Der Spieler sieht sie in seinem Charakterbogen erst, nachdem er sich neu verbunden hat — das Spiel überträgt Eigenschaften nicht im laufenden Betrieb. Der Beruf lässt sich deshalb gar nicht ändern.",
     "removeTrait": "{{trait}} entfernen",
     "searchTraits": "Eigenschaft suchen …",
-    "tone": {
-      "all": "Alle",
-      "bad": "Nachteile",
-      "good": "Vorteile"
-    },
     "trait": {
       "adrenalinejunkie": "Adrenalinjunkie",
       "agoraphobic": "Agoraphobisch",

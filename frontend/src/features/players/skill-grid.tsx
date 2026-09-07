@@ -244,16 +244,23 @@ function SkillRow({
 
   return (
     <div className="flex items-center gap-2">
+      {/* The name is where a pointer lands, so it carries the whole
+          story: how much XP is left, then why the rate differs. */}
       <span
         title={
-          detail === undefined
-            ? undefined
-            : boostTitle(
-                t('players.skillBoost', { percent: boostRate(detail.boost) }),
-                detail.multiplier > 0
-                  ? t('players.bookActive', { factor: detail.multiplier })
-                  : null,
-              )
+          [
+            remainder,
+            detail === undefined
+              ? null
+              : boostTitle(
+                  t('players.skillBoost', { percent: boostRate(detail.boost) }),
+                  detail.multiplier > 0
+                    ? t('players.bookActive', { factor: detail.multiplier })
+                    : null,
+                ),
+          ]
+            .filter(Boolean)
+            .join('\n') || undefined
         }
         className={cn(
           'flex w-28 shrink-0 items-center gap-1 truncate text-sm',
@@ -334,15 +341,16 @@ function SkillRow({
       </div>
 
       {/* The partial level, so a skill at 6 with almost 7 does not read
-          the same as one that just reached 6. */}
-      {progress !== null && progress.fraction > 0 && (
-        <span
-          title={remainder ?? undefined}
-          className="w-7 shrink-0 text-right font-mono text-[10px] tabular-nums text-muted-foreground"
-        >
-          {Math.round(progress.fraction * 100)}%
-        </span>
-      )}
+          the same as one that just reached 6.
+
+          Only from level 1 up: "1 %" beside a level-0 skill looked like
+          a reading nobody asked for, and a skill nobody has touched has
+          no progress worth a number. */}
+      <span className="w-8 shrink-0 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
+        {progress !== null && level > 0 && progress.fraction > 0
+          ? `${Math.round(progress.fraction * 100)} %`
+          : ''}
+      </span>
 
       <span
         className={cn(

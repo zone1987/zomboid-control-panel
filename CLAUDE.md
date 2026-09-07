@@ -115,6 +115,34 @@ A change is done when it has been demonstrated, not when it looks right.
 Backend work gets a test; interface work gets checked in a real browser.
 State plainly what was verified and what was not.
 
+## 6b. Test what a user does, in a browser, always
+
+Stated by the user after three separate features passed a console check
+and then failed on the first click: **"Du musst bitte IMMER alles mit
+dem playwright browser mcp testen. Über die Konsole reicht es
+grundsätzlich nie aus. Wir müssen immer das testen was ein Benutzer
+machen würde."** And the reason it is not merely thorough: **on Coolify
+the operator has barely any console access at all.** A feature that
+works only from `app:bridge:send` is not a feature.
+
+- **`app:bridge:send` proves the bridge, never the panel.** Firing a
+  handler by hand shows the game answers; it says nothing about whether
+  a click reaches it. `setSkillLevel` answered `skill level set` from
+  the CLI and returned **422** from the button in the same minute.
+- **Click the actual control**, then read the network entry: the request
+  body, the status, the response body. A toast saying "failed" is not a
+  diagnosis; `{"errors":{"skill":"validation.invalid"}}` is.
+- **A green test suite and a clean build prove neither.** Both were
+  green while the button was broken.
+- **Look for the controls a user cannot find, not just the ones that
+  error.** Two sections were wrapped in `player.online &&` and were
+  therefore *absent* rather than disabled, with nothing explaining why —
+  the user asked "und wo?" and was right to. `browser_snapshot` shows
+  what is really rendered; assuming from the source is how I claimed a
+  chooser was "there, just collapsed" when it was not rendered at all.
+- **Report only what the browser showed.** If the click was not made,
+  say the click was not made.
+
 ## 7. The product standard: it must be intuitive
 
 Stated repeatedly by the user and binding on every decision. Not "has the

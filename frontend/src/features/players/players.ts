@@ -311,7 +311,7 @@ export function setSkillLevel(
 ): Promise<{ reply: string; before?: number; after?: number }> {
   return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/skill`, {
     method: 'POST',
-    body: JSON.stringify({ skill, level }),
+    body: { skill, level },
   })
 }
 
@@ -324,7 +324,7 @@ export function addSkillXp(
 ): Promise<{ reply: string; level?: number; levelBefore?: number; xp?: number }> {
   return apiFetch(`/servers/${serverId}/players/${encodeURIComponent(username)}/skill/xp`, {
     method: 'POST',
-    body: JSON.stringify({ skill, amount, multiplied }),
+    body: { skill, amount, multiplied },
   })
 }
 

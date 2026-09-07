@@ -59,11 +59,15 @@ export function CharacterCard({
   const change = useMutation({
     mutationFn: (input: { trait: string; adding: boolean }) =>
       setTrait(serverId, player.username, input.trait, input.adding),
-    onSuccess: (result, input) => {
+    // Awaited, not fired and forgotten: without this the offer list
+    // renders from the old roster and keeps offering the trait that was
+    // just added, until the next three-second poll.
+    onSuccess: async (result, input) => {
+      await queryClient.invalidateQueries({ queryKey: ['players', serverId] })
+
       toast.success(t(input.adding ? 'character.traitAdded' : 'character.traitRemoved'), {
         description: result.reply === '' ? undefined : result.reply,
       })
-      void queryClient.invalidateQueries({ queryKey: ['players', serverId] })
     },
     onError: (error) =>
       toast.error(
@@ -333,20 +337,11 @@ function AddTrait({
 }) {
   const { t } = useTranslation()
   const [term, setTerm] = useState('')
-  const [tone, setTone] = useState<'all' | 'good' | 'bad'>('all')
 
   const offered = offerableTraits(held, table)
   const needle = term.trim().toLowerCase()
 
-  const shown = offered.filter(({ id, definition }) => {
-    if (tone === 'good' && definition.cost <= 0) {
-      return false
-    }
-
-    if (tone === 'bad' && definition.cost > 0) {
-      return false
-    }
-
+  const matches = offered.filter(({ id }) => {
     if (needle === '') {
       return true
     }
@@ -355,6 +350,11 @@ function AddTrait({
 
     return name.includes(needle) || id.toLowerCase().includes(needle)
   })
+
+  // A column each, as a real split rather than a wrap: mixed together in
+  // two columns the two kinds were indistinguishable at a glance.
+  const advantages = matches.filter(({ definition }) => definition.cost > 0)
+  const drawbacks = matches.filter(({ definition }) => definition.cost <= 0)
 
   return (
     <section className="space-y-3 border-t pt-4">
@@ -373,81 +373,17 @@ function AddTrait({
         <p className="text-sm text-muted-foreground">{t('character.addNeedsOnline')}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              value={term}
-              placeholder={t('character.searchTraits')}
-              aria-label={t('character.searchTraits')}
-              className="max-w-56"
-              onChange={(event) => setTerm(event.target.value)}
-            />
+          <Input
+            value={term}
+            placeholder={t('character.searchTraits')}
+            aria-label={t('character.searchTraits')}
+            className="max-w-64"
+            onChange={(event) => setTerm(event.target.value)}
+          />
 
-            {/* Both directions, as asked: an advantage and a drawback
-                are two different jobs and worth separating. */}
-            <div className="flex gap-1" role="group" aria-label={t('character.filterByTone')}>
-              {(['all', 'good', 'bad'] as const).map((option) => (
-                <Button
-                  key={option}
-                  size="sm"
-                  variant={tone === option ? 'secondary' : 'ghost'}
-                  className="px-2 text-xs"
-                  onClick={() => setTone(option)}
-                >
-                  {option === 'good' && (
-                    <ThumbsUp aria-hidden className="size-3.5 text-emerald-500" />
-                  )}
-                  {option === 'bad' && (
-                    <ThumbsDown aria-hidden className="size-3.5 text-destructive" />
-                  )}
-                  {t(`character.tone.${option}`)}
-                </Button>
-              ))}
-            </div>
-
-            <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">
-              {shown.length}
-            </span>
-          </div>
-
-          <div className="grid max-h-72 gap-1 overflow-y-auto sm:grid-cols-2">
-            {shown.map(({ id, definition }) => (
-              <button
-                key={id}
-                type="button"
-                disabled={busy}
-                className={cn(
-                  'flex items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors',
-                  'hover:bg-muted/50 disabled:opacity-50',
-                  definition.cost > 0
-                    ? 'border-l-2 border-l-emerald-500/40'
-                    : 'border-l-2 border-l-destructive/40',
-                )}
-                onClick={() => onAdd(id)}
-              >
-                <CharacterIcon icon={definition.icon} label={id} />
-
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  {t(`character.trait.${id}`, { defaultValue: id })}
-                </span>
-
-                <span
-                  className={cn(
-                    'shrink-0 font-mono text-[11px] tabular-nums',
-                    definition.cost > 0 ? 'text-emerald-500' : 'text-destructive',
-                  )}
-                >
-                  {definition.cost > 0 ? `+${definition.cost}` : definition.cost}
-                </span>
-
-                <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-              </button>
-            ))}
-
-            {shown.length === 0 && (
-              <p className="col-span-full px-2 py-4 text-center text-sm text-muted-foreground">
-                {t('character.noTraitMatch')}
-              </p>
-            )}
+          <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            <OfferColumn tone="good" traits={advantages} busy={busy} onAdd={onAdd} />
+            <OfferColumn tone="bad" traits={drawbacks} busy={busy} onAdd={onAdd} />
           </div>
 
           {/* The game forbids some pairs, so they are absent rather than
@@ -456,5 +392,76 @@ function AddTrait({
         </>
       )}
     </section>
+  )
+}
+
+/** One side of the offer, so the two kinds never share a list. */
+function OfferColumn({
+  tone,
+  traits,
+  busy,
+  onAdd,
+}: {
+  tone: 'good' | 'bad'
+  traits: { id: string; definition: TraitDefinition }[]
+  busy: boolean
+  onAdd: (trait: string) => void
+}) {
+  const { t } = useTranslation()
+
+  const Icon = tone === 'good' ? ThumbsUp : ThumbsDown
+
+  return (
+    <div className="space-y-2">
+      <p className="flex items-center gap-1.5 font-mono text-[11px] tracking-wide uppercase">
+        <Icon
+          aria-hidden
+          className={cn('size-3.5', tone === 'good' ? 'text-emerald-500' : 'text-destructive')}
+        />
+        <span className="text-muted-foreground">
+          {t(tone === 'good' ? 'character.advantages' : 'character.drawbacks')}
+        </span>
+        <span className="tabular-nums text-muted-foreground opacity-60">{traits.length}</span>
+      </p>
+
+      {traits.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t('character.noTraitMatch')}</p>
+      ) : (
+        <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+          {traits.map(({ id, definition }) => (
+            <button
+              key={id}
+              type="button"
+              disabled={busy}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors',
+                'hover:bg-muted/50 disabled:opacity-50',
+                tone === 'good'
+                  ? 'border-l-2 border-l-emerald-500/40'
+                  : 'border-l-2 border-l-destructive/40',
+              )}
+              onClick={() => onAdd(id)}
+            >
+              <CharacterIcon icon={definition.icon} label={id} />
+
+              <span className="min-w-0 flex-1 truncate text-sm">
+                {t(`character.trait.${id}`, { defaultValue: id })}
+              </span>
+
+              <span
+                className={cn(
+                  'shrink-0 font-mono text-[11px] tabular-nums',
+                  tone === 'good' ? 'text-emerald-500' : 'text-destructive',
+                )}
+              >
+                {definition.cost > 0 ? `+${definition.cost}` : definition.cost}
+              </span>
+
+              <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
