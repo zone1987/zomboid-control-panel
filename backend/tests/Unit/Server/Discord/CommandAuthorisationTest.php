@@ -123,6 +123,91 @@ final class CommandAuthorisationTest extends TestCase
         );
     }
 
+    /**
+     * The owner of a fresh guild has no roles to be given, because a
+     * fresh guild has none — so requiring one locked them out of their
+     * own bot. Discord's own permission bitfield settles it.
+     */
+    public function testAGuildAdministratorNeedsNoRoleAssignedHere(): void
+    {
+        self::assertSame(
+            CommandVerdict::Allowed,
+            $this->decide($this->server(), null, roles: [], permissions: (string) (1 << 3)),
+        );
+    }
+
+    /** "Manage Server" is enough; it is what a co-owner usually holds. */
+    public function testManageServerIsEnoughOnItsOwn(): void
+    {
+        self::assertSame(
+            CommandVerdict::Allowed,
+            $this->decide($this->server(), null, roles: [], permissions: (string) (1 << 5)),
+        );
+    }
+
+    /**
+     * An ordinary member's permissions must not open anything: this is
+     * the bit that would turn the shortcut into a hole.
+     */
+    public function testAnOrdinaryMembersPermissionsGrantNothing(): void
+    {
+        // Send Messages, Read History, Add Reactions -- a normal member.
+        $ordinary = (string) ((1 << 11) | (1 << 16) | (1 << 6));
+
+        self::assertSame(
+            CommandVerdict::NotAllowed,
+            $this->decide($this->server(), null, roles: [], permissions: $ordinary),
+        );
+    }
+
+    /** A bitfield that is not a number is not a permission. */
+    public function testAMalformedPermissionFieldGrantsNothing(): void
+    {
+        foreach (['', 'administrator', '-8', '8.5'] as $nonsense) {
+            self::assertSame(
+                CommandVerdict::NotAllowed,
+                $this->decide($this->server(), null, roles: [], permissions: $nonsense),
+                sprintf('"%s" must not be read as a permission', $nonsense),
+            );
+        }
+    }
+
+    /**
+     * The panel's own gate still applies: an administrator cannot run a
+     * command the panel does not recognise.
+     */
+    public function testEvenAnAdministratorCannotRunAnUnmappedCommand(): void
+    {
+        self::assertSame(
+            CommandVerdict::UnknownCommand,
+            $this->decide(
+                $this->server(),
+                null,
+                roles: [],
+                subcommand: 'erfunden',
+                permissions: (string) (1 << 3),
+            ),
+        );
+    }
+
+    /** Nor from another guild, nor when commands are switched off. */
+    public function testAnAdministratorIsStillBoundByTheOtherChecks(): void
+    {
+        $server = $this->server();
+
+        self::assertSame(
+            CommandVerdict::WrongGuild,
+            $this->decide($server, null, roles: [], guild: '999999999999999999', permissions: (string) (1 << 3)),
+        );
+
+        $server->getDiscordConfig()?->setCommandsEnabled(false);
+
+        self::assertSame(
+            CommandVerdict::CommandsOff,
+            $this->decide($server, null, roles: [], permissions: (string) (1 << 3)),
+        );
+    }
+
     /** Only one verdict may let a command through. */
     public function testOnlyAllowedIsAllowed(): void
     {
@@ -155,6 +240,7 @@ final class CommandAuthorisationTest extends TestCase
         array $roles,
         string $subcommand = 'kick',
         string $guild = self::GUILD,
+        string $permissions = '0',
     ): CommandVerdict {
         $rights = new class($right) implements CommandRights {
             public function __construct(private readonly ?DiscordCommandRight $right)
@@ -176,6 +262,7 @@ final class CommandAuthorisationTest extends TestCase
             '444444444444444444',
             'somebody',
             $roles,
+            $permissions,
         );
 
         return (new CommandAuthorisation($rights))->decide($server, $interaction);

@@ -6395,3 +6395,225 @@ Two decisions worth keeping:
 - [ ] **Discord → game** needs the gateway process.
 - [ ] The user's guild has only the bot's own role, so a real
       permission test needs a role created there first.
+
+---
+
+## 2026-09-07 (session end) — Discord end to end, and why commands wait
+
+**784 backend tests, 358 frontend tests, all green.** This entry is
+written for a `/compact`: everything below is the state, not a summary.
+
+### What is proven against the real Discord API
+
+The user configured a Discord application (`Zomboid Bot`, application
+`1540899820892590201`, guild `1040342836366811218`), so these are
+measured rather than reasoned:
+
+| Step | Result |
+|---|---|
+| `POST /api/settings/discord/test` | `{"status":"ok","bot":"Zomboid Bot"}` |
+| `GET …/discord/roles` | real: `Zomboid Bot` (managed), `Admin` |
+| `GET …/discord/channels` | real: `wohnzimmer`, `logs`, `admin` |
+| `POST …/discord/events/moderation.kick/test` | **message arrived in `#logs`** |
+| `POST …/discord/register` | **4 commands, 21 subcommands, accepted** |
+| `app:discord:commands` | reads them back from Discord, all four present |
+
+**The registration passing first time matters**: Discord rejects the
+whole set for a bad name, an over-long description, or an optional
+option before a required one — all three asserted by
+`CommandCatalogueTest` as guesses about its rules until now.
+
+### THE ONE THING THAT DOES NOT WORK LOCALLY, AND WHY
+
+**Slash commands answer "Die Anwendung reagiert nicht" in Discord, and
+this is not a bug.** Apache's access log shows Discord never reached
+the panel at all: `APP_PUBLIC_URL` is `https://zomboidcontrol.ddev.site`,
+which resolves only on this machine, and **Discord calls the panel from
+its own servers**.
+
+The user has decided **not** to test via ngrok, so this stays open
+until the panel is deployed to a public address — at which point it
+resolves itself with no code change.
+
+Everything else already works, because for those the panel calls
+Discord: notifications, the chat mirror, channel and role listing,
+command registration.
+
+So the panel now reports **two separate capabilities**:
+
+- `discordReachable` on `/api/settings`
+- `commandsReachable` on `/api/servers/{id}/discord`
+
+Both computed by `isPubliclyReachable()`: a host with no dot, or ending
+`.localhost .local .test .internal .ddev.site .example`, or a
+private/reserved IP, is not reachable. **Deliberately duplicated** in
+the two controllers rather than shared — they answer different
+questions of the same fact, and a shared helper would have to live
+somewhere neither owns. Extract it if a third caller appears.
+
+The interface says so in three places: an amber alert on the Discord
+page (`discord.commandsUnreachable`), a line on the settings card, and
+the first line of the setup instructions. All three state that
+notifications and chat work regardless.
+
+`DiscordReachabilityTest` (3 cases) asserts the verdict against the
+environment the suite runs in — **it would have caught this before
+Discord did.** Written up as CLAUDE.md 10j.
+
+### A permission trap fixed, worth remembering
+
+The user assigned all 21 commands to role `1540902304436326483` — which
+was **the bot's own role**, the only one their guild had. Every command
+would have been refused.
+
+The deeper fault was mine: **requiring a role locked the guild owner out
+of their own bot**, because a fresh guild has no roles to assign. Now
+`Interaction::administersGuild()` reads Discord's own computed
+permission bitfield from `member.permissions` and allows `ADMINISTRATOR`
+(1 << 3) or `MANAGE_GUILD` (1 << 5).
+
+Guarded carefully, with six tests:
+
+- an ordinary member's permissions (Send Messages, Read History, Add
+  Reactions) grant **nothing**
+- a malformed bitfield (`''`, `'administrator'`, `'-8'`, `'8.5'`) grants
+  nothing
+- an administrator still cannot run an **unmapped** command, cannot
+  command **another guild**, and is still stopped when commands are
+  **switched off**
+
+The bitfield is a decimal *string* because it exceeds 32 bits; it is
+validated with `ctype_digit` before casting.
+
+The 21 wrong assignments were deleted. The user has since created an
+`Admin` role, assigned it to all 21 commands and to themselves — so both
+paths (role and administrator) are now in place.
+
+### `/server status` answers the question it is named for
+
+It counted players, which cannot distinguish an empty server from a dead
+one. Now it reads the bridge's own last writing time, with **three
+states**:
+
+- 🟢 running, with the in-game clock and who is online
+- 🔴 offline, with how long ago the last reading was, in readable units
+- ❔ **no reading at all** — "whether the server is running cannot be
+  said from here", which is not the same as offline
+
+Uses **35 seconds**, the same window as
+`ConnectionStatusEndpoint::RUNNING_WITHIN_SECONDS` — two thresholds
+would let the panel and the bot disagree about whether the server is up,
+and nobody could tell which was right.
+
+### A bug only the real channel showed
+
+The first test message read **"Beispiel\\-Admin"**. The escape list
+included `-`, `>` and `#`, which are markdown only at the *start* of a
+line. Those three are now escaped only where the value itself begins one
+(`/^(\\s*)([-#>])/mu`); the always-escaped set is `\\ * _ ~ ` | [ ] ( )`.
+Two tests: a hyphen mid-word survives, a leading `- item` is defused.
+
+**The unit tests were green and the escaping was "correct".** It looked
+wrong the moment a Discord client rendered it — which is what the
+browser rule is for.
+
+### Roles are picked, not typed
+
+The user asked for it, and the reasoning holds: an id is nineteen digits
+that all look alike, and a mistyped one grants a command to nothing at
+all, silently.
+
+`GET /guilds/{id}/roles` → `RolePicker`, in Discord's own order (highest
+position first) with its colour dots, marking integration-managed roles.
+
+- **`@everyone` is not offered.** It is every member by definition, so
+  offering it as a permission means "anybody", which an operator can say
+  more honestly.
+- **A role the bot can no longer see stays selected**, shown by its id.
+  Dropping it would quietly revoke a permission somebody set.
+- **Saved as chosen**, no button: picking from a list is already
+  deliberate, and 21 rows with their own unsaved state is unmanageable.
+
+The header badge is now `secondary`, not amber, and reads "N Befehle
+ohne Rollenzuweisung" — an unassigned command is still usable by whoever
+administers the guild, so it counts rather than alarms. The list says
+so explicitly (`commandList.adminsAlwaysAllowed`).
+
+### The settings tab
+
+Three fields under the `discord` tab (lower case: the tab test reads the
+source for `TabsTrigger value="([a-z]+)"`).
+
+- **Application id** and **public key** in plaintext — the key verifies
+  rather than signs, and Discord shows it on its own page. Only the
+  **bot token** is in `AppSetting::SECRET_KEYS`.
+- **The interaction URL as a `Copyable`**, built from `APP_PUBLIC_URL`.
+- **The order of steps is stated**, because it is not reversible:
+  Discord probes the URL the moment it is saved and refuses it unless
+  the public key is already stored here.
+- **`POST /api/settings/discord/test`** asks Discord whose token it is.
+  The bot's *name* is the useful half — a valid token from another
+  application would look fine until the first command failed.
+
+### Full file inventory for Discord
+
+Backend, `src/Server/Discord/`: `Autocomplete`, `ChatMirror`,
+`CommandAuthorisation`, `CommandCapabilities`, `CommandCatalogue`,
+`CommandRights` (interface), `CommandRunner`, `CommandVerdict`,
+`DiscordClientInterface`, `DiscordException`, `DiscordMessage`,
+`EventNotifier`, `Interaction`, `InteractionSignature`,
+`InteractionType`, `MessageTemplate`, `NotifiableEvents`,
+`NotificationSettings` (interface), `RestDiscordClient`,
+`SecretRedaction`.
+
+Backend elsewhere: `src/Server/Events/{PanelEvent,PanelEventDispatcher,
+PanelEventFlushListener,DeliverPanelEvent,BridgeWatcher,BridgeLiveness}`,
+`Controller/Api/{DiscordController,DiscordInteractionController}`,
+`Entity/{DiscordConfig,DiscordNotification,DiscordCommandRight}`,
+`Repository/{DiscordNotificationRepository,DiscordCommandRightRepository}`,
+`Message/{MirrorChatToDiscord,CheckBridgeState}` + handlers,
+`MessageHandler/DeliverPanelEventHandler`,
+`Command/DiscordCommandsCommand`, migration `Version20260907122103`,
+`Permission::ManageDiscord`, three `AppSetting` constants.
+
+Frontend, `src/features/discord/`: `discord.ts`, `discord-page.tsx`,
+`event-list.tsx`, `command-list.tsx`, `chat-settings.tsx`,
+`channel-picker.tsx`, `role-picker.tsx`, `discord.test.ts`. Plus
+`components/ui/textarea.tsx` (new), the route, the nav entry, and about
+150 translation keys in both locales.
+
+Tests: `tests/Unit/Server/Discord/` (7 files),
+`tests/Unit/Server/Events/BridgeWatcherTest`,
+`tests/Functional/{DiscordInteractionTest,DiscordSetupTest,
+DiscordReachabilityTest}`.
+
+### Open, in the order it should be picked up
+
+1. **Slash commands end to end** — blocked on a public address only. No
+   code change expected; try `/server status` after deploying.
+2. **Discord → game** needs the gateway process (a fifth supervisord
+   entry, `discord-php/DiscordPHP`). The setting is saved and the
+   control is shown disabled with its reason.
+3. **A deferred reply** for commands that outgrow Discord's three
+   seconds. `InteractionType::DEFERRED_MESSAGE` exists, nothing uses it.
+4. **Linking a Discord user to a panel account**, so the moderation log
+   names a person instead of "Discord: name".
+5. **One flaky test run** was seen — 781 tests, one failure, not
+   reproducible in two further runs and the failing case never
+   identified. Worth watching; if it returns, capture the name before
+   re-running.
+6. **`uitest@localhost.test` exists again** (admin, created for the
+   browser tests). Remove it when convenient — the user has been asked.
+
+### Still open elsewhere (unchanged from earlier entries)
+
+- Config editor: backup listing and restore in the interface, `text`
+  values read-only, the item picker for `spawnItems`, **versioning by
+  content hash** (the user's request, specified in full in its own entry
+  above), and the sandbox still needing a restart — the bridge-side
+  `initSandboxVars()` route is the open candidate.
+- Twelve INI options have no explanation in any language and need ours.
+- Step 0 stage B is done; steps 1 (statistics), 3 (Workshop/mods),
+  5 (notification bell), 7 (scheduler) and 8 (avatars) of
+  `docs/superpowers/plans/03-seven-features.md` are untouched.
+- The vehicle wheels still do not draw. Lighthouse never run.

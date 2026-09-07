@@ -59,6 +59,19 @@ interface DiscordClientInterface
     public function registerCommands(string $applicationId, string $guildId, array $commands): void;
 
     /**
+     * The commands Discord currently holds for a guild.
+     *
+     * "Accepted" is not "present": an operator who cannot find a
+     * command in Discord needs to know whether it is registered and
+     * their client is stale, or whether it never arrived.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws DiscordException
+     */
+    public function guildCommands(string $applicationId, string $guildId): array;
+
+    /**
      * Whether the token works, and who it belongs to.
      *
      * @return array{id: string, username: string}

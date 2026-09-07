@@ -48,6 +48,14 @@ final readonly class CommandAuthorisation
             return CommandVerdict::UnknownCommand;
         }
 
+        // Somebody Discord itself considers an administrator does not
+        // need a role assigned here. On a fresh guild there are no roles
+        // at all, so requiring one locks the owner out of their own bot
+        // -- which is what happened the first time this was used.
+        if ($interaction->administersGuild()) {
+            return CommandVerdict::Allowed;
+        }
+
         $right = $this->rights->forCommand($server->getId()->toRfc4122(), $interaction->name());
 
         if ($right === null || !$right->allows($interaction->roleIds)) {

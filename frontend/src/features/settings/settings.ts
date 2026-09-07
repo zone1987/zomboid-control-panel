@@ -31,6 +31,15 @@ export type SettingsResponse = {
   googleRedirectUri: string
   /** Where Discord posts its interactions; the operator pastes it in. */
   discordInteractionUrl: string
+  /**
+   * False for a development address.
+   *
+   * Discord calls the panel from its own servers, so a URL that only
+   * resolves on this machine is a dead end no configuration can fix —
+   * and the symptom in Discord is "the application is not responding",
+   * which points nowhere useful.
+   */
+  discordReachable: boolean
 }
 
 export function listSettings(): Promise<SettingsResponse> {

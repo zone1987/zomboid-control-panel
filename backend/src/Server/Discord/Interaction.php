@@ -17,6 +17,9 @@ final readonly class Interaction
     /**
      * @param array<string, scalar> $options   the subcommand's arguments
      * @param list<string>          $roleIds   the member's roles in this guild
+     * @param string                $permissions Discord's own computed
+     *     permission bitfield for this member in this channel, as a
+     *     decimal string — it exceeds 32 bits, so it is not an int
      * @param string|null           $focused   which option autocomplete is asking about
      */
     public function __construct(
@@ -28,8 +31,38 @@ final readonly class Interaction
         public string $userId,
         public string $userName,
         public array $roleIds,
+        public string $permissions = '0',
         public ?string $focused = null,
     ) {
+    }
+
+    /**
+     * Discord's "Manage Server" permission, and the bits that imply it.
+     *
+     * Somebody who administers the guild must not need a role assigned
+     * in the panel to use it: on a fresh guild there are no roles at
+     * all, so requiring one locks the owner out of their own bot — which
+     * is exactly what happened.
+     *
+     * The bitfield is a decimal string because it is wider than 32 bits.
+     * `gmp`/`bcmath` are not required by this project, so the test is
+     * done on the string with `sprintf('%b')` — PHP's int is 64-bit on
+     * every platform this runs on, and the flags checked here are well
+     * inside that.
+     */
+    private const ADMINISTRATOR = 1 << 3;
+    private const MANAGE_GUILD = 1 << 5;
+
+    /** Whether Discord itself considers this member an administrator. */
+    public function administersGuild(): bool
+    {
+        if (!ctype_digit($this->permissions) || $this->permissions === '') {
+            return false;
+        }
+
+        $bits = (int) $this->permissions;
+
+        return ($bits & self::ADMINISTRATOR) !== 0 || ($bits & self::MANAGE_GUILD) !== 0;
     }
 
     /**
@@ -86,6 +119,7 @@ final readonly class Interaction
             is_array($user) ? (string) ($user['id'] ?? '') : '',
             is_array($user) ? (string) ($user['global_name'] ?? $user['username'] ?? '') : '',
             self::rolesOf($member),
+            is_array($member) ? (string) ($member['permissions'] ?? '0') : '0',
             $focused,
         );
     }

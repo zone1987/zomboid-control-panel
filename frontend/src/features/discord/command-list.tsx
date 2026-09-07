@@ -37,6 +37,13 @@ export function CommandList({ serverId, setup }: { serverId: string; setup: Disc
     <div className="mt-4 space-y-4">
       <p className="text-muted-foreground text-sm">{t('discord.commandList.hint')}</p>
 
+      {/* Said here rather than left to be discovered: on a fresh guild
+          there are no roles at all, and "assigned to nobody" reads as
+          "nothing works" when in fact the owner can use everything. */}
+      <p className="text-muted-foreground text-sm">
+        {t('discord.commandList.adminsAlwaysAllowed')}
+      </p>
+
       {[...grouped].map(([name, commands]) => (
         <Card key={name}>
           <CardHeader>

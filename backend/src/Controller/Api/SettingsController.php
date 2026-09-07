@@ -83,6 +83,9 @@ final class SettingsController extends AbstractController
             // answers its signed probe, so the operator needs it to
             // hand and should not have to assemble it themselves.
             'discordInteractionUrl' => $this->discordInteractionUrl(),
+            // False for a development address: Discord calls the panel,
+            // so it has to be reachable from the internet.
+            'discordReachable' => $this->isPubliclyReachable(),
         ]);
     }
 
@@ -108,6 +111,47 @@ final class SettingsController extends AbstractController
     private function discordInteractionUrl(): string
     {
         return rtrim($this->publicUrl, '/').$this->urls->generate('api_discord_interactions');
+    }
+
+    /**
+     * Whether Discord could reach this panel at all.
+     *
+     * Discord calls *us*, from its own servers — so a development
+     * address is a dead end no amount of correct configuration fixes.
+     * Saying so is the difference between "the application is not
+     * responding" in a Discord channel and knowing why: the request
+     * never arrived, and never could.
+     */
+    private function isPubliclyReachable(): bool
+    {
+        $host = parse_url($this->publicUrl, PHP_URL_HOST);
+
+        if (!is_string($host) || $host === '') {
+            return false;
+        }
+
+        // A hostname with no dot cannot be resolved from outside, and
+        // these suffixes and ranges are by definition local.
+        if (!str_contains($host, '.')) {
+            return false;
+        }
+
+        foreach (['.localhost', '.local', '.test', '.internal', '.ddev.site', '.example'] as $suffix) {
+            if (str_ends_with($host, $suffix)) {
+                return false;
+            }
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            // A public IP is reachable; a private or reserved one is not.
+            return filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+            ) !== false;
+        }
+
+        return true;
     }
 
     #[Route('', name: 'api_settings_update', methods: ['PATCH'])]

@@ -583,6 +583,7 @@
     },
     "chooseChannel": "Kanal wählen",
     "commandList": {
+      "adminsAlwaysAllowed": "Wer den Discord-Server verwaltet, kann alle Befehle nutzen — auch ohne Rolle. Rollen sind dafür da, einzelne Befehle an andere weiterzugeben.",
       "chooseRoles": "Rollen wählen",
       "hint": "Ohne Rolle kann niemand den Befehl ausführen. Zusätzlich gilt immer die Dashboard-Berechtigung.",
       "managedRole": "Von einer Integration verwaltet",
@@ -591,10 +592,12 @@
       "permission": "Im Dashboard: {{permission}}",
       "roles": "Rollen-IDs, durch Komma getrennt",
       "title": "Wer welche Befehle nutzen darf",
-      "ungranted_one": "Ein Befehl ist niemandem zugewiesen",
-      "ungranted_other": "{{count}} Befehle sind niemandem zugewiesen"
+      "ungranted_one": "Ein Befehl ohne Rollenzuweisung",
+      "ungranted_other": "{{count}} Befehle ohne Rollenzuweisung"
     },
     "commandsEnabled": "Slash-Befehle beantworten",
+    "commandsUnreachable": "Slash-Befehle funktionieren hier noch nicht",
+    "commandsUnreachableHint": "Discord ruft das Dashboard von außen auf, und die hinterlegte Adresse ist nur lokal erreichbar. Meldungen und der Chat nach Discord funktionieren trotzdem — dafür ruft das Dashboard Discord an. Nach dem Deployment auf eine öffentliche Adresse geht es von selbst.",
     "eventNames": {
       "bridge.back": "Bridge antwortet wieder",
       "bridge.quiet": "Bridge antwortet nicht mehr",
@@ -1666,6 +1669,7 @@
     "discordBotToken": "Bot-Token",
     "discordDescription": "Damit das Dashboard mit Discord sprechen kann. Alle drei Werte stehen im Discord-Entwicklerportal auf derselben Anwendungsseite.",
     "discordInteractionUrl": "Interactions Endpoint URL — diese Adresse trägst du in Discord ein:",
+    "discordLocalUrl": "Diese Adresse ist nur auf diesem Rechner erreichbar. Discord ruft das Dashboard von außen auf, deshalb funktionieren Slash-Befehle erst, wenn das Dashboard öffentlich erreichbar ist — Meldungen und Chat nach Discord gehen aber schon jetzt, weil dafür das Dashboard Discord anruft und nicht umgekehrt.",
     "discordNextStep": "Danach wird der Discord-Server pro Spielserver unter „Discord“ verbunden.",
     "discordNote": "Discord prüft die Adresse sofort und nimmt sie nur an, wenn der öffentliche Schlüssel schon hier gespeichert ist. Also zuerst hier speichern, dann in Discord eintragen.",
     "discordPublicKey": "Öffentlicher Schlüssel",

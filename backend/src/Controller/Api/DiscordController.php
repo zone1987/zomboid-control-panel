@@ -41,6 +41,8 @@ final class DiscordController extends AbstractController
         private readonly DiscordClientInterface $discord,
         private readonly SettingsProvider $settings,
         private readonly EntityManagerInterface $entityManager,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(APP_PUBLIC_URL)%')]
+        private readonly string $publicUrl,
     ) {
     }
 
@@ -64,6 +66,11 @@ final class DiscordController extends AbstractController
             'tokenConfigured' => $this->settings->isConfigured(AppSetting::DISCORD_BOT_TOKEN),
             'applicationId' => $this->settings->get(AppSetting::DISCORD_APPLICATION_ID) ?? '',
             'publicKeyConfigured' => $this->settings->isConfigured(AppSetting::DISCORD_PUBLIC_KEY),
+            // Slash commands need Discord to reach *us*; notifications
+            // and outbound chat do not. Two different capabilities, and
+            // collapsing them would say the whole integration is broken
+            // when most of it works.
+            'commandsReachable' => $this->isPubliclyReachable(),
             'guildId' => $config?->getGuildId() ?? '',
             'chatChannelId' => $config?->getChatChannelId(),
             'chatScope' => $config?->getChatScope() ?? DiscordConfig::SCOPE_GENERAL_ONLY,
@@ -429,6 +436,39 @@ final class DiscordController extends AbstractController
         }
 
         return $described;
+    }
+
+    /**
+     * Whether Discord could call this panel.
+     *
+     * Duplicated deliberately from SettingsController rather than
+     * shared: the two answer different questions of the same fact, and
+     * a shared helper would have to live somewhere neither controller
+     * owns. If a third caller appears, extract it then.
+     */
+    private function isPubliclyReachable(): bool
+    {
+        $host = parse_url($this->publicUrl, PHP_URL_HOST);
+
+        if (!is_string($host) || $host === '' || !str_contains($host, '.')) {
+            return false;
+        }
+
+        foreach (['.localhost', '.local', '.test', '.internal', '.ddev.site', '.example'] as $suffix) {
+            if (str_ends_with($host, $suffix)) {
+                return false;
+            }
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+            ) !== false;
+        }
+
+        return true;
     }
 
     private function notFound(): JsonResponse

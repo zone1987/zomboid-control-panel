@@ -105,11 +105,24 @@ export function MailerInstructions() {
  * Discord — which is the step people miss, because it is the only one
  * that does not consist of copying something out.
  */
-export function DiscordInstructions({ interactionUrl }: { interactionUrl: string }) {
+export function DiscordInstructions({
+  interactionUrl,
+  reachable,
+}: {
+  interactionUrl: string
+  reachable: boolean
+}) {
   const { t } = useTranslation()
 
   return (
     <div className="space-y-2">
+      {/* Stated first, because everything below is pointless until it
+          is true: Discord calls the panel, so an address that resolves
+          only on this machine can never be reached. */}
+      {!reachable && (
+        <p className="text-amber-600 dark:text-amber-400">{t('settings.discordLocalUrl')}</p>
+      )}
+
       <StepList
         items={[
           t('settings.discordStep1'),

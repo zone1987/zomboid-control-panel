@@ -583,6 +583,7 @@
     },
     "chooseChannel": "Choose a channel",
     "commandList": {
+      "adminsAlwaysAllowed": "Anyone who manages the Discord server can use every command, with or without a role. Roles are for handing individual commands to somebody else.",
       "chooseRoles": "Choose roles",
       "hint": "With no role, nobody can run it. The dashboard permission applies as well, always.",
       "managedRole": "Managed by an integration",
@@ -591,10 +592,12 @@
       "permission": "In the dashboard: {{permission}}",
       "roles": "Role IDs, comma separated",
       "title": "Who may use which command",
-      "ungranted_one": "One command is assigned to nobody",
-      "ungranted_other": "{{count}} commands are assigned to nobody"
+      "ungranted_one": "One command with no role assigned",
+      "ungranted_other": "{{count}} commands with no role assigned"
     },
     "commandsEnabled": "Answer slash commands",
+    "commandsUnreachable": "Slash commands do not work here yet",
+    "commandsUnreachableHint": "Discord calls the dashboard from outside, and the configured address is only reachable locally. Notifications and chat to Discord work anyway — for those the dashboard calls Discord. Once deployed to a public address this resolves itself.",
     "eventNames": {
       "bridge.back": "Bridge answering again",
       "bridge.quiet": "Bridge stopped answering",
@@ -1666,6 +1669,7 @@
     "discordBotToken": "Bot token",
     "discordDescription": "So the dashboard can talk to Discord. All three values are on the same application page in the Discord developer portal.",
     "discordInteractionUrl": "Interactions Endpoint URL — this is what you paste into Discord:",
+    "discordLocalUrl": "This address is only reachable on this machine. Discord calls the dashboard from outside, so slash commands will not work until the dashboard is publicly reachable — notifications and chat to Discord do work already, because for those the dashboard calls Discord rather than the other way round.",
     "discordNextStep": "After that, each game server is linked to its Discord server on its own \"Discord\" page.",
     "discordNote": "Discord checks the address immediately and accepts it only once the public key is saved here. So save here first, then paste it into Discord.",
     "discordPublicKey": "Public key",

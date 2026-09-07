@@ -130,6 +130,19 @@ final readonly class RestDiscordClient implements DiscordClientInterface
         );
     }
 
+    public function guildCommands(string $applicationId, string $guildId): array
+    {
+        $found = [];
+
+        foreach ($this->request('GET', '/applications/'.$applicationId.'/guilds/'.$guildId.'/commands') as $command) {
+            if (is_array($command)) {
+                $found[] = $command;
+            }
+        }
+
+        return $found;
+    }
+
     public function self(): array
     {
         $me = $this->request('GET', '/users/@me');

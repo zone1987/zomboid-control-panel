@@ -6,12 +6,13 @@ namespace App\Server\Discord;
 
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
+use App\Entity\RconConfig;
+use App\Repository\PlayerSnapshotRepository;
+use App\Server\Bridge\ServerInfoReader;
 use App\Server\Chat\ChatBroadcaster;
 use App\Server\Items\ItemGiver;
-use App\Repository\PlayerSnapshotRepository;
 use App\Server\Players\ModerationRecorder;
 use App\Server\Players\PlayerModerator;
-use App\Entity\RconConfig;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
 use App\Server\Rcon\RconUnreachable;
@@ -32,11 +33,23 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class CommandRunner
 {
+    /**
+     * How recently the bridge must have written for the server to count
+     * as running.
+     *
+     * The same 35 seconds `ConnectionStatusEndpoint` uses, deliberately:
+     * two thresholds would let the panel and the bot disagree about
+     * whether the server is up, and whoever noticed would have no way
+     * to tell which was right.
+     */
+    private const RUNNING_WITHIN_SECONDS = 35;
+
     public function __construct(
         private PlayerModerator $moderator,
         private ItemGiver $items,
         private ChatBroadcaster $chat,
         private PlayerSnapshotRepository $players,
+        private ServerInfoReader $info,
         private RconClientInterface $rcon,
         private ModerationRecorder $recorder,
         private LoggerInterface $logger,
@@ -190,17 +203,62 @@ final readonly class CommandRunner
         );
     }
 
+    /**
+     * Whether the server is up, and what it is doing.
+     *
+     * "Is it running?" is the question this command exists for, and the
+     * player count alone cannot answer it: an empty server and a dead
+     * one both report nobody. So the bridge's own last writing time
+     * decides, with three states rather than two — **not knowing is not
+     * the same as being down**, and telling somebody their server is
+     * offline when the panel simply has not read anything is worse than
+     * saying so plainly.
+     */
     private function serverStatus(GameServer $server): string
     {
+        $reading = $this->info->serverInfo($server);
+        $generatedAt = $reading['generatedAt'] ?? null;
+        $name = MessageTemplate::escape($server->getName());
+
+        if (!is_int($generatedAt)) {
+            return sprintf(
+                '❔ **%s** — keine Meldung von der Bridge. Ob der Server läuft, lässt sich von hier nicht sagen.',
+                $name,
+            );
+        }
+
+        $age = time() - $generatedAt;
+
+        if ($age > self::RUNNING_WITHIN_SECONDS) {
+            return sprintf(
+                '🔴 **%s** — offline. Die letzte Meldung ist %s her.',
+                $name,
+                self::humanAge($age),
+            );
+        }
+
         $online = count($this->players->findForServer($server, onlineOnly: true));
-        $known = count($this->players->findForServer($server));
+        $time = $reading['gameTime'] ?? null;
 
         return sprintf(
-            '**%s** — %d online, %d bekannt.',
-            MessageTemplate::escape($server->getName()),
-            $online,
-            $known,
+            '🟢 **%s** — läuft%s. %s online.',
+            $name,
+            is_array($time) && isset($time['hour'])
+                ? sprintf(', %02d:%02d Uhr im Spiel', (int) $time['hour'], (int) ($time['minute'] ?? 0))
+                : '',
+            $online === 0 ? 'Niemand ist' : sprintf('%d Spieler sind', $online),
         );
+    }
+
+    /** A duration somebody can read at a glance. */
+    private static function humanAge(int $seconds): string
+    {
+        return match (true) {
+            $seconds < 120 => sprintf('%d Sekunden', $seconds),
+            $seconds < 7200 => sprintf('%d Minuten', intdiv($seconds, 60)),
+            $seconds < 172800 => sprintf('%d Stunden', intdiv($seconds, 3600)),
+            default => sprintf('%d Tage', intdiv($seconds, 86400)),
+        };
     }
 
     private function playerCount(GameServer $server): string

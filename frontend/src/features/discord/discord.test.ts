@@ -16,6 +16,7 @@ function setup(overrides: Partial<DiscordSetup> = {}): DiscordSetup {
     tokenConfigured: true,
     applicationId: '111111111111111111',
     publicKeyConfigured: true,
+    commandsReachable: true,
     guildId: '222222222222222222',
     chatChannelId: null,
     chatScope: 'general',

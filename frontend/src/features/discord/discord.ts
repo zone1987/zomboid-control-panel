@@ -47,6 +47,12 @@ export type DiscordSetup = {
   tokenConfigured: boolean
   applicationId: string
   publicKeyConfigured: boolean
+  /**
+   * Whether Discord can reach the panel, which only slash commands
+   * need — notifications and outbound chat work either way, because for
+   * those the panel calls Discord.
+   */
+  commandsReachable: boolean
   guildId: string
   chatChannelId: string | null
   chatScope: ChatScope

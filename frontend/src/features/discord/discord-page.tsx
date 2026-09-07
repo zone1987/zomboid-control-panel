@@ -79,8 +79,11 @@ export function DiscordPage() {
             {active > 0 ? t('discord.events.activeCount', { count: active }) : t('discord.events.noneActive')}
           </Badge>
 
+          {/* Not a warning: an unassigned command is still usable by
+              whoever administers the guild, so this counts rather than
+              alarms. */}
           {ungranted.length > 0 && (
-            <Badge variant="outline" className="gap-1 text-amber-600 dark:text-amber-400">
+            <Badge variant="secondary" className="gap-1">
               <CircleAlert className="size-3" aria-hidden />
               {t('discord.commandList.ungranted', { count: ungranted.length })}
             </Badge>
@@ -99,6 +102,17 @@ export function DiscordPage() {
               ))}
             </ul>
           </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Its own notice rather than another gap: this is not something
+          the operator forgot to fill in, and everything except slash
+          commands works regardless. */}
+      {!data.commandsReachable && (
+        <Alert variant="default" className="border-amber-500/40">
+          <TriangleAlert className="size-4" aria-hidden />
+          <AlertTitle>{t('discord.commandsUnreachable')}</AlertTitle>
+          <AlertDescription>{t('discord.commandsUnreachableHint')}</AlertDescription>
         </Alert>
       )}
 

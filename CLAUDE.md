@@ -704,6 +704,41 @@ This is already the shape `RconClientInterface` and
 marking them `public: true` is the other half of the same pattern, for
 the cases where a functional test has to swap the real one out.
 
+## 10j. Who calls whom decides what works locally
+
+Discord answered "the application is not responding" to every slash
+command while every setting was correct. The reason is structural, not
+a bug: **`APP_PUBLIC_URL` was `https://zomboidcontrol.ddev.site`, and
+Discord calls the panel from its own servers.** A hostname that resolves
+only on the developer's machine is a dead end no configuration fixes,
+and the symptom in Discord points nowhere useful.
+
+So for every integration, ask which direction the call goes:
+
+| Direction | Works locally? |
+|---|---|
+| **Panel → service** (Discord messages, Steam, RCON, FTP) | yes |
+| **Service → panel** (Discord interactions, a webhook, an OAuth callback) | **only from a public address** |
+
+Three rules follow:
+
+- **Report the two capabilities separately.** Saying "Discord is not
+  working" when notifications and outbound chat work perfectly is the
+  "one value, two meanings" fault again. `discordReachable` and
+  `commandsReachable` are their own fields, and the interface says
+  plainly that commands wait for a deployment while everything else
+  already works.
+- **Detect it rather than documenting it.** A host with no dot, or
+  ending `.localhost .local .test .internal .ddev.site .example`, or a
+  private/reserved IP, cannot be reached from outside.
+  `DiscordReachabilityTest` asserts the verdict against the environment
+  the suite runs in — so the fault is caught here rather than by a
+  channel full of red error messages.
+- **Build the URL from `APP_PUBLIC_URL`, never from the request.**
+  Behind a proxy the request host is the container's, which the outside
+  world could never reach. `SettingsController::googleRedirectUri()`
+  already did this; the Discord one follows it.
+
 ## 11. Delegating to subagents
 
 Permitted and encouraged, with rules learnt the hard way:

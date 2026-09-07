@@ -212,7 +212,10 @@ export function SettingsPage() {
                 label={t('settings.discordApplicationId')}
                 placeholder="1234567890123456789"
                 instructions={
-                  <DiscordInstructions interactionUrl={data?.discordInteractionUrl ?? ''} />
+                  <DiscordInstructions
+                    interactionUrl={data?.discordInteractionUrl ?? ''}
+                    reachable={data?.discordReachable ?? false}
+                  />
                 }
                 {...field(SETTING_KEYS.discordApplicationId)}
               />
@@ -241,6 +244,12 @@ export function SettingsPage() {
                 <PlugZap className="size-4" />
                 {probeDiscord.isPending ? t('common.loading') : t('settings.testToken')}
               </Button>
+
+              {data?.discordReachable === false && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t('settings.discordLocalUrl')}
+                </p>
+              )}
 
               <p className="text-muted-foreground text-xs">{t('settings.discordNextStep')}</p>
             </CardContent>
