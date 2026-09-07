@@ -44,9 +44,23 @@ export function BridgeCard({ server }: { server: GameServer }) {
     mutationFn: () => installBridge(server.id),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ['bridge-status', server.id] })
-      toast.success(t('servers.bridgeUploaded', { version: result.version }), {
-        description: t('servers.bridgeRestartHint'),
-      })
+      // The running version is what the reload changed, so the roster
+      // reading has to be re-fetched for the card to show it.
+      await queryClient.invalidateQueries({ queryKey: ['players', server.id, false] })
+
+      // A reload that worked means no restart, and saying "restart
+      // needed" anyway would send the operator to do something
+      // pointless. Everything else keeps the warning, including every
+      // kind of not-knowing.
+      const description = t(`bridge.reload.${result.reload}`)
+
+      if (result.restartNeeded) {
+        toast.warning(t('servers.bridgeUploaded', { version: result.version }), { description })
+
+        return
+      }
+
+      toast.success(t('servers.bridgeUploaded', { version: result.version }), { description })
     },
     onError: (error) => {
       toast.error(

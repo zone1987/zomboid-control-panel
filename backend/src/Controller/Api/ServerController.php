@@ -11,6 +11,7 @@ use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
 use App\Server\Bridge\BridgeInstaller;
 use App\Server\Bridge\BridgePathMissing;
+use App\Server\Bridge\BridgeReloader;
 use App\Server\Rcon\RconClientInterface;
 use App\Server\Rcon\RconException;
 use App\Server\Storage\ServerFileBrowser;
@@ -230,7 +231,7 @@ final class ServerController extends AbstractController
 
     #[Route('/{id}/bridge', name: 'api_servers_install_bridge', methods: ['POST'])]
     #[IsGranted(Permission::ManageBridge->value)]
-    public function installBridge(string $id, BridgeInstaller $installer): JsonResponse
+    public function installBridge(string $id, BridgeInstaller $installer, BridgeReloader $reloader): JsonResponse
     {
         $server = $this->servers->find($id);
 
@@ -253,10 +254,21 @@ final class ServerController extends AbstractController
             ], Response::HTTP_BAD_GATEWAY);
         }
 
+        $version = $installer->version();
+
+        // The upload has already succeeded, so a reload that does not
+        // work is not an error here -- it only means the operator has to
+        // restart. Reporting the upload as failed because of it would be
+        // a lie in the other direction.
+        $reload = $reloader->reload($server, $version);
+
         return new JsonResponse([
             'status' => 'installed',
             'path' => $path,
-            'version' => $installer->version(),
+            'version' => $version,
+            'reload' => $reload->value,
+            'restartNeeded' => $reload->needsRestart(),
+            'reloadMessage' => $reload->messageKey(),
         ]);
     }
 

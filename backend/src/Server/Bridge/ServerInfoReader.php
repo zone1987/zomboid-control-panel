@@ -13,8 +13,22 @@ use App\Server\Storage\StorageException;
  * claimed safehouses. Kept apart from the player roster, which changes
  * whenever somebody joins.
  */
-final readonly class ServerInfoReader
+final readonly class ServerInfoReader implements RunningBridgeReading
 {
+    /**
+     * The two fields a reload verdict may rest on, and no others.
+     */
+    public function runningBridge(GameServer $server): ?array
+    {
+        $info = $this->serverInfo($server);
+
+        if ($info === null) {
+            return null;
+        }
+
+        return ['version' => $info['bridgeVersion'], 'sessionId' => $info['sessionId']];
+    }
+
     public function __construct(private FileBrowserInterface $files)
     {
     }
@@ -30,7 +44,8 @@ final readonly class ServerInfoReader
      *     gameTime: array<string, int>|null,
      *     weather: array<string, mixed>|null,
      *     maxPlayers: int|null,
-     *     bridgeVersion: string|null
+     *     bridgeVersion: string|null,
+     *     sessionId: string|null
      * }|null
      */
     public function serverInfo(GameServer $server): ?array
@@ -48,6 +63,12 @@ final readonly class ServerInfoReader
             'maxPlayers' => isset($payload['maxPlayers']) ? (int) $payload['maxPlayers'] : null,
             'bridgeVersion' => \is_string($payload['bridgeVersion'] ?? null)
                 ? $payload['bridgeVersion']
+                : null,
+            // Minted at module level, so a different value means the mod
+            // was loaded afresh -- which is how a reload is told from a
+            // stale file left over from before it.
+            'sessionId' => \is_string($payload['sessionId'] ?? null)
+                ? $payload['sessionId']
                 : null,
         ];
     }

@@ -45,6 +45,14 @@
     "outdated": "A newer version is available",
     "pathMissing": "This server has no media/lua/server path configured.",
     "refused": "The server refused the request.",
+    "reload": {
+      "active": "Active — no restart needed. The new version is already answering.",
+      "noRcon": "Uploaded. Without RCON access there is no way to reload, so a restart is needed.",
+      "notAnswering": "Uploaded, but the bridge has stopped answering. Please restart the game server.",
+      "notReloaded": "Uploaded. The game server did not recognise the file, so a restart is needed.",
+      "unknown": "Uploaded. Whether the bridge reloaded could not be established — please restart the game server.",
+      "wrongVersion": "Uploaded, but a different version is still running. Please restart the game server."
+    },
     "restartNeeded": "Uploaded but not loaded — the game server needs a restart.",
     "stale": "No recent reading"
   },

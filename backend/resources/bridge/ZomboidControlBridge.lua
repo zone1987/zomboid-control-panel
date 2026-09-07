@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.20.0"
+local BRIDGE_VERSION = "0.21.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -2848,14 +2848,10 @@ local function onTick()
     end
 end
 
--- OnTickEvenPaused rather than OnTick: the panel has to reach a server
--- nobody is playing on, which is exactly when a paused or idle server
--- would otherwise stop listening.
-Events.OnTickEvenPaused.Add(onTick)
-
--- The first write happens as soon as the server is up rather than after
--- the first interval, so the panel has something to read immediately.
-Events.OnServerStarted.Add(function()
+-- Everything a server start has to do once, as a named function: a
+-- reloadlua does not fire OnServerStarted, so the reload guard below
+-- calls this directly instead.
+local function onServerStarted()
     attempt("players", writePlayers, getOnlinePlayers())
     attempt("server info", writeServerInfo)
     attempt("safehouses", writeSafehouses)
@@ -2871,6 +2867,44 @@ Events.OnServerStarted.Add(function()
     -- every command the panel ever sent.
     readCursor()
     writeCursor()
-end)
+end
 
-print("[ZomboidControl] Bridge " .. BRIDGE_VERSION .. " loaded.")
+-- A reloadlua re-executes this file on a server that never stopped, and
+-- the game rewires the registrations itself: RunLua(path, true) sets
+-- LuaCompiler.rewriteEvents, so every LuaClosure built during the reload
+-- goes through LuaEventManager.reroute, which REPLACES a callback whose
+-- prototype filename and name both match. Registering again is
+-- therefore correct and does not double up.
+--
+-- Two consequences, both load-bearing:
+--   * Events.X.Remove must NOT be called here. While rewriteEvents is
+--     set, Event$Remove.call returns before touching the callback list,
+--     so the remove is a silent no-op and the following Add appends a
+--     second callback that reroute can no longer replace -- the exact
+--     doubling it is meant to prevent.
+--   * reroute matches on prototype.name, so both handlers are named
+--     functions rather than inline anonymous ones.
+ZomboidControlBridge = ZomboidControlBridge or {}
+
+local reloaded = ZomboidControlBridge.registered == true
+
+ZomboidControlBridge.onTick = onTick
+ZomboidControlBridge.onServerStarted = onServerStarted
+ZomboidControlBridge.version = BRIDGE_VERSION
+ZomboidControlBridge.registered = true
+
+-- OnTickEvenPaused rather than OnTick: the panel has to reach a server
+-- nobody is playing on, which is exactly when a paused or idle server
+-- would otherwise stop listening.
+Events.OnTickEvenPaused.Add(onTick)
+Events.OnServerStarted.Add(onServerStarted)
+
+if reloaded then
+    -- OnServerStarted will not fire again: the server is already up, and
+    -- without this the cursor is never read and every command the panel
+    -- ever sent would replay from sequence 1.
+    onServerStarted()
+end
+
+print("[ZomboidControl] Bridge " .. BRIDGE_VERSION
+    .. (reloaded and " reloaded." or " loaded."))

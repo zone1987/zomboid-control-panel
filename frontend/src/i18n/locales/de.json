@@ -45,6 +45,14 @@
     "outdated": "Neuere Fassung verfügbar",
     "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt.",
     "refused": "Der Server hat die Anfrage abgelehnt.",
+    "reload": {
+      "active": "Aktiv — kein Neustart nötig. Die neue Fassung antwortet bereits.",
+      "noRcon": "Hochgeladen. Ohne RCON-Zugang kann nicht neu geladen werden, also ist ein Neustart nötig.",
+      "notAnswering": "Hochgeladen, aber die Bridge meldet sich nicht mehr. Bitte den Spielserver neu starten.",
+      "notReloaded": "Hochgeladen. Der Spielserver hat die Datei nicht erkannt, also ist ein Neustart nötig.",
+      "unknown": "Hochgeladen. Ob die Bridge neu geladen wurde, ließ sich nicht feststellen — bitte den Spielserver neu starten.",
+      "wrongVersion": "Hochgeladen, aber es läuft noch eine andere Fassung. Bitte den Spielserver neu starten."
+    },
     "restartNeeded": "Hochgeladen, aber noch nicht geladen — der Spielserver muss neu gestartet werden.",
     "stale": "Keine aktuelle Meldung"
   },

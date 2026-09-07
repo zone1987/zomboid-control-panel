@@ -108,6 +108,26 @@ export function getBridgeStatus(id: string): Promise<BridgeStatus> {
   return apiFetch<BridgeStatus>(`/servers/${id}/bridge`)
 }
 
-export function installBridge(id: string): Promise<{ status: string; path: string; version: string }> {
+/** Every outcome the panel may hear back from a bridge upload. */
+export type BridgeReloadOutcome =
+  | 'active'
+  | 'notReloaded'
+  | 'wrongVersion'
+  | 'notAnswering'
+  | 'unknown'
+  | 'noRcon'
+
+export type BridgeInstallResult = {
+  status: string
+  path: string
+  version: string
+  /** What happened when the panel tried to load it without a restart. */
+  reload: BridgeReloadOutcome
+  /** True for every outcome but `active` — in doubt, a restart is needed. */
+  restartNeeded: boolean
+  reloadMessage: string
+}
+
+export function installBridge(id: string): Promise<BridgeInstallResult> {
   return apiFetch(`/servers/${id}/bridge`, { method: 'POST', body: {} })
 }
