@@ -58,8 +58,11 @@ export function AppLayout() {
 function PageTransition() {
   const { pathname } = useLocation()
 
+  // min-h-full rather than h-full: a child at exactly 100% height
+  // overhangs the scroller's own bottom padding, so the last element sat
+  // flush against the footer. pb-4 is the gap, on the child.
   return (
-    <div key={pathname} className="pz-page h-full">
+    <div key={pathname} className="pz-page min-h-full pb-4">
       <Outlet />
     </div>
   )

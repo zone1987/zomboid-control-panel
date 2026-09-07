@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SectionMark } from '@/components/layout/section-mark'
-import { groupSkills, MAX_SKILL_LEVEL, skillLabel, unknownSkills } from './skills'
+import { boostRate, groupSkills, MAX_SKILL_LEVEL, skillLabel, unknownSkills } from './skills'
 import {
   addSkillXp,
   levelProgress,
@@ -189,7 +189,10 @@ export function SkillGrid({
         </section>
       )}
 
-      {player.online && <ExperienceRow serverId={serverId} player={player} onDone={refresh} />}
+      {/* Always here, whether usable or not: hidden behind an online
+          check it was simply absent, which is the same mistake the
+          trait chooser made. */}
+      <ExperienceRow serverId={serverId} player={player} onDone={refresh} />
     </div>
   )
 }
@@ -246,7 +249,7 @@ function SkillRow({
           detail === undefined
             ? undefined
             : boostTitle(
-                t('players.skillBoost', { boost: detail.boost }),
+                t('players.skillBoost', { percent: boostRate(detail.boost) }),
                 detail.multiplier > 0
                   ? t('players.bookActive', { factor: detail.multiplier })
                   : null,
@@ -353,7 +356,6 @@ function SkillRow({
   )
 }
 
-/** Why a skill name is gold: the profession and traits behind it. */
 function boostTitle(boost: string, book: string | null): string {
   return book === null ? boost : `${boost} · ${book}`
 }
@@ -405,8 +407,22 @@ function ExperienceRow({
 
   return (
     <section className="space-y-3 border-t pt-4">
-      <SectionMark label={t('players.grantExperience')} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionMark label={t('players.grantExperience')} />
 
+        {!player.online && (
+          <Badge variant="secondary" className="text-xs">
+            {t('players.traitsNeedOnlineShort')}
+          </Badge>
+        )}
+      </div>
+
+      {!player.online && (
+        <p className="text-sm text-muted-foreground">{t('players.xpNeedsOnline')}</p>
+      )}
+
+      {player.online && (
+      <>
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-48 flex-1 space-y-1.5">
           <Label htmlFor="xp-skill">{t('players.skill')}</Label>
@@ -480,6 +496,8 @@ function ExperienceRow({
           {t('players.useServerMultiplier')}
         </Label>
       </div>
+      </>
+      )}
     </section>
   )
 }

@@ -10,11 +10,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import { SectionMark } from '@/components/layout/section-mark'
 import { CharacterIcon } from './character-icon'
 import { skillLabel } from './skills'
@@ -166,14 +161,16 @@ export function CharacterCard({
         )}
       </section>
 
-      {player.online && (
-        <AddTrait
-          held={held}
-          table={sheet.traits}
-          busy={change.isPending}
-          onAdd={(trait) => change.mutate({ trait, adding: true })}
-        />
-      )}
+      {/* Always here, whether or not it can be used. Hidden behind an
+          online check it was simply absent, with nothing saying why —
+          which is the failure the panel's own rule forbids. */}
+      <AddTrait
+        held={held}
+        table={sheet.traits}
+        busy={change.isPending}
+        online={player.online}
+        onAdd={(trait) => change.mutate({ trait, adding: true })}
+      />
 
       {/* Said rather than discovered: the change is real server-side and
           invisible on the player's own screen until they reconnect. */}
@@ -314,25 +311,42 @@ function TraitColumn({
   )
 }
 
-/** What is left to choose, searchable because there are ninety-seven. */
+/**
+ * What is left to choose, searchable because there are ninety-seven.
+ *
+ * Open rather than collapsed: adding a trait is the point of this tab,
+ * and a disclosure made the main action look like a footnote — the user
+ * could not find it at all.
+ */
 function AddTrait({
   held,
   table,
   busy,
+  online,
   onAdd,
 }: {
   held: string[]
   table: Record<string, TraitDefinition>
   busy: boolean
+  online: boolean
   onAdd: (trait: string) => void
 }) {
   const { t } = useTranslation()
   const [term, setTerm] = useState('')
+  const [tone, setTone] = useState<'all' | 'good' | 'bad'>('all')
 
   const offered = offerableTraits(held, table)
   const needle = term.trim().toLowerCase()
 
-  const shown = offered.filter(({ id }) => {
+  const shown = offered.filter(({ id, definition }) => {
+    if (tone === 'good' && definition.cost <= 0) {
+      return false
+    }
+
+    if (tone === 'bad' && definition.cost > 0) {
+      return false
+    }
+
     if (needle === '') {
       return true
     }
@@ -343,54 +357,104 @@ function AddTrait({
   })
 
   return (
-    <Collapsible className="border-t pt-3">
-      <CollapsibleTrigger className="w-full text-left font-mono text-[11px] tracking-wide text-muted-foreground uppercase hover:text-foreground">
-        › {t('character.addTrait', { count: offered.length })}
-      </CollapsibleTrigger>
+    <section className="space-y-3 border-t pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SectionMark label={t('character.addTraitTitle')} state={String(offered.length)} />
 
-      <CollapsibleContent className="space-y-2 pt-2">
-        <Input
-          value={term}
-          placeholder={t('character.searchTraits')}
-          aria-label={t('character.searchTraits')}
-          onChange={(event) => setTerm(event.target.value)}
-        />
+        {/* Never offer what cannot work — and say why. */}
+        {!online && (
+          <Badge variant="secondary" className="text-xs">
+            {t('players.traitsNeedOnlineShort')}
+          </Badge>
+        )}
+      </div>
 
-        <div className="max-h-64 space-y-1 overflow-y-auto">
-          {shown.map(({ id, definition }) => (
-            <button
-              key={id}
-              type="button"
-              disabled={busy}
-              className="flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors hover:bg-muted/50 disabled:opacity-50"
-              onClick={() => onAdd(id)}
-            >
-              <CharacterIcon icon={definition.icon} label={id} />
+      {!online ? (
+        <p className="text-sm text-muted-foreground">{t('character.addNeedsOnline')}</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={term}
+              placeholder={t('character.searchTraits')}
+              aria-label={t('character.searchTraits')}
+              className="max-w-56"
+              onChange={(event) => setTerm(event.target.value)}
+            />
 
-              <span className="min-w-0 flex-1 truncate text-sm">
-                {t(`character.trait.${id}`, { defaultValue: id })}
-              </span>
+            {/* Both directions, as asked: an advantage and a drawback
+                are two different jobs and worth separating. */}
+            <div className="flex gap-1" role="group" aria-label={t('character.filterByTone')}>
+              {(['all', 'good', 'bad'] as const).map((option) => (
+                <Button
+                  key={option}
+                  size="sm"
+                  variant={tone === option ? 'secondary' : 'ghost'}
+                  className="px-2 text-xs"
+                  onClick={() => setTone(option)}
+                >
+                  {option === 'good' && (
+                    <ThumbsUp aria-hidden className="size-3.5 text-emerald-500" />
+                  )}
+                  {option === 'bad' && (
+                    <ThumbsDown aria-hidden className="size-3.5 text-destructive" />
+                  )}
+                  {t(`character.tone.${option}`)}
+                </Button>
+              ))}
+            </div>
 
-              <span
+            <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">
+              {shown.length}
+            </span>
+          </div>
+
+          <div className="grid max-h-72 gap-1 overflow-y-auto sm:grid-cols-2">
+            {shown.map(({ id, definition }) => (
+              <button
+                key={id}
+                type="button"
+                disabled={busy}
                 className={cn(
-                  'shrink-0 font-mono text-[11px] tabular-nums',
-                  definition.cost > 0 ? 'text-emerald-500' : 'text-destructive',
+                  'flex items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors',
+                  'hover:bg-muted/50 disabled:opacity-50',
+                  definition.cost > 0
+                    ? 'border-l-2 border-l-emerald-500/40'
+                    : 'border-l-2 border-l-destructive/40',
                 )}
+                onClick={() => onAdd(id)}
               >
-                {definition.cost > 0 ? `+${definition.cost}` : definition.cost}
-              </span>
+                <CharacterIcon icon={definition.icon} label={id} />
 
-              <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-            </button>
-          ))}
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {t(`character.trait.${id}`, { defaultValue: id })}
+                </span>
 
-          {shown.length === 0 && (
-            <p className="px-2 py-4 text-center text-sm text-muted-foreground">
-              {t('character.noTraitMatch')}
-            </p>
-          )}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+                <span
+                  className={cn(
+                    'shrink-0 font-mono text-[11px] tabular-nums',
+                    definition.cost > 0 ? 'text-emerald-500' : 'text-destructive',
+                  )}
+                >
+                  {definition.cost > 0 ? `+${definition.cost}` : definition.cost}
+                </span>
+
+                <Plus aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+              </button>
+            ))}
+
+            {shown.length === 0 && (
+              <p className="col-span-full px-2 py-4 text-center text-sm text-muted-foreground">
+                {t('character.noTraitMatch')}
+              </p>
+            )}
+          </div>
+
+          {/* The game forbids some pairs, so they are absent rather than
+              offered and refused. Said, so the gap is not a mystery. */}
+          <p className="text-xs text-muted-foreground">{t('character.exclusionsHidden')}</p>
+        </>
+      )}
+    </section>
   )
 }

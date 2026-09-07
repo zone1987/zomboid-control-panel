@@ -12,7 +12,6 @@ import {
 import { SectionMark } from '@/components/layout/section-mark'
 import { AbilityRows } from './ability-rows'
 import { DossierHeader } from './dossier-header'
-import { ExperienceCard } from './experience-card'
 import { NotesCard } from './notes-card'
 import { PlayerHistory } from './player-history'
 import { PlayerVitals } from './player-vitals'
@@ -22,7 +21,10 @@ import { SkillGrid } from './skill-grid'
 import { VitalsCard } from './vitals-card'
 import type { AccessLevel, Player, TeleportDestination } from './players'
 
-const TABS = ['condition', 'character', 'skills', 'moderation', 'abilities', 'grant', 'notes'] as const
+// No 'grant' tab: granting XP lives under 'skills', beside the levels
+// it changes. A tab of its own was the same form twice, and "Vergeben"
+// said nothing about what it did.
+const TABS = ['condition', 'character', 'skills', 'moderation', 'abilities', 'notes'] as const
 
 /**
  * One player, beside the list rather than on top of it.
@@ -126,15 +128,6 @@ export function PlayerDossier({
               username={player.username}
               online={player.online}
             />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="grant">
-          <div className="rounded-md border p-4">
-            <SectionMark label={t('players.grantExperience')} />
-            <div className="mt-3">
-              <ExperienceCard serverId={serverId} player={player} />
-            </div>
           </div>
         </TabsContent>
 

@@ -80,3 +80,16 @@ export function unknownSkills(levels: Record<string, number> | null): string[] {
     .filter((id) => !listed.has(id))
     .sort()
 }
+
+/**
+ * The XP rate a profession boost buys.
+ *
+ * The game turns its 0..3 boost into a percentage
+ * (`ISPlayerStatsUI.lua:729-737`), and "125 %" says far more than
+ * "3 of 3" — so the panel shows the same numbers the game does.
+ */
+const BOOST_RATE = ['50 %', '75 %', '100 %', '125 %'] as const
+
+export function boostRate(boost: number): string {
+  return BOOST_RATE[Math.min(3, Math.max(0, boost))] ?? '50 %'
+}

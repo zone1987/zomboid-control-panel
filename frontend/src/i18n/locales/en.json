@@ -49,9 +49,13 @@
     "stale": "No recent reading"
   },
   "character": {
+    "addNeedsOnline": "Traits can only be changed while the player is online — the game needs the character loaded.",
     "addTrait": "Add a trait ({{count}} available)",
+    "addTraitTitle": "Add a trait",
     "advantages": "Advantages",
     "drawbacks": "Drawbacks",
+    "exclusionsHidden": "Traits that clash with one the player already has are not offered.",
+    "filterByTone": "Filter by kind",
     "fromProfession": "Granted by the profession",
     "noProfession": "No profession recorded.",
     "noTraitMatch": "No trait matches the search.",
@@ -88,6 +92,11 @@
     "reconnectNotice": "A changed trait takes effect on the server at once. The player only sees it in their own character sheet after reconnecting — the game does not transmit traits while play is running. That is also why the profession cannot be changed.",
     "removeTrait": "Remove {{trait}}",
     "searchTraits": "Search traits …",
+    "tone": {
+      "all": "All",
+      "bad": "Drawbacks",
+      "good": "Advantages"
+    },
     "trait": {
       "adrenalinejunkie": "Adrenaline Junkie",
       "agoraphobic": "Agoraphobic",
@@ -814,7 +823,6 @@
       "noclip": "Walks through walls",
       "voiceBan": "Voice chat blocked"
     },
-    "abilitiesTab": "Abilities",
     "abilityFailed": "The server did not accept the change.",
     "abilityOff": "Off",
     "abilityOn": "On",
@@ -959,7 +967,6 @@
     "notePlaceholder": "What the team should know about this player",
     "noteSaved": "The note was saved.",
     "noteUpdated": "Last by {{who}} on {{when}}",
-    "notesTab": "Notes",
     "nothingTrained": "No skill above level 0.",
     "offline": "Offline",
     "online": "Online",
@@ -970,7 +977,6 @@
     "performedBy": "Performed by",
     "permanent": "Permanent",
     "player": "Player",
-    "playersTab": "Players",
     "position": "Position",
     "professionIs": "Profession: {{job}}",
     "reason": "Reason",
@@ -987,7 +993,7 @@
     "setSkillTo": "Set {{skill}} to level {{level}}",
     "skill": "Skill",
     "skillAtLevel": "{{skill}}, level {{level}} of 10",
-    "skillBoost": "Profession boost {{boost}} of 3",
+    "skillBoost": "XP gain {{percent}}",
     "skillDetailUnavailable": "The skill details could not be read.",
     "skillGroup": {
       "Combat": "Melee",
@@ -1039,7 +1045,6 @@
     "skillsNeedOnline": "The server reports skills only for players who are online.",
     "skillsReadOnlyOffline": "Read-only — the player is offline",
     "someone": "someone",
-    "spawnTab": "Grant",
     "spawnVehicles": "Spawn vehicles",
     "spawnVehiclesHint": "Saloons, trucks, emergency vehicles — near {{player}}.",
     "statSet": "\"{{stat}}\" was set.",
@@ -1073,10 +1078,9 @@
     "survived": "{{hours}} h survived",
     "survivorKills": "Players killed",
     "tab": {
-      "abilities": "Abilities",
+      "abilities": "Admin",
       "character": "Character",
       "condition": "Condition",
-      "grant": "Grant",
       "moderation": "Moderation",
       "notes": "Notes",
       "skills": "Skills"
@@ -1101,6 +1105,7 @@
     "trainedCount": "{{count}} skills trained",
     "traits": "Traits",
     "traitsNeedOnline": "The server only reports traits for players who are online.",
+    "traitsNeedOnlineShort": "Player offline",
     "unban": "Unban",
     "unbanned": "{{username}} has been unbanned.",
     "unit": {
@@ -1114,7 +1119,6 @@
     "username": "Username",
     "vitalRefused": "The server did not accept the change.",
     "vitalsNeedOnline": "The server reports a condition only for players who are online.",
-    "vitalsTab": "Condition",
     "vitalsUnavailable": "The condition cannot be read — the panel needs the bridge and a player online.",
     "voiceBanIsTemporary": "A voice ban lasts only until the player reconnects — the server does not remember it. The other three cannot be read back by the panel, which is why they read \"Unknown\" until it has set them itself.",
     "wasRefused": "The server refused this.",
@@ -1122,6 +1126,7 @@
     "weightSet": "The weight is now {{weight}} kg.",
     "whatWasDone": "What was done to this player",
     "xpGranted": "{{amount}} XP granted",
+    "xpNeedsOnline": "Experience can only be granted while the player is online — the game needs the character loaded.",
     "xpReachedLevel": "Reached level {{level}}",
     "xpToNextLevel": "{{done}} of {{span}} XP — {{left}} to level {{level}}",
     "zombieKills": "Zombies killed"

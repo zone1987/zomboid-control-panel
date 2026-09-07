@@ -49,9 +49,13 @@
     "stale": "Keine aktuelle Meldung"
   },
   "character": {
+    "addNeedsOnline": "Eigenschaften lassen sich nur ändern, während der Spieler online ist — das Spiel muss den Charakter dafür geladen haben.",
     "addTrait": "Eigenschaft hinzufügen ({{count}} verfügbar)",
+    "addTraitTitle": "Eigenschaft hinzufügen",
     "advantages": "Vorteile",
     "drawbacks": "Nachteile",
+    "exclusionsHidden": "Eigenschaften, die sich mit einer vorhandenen ausschließen, werden nicht angeboten.",
+    "filterByTone": "Nach Art filtern",
     "fromProfession": "Vom Beruf verliehen",
     "noProfession": "Kein Beruf hinterlegt.",
     "noTraitMatch": "Keine Eigenschaft passt zur Suche.",
@@ -88,6 +92,11 @@
     "reconnectNotice": "Eine geänderte Eigenschaft wirkt auf dem Server sofort. Der Spieler sieht sie in seinem Charakterbogen erst, nachdem er sich neu verbunden hat — das Spiel überträgt Eigenschaften nicht im laufenden Betrieb. Der Beruf lässt sich deshalb gar nicht ändern.",
     "removeTrait": "{{trait}} entfernen",
     "searchTraits": "Eigenschaft suchen …",
+    "tone": {
+      "all": "Alle",
+      "bad": "Nachteile",
+      "good": "Vorteile"
+    },
     "trait": {
       "adrenalinejunkie": "Adrenalinjunkie",
       "agoraphobic": "Agoraphobisch",
@@ -814,7 +823,6 @@
       "noclip": "Durch Wände",
       "voiceBan": "Sprachchat gesperrt"
     },
-    "abilitiesTab": "Fähigkeiten",
     "abilityFailed": "Der Server hat die Änderung nicht angenommen.",
     "abilityOff": "Aus",
     "abilityOn": "An",
@@ -959,7 +967,6 @@
     "notePlaceholder": "Was das Team über diesen Spieler wissen sollte",
     "noteSaved": "Die Notiz wurde gespeichert.",
     "noteUpdated": "Zuletzt von {{who}} am {{when}}",
-    "notesTab": "Notizen",
     "nothingTrained": "Keine Fertigkeit über Stufe 0.",
     "offline": "Offline",
     "online": "Online",
@@ -970,7 +977,6 @@
     "performedBy": "Ausgeführt von",
     "permanent": "Dauerhaft",
     "player": "Spieler",
-    "playersTab": "Spieler",
     "position": "Position",
     "professionIs": "Beruf: {{job}}",
     "reason": "Grund",
@@ -987,7 +993,7 @@
     "setSkillTo": "{{skill}} auf Stufe {{level}} setzen",
     "skill": "Fertigkeit",
     "skillAtLevel": "{{skill}}, Stufe {{level}} von 10",
-    "skillBoost": "Berufsbonus {{boost}} von 3",
+    "skillBoost": "XP-Gewinn {{percent}}",
     "skillDetailUnavailable": "Die Fertigkeitsdetails konnten nicht gelesen werden.",
     "skillGroup": {
       "Combat": "Nahkampf",
@@ -1039,7 +1045,6 @@
     "skillsNeedOnline": "Fertigkeiten meldet der Server nur für Spieler, die online sind.",
     "skillsReadOnlyOffline": "Nur lesbar — Spieler ist offline",
     "someone": "jemandem",
-    "spawnTab": "Vergeben",
     "spawnVehicles": "Fahrzeuge spawnen",
     "spawnVehiclesHint": "Limousinen, Lkw, Einsatzfahrzeuge — in der Nähe von {{player}}.",
     "statSet": "„{{stat}}“ wurde gesetzt.",
@@ -1073,10 +1078,9 @@
     "survived": "{{hours}} h überlebt",
     "survivorKills": "Spieler getötet",
     "tab": {
-      "abilities": "Fähigkeiten",
+      "abilities": "Admin",
       "character": "Charakter",
       "condition": "Zustand",
-      "grant": "Vergeben",
       "moderation": "Moderation",
       "notes": "Notizen",
       "skills": "Fertigkeiten"
@@ -1101,6 +1105,7 @@
     "trainedCount": "{{count}} Fertigkeiten trainiert",
     "traits": "Eigenschaften",
     "traitsNeedOnline": "Eigenschaften meldet der Server nur für Spieler, die online sind.",
+    "traitsNeedOnlineShort": "Spieler offline",
     "unban": "Entbannen",
     "unbanned": "{{username}} wurde entbannt.",
     "unit": {
@@ -1114,7 +1119,6 @@
     "username": "Benutzername",
     "vitalRefused": "Der Server hat die Änderung nicht angenommen.",
     "vitalsNeedOnline": "Den Zustand meldet der Server nur für Spieler, die online sind.",
-    "vitalsTab": "Zustand",
     "vitalsUnavailable": "Der Zustand ist nicht lesbar — dafür braucht das Panel die Bridge und einen Spieler online.",
     "voiceBanIsTemporary": "Die Sprachsperre gilt nur bis zum nächsten Verbinden — der Server merkt sie sich nicht. Die anderen drei kann das Panel nicht zurücklesen, deshalb steht dort „Unbekannt“, bis es sie selbst gesetzt hat.",
     "wasRefused": "Der Server hat das abgelehnt.",
@@ -1122,6 +1126,7 @@
     "weightSet": "Das Gewicht steht jetzt auf {{weight}} kg.",
     "whatWasDone": "Was mit diesem Spieler gemacht wurde",
     "xpGranted": "{{amount}} XP vergeben",
+    "xpNeedsOnline": "Erfahrung lässt sich nur vergeben, während der Spieler online ist — das Spiel muss den Charakter dafür geladen haben.",
     "xpReachedLevel": "Stufe {{level}} erreicht",
     "xpToNextLevel": "{{done}} von {{span}} XP — {{left}} bis Stufe {{level}}",
     "zombieKills": "Zombies getötet"
