@@ -1,11 +1,6 @@
 services:
   app:
     image: ghcr.io/zone1987/zomboid-control-panel:${APP_VERSION:-latest}
-    # Without this, an image+build pair rebuilds from source locally.
-    pull_policy: missing
-    build:
-      context: .
-      target: runtime
     restart: unless-stopped
     depends_on:
       database:
@@ -23,7 +18,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-zomboid}
       POSTGRES_USER: ${POSTGRES_USER:-zomboid}
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
-      APP_PUBLIC_URL: ${APP_PUBLIC_URL:?set the public https URL}
+      # Coolify sets COOLIFY_URL to the domain configured for the
+      # application, so nothing has to be typed there. Elsewhere,
+      # APP_PUBLIC_URL is the one value an operator supplies.
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+      COOLIFY_URL: ${COOLIFY_URL:-}
       # Derived from APP_PUBLIC_URL by the entrypoint unless set here.
       SERVER_NAME: ${SERVER_NAME:-}
       WEBAUTHN_RELYING_PARTY_ID: ${WEBAUTHN_RELYING_PARTY_ID:-}
@@ -31,7 +30,11 @@ services:
       MESSENGER_WORKERS: ${MESSENGER_WORKERS:-1}
       PHP_FPM_API_MAX_CHILDREN: ${PHP_FPM_API_MAX_CHILDREN:-12}
       PHP_FPM_SSE_MAX_CHILDREN: ${PHP_FPM_SSE_MAX_CHILDREN:-8}
-    # A reverse proxy routes to `expose` and needs no published port.
+    # `expose` is what a reverse proxy routes to; the published port is
+    # for reaching the panel directly. Behind Coolify, set APP_PORT to a
+    # free port -- 8080 is often already taken there, which fails the
+    # deployment with "Bind for :::8080 failed: port is already
+    # allocated". The proxy uses `expose` either way.
     expose:
       - "80"
     ports:
