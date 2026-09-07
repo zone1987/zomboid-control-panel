@@ -6,9 +6,30 @@ set -e
 : "${PHP_FPM_API_MAX_CHILDREN:=12}"
 : "${PHP_FPM_SSE_MAX_CHILDREN:=8}"
 
+# Coolify puts the configured domain in COOLIFY_URL, so a deployment
+# there needs nothing typed at all. It may hold several, comma separated
+# -- the first is the one to build links from.
+if [ -z "${APP_PUBLIC_URL:-}" ] && [ -n "${COOLIFY_URL:-}" ]; then
+    APP_PUBLIC_URL=$(printf '%s' "$COOLIFY_URL" | cut -d, -f1 | tr -d ' ')
+fi
+
+if [ -z "${APP_PUBLIC_URL:-}" ]; then
+    echo "FATAL: no public address is set." >&2
+    echo "Set APP_PUBLIC_URL to the address people type, e.g." >&2
+    echo "  APP_PUBLIC_URL=https://zomboid.example.com" >&2
+    echo "On Coolify, COOLIFY_URL is used automatically when it is" >&2
+    echo "exposed to the container; add it as an environment variable" >&2
+    echo "with an empty value if this message appears there." >&2
+    exit 1
+fi
+
+echo "Public address: $APP_PUBLIC_URL"
+
+export APP_PUBLIC_URL
+
 # Derived from APP_PUBLIC_URL unless set: typing the same domain three
 # times invites a mismatch, which breaks passkeys with no visible reason.
-_host=$(printf '%s' "${APP_PUBLIC_URL:-}" | sed -e 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##' -e 's#[/?].*$##' -e 's#.*@##' -e 's#:[0-9]*$##')
+_host=$(printf '%s' "$APP_PUBLIC_URL" | sed -e 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##' -e 's#[/?].*$##' -e 's#.*@##' -e 's#:[0-9]*$##')
 
 : "${SERVER_NAME:=${_host:-localhost}}"
 : "${WEBAUTHN_RELYING_PARTY_ID:=${_host:-localhost}}"

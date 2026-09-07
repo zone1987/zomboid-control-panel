@@ -1,5 +1,14 @@
 # ZomboidControl
 
+[![CI](https://img.shields.io/github/actions/workflow/status/zone1987/zomboid-control-panel/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/zone1987/zomboid-control-panel?logo=github&label=release)](https://github.com/zone1987/zomboid-control-panel/releases/latest)
+[![Image](https://img.shields.io/badge/ghcr.io-zomboid--control--panel-2496ED?logo=docker&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/pkgs/container/zomboid-control-panel)
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](backend/composer.json)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](frontend/package.json)
+[![Licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+
+> 🇩🇪 [Deutsche Fassung](README_DE.md)
+
 **Run your Project Zomboid server from a web browser.**
 
 Who is online and how are they doing? Where is everyone on the map? Change
@@ -124,12 +133,10 @@ certificate itself.
    ```
    https://github.com/zone1987/zomboid-control-panel
    ```
-5. As the **Build Pack**, choose **Docker Compose**.
-6. For **Docker Compose Location**, enter:
-   ```
-   /docker-compose.yml
-   ```
-7. **Continue**.
+5. As the **Build Pack**, choose **Docker Compose**. The default
+   location (`/docker-compose.yaml`) is correct — there is nothing to
+   change.
+6. **Continue**.
 
 ### Step 2 — Enter your domain
 
@@ -143,19 +150,21 @@ https://zomboid.your-domain.com
 Coolify requests the certificate itself as soon as the domain resolves to
 its server.
 
-### Step 3 — Set the one variable
+### Step 3 — One variable, and only if the port is taken
 
-Go to the **Environment Variables** tab and add exactly one:
+**Normally there is nothing to set.** Coolify passes the domain you
+entered as `COOLIFY_URL`, and the panel builds everything from it —
+passwords, encryption keys and the database password are generated on
+first start and kept in a volume. Mail, Google sign-in and the Steam key
+are configured in the panel itself, under *Settings*, each with a test
+button.
 
-| Name             | Value                                                            |
-| ---------------- | ---------------------------------------------------------------- |
-| `APP_PUBLIC_URL` | the same domain, with `https://` — e.g. `https://zomboid.your-domain.com` |
+Two cases where you do add something under **Environment Variables**:
 
-That is genuinely all. Passwords, encryption keys and the database
-password are generated on the first start and kept in a volume, and the
-panel derives everything else it needs from this address. Mail, Google
-sign-in and the Steam key are configured in the panel itself, under
-*Settings*, where there is a test button beside each of them.
+| Name             | When                                                             |
+| ---------------- | ----------------------------------------------------------------- |
+| `APP_PORT`       | if the deployment fails with **"Bind for :::8080 failed: port is already allocated"** — pick a free port, e.g. `8091` |
+| `APP_PUBLIC_URL` | if the log says no public address is set, or you want a different address than the one Coolify routes |
 
 > **Keep a copy of the encryption key once it exists.** After the first
 > start you will find it under *Settings → Security*. It encrypts the FTP
@@ -487,6 +496,8 @@ tells you which value is wrong:
 | `FATAL: CREDENTIALS_ENCRYPTION_KEY must be 64 hex characters`  | Only if you set one yourself — it needs `openssl rand -hex 32`. |
 | `FATAL: database did not become reachable within 60s`          | The database did not come up — check its log.               |
 | `FATAL: no database password appeared`                         | The database container never started. Check its log first.  |
+| `FATAL: no public address is set`                              | Set `APP_PUBLIC_URL`. On Coolify, add `COOLIFY_URL` as an environment variable with an empty value so it reaches the container. |
+| `Bind for :::8080 failed: port is already allocated`           | Something else holds that port. Set `APP_PORT` to a free one, e.g. `8091`. |
 
 ### "RCON unreachable"
 
@@ -526,11 +537,12 @@ See [logging in for the first time](#logging-in-for-the-first-time) — the
 
 ## All settings at a glance
 
-### The one that is required
+### The address, which is all that is required
 
-| Variable         | What it is                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| `APP_PUBLIC_URL` | the address people type, with `https://`                     |
+| Variable         | What it is                                                      |
+| ---------------- | ----------------------------------------------------------------- |
+| `APP_PUBLIC_URL` | the address people type, with `https://`                          |
+| `COOLIFY_URL`    | set by Coolify to the domain you configured — used when `APP_PUBLIC_URL` is empty, so on Coolify there is nothing to set |
 
 ### Generated for you
 
@@ -613,8 +625,10 @@ why the page exists and why it is linked from everywhere.
 installation. Mod content belongs to its authors and needs their permission
 separately.
 
-The panel's own code is free to use. It is not an official product of The
-Indie Stone and is neither supported nor endorsed by them.
+The panel's own code is under the [MIT licence](LICENSE); the game
+content is not, and the licence file says so explicitly. ZomboidControl is
+not an official product of The Indie Stone and is neither supported nor
+endorsed by them.
 
 ---
 

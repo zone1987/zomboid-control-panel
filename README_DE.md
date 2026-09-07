@@ -1,6 +1,13 @@
-> 🇬🇧 [English version](README.md)
-
 # ZomboidControl
+
+[![CI](https://img.shields.io/github/actions/workflow/status/zone1987/zomboid-control-panel/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/zone1987/zomboid-control-panel?logo=github&label=Version)](https://github.com/zone1987/zomboid-control-panel/releases/latest)
+[![Image](https://img.shields.io/badge/ghcr.io-zomboid--control--panel-2496ED?logo=docker&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/pkgs/container/zomboid-control-panel)
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](backend/composer.json)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](frontend/package.json)
+[![Lizenz](https://img.shields.io/badge/Lizenz-MIT-green)](LICENSE)
+
+> 🇬🇧 [English version](README.md)
 
 **Verwalte deinen Project-Zomboid-Server im Browser.**
 
@@ -133,12 +140,9 @@ kümmert sich Coolify selbst.
    ```
    https://github.com/zone1987/zomboid-control-panel
    ```
-5. Als **Build Pack** wählst du **Docker Compose**.
-6. Bei **Docker Compose Location** trägst du ein:
-   ```
-   /docker-compose.yml
-   ```
-7. **Continue**.
+5. Als **Build Pack** wählst du **Docker Compose**. Der voreingestellte
+   Pfad (`/docker-compose.yaml`) stimmt — daran musst du nichts ändern.
+6. **Continue**.
 
 ### Schritt 2 — Deine Domain eintragen
 
@@ -152,19 +156,21 @@ https://zomboid.deine-domain.de
 Coolify fordert das Zertifikat selbst an, sobald die Domain auf seinen
 Server zeigt.
 
-### Schritt 3 — Die eine Variable setzen
+### Schritt 3 — Eine Variable, und nur wenn der Port belegt ist
 
-Geh in den Reiter **Environment Variables** und leg genau eine an:
+**Normalerweise ist gar nichts einzutragen.** Coolify übergibt die Domain,
+die du eingetragen hast, als `COOLIFY_URL`, und das Panel leitet alles
+daraus ab. Passwörter, Verschlüsselungsschlüssel und das Datenbankpasswort
+entstehen beim ersten Start und liegen in einem Volume. E-Mail,
+Google-Anmeldung und den Steam-Schlüssel trägst du im Panel selbst ein,
+unter *Einstellungen* — dort steht neben jedem ein Testknopf.
 
-| Name             | Wert                                                              |
+Zwei Fälle, in denen du unter **Environment Variables** doch etwas anlegst:
+
+| Name             | Wann                                                             |
 | ---------------- | ------------------------------------------------------------------ |
-| `APP_PUBLIC_URL` | dieselbe Domain, mit `https://` — z. B. `https://zomboid.deine-domain.de` |
-
-Das ist wirklich alles. Passwörter, Verschlüsselungsschlüssel und das
-Datenbankpasswort werden beim ersten Start erzeugt und in einem Volume
-aufbewahrt, und alles Weitere leitet das Panel aus dieser Adresse ab.
-E-Mail, Google-Anmeldung und den Steam-Schlüssel trägst du im Panel selbst
-ein, unter *Einstellungen* — dort steht neben jedem ein Testknopf.
+| `APP_PORT`       | wenn das Deployment mit **„Bind for :::8080 failed: port is already allocated"** scheitert — nimm einen freien Port, z. B. `8091` |
+| `APP_PUBLIC_URL` | wenn im Protokoll steht, dass keine öffentliche Adresse gesetzt ist, oder du eine andere Adresse willst |
 
 > **Sichere den Verschlüsselungsschlüssel, sobald es ihn gibt.** Nach dem
 > ersten Start findest du ihn unter *Einstellungen → Sicherheit*. Er
@@ -511,6 +517,8 @@ welcher Wert falsch ist:
 | `FATAL: CREDENTIALS_ENCRYPTION_KEY must be 64 hex characters`   | Nur wenn du selbst einen gesetzt hast — er braucht `openssl rand -hex 32`. |
 | `FATAL: database did not become reachable within 60s`           | Die Datenbank ist nicht hochgekommen — schau in ihr Protokoll. |
 | `FATAL: no database password appeared`                          | Der Datenbank-Container ist nie gestartet. Schau zuerst in dessen Protokoll. |
+| `FATAL: no public address is set`                               | Setz `APP_PUBLIC_URL`. In Coolify legst du `COOLIFY_URL` als Umgebungsvariable mit leerem Wert an, damit sie den Container erreicht. |
+| `Bind for :::8080 failed: port is already allocated`            | Der Port ist belegt. Setz `APP_PORT` auf einen freien, z. B. `8091`. |
 
 ### „RCON nicht erreichbar"
 
@@ -551,11 +559,12 @@ Siehe [Das erste Mal anmelden](#das-erste-mal-anmelden) — der Befehl
 
 ## Alle Einstellungen auf einen Blick
 
-### Die eine Pflichtangabe
+### Die Adresse — mehr braucht es nicht
 
-| Variable         | Was sie ist                                   |
-| ---------------- | ----------------------------------------------- |
-| `APP_PUBLIC_URL` | die Adresse, die man eintippt, mit `https://`   |
+| Variable         | Was sie ist                                                    |
+| ---------------- | ---------------------------------------------------------------- |
+| `APP_PUBLIC_URL` | die Adresse, die man eintippt, mit `https://`                    |
+| `COOLIFY_URL`    | setzt Coolify auf deine Domain — wird genommen, wenn `APP_PUBLIC_URL` leer ist, du musst dort also nichts eintragen |
 
 ### Wird für dich erzeugt
 
@@ -642,8 +651,10 @@ sie, und deshalb ist sie von überall verlinkt.
 eigenen Installation ausgelesen. Inhalte von Mods gehören ihren Autoren
 und brauchen deren Erlaubnis gesondert.
 
-Der Code des Panels ist frei verwendbar. Es ist kein offizielles Produkt
-von The Indie Stone und wird von dort weder unterstützt noch empfohlen.
+Der Code des Panels steht unter der [MIT-Lizenz](LICENSE); die
+Spielinhalte nicht — die Lizenzdatei sagt das ausdrücklich. ZomboidControl
+ist kein offizielles Produkt von The Indie Stone und wird von dort weder
+unterstützt noch empfohlen.
 
 ---
 

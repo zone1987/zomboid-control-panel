@@ -49,7 +49,7 @@ paths, removed local data and remaining deployment limitations.
 
 The user explicitly replaced the self-rendering plan with images from
 projectzomboidmap.com and supplied a working image-tile prototype at
-`/Users/andreasgerhardt/Downloads/screen-map (1).jsx`. Only the map imagery is
+`~/Downloads/screen-map (1).jsx`. Only the map imagery is
 embedded: the panel keeps its own viewer, controls, search and live overlays.
 The follow-up request to place attribution directly right of the coordinates
 is also implemented and verified. No world render is required or requested now.
@@ -490,7 +490,7 @@ levels. None of it touches the render duration.
   `Server`, `media`, `db` — **not** under a `~/Zomboid` subdirectory
 - Bridge status file: `Lua/ZomboidControl/status.json` relative to the base
   path
-- Test account: `a.gerhardt1987@gmail.com`, password
+- Test account: `<the maintainer's Google address>`, password
   `ein-ausreichend-langes-passwort`, roles ROLE_ADMIN + ROLE_SERVER_ADMIN,
   with Google, Steam and one passkey linked
 
@@ -1272,7 +1272,7 @@ Leaflet -- see "Ruled out, with reasons" above.
 ### 2026-09-06 — External base map with the panel's own controls (completed)
 
 Request: replace the impractical self-render workflow with projectzomboidmap.com.
-The user supplied `/Users/andreasgerhardt/Downloads/screen-map (1).jsx` as a
+The user supplied `~/Downloads/screen-map (1).jsx` as a
 reference and explicitly requested that none of the provider's controls appear.
 The prototype loads `<img>` tiles directly, not an iframe. Adopted that approach
 inside the existing OpenSeadragon integration; no prototype sample players,
@@ -6907,3 +6907,98 @@ merge → bump `app.version` → tag → watch the release. Nothing lands on
 This change is the first to follow it: branch `fix/generated-key-unreadable`,
 version bumped to **1.0.1** because it fixes something an operator of
 1.0.0 can see.
+
+---
+
+## 2026-09-07 (evening) — The first real Coolify deployment, and what it broke
+
+The user deployed to Coolify on a Hetzner Cloud server. It failed, and the
+log answered three questions no local test could.
+
+### 1. The published port collides — `ports:` does not belong there
+
+```
+Error response from daemon: failed to set up container networking:
+Bind for :::8080 failed: port is already allocated
+```
+
+Coolify routes through its own proxy to the container's **exposed** port.
+A published host port bypasses that proxy entirely and fights over a port
+on the host — 8080 was already taken there. The comment in the compose
+file called it "harmless behind a proxy". It is not.
+
+Coolify's own documentation confirms the mechanism: a `ports:` entry is
+"available on your server at port 3000, **outside the control of any
+proxy configuration**".
+
+**Resolved by the user's choice**: the fixed port stays (a local
+`docker compose up` needs it, and Compose rejects an empty port value),
+and `APP_PORT` overrides it. The README now names the exact error text
+and says to set `APP_PORT` to something free.
+
+Two alternatives were considered and rejected: a `docker-compose.override.yml`
+that Coolify never reads (two files for one job), and dropping `ports:`
+entirely (leaves a local install unreachable).
+
+### 2. Coolify builds when a `build:` section exists
+
+The log shows 1 minute 44 between "Pulling & building required images"
+and "Removing old containers" — it **built from source** rather than
+pulling the released image, despite `image:` and `pull_policy: missing`.
+
+`build:` is gone from the compose file for that reason. Building locally
+is `docker build -t … --target runtime .`, which is what the CI does
+anyway.
+
+### 3. Coolify expects `docker-compose.yaml`
+
+The user had to set the compose location by hand because the file was
+`.yml`. Renamed to **`docker-compose.yaml`**, so the default path works.
+Compose itself reads both spellings, so nothing changes locally.
+
+### The address no longer has to be typed
+
+The user asked whether `APP_PUBLIC_URL` could just be the Coolify URL.
+It can. Coolify injects **`COOLIFY_URL`** with the domain configured for
+the application.
+
+Worth keeping apart, because the first documentation page suggested the
+wrong one: `SERVICE_URL_*` and `SERVICE_FQDN_*` are **generated** domains
+for one-click services; `COOLIFY_URL` is the domain **the operator
+entered**. This is an application, so `COOLIFY_URL` is the right one.
+
+`docker/entrypoint.sh` now falls back to it, taking the first entry if it
+holds several comma-separated domains, and refuses with a message naming
+both variables when neither is set.
+
+Verified against the built image, four cases:
+
+| Given | Result |
+|---|---|
+| nothing | `FATAL: no public address is set`, naming both variables |
+| `COOLIFY_URL=https://zomboid.example.com` | `Public address: https://zomboid.example.com` |
+| `COOLIFY_URL=https://a…,https://b…` | takes the first |
+| both set | `APP_PUBLIC_URL` wins |
+
+And end to end with `COOLIFY_URL` alone: healthy, 14 migrations, and the
+panel built its own URLs from it —
+`discordInteractionUrl: http://localhost:8090/api/discord/interactions`,
+`googleRedirectUri: …/api/connect/google/check`, with
+`discordReachable: false` correctly reported for a localhost address.
+
+**One caveat, undecided by documentation**: one Coolify page says the
+predefined variables are used "by adding them as environment variables",
+which reads like they must be declared rather than being present
+automatically. The compose file therefore passes `COOLIFY_URL:
+${COOLIFY_URL:-}` through explicitly, and the failure message tells the
+operator to add it with an empty value if it did not arrive. Whether that
+step is needed can only be settled on the user's own installation.
+
+### Files
+
+`docker-compose.yml` → **`docker-compose.yaml`** (no `build:`,
+`COOLIFY_URL` passed through, port comment corrected),
+`docker/entrypoint.sh` (address fallback and the refusal),
+`README.md` / `README_DE.md` (Coolify step 3 rewritten: normally nothing
+to set; the two error messages added to the troubleshooting tables),
+`.env.example`, and `app.version` to **1.0.2**.
