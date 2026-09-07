@@ -632,6 +632,51 @@ one component can carry all of them.
   claiming every past action succeeded is worse than one admitting it
   does not know.
 
+## 10h2. A 200 in the test environment can be a 500 in dev
+
+The Discord page failed to load with `Undefined array key`. A functional
+test was written for exactly that case — and **it passed with the bug
+restored**.
+
+The reason is worth knowing before it costs an afternoon: in the test
+environment an undefined array key is a PHP *warning*, the request
+completes, and the response is 200. In dev the same warning is turned
+into an `ErrorException` and the response is 500. A test asserting only
+`assertResponseIsSuccessful()` is therefore blind to a whole family of
+faults that reach a browser as a blank page.
+
+`failOnWarning="true"` in `phpunit.dist.xml` does **not** cover this: it
+covers PHPUnit's own warnings, and there is no `failOnPhpWarning` in the
+schema — only `failOnPhpunitWarning`.
+
+So a functional test of an endpoint the interface polls asserts two
+things:
+
+```php
+set_error_handler(static function (int $level, string $message) use (&$warnings): bool {
+    $warnings[] = $message;
+
+    return true;
+}, E_WARNING | E_NOTICE);
+
+try {
+    $this->fetch();
+} finally {
+    restore_error_handler();
+}
+
+self::assertSame([], $warnings, 'the endpoint raised: '.implode('; ', $warnings));
+self::assertResponseIsSuccessful();
+```
+
+And the usual proof applies: **revert the fix and watch the test fail.**
+A guard that has not been seen to fail is a guard nobody has checked.
+
+Related, and the reason this one existed at all: **`?->` handles a null
+value, not a missing key.** `$rows[$key]?->method()` warns when `$key` is
+absent, which on a freshly configured server is every key. Write
+`($rows[$key] ?? null)?->method()`.
+
 ## 10i. A `final` collaborator needs a narrow interface, not unsealing
 
 Three times in one session a unit test could not be written because the
