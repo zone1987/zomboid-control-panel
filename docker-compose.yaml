@@ -26,6 +26,11 @@ services:
       # APP_PUBLIC_URL is the one value an operator supplies.
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
       COOLIFY_URL: ${COOLIFY_URL:-}
+      # The proxy in front of this container. Without it Symfony
+      # ignores X-Forwarded-Proto and generates http links on an
+      # https site. Private ranges by default; narrow it if the
+      # proxy's address is known.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7}
       # Derived from APP_PUBLIC_URL by the entrypoint unless set here.
       SERVER_NAME: ${SERVER_NAME:-}
       WEBAUTHN_RELYING_PARTY_ID: ${WEBAUTHN_RELYING_PARTY_ID:-}

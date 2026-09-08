@@ -5,6 +5,18 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Coolify and Docker put a reverse proxy in front of the container,
+    # so the request arrives over plain HTTP and every absolute URL the
+    # panel generated carried `http://` -- including the Steam return
+    # address. Trusting the proxy's own headers is what makes
+    # `$request->isSecure()` tell the truth.
+    #
+    # The default is the container network the proxy sits on, because
+    # the proxy's address is not knowable here. Override it with
+    # TRUSTED_PROXIES where the network is known.
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-host']
+
     #esi: true
     #fragments: true
 

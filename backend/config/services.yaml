@@ -8,7 +8,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     # The one place the panel's own version is declared.
-    app.version: '1.2.4'
+    app.version: '1.2.5'
 
     # The image copies them here; a checkout has them in the frontend.
     app.locale_directory: '%env(default:app.default_locale_directory:APP_LOCALE_DIRECTORY)%'
@@ -64,6 +64,12 @@ services:
                 'mailer.from_name': '%env(MAIL_FROM_NAME)%'
 
     App\Security\OAuth\GoogleClientFactory:
+        arguments:
+            $publicUrl: '%env(APP_PUBLIC_URL)%'
+
+    # Steam compares return_to on the way out against the way back, so
+    # every call site has to build it the same way.
+    App\Security\OAuth\SteamReturnUrl:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
 

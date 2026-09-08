@@ -10,7 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
@@ -29,8 +28,8 @@ final class SteamAuthenticator extends AbstractAuthenticator
     public function __construct(
         private readonly IdentityLinker $linker,
         private readonly EntityManagerInterface $entityManager,
-        private readonly UrlGeneratorInterface $urls,
         private readonly SteamProfileFetcher $profiles,
+        private readonly SteamReturnUrl $returnUrls,
     ) {
     }
 
@@ -117,9 +116,6 @@ final class SteamAuthenticator extends AbstractAuthenticator
 
     private function returnUrl(): string
     {
-        return $this->urls->generate(
-            'api_connect_steam_check',
-            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
-        );
+        return $this->returnUrls->forLogin();
     }
 }

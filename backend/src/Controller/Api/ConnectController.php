@@ -10,6 +10,7 @@ use App\Security\OAuth\IdentityAlreadyLinked;
 use App\Security\OAuth\GoogleClientFactory;
 use App\Security\OAuth\IdentityLinker;
 use App\Security\OAuth\SteamProfileFetcher;
+use App\Security\OAuth\SteamReturnUrl;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use xPaw\Steam\SteamOpenID;
@@ -27,6 +29,9 @@ final class ConnectController extends AbstractController
     public function __construct(
         private readonly IdentityLinker $linker,
         private readonly EntityManagerInterface $entityManager,
+        private readonly UrlGeneratorInterface $urls,
+        #[Autowire('%env(APP_PUBLIC_URL)%')]
+        private readonly string $publicUrl,
     ) {
     }
 
@@ -54,14 +59,9 @@ final class ConnectController extends AbstractController
     }
 
     #[Route('/steam', name: 'api_connect_steam', methods: ['GET'])]
-    public function steam(UrlGeneratorInterface $urls): RedirectResponse
+    public function steam(SteamReturnUrl $returnUrls): RedirectResponse
     {
-        $returnUrl = $urls->generate(
-            'api_connect_steam_check',
-            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-
-        return new RedirectResponse((new SteamOpenID($returnUrl))->GetAuthUrl());
+        return new RedirectResponse((new SteamOpenID($returnUrls->forLogin()))->GetAuthUrl());
     }
 
     /**
@@ -83,14 +83,10 @@ final class ConnectController extends AbstractController
         Request $request,
         UrlGeneratorInterface $urls,
         SteamProfileFetcher $profiles,
+        SteamReturnUrl $returnUrls,
         #[CurrentUser] User $user,
     ): RedirectResponse {
-        $returnUrl = $urls->generate(
-            'api_connect_steam_link',
-            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-
-        $openId = new SteamOpenID($returnUrl, $request->query->all());
+        $openId = new SteamOpenID($returnUrls->forLinking(), $request->query->all());
 
         if (!$openId->ShouldValidate()) {
             return new RedirectResponse($openId->GetAuthUrl());
@@ -171,13 +167,25 @@ final class ConnectController extends AbstractController
         return new RedirectResponse('/app/profile?linked=google');
     }
 
-    /** Google checks this against the value used to start the flow. */
+    /**
+     * Google checks this against the value used to start the flow.
+     *
+     * From APP_PUBLIC_URL, not the request: behind a proxy the request
+     * is plain HTTP and the redirect uri would not match the one
+     * registered.
+     */
     private function googleLinkUri(): string
     {
-        return $this->urls->generate(
-            'api_connect_google_link',
-            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
-        );
+        $base = rtrim(trim($this->publicUrl), '/');
+
+        if ($base === '') {
+            return $this->urls->generate(
+                'api_connect_google_link',
+                referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
+            );
+        }
+
+        return $base.$this->urls->generate('api_connect_google_link');
     }
 
     #[Route('/{provider}', name: 'api_connect_unlink', methods: ['DELETE'])]
