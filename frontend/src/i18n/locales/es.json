@@ -1795,7 +1795,9 @@
       "title": "Iconos de objetos del juego",
       "tooLarge": "Juntos, los archivos son demasiado grandes. Súbelos de uno en uno.",
       "where": "Para añadir más: una instalación del juego los tiene en media/texturepacks",
-      "working": "Trabajando …"
+      "working": "Trabajando …",
+      "ofFiles": "Archivo {{index}} de {{files}}",
+      "sent": "{{sent}} de {{size}} MB enviados"
     },
     "iconsTab": "Iconos de objetos",
     "mailDescription": "Necesario para las invitaciones y los restablecimientos de contraseña. Introduce los datos de tu proveedor de correo.",

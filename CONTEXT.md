@@ -8767,3 +8767,110 @@ correct and shields.io answers `v1.2.4` directly, but Camo serves an
 older copy with a steady `age` header. The user chose to leave it —
 nothing in this repository can change it, and a cache-busting parameter
 would force a README edit per release.
+
+---
+
+## 2026-09-08 (night) — texture packs could not be uploaded at all
+
+**Branch `fix/large-icon-packs`. `app.version` → 1.2.6.**
+
+### The report and the measurement
+
+The user: *"Ich kann keine Texturpakete hochladen"*, with production
+answering **500** on `POST /api/icons/upload`. Reproduced against their
+own instance with the real packs from `/Volumes/ESD-USB/texturepacks`.
+
+The answer came from the server itself, verbatim:
+
+```
+PHP Request Startup: POST Content-Length of 20971719 bytes
+exceeds the limit of 16777216 bytes
+```
+
+`post_max_size = 16M` in `docker/php.ini`, and **`UI2.pack` is 52 MB**
+-- the pack holding most of the item icons. PHP refuses an oversized
+body **at startup, before any application code runs**, so the answer is
+HTML with a 500 rather than a reason in JSON. Nothing in the controller
+could have caught it.
+
+### Coolify was not the constraint — measured, not assumed
+
+The user asked whether the limits could be raised in Coolify. Probed
+with 20, 60 and 100 MB bodies: **every one reached PHP**, and the
+refusal carried PHP's own wording each time. A proxy limit would have
+answered 413 before PHP saw anything. So there is nothing to change in
+Coolify; the only limit was the one in this repository.
+
+### The gap was in the frontend, and the backend said so
+
+`IconController` has had `/icons/chunk` and `/icons/finish` all along,
+with a comment naming this exact case -- *"UI2.pack is 54 MB and a
+modded install can carry larger ones, against a container that accepts
+a 16 MB request"* -- and `php.ini` said *"arrives in 8 MB pieces, so no
+single request needs to be large."* **The interface never called
+them.** `uploadIconPacks` put every file into one `POST /icons/upload`.
+
+### What changed
+
+- **`frontend/src/lib/chunks.ts`** — new. `CHUNK_BYTES = 8 MB`,
+  `chunkOffsets()` and `sentAfter()`, both pure: an off-by-one there is
+  a piece that never arrives, and that is testable without a network.
+- **`uploadIconPacks`** sends each pack in pieces, then `/finish`, and
+  reports progress per file and per piece.
+- **`POST /api/icons/clear`** — new route. A piecewise upload has no
+  single request to carry a "clear first" flag.
+- **A progress bar** in `icon-packs-card.tsx` with the file counter,
+  the megabytes and `role="progressbar"` carrying real aria values.
+- **`MAX_TOTAL_BYTES`** 95 MB → 512 MB. The pieces are what keep a
+  request small now, so the client-side cap only stops somebody
+  dropping a whole game folder in.
+- **`docker/php.ini`** 16M → 64M/68M anyway, as the user asked for
+  both: a browser that sends one whole file should not meet a 500 from
+  PHP's startup.
+- **Vehicle models get the same treatment**, at the user's request
+  (*"Vielleicht haben wir ja irgendwann mal ein mod modell was größer
+  ist"*). Measured first: the base game's largest is 764 kB and the 15
+  biggest together are 5 MB, so the existing batching was never at
+  risk. `needsChunking()` sends anything over 8 MB alone and in pieces;
+  everything else keeps the batch path, which is far fewer round trips
+  for the 591 files an install holds. New routes
+  `/vehicle-models/chunk` and `/finish`.
+- **`ChunkedUpload` generalised** rather than copied:
+  `safeFileName(...$extensions)` and a `$mustLookLikeAPack` flag, since
+  an `.fbx` is not a `.pack`. Its 5 existing tests still pass.
+
+### Two faults found while testing, both fixed
+
+1. **`{{total}}` meant two things** in the new locale strings -- the
+   number of files in one, the file's size in MB in the other. Renamed
+   to `{{files}}` and `{{size}}`. CLAUDE.md 6c, in a translation file.
+2. **The vehicle count was clamped to one line.** `AlertTitle` carries
+   `line-clamp-1`, right for a short heading and wrong for *"192
+   Modelle und 403 Texturen vorhanden"*, which read *"...403
+   Texturen…"* on a phone. `line-clamp-none` at that one call site;
+   the base class is left alone.
+
+Also worth recording: a "152" I read as a bug was **my own probe**
+concatenating two adjacent lines. Read separately, the DOM said
+"Datei 1 von 1" all along.
+
+### Proven
+
+- **11 unit tests** in `chunks.test.ts` covering the offsets, the
+  boundaries (empty file, exactly one piece, exactly the limit) and
+  which vehicle models travel alone.
+- **In the browser, against the real 52 MB `UI2.pack`**: 7 chunk
+  requests, one `/finish`, **no errors**, and the card showed
+  *"UI2.pack — 3848 Icons aus 15 Seiten"*. `UI.pack` gave 563 and
+  `ApComUI.pack` 44.
+- **The progress bar sampled mid-flight**: 0 % → 15 % → 31 % → 61 % →
+  100 % with "0.0 → 52.1 von 52.1 MB übertragen". A screenshot
+  afterwards cannot show that the middle existed.
+- **A small vehicle model still takes the batch path** (1 `/upload`, 0
+  chunks), so the common case did not get slower.
+- 414 frontend tests, 896 backend, 40 locale, lint 0 errors,
+  `lint:container` clean.
+- **390 / 820 / 1512 px on both cards**: no horizontal scroll anywhere,
+  symmetric 16 px padding, and the screenshots read cleanly. The
+  remaining sub-32px control is the shadcn `Switch` (32×18), which is
+  the same everywhere in the panel.

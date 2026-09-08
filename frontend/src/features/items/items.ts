@@ -1,4 +1,5 @@
-import { apiFetch } from '@/lib/api'
+import { apiFetch, ApiError, errorField } from '@/lib/api'
+import { CHUNK_BYTES, chunkOffsets, sentAfter } from '@/lib/chunks'
 
 export type Item = {
   type: string
@@ -117,18 +118,94 @@ export function iconStatus(): Promise<IconStatus> {
   return apiFetch('/icons')
 }
 
-export function uploadIconPacks(files: File[], clear: boolean): Promise<IconUploadResult> {
-  const form = new FormData()
+export { CHUNK_BYTES as ICON_CHUNK_BYTES, chunkOffsets, sentAfter } from '@/lib/chunks'
 
-  for (const file of files) {
-    form.append('packs[]', file)
+/** What the interface draws while a pack is on its way. */
+export type UploadProgress = {
+  name: string
+  index: number
+  total: number
+  sentBytes: number
+  totalBytes: number
+}
+
+async function uploadOnePack(
+  file: File,
+  onProgress?: (sent: number) => void,
+): Promise<void> {
+  for (const offset of chunkOffsets(file.size)) {
+    const form = new FormData()
+    form.append('name', file.name)
+    form.append('offset', String(offset))
+    form.append('chunk', file.slice(offset, offset + CHUNK_BYTES))
+
+    await apiFetch('/icons/chunk', { method: 'POST', body: form })
+
+    onProgress?.(sentAfter(offset, file.size))
   }
+}
 
+export function uploadIconPacks(
+  files: File[],
+  clear: boolean,
+  onProgress?: (progress: UploadProgress) => void,
+): Promise<IconUploadResult> {
+  return uploadPacksInPieces(files, clear, onProgress)
+}
+
+async function uploadPacksInPieces(
+  files: File[],
+  clear: boolean,
+  onProgress?: (progress: UploadProgress) => void,
+): Promise<IconUploadResult> {
   if (clear) {
-    form.append('clear', '1')
+    await apiFetch('/icons/clear', { method: 'POST', body: {} })
   }
 
-  return apiFetch('/icons/upload', { method: 'POST', body: form })
+  const results: IconUploadResult['results'] = []
+  let count = 0
+
+  for (const [index, file] of files.entries()) {
+    const report = (sentBytes: number) =>
+      onProgress?.({
+        name: file.name,
+        index: index + 1,
+        total: files.length,
+        sentBytes,
+        totalBytes: file.size,
+      })
+
+    report(0)
+
+    try {
+      await uploadOnePack(file, report)
+
+      const finished = await apiFetch<{
+        name: string
+        extracted: number
+        pages: number
+        skipped: number
+        count: number
+      }>('/icons/finish', { method: 'POST', body: { name: file.name, bytes: file.size } })
+
+      count = finished.count
+      results.push({
+        name: file.name,
+        failed: false,
+        extracted: finished.extracted,
+        pages: finished.pages,
+        skipped: finished.skipped,
+      })
+    } catch (error) {
+      results.push({
+        name: file.name,
+        failed: true,
+        error: error instanceof ApiError ? (errorField(error, 'error') ?? 'icons.uploadFailed') : 'icons.uploadFailed',
+      })
+    }
+  }
+
+  return { status: 'done', count, results }
 }
 
 /**

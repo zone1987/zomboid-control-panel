@@ -10,27 +10,39 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { iconStatus, uploadIconPacks, type IconUploadResult } from '@/features/items/items'
+import {
+  iconStatus,
+  uploadIconPacks,
+  type IconUploadResult,
+  type UploadProgress,
+} from '@/features/items/items'
 
 /**
- * Texture packs are large -- UI2.pack alone is around 50 MB -- and PHP
- * refuses a request above post_max_size outright, which arrives as an
- * empty reply rather than an error worth reading.
+ * Generous rather than protective: packs travel in pieces now, so the
+ * request size is no longer the constraint. This only stops somebody
+ * dropping a whole game folder in.
  */
-const MAX_TOTAL_BYTES = 95 * 1024 * 1024
+const MAX_TOTAL_BYTES = 512 * 1024 * 1024
+
+/** One decimal is enough to see movement without jitter. */
+function megabytes(bytes: number): string {
+  return (bytes / 1024 / 1024).toFixed(1)
+}
 
 export function IconPacksCard() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [clear, setClear] = useState(false)
   const [report, setReport] = useState<IconUploadResult | null>(null)
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
 
   const { data: status } = useQuery({ queryKey: ['icon-status'], queryFn: iconStatus })
 
   const upload = useMutation({
-    mutationFn: (files: File[]) => uploadIconPacks(files, clear),
+    mutationFn: (files: File[]) => uploadIconPacks(files, clear, setProgress),
     onSuccess: (result) => {
       setReport(result)
+      setProgress(null)
       void queryClient.invalidateQueries({ queryKey: ['icon-status'] })
       void queryClient.invalidateQueries({ queryKey: ['items'] })
 
@@ -45,6 +57,7 @@ export function IconPacksCard() {
       toast.success(t('settings.icons.done', { count: result.count }))
     },
     onError: (error) => {
+      setProgress(null)
       toast.error(
         error instanceof ApiError && error.status === 413
           ? t('settings.icons.tooLarge')
@@ -57,6 +70,8 @@ export function IconPacksCard() {
     if (files.length === 0) {
       return
     }
+
+    setReport(null)
 
     const total = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -116,7 +131,44 @@ export function IconPacksCard() {
           <span className="text-xs text-muted-foreground">{t('settings.icons.dropHint')}</span>
         </DropZone>
 
-        {upload.isPending && (
+        {progress !== null && (
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2 text-sm">
+              <span className="min-w-0 truncate font-medium">{progress.name}</span>
+              <span className="shrink-0 text-muted-foreground text-xs">
+                {t('settings.icons.ofFiles', {
+                  index: progress.index,
+                  files: progress.total,
+                })}
+              </span>
+            </div>
+
+            <div
+              className="h-2 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={progress.totalBytes}
+              aria-valuenow={progress.sentBytes}
+              aria-label={t('settings.icons.working')}
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200"
+                style={{
+                  width: `${progress.totalBytes === 0 ? 0 : Math.round((progress.sentBytes / progress.totalBytes) * 100)}%`,
+                }}
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              {t('settings.icons.sent', {
+                sent: megabytes(progress.sentBytes),
+                size: megabytes(progress.totalBytes),
+              })}
+            </p>
+          </div>
+        )}
+
+        {upload.isPending && progress === null && (
           <p className="text-xs text-muted-foreground">{t('settings.icons.patience')}</p>
         )}
 

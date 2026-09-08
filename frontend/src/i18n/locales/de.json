@@ -1795,7 +1795,9 @@
       "title": "Item-Icons aus dem Spiel",
       "tooLarge": "Die Dateien sind zusammen zu groß. Bitte einzeln hochladen.",
       "where": "Zum Nachladen: In der Spielinstallation unter media/texturepacks liegen",
-      "working": "Wird verarbeitet …"
+      "working": "Wird verarbeitet …",
+      "ofFiles": "Datei {{index}} von {{files}}",
+      "sent": "{{sent}} von {{size}} MB übertragen"
     },
     "iconsTab": "Item-Icons",
     "mailDescription": "Nötig für Einladungen und das Zurücksetzen von Passwörtern. Trage die Zugangsdaten deines E-Mail-Anbieters ein.",

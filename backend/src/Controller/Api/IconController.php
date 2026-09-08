@@ -129,6 +129,21 @@ final class IconController extends AbstractController
     }
 
     /**
+     * Throws away what is held.
+     *
+     * A piecewise upload has no single request to carry a "clear
+     * first" flag, so clearing is its own step.
+     */
+    #[Route('/clear', name: 'api_icons_clear', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
+    public function clear(): JsonResponse
+    {
+        $this->store->clear();
+
+        return new JsonResponse(['status' => 'ok', 'count' => $this->store->count()]);
+    }
+
+    /**
      * Takes one piece of a pack.
      *
      * UI2.pack is 54 MB and a modded install can carry larger ones,
