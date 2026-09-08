@@ -87,6 +87,12 @@ Danach geht es für beide Wege gleich weiter.
   Slash-Befehle.
 - **Benutzerverwaltung** — mehrere Konten, Zwei-Faktor-Anmeldung,
   Passkeys, Rollen mit Rechten pro Seite, und ein Protokoll jeder Aktion.
+- **Sieben Sprachen** — Deutsch und Englisch sind von Hand geschrieben.
+  Spanisch, Französisch, Italienisch, Polnisch und Russisch sind
+  maschinell übersetzt und im Umschalter auch so gekennzeichnet;
+  Korrekturen sind als Issue sehr willkommen. Die Namen von Items und
+  Fahrzeugen kommen aus deiner eigenen Spielinstallation, heißen also
+  genau so wie im Spiel.
 
 ---
 

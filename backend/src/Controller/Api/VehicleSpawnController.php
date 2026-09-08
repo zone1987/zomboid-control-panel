@@ -7,10 +7,12 @@ namespace App\Controller\Api;
 use App\Entity\GameServer;
 use App\Entity\ModerationAction;
 use App\Repository\GameServerRepository;
+use App\Settings\SupportedLanguages;
 use App\Security\Permission\Permission;
 use App\Server\Players\ModerationRecorder;
 use App\Server\Events\EventDispatcher;
 use App\Server\Rcon\RconException;
+use App\Server\Vehicles\Models\VehicleTranslations;
 use App\Server\Vehicles\SpawnableVehicles;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,6 +35,8 @@ final class VehicleSpawnController extends AbstractController
     public function __construct(
         private readonly GameServerRepository $servers,
         private readonly SpawnableVehicles $catalogue,
+        private readonly VehicleTranslations $translations,
+        private readonly SupportedLanguages $languages,
         private readonly EventDispatcher $dispatcher,
         private readonly EntityManagerInterface $entityManager,
         private readonly ModerationRecorder $recorder,
@@ -48,10 +52,25 @@ final class VehicleSpawnController extends AbstractController
             return $this->notFound();
         }
 
-        return new JsonResponse($this->catalogue->forServer(
+        $catalogue = $this->catalogue->forServer(
             $server,
             $request->query->getBoolean('refresh'),
-        ));
+        );
+
+        // The catalogue is cached in one shape for every reader, so the
+        // names are translated on the way out rather than baked into it.
+        $language = $request->query->getString('language', $request->getLocale());
+
+        // Only a language the interface itself speaks: anything else is
+        // a path the caller made up.
+        if ($this->languages->supports($language)) {
+            $catalogue = VehicleTranslations::rename(
+                $catalogue,
+                $this->translations->forLanguage($server, $language),
+            );
+        }
+
+        return new JsonResponse($catalogue);
     }
 
     #[Route('/spawn', name: 'api_vehicles_spawn', methods: ['POST'])]

@@ -7527,3 +7527,173 @@ removed**. Unregistering it and clearing `caches` fixed it. Worth
 recognising quickly after any `npm run build` during a browser session.
 
 Version bumped to **1.0.7**.
+
+---
+
+## 2026-09-08 — Five more languages, and what they exposed
+
+The user asked for Spanish, Polish, Italian, French and Russian. 1708
+keys each, so 8540 strings. Written by five subagents in parallel, one
+file each, against a brief holding the rules that matter: keep every
+`{{placeholder}}`, keep the key structure, leave the game's own
+vocabulary in English, use the language's real plural rules, and address
+the reader informally as `de.json` does.
+
+**They are marked as machine-translated in the switcher.** The user chose
+that over silence: nobody has read them as a native speaker, and a
+clumsy sentence is easier to forgive when it did not claim otherwise.
+
+### Files
+
+| What | Where |
+|---|---|
+| The tables | `frontend/src/i18n/locales/{es,fr,it,pl,ru}.json` |
+| Supported list, names, unreviewed set | `frontend/src/i18n/config.ts` |
+| The switcher, reviewed above a labelled divider | `frontend/src/components/layout/language-toggle.tsx` |
+| The guard, 40 cases over all seven | `frontend/src/i18n/locales.test.ts` |
+
+`SUPPORTED_LANGUAGES` is now seven, `UNREVIEWED_LANGUAGES` names the five,
+and `LANGUAGE_NAMES` gives each its own spelling — the switcher shows
+"Русский", not "Russian". Detection matches on the primary subtag, so
+`pt-BR` no longer silently means English while `pt` would have.
+
+### The backend needed nothing
+
+`SupportedLanguages` reads the locale directory rather than holding a
+list — its docblock said "adding fr.json to the frontend is then the
+whole of adding French", and that turned out to be exactly true.
+Measured: `all()` returns `de, en, es, fr, it, pl, ru`, and `supports()`
+answers yes to all five new ones and no to `xx`.
+
+### Plural forms: Polish and Russian need four, English has two
+
+`_one` in Russian resolves for **1, 21, 31, 101** — `Intl.PluralRules('ru')
+.select(21)` is `"one"`. So where English writes "One value" with the
+number spelled out, Russian must write `{{count}} значение`, or 21 pinned
+values reads as "one value".
+
+Both my probe script and the first version of `locales.test.ts` called
+that a fault. **The translation was right and the check was wrong**, and
+the Russian agent said so in its report. `_one` is now exempt from the
+placeholder equality rule: nothing invented, nothing lost, `count`
+allowed.
+
+The files carry 1746 keys for `pl` and `ru` (1708 + 38 added forms) and
+1708 for the rest.
+
+### Two faults in my own test, found by an agent and by the run
+
+- **`import it from './locales/it.json'` collides with vitest's `it`.**
+  The file would not have run at all. Aliased to `italian`.
+- **`read()` split on every dot, and a permission key contains one.**
+  `roles.permissions.chat.read` is three levels, not four, so every
+  language "failed" — including German, which has been complete for
+  months. That was the tell. Replaced by `flatten()`, which walks the
+  tree and returns a `Map` keyed by the dotted path.
+
+The guard was then proved by breaking things: a removed key, a removed
+`_many` form, and a `{{count}}` dropped from `_other` each fail with a
+readable message, and all 40 pass again once restored.
+
+### The browser found what no test could
+
+Seven `sr-only` strings were hardcoded English in the shadcn components
+and had never gone through i18n: "Toggle Sidebar" (three times, in
+`sidebar.tsx`), "Sidebar" and "Displays the mobile sidebar" in the mobile
+sheet header, "Close" in `dialog.tsx` and `sheet.tsx`, "More" in
+`breadcrumb.tsx`.
+
+Only a screen reader speaks them, which is why nobody saw them — and for
+a Russian or Polish operator using one, that is exactly where the
+navigation stops making sense. Four keys added to `common` **in all seven
+languages**, and the components now take `useTranslation`.
+
+Verified in the browser: the trigger reads "Показать или скрыть
+навигацию" in Russian, and no `.sr-only` element in the document matches
+`/^(Close|More|Sidebar|Toggle Sidebar|Displays)/`.
+
+### Item names already worked; vehicle names did not
+
+The user asked whether the bridge carries the translations. Traced:
+
+- **Items: yes, already.** The bridge writes the name in the *server's*
+  language, but `ItemController` overwrites it from `ItemName.json` for
+  the *reader's* language — around 5000 entries per language, shipped
+  with the game. Measured through the API: `Припарка из черемши`,
+  `Okład z czosnku niedźwiedziego`, `Cataplasma de ajo de oso`. All five
+  new languages worked with no change at all.
+- **Vehicles: no.** The 213 names were compiled into
+  `VehicleNames::NAMES` as English only. `en`, `de` and `ru` returned
+  byte-identical lists.
+
+### How different the vehicle names actually are
+
+The user asked whether they are not the same in every language anyway.
+Counted against the installation:
+
+| | same as EN | differs |
+|---|---|---|
+| DE | 129 | 84 |
+| ES | 128 | 85 |
+| FR | 36 | 177 |
+| IT | 43 | 170 |
+| PL | 36 | 177 |
+| **RU** | **0** | **213** |
+
+Half right: the marques are shared — "Chevalier Nyala" is "Chevalier
+Nyala" in Latin script. The qualifiers are not: *Trailer* is *Anhänger*,
+*Remorque*, *Przyczepa*, *Прицеп*. And Russian transliterates the marque
+too, so a Russian operator otherwise reads 213 Latin names inside a
+Cyrillic interface. The user chose to keep the translation.
+
+### `VehicleTranslations`, and where the body tiles came in
+
+`backend/src/Server/Vehicles/Models/VehicleTranslations.php` follows
+`ItemTranslations`: read `media/lua/shared/Translate/<CODE>/IG_UI.json`
+over FTP, keep the `IGUI_VehicleName*` entries, cache for a week.
+
+Three details that are not obvious:
+
+- **`IG_UI.json` holds 7298 entries, of which 213 are vehicles.** Both
+  the flat and the older `IG_UI`-nested shape are accepted.
+- **One name wants an argument** — `IGUI_VehicleNameBurntCar` is
+  "Verbrannt %1", the game filling in another vehicle's name. Skipped, so
+  the English stands rather than a raw `%1` reaching the screen.
+- **The body tiles are labelled separately.** `SpawnableVehicles::
+  summarise()` names a body after its plainest member, in English, and
+  that goes into the same cached catalogue. Translating only
+  `items[].name` left 24 tiles Latin in a Russian session — measured
+  in the browser: 3 of 24 Cyrillic. `VehicleTranslations::rename()`
+  carries the item's translation across to its body, keeping the
+  `— van` qualifier, which is a mask file name rather than a word. After:
+  **24 of 24**.
+
+The catalogue itself stays cached in one language-neutral shape; the
+renaming happens on the way out, in `VehicleSpawnController::list()`.
+The frontend sends `?language=` and holds it in the query key, as the
+items page already did — without that, switching language shows the old
+names from cache.
+
+`rename()` lives on the class rather than in the controller so it can be
+tested without an HTTP round trip. 12 unit tests, and the qualifier case
+was proved by breaking the `explode` and watching it fail.
+
+### Verified
+
+- Backend **812** tests (was 800), frontend **399** (was 362), lint 0
+  errors, build clean.
+- In the browser: every new language renders with no raw key, no
+  overflow and no live horizontal scroller — Russian across 11 routes at
+  390px, Polish across 8, French across 6 at 1512px.
+- Vehicle names measured per language through the API and on the page;
+  English confirmed unchanged.
+
+### Still open
+
+- Nobody has read the five as a native speaker. The switcher says so.
+- **The bridge's own 34 error messages are English**, and they reach the
+  screen through `errorField(error, 'detail')` — `weather-page.tsx:136`,
+  `ability-rows.tsx:99`, `character-card.tsx:77`. The fix is a stable key
+  from the bridge translated in the panel, not translations inside the
+  Lua: the bridge cannot know the reader's language, and every change to
+  it costs an upload and a game-server restart. Not done here.

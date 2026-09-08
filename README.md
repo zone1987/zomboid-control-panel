@@ -82,6 +82,11 @@ After that, both ways continue the same.
   commands.
 - **User management** — several accounts, two-factor login, passkeys, roles
   with per-page permissions, and a log of every action.
+- **Seven languages** — English and German are written by hand. Spanish,
+  French, Italian, Polish and Russian are machine-translated and marked
+  as such in the switcher; corrections are very welcome as an issue.
+  Item and vehicle names come from your own game installation, so they
+  match what the game itself calls them.
 
 ---
 

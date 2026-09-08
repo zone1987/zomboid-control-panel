@@ -65,10 +65,18 @@ export type VehicleCatalogue = {
   available: boolean
 }
 
-export function listVehicles(serverId: string, refresh = false): Promise<VehicleCatalogue> {
-  const query = refresh ? '?refresh=1' : ''
+export function listVehicles(
+  serverId: string,
+  language: string,
+  refresh = false,
+): Promise<VehicleCatalogue> {
+  const query = new URLSearchParams({ language })
 
-  return apiFetch<VehicleCatalogue>(`/servers/${serverId}/vehicles${query}`)
+  if (refresh) {
+    query.set('refresh', '1')
+  }
+
+  return apiFetch<VehicleCatalogue>(`/servers/${serverId}/vehicles?${query}`)
 }
 
 export function spawnVehicle(
