@@ -1897,8 +1897,8 @@
     "cacheClearing": "Svuotamento …",
     "cacheCleared_one": "{{count}} voce svuotata",
     "cacheCleared_other": "{{count}} voci svuotate",
-    "cacheClearedDetail_one": "{{count}} voce svuotata su {{servers}} server. I nomi verranno riletti al prossimo caricamento.",
-    "cacheClearedDetail_other": "{{count}} voci svuotate su {{servers}} server. I nomi verranno riletti al prossimo caricamento.",
+    "cacheClearedDetail_one": "{{count}} voce svuotata su {{servers}} server. I nomi di oggetti e veicoli verranno riletti dal server alla prossima apertura.",
+    "cacheClearedDetail_other": "{{count}} voci svuotate su {{servers}} server. I nomi di oggetti e veicoli verranno riletti dal server alla prossima apertura.",
     "cachePartial": "Non è stato possibile scartare tutto. Riprova.",
     "cacheNothing": "Non è configurato alcun server, quindi non c’era nulla da svuotare.",
     "cacheFailed": "Non è stato possibile svuotare la cache."

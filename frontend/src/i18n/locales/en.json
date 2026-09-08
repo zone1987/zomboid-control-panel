@@ -1897,8 +1897,8 @@
     "cacheClearing": "Clearing …",
     "cacheCleared_one": "Cleared {{count}} entry",
     "cacheCleared_other": "Cleared {{count}} entries",
-    "cacheClearedDetail_one": "Cleared {{count}} entry across {{servers}} server. The names are read again on the next load.",
-    "cacheClearedDetail_other": "Cleared {{count}} entries across {{servers}} servers. The names are read again on the next load.",
+    "cacheClearedDetail_one": "Cleared {{count}} entry across {{servers}} server. The item and vehicle names are read from the server again the next time you open them.",
+    "cacheClearedDetail_other": "Cleared {{count}} entries across {{servers}} servers. The item and vehicle names are read from the server again the next time you open them.",
     "cachePartial": "Not everything could be discarded. Please try again.",
     "cacheNothing": "No server is set up, so there was nothing to clear.",
     "cacheFailed": "The cache could not be cleared."

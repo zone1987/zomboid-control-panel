@@ -1897,8 +1897,8 @@
     "cacheClearing": "Wird geleert …",
     "cacheCleared_one": "{{count}} Eintrag geleert",
     "cacheCleared_other": "{{count}} Einträge geleert",
-    "cacheClearedDetail_one": "{{count}} Eintrag für {{servers}} Server geleert. Die Namen werden beim nächsten Laden neu gelesen.",
-    "cacheClearedDetail_other": "{{count}} Einträge für {{servers}} Server geleert. Die Namen werden beim nächsten Laden neu gelesen.",
+    "cacheClearedDetail_one": "{{count}} Eintrag für {{servers}} Server geleert. Die Item- und Fahrzeugnamen werden beim nächsten Öffnen wieder vom Server gelesen.",
+    "cacheClearedDetail_other": "{{count}} Einträge für {{servers}} Server geleert. Die Item- und Fahrzeugnamen werden beim nächsten Öffnen wieder vom Server gelesen.",
     "cachePartial": "Nicht alles konnte verworfen werden. Bitte erneut versuchen.",
     "cacheNothing": "Es ist kein Server eingerichtet, also war nichts zu leeren.",
     "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden."

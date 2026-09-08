@@ -1897,8 +1897,8 @@
     "cacheClearing": "Vaciando …",
     "cacheCleared_one": "{{count}} entrada vaciada",
     "cacheCleared_other": "{{count}} entradas vaciadas",
-    "cacheClearedDetail_one": "{{count}} entrada vaciada en {{servers}} servidor. Los nombres se leerán de nuevo en la próxima carga.",
-    "cacheClearedDetail_other": "{{count}} entradas vaciadas en {{servers}} servidores. Los nombres se leerán de nuevo en la próxima carga.",
+    "cacheClearedDetail_one": "{{count}} entrada vaciada en {{servers}} servidor. Los nombres de objetos y vehículos se volverán a leer del servidor la próxima vez que los abras.",
+    "cacheClearedDetail_other": "{{count}} entradas vaciadas en {{servers}} servidores. Los nombres de objetos y vehículos se volverán a leer del servidor la próxima vez que los abras.",
     "cachePartial": "No se pudo descartar todo. Inténtalo de nuevo.",
     "cacheNothing": "No hay ningún servidor configurado, así que no había nada que vaciar.",
     "cacheFailed": "No se pudo vaciar la caché."

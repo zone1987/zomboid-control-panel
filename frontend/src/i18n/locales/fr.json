@@ -1897,8 +1897,8 @@
     "cacheClearing": "Vidage …",
     "cacheCleared_one": "{{count}} entrée vidée",
     "cacheCleared_other": "{{count}} entrées vidées",
-    "cacheClearedDetail_one": "{{count}} entrée vidée pour {{servers}} serveur. Les noms seront relus au prochain chargement.",
-    "cacheClearedDetail_other": "{{count}} entrées vidées pour {{servers}} serveurs. Les noms seront relus au prochain chargement.",
+    "cacheClearedDetail_one": "{{count}} entrée vidée pour {{servers}} serveur. Les noms d’objets et de véhicules seront relus depuis le serveur à la prochaine ouverture.",
+    "cacheClearedDetail_other": "{{count}} entrées vidées pour {{servers}} serveurs. Les noms d’objets et de véhicules seront relus depuis le serveur à la prochaine ouverture.",
     "cachePartial": "Tout n’a pas pu être écarté. Veuillez réessayer.",
     "cacheNothing": "Aucun serveur n’est configuré, il n’y avait donc rien à vider.",
     "cacheFailed": "Le cache n’a pas pu être vidé."
