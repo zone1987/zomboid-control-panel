@@ -9502,13 +9502,19 @@ the previous build and looked like a broken selector.
 
 ### Open
 
-1. **Nothing is committed.** Working tree carries CLAUDE.md, CONTEXT.md,
-   `index.css`, `sidebar.tsx`, `app-sidebar.tsx`, `brand-mark.tsx`
-   (new), `favicon.svg`, plus the earlier `app-footer.tsx`,
-   `app-layout.tsx`, `button.tsx`, `card.tsx`, `tabs.tsx`.
-2. **Nothing is released since v1.2.6.** The GD fix, the interval
-   dropdown, the reload toggle, the secret read-back and the chunked
-   icon/vehicle uploads are all unreleased.
+1. **Committed** as `9e844f8` on `style/glass-focus-and-mark`, opened as
+   PR #21 into main, CI running.
+2. **A correction to what an earlier note in this file claimed.** It
+   said "nothing is released since v1.2.6" and that the GD fix and the
+   rest were unreleased. That was wrong: `v1.2.6` points at the same
+   commit as `main` (`07e0d73`, the merge of PR #20), so the chunked
+   icon/vehicle uploads **did** ship in v1.2.6. What is unreleased is
+   the seven commits on this branch — the two gd commits, the deploy
+   interval and reload toggle, the secret read-back, and the three
+   style commits. `app.version` was already bumped to `1.2.7` for them,
+   which is why the tag and not the version is what is missing.
+   Established with `git rev-parse main v1.2.6` and
+   `git log v1.2.6..main` (empty).
 3. `https://reactbits.dev/get-started/index` — the user suggested it as
    a source of ideas; not looked at yet.
 4. Pre-existing, untouched: sub-32px touch targets (sidebar trigger
