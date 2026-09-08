@@ -482,65 +482,43 @@ sieht: sie ändert nur, auf welches Image der Tag `latest` zeigt. Ein
 wandernder Registry-Tag ist kein Ereignis, und von allein merkt das
 niemand.
 
-Was funktioniert, ist Coolify Bescheid zu sagen. Genau dafür gibt es
-einen **Deploy-Webhook** — wird er aufgerufen, holt Coolify das aktuelle
-Image und startet einen neuen Container.
+Also sagt das Panel Bescheid. Unter *Einstellungen → Coolify* steht alles
+Nötige, und es ist aus, bis du es einschaltest.
 
 **1. API-Zugriff erlauben.** In Coolify unter *Settings → Advanced* den
-**API Access** einschalten, falls er aus ist.
+**API Access** einschalten.
 
 **2. Token anlegen.** *Keys & Tokens → API Tokens → Add*, mindestens mit
 der Berechtigung **deploy**. Gleich kopieren — Coolify zeigt ihn nur
 einmal.
 
 **3. Die Webhook-Adresse holen.** Öffne deine Anwendung, dann *Automation
-→ Webhooks*. Der oberste, der **Deploy webhook**, ist der richtige. Er
-sieht so aus:
+→ Webhooks*. Der oberste, der **Deploy webhook**, ist der richtige:
 
 ```
 https://coolify.example.com/api/v1/deploy?uuid=DEINE-UUID&force=false
 ```
 
 Die vier darunter — GitHub, GitLab, Bitbucket, Gitea — sind für etwas
-anderes: mit ihnen reagiert Coolify auf einen Git-Push. Die brauchst du
-hier nicht.
+anderes: mit ihnen reagiert Coolify auf einen Git-Push. Nicht diese.
 
-**4. Ihn aufrufen, wann immer das Panel erneuert werden soll.**
+**4. Beides ins Panel eintragen**, unter *Einstellungen → Coolify*,
+**Test senden** drücken und **Neue Version automatisch ausrollen**
+einschalten.
 
-```bash
-curl --fail \
-  --header "Authorization: Bearer DEIN-TOKEN" \
-  "https://coolify.example.com/api/v1/deploy?uuid=DEINE-UUID&force=false"
-```
+Der Test rollt wirklich aus — man kann eine Plattform nicht fragen, ob
+etwas klappen würde. Wird er abgelehnt, sagt dir das Panel, welche
+Einstellung zu ändern ist, statt dir einen HTTP-Code zu zeigen.
 
-`force=false` ist richtig so: es heißt „nicht von Grund auf neu bauen".
-Hier wird nichts gebaut — das Image ist fertig und kommt aus der
-Registry.
+**Zur Adressliste.** Ist in Coolify *Allowed API IPs* gesetzt, trag die
+Adresse ein, von der das Panel selbst aufruft — also die des Rechners, auf
+dem es läuft. Genau deshalb sitzt das im Panel und nicht in der
+Release-Pipeline: ein CI-Runner hat keine feste Adresse und würde dich
+zwingen, die Liste für alles zu öffnen.
 
-Diesen Aufruf legst du hin, wo es dir passt: als Cron-Eintrag auf
-irgendeinem Rechner, als Knopf in deinen eigenen Werkzeugen oder in einer
-CI.
-
-<details>
-<summary>Eigener Fork? Aus GitHub Actions deployen</summary>
-
-Wenn du das Image selbst baust, kann der Release-Workflow den Webhook für
-dich aufrufen. Lege unter *Settings → Secrets and variables → Actions*
-zwei Repository-Secrets an:
-
-| Secret | Wert |
-|---|---|
-| `COOLIFY_WEBHOOK` | die Deploy-Webhook-Adresse aus Schritt 3 |
-| `COOLIFY_TOKEN` | der API-Token aus Schritt 2 |
-
-Den Job hat `.github/workflows/release.yml` bereits. Er läuft **nach**
-der Veröffentlichung des Releases — also nachdem das Image gepusht wurde,
-und das geschieht erst, wenn dieses Image zweimal gestartet ist und
-geantwortet hat. Coolify wird also nie aufgefordert, etwas zu holen, das
-es nicht gibt oder das nicht läuft. Fehlen die Secrets, überspringt der
-Job sich einfach.
-
-</details>
+**Mehrere Panels an einer Datenbank?** Nur eines rollt aus. Der Anspruch
+ist eine Zeile mit dem Versionsnamen, und die Datenbank lässt genau einen
+durch.
 
 ### Bei einer bestimmten Version bleiben
 

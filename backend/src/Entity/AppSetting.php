@@ -33,6 +33,24 @@ class AppSetting
     public const PLAYER_RETENTION_DAYS = 'players.retention_days';
 
     /**
+     * Where to call when a newer release appears, and the token for it.
+     *
+     * The panel asks GitHub hourly whether a newer version exists, and
+     * it runs on the operator's own machine -- so the call to redeploy
+     * comes from an address they already trust. A deployment platform's
+     * own "watch the repository" switch cannot do this: the panel ships
+     * as an image, and a release changes no file it can see.
+     */
+    public const DEPLOY_WEBHOOK_URL = 'deploy.webhook_url';
+
+    /** Sent as a bearer token; a deploy hook is as good as a login. */
+    public const DEPLOY_WEBHOOK_TOKEN = 'deploy.webhook_token';
+
+    /** Off unless the operator says otherwise: this restarts their panel. */
+    public const DEPLOY_ON_RELEASE = 'deploy.on_release';
+
+
+    /**
      * The Discord bot's token, panel-wide rather than per server.
      *
      * One application serves every server the panel knows: a token per
@@ -61,6 +79,7 @@ class AppSetting
         self::MAILER_DSN,
         self::MAIL_PASSWORD,
         self::DISCORD_BOT_TOKEN,
+        self::DEPLOY_WEBHOOK_TOKEN,
     ];
 
     #[ORM\Id]

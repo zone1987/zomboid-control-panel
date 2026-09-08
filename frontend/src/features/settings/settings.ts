@@ -15,6 +15,9 @@ export const SETTING_KEYS = {
   discordBotToken: 'discord.bot_token',
   discordApplicationId: 'discord.application_id',
   discordPublicKey: 'discord.public_key',
+  deployWebhookUrl: 'deploy.webhook_url',
+  deployWebhookToken: 'deploy.webhook_token',
+  deployOnRelease: 'deploy.on_release',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
@@ -50,6 +53,26 @@ export function listSettings(): Promise<SettingsResponse> {
 
 export function updateSettings(values: Partial<Record<SettingKey, string>>): Promise<SettingsResponse> {
   return apiFetch<SettingsResponse>('/settings', { method: 'PATCH', body: values })
+}
+
+/** What the platform answered; four states, because each wants a different fix. */
+export type DeployResult = {
+  status: string
+  state: 'queued' | 'refused' | 'unreachable' | 'notConfigured'
+  httpStatus?: number | null
+  detail?: string | null
+  message: string
+}
+
+/**
+ * Fires the deploy hook for real.
+ *
+ * There is no "would this work" to ask a hosting platform, so the test
+ * button does the thing. On a panel already running the current release
+ * that is a restart, which the interface says before it is pressed.
+ */
+export function testDeployHook(): Promise<DeployResult> {
+  return apiFetch<DeployResult>('/settings/deploy/test', { method: 'POST', body: {} })
 }
 
 export function testSteamKey(): Promise<{ status: string; sample?: string }> {

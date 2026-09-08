@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Message\CheckBridgeState;
+use App\Message\DeployNewRelease;
 use App\Message\LiftExpiredBans;
 use App\Message\MirrorChatToDiscord;
 use App\Message\PurgeStalePlayers;
@@ -36,6 +37,11 @@ final class MainSchedule implements ScheduleProviderInterface
             // so a single slow write cannot look like an outage. Only a
             // change is announced, never the state.
             RecurringMessage::every('60 seconds', new CheckBridgeState()),
+        )->add(
+            // The update check itself is cached for six hours, so asking
+            // more often would only re-read the cache. Does nothing at
+            // all unless the operator switched deployment on.
+            RecurringMessage::every('1 hour', new DeployNewRelease()),
         );
     }
 }

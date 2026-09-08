@@ -460,61 +460,42 @@ no file Coolify is watching — only which image the tag `latest` points
 at. A moving registry tag is not an event, and nothing notices it on its
 own.
 
-What works is telling Coolify. It offers a **deploy webhook** for exactly
-this, and calling it makes Coolify pull the current image and start a new
-container.
+So the panel tells it. Under *Settings → Coolify* there is everything
+needed, and it is off until you switch it on.
 
 **1. Allow API access.** In Coolify under *Settings → Advanced*, switch
-**API Access** on if it is off.
+**API Access** on.
 
 **2. Make a token.** *Keys & Tokens → API Tokens → Add*, with at least
 the **deploy** permission. Copy it now — Coolify shows it once.
 
 **3. Get the webhook URL.** Open your application, then *Automation →
 Webhooks*. The one at the top, the **Deploy webhook**, is the one you
-want. It looks like this:
+want:
 
 ```
 https://coolify.example.com/api/v1/deploy?uuid=YOUR-UUID&force=false
 ```
 
 The four below it — GitHub, GitLab, Bitbucket, Gitea — are for a
-different job: they let Coolify react to a git push. Do not use those
-here.
+different job: they let Coolify react to a git push. Not these.
 
-**4. Call it whenever you want the panel renewed.**
+**4. Paste both into the panel**, under *Settings → Coolify*, press
+**Send a test**, and switch on **Deploy a new release automatically**.
 
-```bash
-curl --fail \
-  --header "Authorization: Bearer YOUR-TOKEN" \
-  "https://coolify.example.com/api/v1/deploy?uuid=YOUR-UUID&force=false"
-```
+The test really deploys — there is no way to ask a platform whether
+something would work. If it is refused, the panel says which setting to
+change rather than showing you an HTTP code.
 
-`force=false` is right: it means "do not rebuild from scratch". Nothing
-is being built here — the image is finished and comes from the registry.
+**About the address list.** If *Allowed API IPs* in Coolify is set, add
+the address the panel itself calls from — the machine it runs on. That is
+the reason this lives in the panel rather than in the release pipeline: a
+CI runner has no fixed address, so it would force you to open the list to
+everything.
 
-Put that call wherever suits you: a cron entry on any machine, a button
-in your own tooling, or a CI job.
-
-<details>
-<summary>Running your own fork? Deploy from GitHub Actions</summary>
-
-If you build the image yourself, the release workflow can call the
-webhook for you. Add two repository secrets under *Settings → Secrets and
-variables → Actions*:
-
-| Secret | Value |
-|---|---|
-| `COOLIFY_WEBHOOK` | the deploy webhook URL from step 3 |
-| `COOLIFY_TOKEN` | the API token from step 2 |
-
-`.github/workflows/release.yml` already has the job. It runs **after** the
-release is published — which is after the image was pushed, which happens
-only once that image has been started twice and answered. So Coolify is
-never asked to pull something that does not exist or does not work. With
-the secrets unset the job simply skips.
-
-</details>
+**Running several panels on one database?** Only one of them deploys. The
+claim is a row keyed by the version, so the database lets exactly one
+through.
 
 ### Staying on a particular version
 

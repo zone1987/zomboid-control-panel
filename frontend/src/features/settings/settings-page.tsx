@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabGroupLabel } from '@/components/ui/tab-group-label'
+import { DeployCard } from './deploy-card'
 import { RetentionCard } from './retention-card'
 import { EncryptionKeyCard } from './encryption-key-card'
 import {
@@ -44,7 +45,7 @@ import {
 type Draft = Partial<Record<SettingKey, string>>
 
 /** The tabs that hold editable fields; the rest upload files instead. */
-const SAVABLE_TABS = ['steam', 'google', 'discord', 'mail', 'privacy']
+const SAVABLE_TABS = ['steam', 'google', 'discord', 'mail', 'deploy', 'privacy']
 
 /**
  * The sections, for the select a phone gets instead of the tab list.
@@ -59,6 +60,7 @@ const SECTIONS: { id: string; label: (t: (key: string) => string) => string }[] 
   { id: 'mail', label: (t) => t('settings.mailTab') },
   { id: 'icons', label: (t) => t('settings.iconsTab') },
   { id: 'vehicles', label: (t) => t('settings.vehiclesTab') },
+  { id: 'deploy', label: () => 'Coolify' },
   { id: 'privacy', label: (t) => t('settings.privacyTab') },
   { id: 'security', label: (t) => t('settings.securityTab') },
 ]
@@ -185,13 +187,13 @@ export function SettingsPage() {
         // *horizontal* tab set, so a vertical one sat beside the panel
         // and left it 167px of a 375px screen -- fields cut off
         // mid-word. The grid takes over from `sm` upwards.
-        className="flex flex-col gap-6 sm:grid sm:grid-cols-[12rem_1fr] sm:items-start"
+        className="flex flex-col gap-6 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start"
       >
         {/* A phone gets a select instead of the tab list. Eight stacked
             links ate half the screen; a scrolling strip hid the active
             one off its left edge and gave no clue what else was there.
             A select always shows where you are and opens the full list. */}
-        <div className="sm:hidden">
+        <div className="lg:hidden">
           <Label htmlFor="settings-section" className="sr-only">
             {t('nav.settings')}
           </Label>
@@ -209,39 +211,64 @@ export function SettingsPage() {
           </Select>
         </div>
 
-        <TabsList className="hidden h-auto w-full items-stretch gap-0.5 bg-transparent p-0 sm:flex">
-          <TabGroupLabel className="hidden sm:block sm:w-auto">{t('settings.groupAccess')}</TabGroupLabel>
-          <TabsTrigger value="steam" className="justify-start py-2 sm:py-1">
+        <TabsList className="hidden h-auto w-full items-stretch gap-0.5 bg-transparent p-0 lg:flex">
+          <TabGroupLabel className="hidden lg:block lg:w-auto">{t('settings.groupAccess')}</TabGroupLabel>
+          <TabsTrigger value="steam" className="justify-start py-2 lg:py-1">
             Steam
           </TabsTrigger>
-          <TabsTrigger value="google" className="justify-start py-2 sm:py-1">
+          <TabsTrigger value="google" className="justify-start py-2 lg:py-1">
             Google
           </TabsTrigger>
-          <TabsTrigger value="discord" className="justify-start py-2 sm:py-1">
+          <TabsTrigger value="discord" className="justify-start py-2 lg:py-1">
             Discord
           </TabsTrigger>
-          <TabsTrigger value="mail" className="justify-start py-2 sm:py-1">
+          <TabsTrigger value="mail" className="justify-start py-2 lg:py-1">
             {t('settings.mailTab')}
           </TabsTrigger>
 
-          <TabGroupLabel className="mt-3 hidden sm:block">{t('settings.groupGameContent')}</TabGroupLabel>
-          <TabsTrigger value="icons" className="justify-start py-2 sm:py-1">
+          <TabGroupLabel className="mt-3 hidden lg:block">{t('settings.groupGameContent')}</TabGroupLabel>
+          <TabsTrigger value="icons" className="justify-start py-2 lg:py-1">
             {t('settings.iconsTab')}
           </TabsTrigger>
-          <TabsTrigger value="vehicles" className="justify-start py-2 sm:py-1">
+          <TabsTrigger value="vehicles" className="justify-start py-2 lg:py-1">
             {t('settings.vehiclesTab')}
           </TabsTrigger>
 
-          <TabGroupLabel className="mt-3 hidden sm:block">{t('settings.groupPrivacy')}</TabGroupLabel>
-          <TabsTrigger value="privacy" className="justify-start py-2 sm:py-1">
+          <TabGroupLabel className="mt-3 hidden lg:block">{t('settings.groupOperations')}</TabGroupLabel>
+          <TabsTrigger value="deploy" className="justify-start py-2 lg:py-1">
+            Coolify
+          </TabsTrigger>
+
+          <TabGroupLabel className="mt-3 hidden lg:block">{t('settings.groupPrivacy')}</TabGroupLabel>
+          <TabsTrigger value="privacy" className="justify-start py-2 lg:py-1">
             {t('settings.privacyTab')}
           </TabsTrigger>
-          <TabsTrigger value="security" className="justify-start py-2 sm:py-1">
+          <TabsTrigger value="security" className="justify-start py-2 lg:py-1">
             {t('settings.securityTab')}
           </TabsTrigger>
         </TabsList>
 
         <div className="min-w-0">
+
+        <TabsContent value="deploy">
+          <DeployCard
+            urlState={data?.items[SETTING_KEYS.deployWebhookUrl]}
+            tokenState={data?.items[SETTING_KEYS.deployWebhookToken]}
+            enabled={
+              (draft[SETTING_KEYS.deployOnRelease] ??
+                data?.items[SETTING_KEYS.deployOnRelease]?.value) === '1'
+            }
+            url={field(SETTING_KEYS.deployWebhookUrl).value}
+            onUrl={field(SETTING_KEYS.deployWebhookUrl).onChange}
+            onToken={field(SETTING_KEYS.deployWebhookToken).onChange}
+            onEnabled={(value) =>
+              setDraft((previous) => ({
+                ...previous,
+                [SETTING_KEYS.deployOnRelease]: value ? '1' : '',
+              }))
+            }
+          />
+        </TabsContent>
 
         <TabsContent value="privacy">
           <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
