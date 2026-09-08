@@ -64,7 +64,9 @@ export function MapControls({
         </Control>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-6rem)] flex-wrap items-center gap-2">
+      {/* 8rem, not 6rem: the places button opposite is 87px plus its own
+          0.75rem edge, and 6rem left it overlapping by 15px. */}
+      <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-8rem)] flex-wrap items-center gap-2">
         <button
           type="button"
           className="pointer-events-auto flex shrink-0 items-center gap-2 rounded-md border border-border/60 bg-background/85 px-2.5 py-1.5 text-xs tabular-nums shadow-lg backdrop-blur hover:bg-accent hover:text-accent-foreground"

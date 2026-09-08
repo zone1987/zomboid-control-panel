@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { KeyRound } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
+import { getLoginProviders } from './login-providers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -45,6 +46,14 @@ export function LoginPage() {
   // has WebAuthn is a fact about the browser, not state that changes —
   // and an effect meant the button flickered in on the second render.
   const [passkeysSupported] = useState(browserSupportsWebAuthn)
+
+  // Undefined while it loads, so nothing flickers in and back out.
+  const { data: providers } = useQuery({
+    queryKey: ['login-providers'],
+    queryFn: getLoginProviders,
+    retry: false,
+    staleTime: Infinity,
+  })
 
   useRedirectNotice()
 
@@ -154,11 +163,16 @@ export function LoginPage() {
             </form>
           </Form>
 
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">{t('auth.orContinueWith')}</span>
-            <Separator className="flex-1" />
-          </div>
+          {/* A divider over nothing is worse than no divider: passkeys are
+              the only always-present option, so the label only earns its
+              place when something follows it. */}
+          {(passkeysSupported || providers?.google === true || providers?.steam === true) && (
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">{t('auth.orContinueWith')}</span>
+              <Separator className="flex-1" />
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Button
@@ -171,19 +185,23 @@ export function LoginPage() {
               {passkeyLogin.isPending ? t('common.loading') : t('auth.signInWithPasskey')}
             </Button>
 
-            <Button variant="outline" className="w-full" asChild>
-              <a href="/api/connect/google">
-                <GoogleIcon className="size-4" />
-                {t('auth.signInWithGoogle')}
-              </a>
-            </Button>
+            {providers?.google === true && (
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/api/connect/google">
+                  <GoogleIcon className="size-4" />
+                  {t('auth.signInWithGoogle')}
+                </a>
+              </Button>
+            )}
 
-            <Button variant="outline" className="w-full" asChild>
-              <a href="/api/connect/steam">
-                <SteamIcon className="size-4" />
-                {t('auth.signInWithSteam')}
-              </a>
-            </Button>
+            {providers?.steam === true && (
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/api/connect/steam">
+                  <SteamIcon className="size-4" />
+                  {t('auth.signInWithSteam')}
+                </a>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
