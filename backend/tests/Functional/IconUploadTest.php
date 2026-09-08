@@ -85,14 +85,18 @@ final class IconUploadTest extends FunctionalTestCase
         self::assertSame('icons.notAnIconPack', $result['error']);
     }
 
-    public function testTellsTheInterfaceWhichPacksAreWanted(): void
+    public function testTellsTheInterfaceEveryPackThatHoldsItemIcons(): void
     {
         $this->signInAsServerAdmin();
 
         $this->client->request('GET', '/api/icons');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['UI.pack', 'UI2.pack', 'ApComUI.pack'], $this->payload()['wanted']);
+        self::assertSame(
+            ['UI.pack', 'UI2.pack', 'ApComUI.pack', 'RadioIcons.pack', 'IconsMoveables.pack'],
+            $this->payload()['wanted'],
+            'counted against a B42 installation: 3848 + 563 + 44 + 13 + 7 sprites named Item_*',
+        );
     }
 
     private function pack(string $name): UploadedFile

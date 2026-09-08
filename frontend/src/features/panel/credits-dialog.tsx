@@ -27,7 +27,7 @@ export function CreditsDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs font-normal">
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-normal sm:h-6">
           {t('nav.credits')}
         </Button>
       </DialogTrigger>

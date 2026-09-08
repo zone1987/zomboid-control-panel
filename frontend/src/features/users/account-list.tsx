@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { KeyRound, MoreHorizontal, Pencil, ShieldCheck, Smartphone, Trash2 } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -66,9 +67,125 @@ export function AccountList() {
   const formatDate = (value: string | null) =>
     value === null ? t('common.never') : new Date(value).toLocaleString(i18n.language)
 
+  const Identity = ({ account }: { account: Account }) => (
+    <div className="flex min-w-0 flex-col">
+      <span className="flex flex-wrap items-center gap-2 font-medium">
+        <span className="break-all">{account.displayName}</span>
+        {account.self && (
+          <Badge variant="outline" className="text-xs">
+            {t('users.you')}
+          </Badge>
+        )}
+        {!account.active && (
+          <Badge variant="secondary" className="text-xs">
+            {t('users.deactivated')}
+          </Badge>
+        )}
+      </span>
+      <span className="break-all text-sm text-muted-foreground">{account.email}</span>
+    </div>
+  )
+
+  const Roles = ({ account }: { account: Account }) => (
+    <div className="flex flex-wrap gap-1">
+      {account.roles.map((role) => (
+        <Badge
+          key={role}
+          variant={role === 'ROLE_ADMIN' ? 'default' : 'secondary'}
+          className="text-xs"
+        >
+          {t(`users.role.${role}`)}
+        </Badge>
+      ))}
+    </div>
+  )
+
+  const SignInMethods = ({ account }: { account: Account }) => (
+    <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+      {account.hasPassword && <KeyRound className="size-4" aria-label={t('users.hasPassword')} />}
+
+      {account.passkeyCount > 0 && (
+        <span className="flex items-center gap-0.5" title={t('users.passkeys')}>
+          <Smartphone className="size-4" />
+          <span className="text-xs">{account.passkeyCount}</span>
+        </span>
+      )}
+
+      {account.twoFactorEnabled && (
+        <ShieldCheck className="size-4 text-emerald-500" aria-label={t('users.twoFactor')} />
+      )}
+
+      {account.identities.map((provider) => (
+        <Badge key={provider} variant="outline" className="text-xs capitalize">
+          {provider}
+        </Badge>
+      ))}
+
+      {!account.hasPassword && account.passkeyCount === 0 && account.identities.length === 0 && (
+        <span className="text-xs">{t('users.noSignInMethod')}</span>
+      )}
+    </div>
+  )
+
+  const Actions = ({ account }: { account: Account }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="size-8">
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">{t('common.actions')}</span>
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => setEditing(account)}>
+          <Pencil className="size-4" />
+          {t('common.edit')}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem disabled={account.self} onSelect={() => toggleActive.mutate(account)}>
+          {account.active ? t('users.deactivate') : t('users.activate')}
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          variant="destructive"
+          disabled={account.self}
+          onSelect={() => setRemoving(account)}
+        >
+          <Trash2 className="size-4" />
+          {t('common.delete')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   return (
     <>
-      <div className="overflow-x-auto rounded-md border">
+      {/* The five columns want 763px, and with the sidebar open a tablet
+          leaves 549px, so the switch is at `lg` rather than `sm`. */}
+      <ul className="flex flex-col gap-2 lg:hidden">
+        {accounts.map((account) => (
+          <li
+            key={account.id}
+            className={cn('flex flex-col gap-2 rounded-md border p-3', !account.active && 'opacity-60')}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <Identity account={account} />
+              <Actions account={account} />
+            </div>
+
+            <Roles account={account} />
+            <SignInMethods account={account} />
+
+            <p className="text-xs text-muted-foreground">
+              {t('users.lastLogin')}: {formatDate(account.lastLoginAt)}
+            </p>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-md border lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -84,65 +201,15 @@ export function AccountList() {
             {accounts.map((account) => (
               <TableRow key={account.id} className={account.active ? undefined : 'opacity-60'}>
                 <TableCell>
-                  <div className="flex flex-col">
-                    <span className="flex items-center gap-2 font-medium">
-                      {account.displayName}
-                      {account.self && (
-                        <Badge variant="outline" className="text-xs">
-                          {t('users.you')}
-                        </Badge>
-                      )}
-                      {!account.active && (
-                        <Badge variant="secondary" className="text-xs">
-                          {t('users.deactivated')}
-                        </Badge>
-                      )}
-                    </span>
-                    <span className="text-sm text-muted-foreground">{account.email}</span>
-                  </div>
+                  <Identity account={account} />
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {account.roles.map((role) => (
-                      <Badge
-                        key={role}
-                        variant={role === 'ROLE_ADMIN' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {t(`users.role.${role}`)}
-                      </Badge>
-                    ))}
-                  </div>
+                  <Roles account={account} />
                 </TableCell>
 
                 <TableCell>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    {account.hasPassword && <KeyRound className="size-4" aria-label={t('users.hasPassword')} />}
-
-                    {account.passkeyCount > 0 && (
-                      <span className="flex items-center gap-0.5" title={t('users.passkeys')}>
-                        <Smartphone className="size-4" />
-                        <span className="text-xs">{account.passkeyCount}</span>
-                      </span>
-                    )}
-
-                    {account.twoFactorEnabled && (
-                      <ShieldCheck className="size-4 text-emerald-500" aria-label={t('users.twoFactor')} />
-                    )}
-
-                    {account.identities.map((provider) => (
-                      <Badge key={provider} variant="outline" className="text-xs capitalize">
-                        {provider}
-                      </Badge>
-                    ))}
-
-                    {!account.hasPassword &&
-                      account.passkeyCount === 0 &&
-                      account.identities.length === 0 && (
-                        <span className="text-xs">{t('users.noSignInMethod')}</span>
-                      )}
-                  </div>
+                  <SignInMethods account={account} />
                 </TableCell>
 
                 <TableCell className="text-sm text-muted-foreground">
@@ -150,39 +217,7 @@ export function AccountList() {
                 </TableCell>
 
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8">
-                        <MoreHorizontal className="size-4" />
-                        <span className="sr-only">{t('common.actions')}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setEditing(account)}>
-                        <Pencil className="size-4" />
-                        {t('common.edit')}
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        disabled={account.self}
-                        onSelect={() => toggleActive.mutate(account)}
-                      >
-                        {account.active ? t('users.deactivate') : t('users.activate')}
-                      </DropdownMenuItem>
-
-                      <DropdownMenuSeparator />
-
-                      <DropdownMenuItem
-                        variant="destructive"
-                        disabled={account.self}
-                        onSelect={() => setRemoving(account)}
-                      >
-                        <Trash2 className="size-4" />
-                        {t('common.delete')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Actions account={account} />
                 </TableCell>
               </TableRow>
             ))}

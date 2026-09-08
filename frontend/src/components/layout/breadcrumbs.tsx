@@ -82,7 +82,11 @@ export function Breadcrumbs() {
                 <BreadcrumbPage>{t(crumb.label)}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>
-                  <Link to={crumb.to}>{t(crumb.label)}</Link>
+                  {/* The header has the room, and a bare text line is a
+                      20px target on a phone. */}
+                  <Link to={crumb.to} className="flex items-center py-2 sm:py-0">
+                    {t(crumb.label)}
+                  </Link>
                 </BreadcrumbLink>
               )}
             </BreadcrumbItem>

@@ -19,7 +19,9 @@ import { PanelVersionLine } from './panel-version-line'
  */
 export function AppFooter() {
   return (
-    <footer className="flex h-9 shrink-0 items-center gap-2 overflow-hidden border-t px-4">
+    // Taller on a phone so the two buttons in it can be touched: a 36px
+    // bar leaves room for 24px controls and no more.
+    <footer className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-t px-4 sm:h-9">
       <PanelVersionLine labelled />
 
       <FooterDivider />

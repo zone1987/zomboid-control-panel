@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 import { countIn, matches, readConfig, writeConfig, type ConfigKind, type ConfigValue } from './config'
 import { useConfigDraft, type DraftRow } from './use-config-draft'
 import { ValueRow } from './value-row'
@@ -49,10 +50,19 @@ export function ConfigPage() {
         value={kind}
         onValueChange={(next) => setSearch({ tab: next }, { replace: true })}
       >
-        <TabsList>
+        {/* Full width on a phone so the second tab is not clipped by
+            3px; the pair sizes to its content from `sm` up. */}
+        <TabsList className="w-full sm:w-fit">
           {KINDS.map((each) => (
-            <TabsTrigger key={each} value={each}>
-              {t(each === 'sandbox' ? 'config.tabSandbox' : 'config.tabIni')}
+            <TabsTrigger key={each} value={each} className="flex-1 sm:flex-none">
+              {/* "Einstellungen" in both labels does not fit two tabs on a
+                  phone, and the page is already called Konfiguration. */}
+              <span className="sm:hidden">
+                {t(each === 'sandbox' ? 'config.tabSandboxShort' : 'config.tabIniShort')}
+              </span>
+              <span className="hidden sm:inline">
+                {t(each === 'sandbox' ? 'config.tabSandbox' : 'config.tabIni')}
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -171,7 +181,11 @@ function ConfigFileView({
           />
         </div>
 
-        <p className="text-muted-foreground text-sm">
+        {/* Hidden on a phone while nothing is being searched: every
+            group header already carries its own count, and here it only
+            took width from the search field. A match count is another
+            matter -- that is the answer to what was just typed. */}
+        <p className={cn('text-muted-foreground text-sm', term === '' && 'hidden sm:block')}>
           {term === ''
             ? t('config.valueCount', { count: data.values.length })
             : t('config.matchCount', { count: filtered.length, total: data.values.length })}

@@ -88,7 +88,7 @@ export function ConnectionLights() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 gap-1.5 px-2"
+            className="h-8 gap-1.5 px-2 sm:h-6"
             aria-label={t('connections.title')}
           >
             <Dot state={worstOf(data)} />

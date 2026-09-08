@@ -7340,3 +7340,190 @@ the real Google, because that needs the second uri registered in the
 user's Google console first.
 
 Version bumped to **1.0.6**.
+
+---
+
+## 2026-09-08 — Mobile, tablet and desktop: measured on every page
+
+The user asked for a full pass at three widths after the mobile work, and
+during it added two rules that shaped the outcome:
+
+> "mobil sollten möglichst gar keine horizontalen scrollbars angezeigt
+> werden müssen" — and, when one is unavoidable, "sollte die ansicht
+> mobil so angepasst werden das es besser bedienbar ist"
+
+So a horizontal scroller on a phone is now a defect to design away, not
+a scroller to keep tidy.
+
+### How it was measured
+
+A probe run over fifteen routes at **390, 820 and 1512 px**, navigating
+inside the SPA (`history.pushState` + a `popstate` event) so each page
+mounted for real. Per page it reported five things:
+
+| Check | How |
+|---|---|
+| Overflow past the frame | `getBoundingClientRect().right > innerWidth + 1`, **skipping anything inside a scroller of its own** |
+| A scroller that really scrolls | `overflow-x` is auto/scroll **and** `scrollWidth > clientWidth + 2` |
+| Touch target too small | under 32px, excluding switches, header and footer counted separately |
+| Raw translation key | a leaf node whose whole text matches `^[a-z]\w*\.[a-zA-Z][\w.]*$` |
+| Off-centre page | `(main.right − el.right) − (el.left − main.left)` on every `.mx-auto` |
+
+Two earlier mistakes are baked into that shape: the probe must skip
+scroller contents (or every table is a false positive) and must scan the
+**header and footer too** (the worst fault of the day was in the header).
+
+### The two faults that cost a control, not looks
+
+**1. The update button pushed the header controls off screen.**
+`AppUpdateBanner` rendered a ~150px label. At 390px the right-hand group
+ran to **414px in a 375px header**, so the language and theme buttons
+were outside the viewport with `overflow-x-hidden` quietly cutting them
+off. Now `size-9 p-0` with the label `hidden sm:inline`, keeping
+`title`/`aria-label`.
+`frontend/src/components/layout/app-update-banner.tsx`
+
+**2. `scrollbar-gutter: stable` centred nothing centred.**
+Reported by the user with an arrow on a screenshot — "rechts mehr
+abstand als links". Measured: **229 left, 244 right, and the scrollbar is
+15px**. The rule sat on `html` while the scrolling element is `main`, and
+`stable` alone reserves on the end edge only.
+
+`both-edges` fixed the desktop (237/237) and broke the phone: it reserves
+**twice** the bar, 30 of 390 pixels, which the user caught immediately —
+"hier ist links zu viel abstand oder?". Final shape in
+`frontend/src/index.css`:
+
+```css
+html { scrollbar-gutter: stable; }
+
+@media (min-width: 1024px) {
+  .pz-surface { scrollbar-gutter: stable both-edges; }
+}
+
+@media (max-width: 1023px) {
+  .pz-surface { scrollbar-width: none; }
+  .pz-surface::-webkit-scrollbar { width: 0; height: 0; }
+}
+```
+
+Below `lg` the bar overlays, which is what a phone does natively anyway.
+Measured after: phone 16/16 with the card at **343px** (was 298), desktop
+237/237, and `main.scrollHeight > main.clientHeight` still true so
+scrolling was not lost.
+
+### Two tables became cards
+
+The only live horizontal scrollers anywhere. Both are five columns:
+
+| Page | Wanted | Had | File |
+|---|---|---|---|
+| Moderation log | 724px | 276px | `features/players/moderation-history.tsx` |
+| Account list | 763px | 325px | `features/users/account-list.tsx` |
+
+Each renders a `<ul>` of cards and the table beside it, switched with
+`lg:hidden` / `hidden lg:block`. **The breakpoint is `lg`, not `sm`** —
+at 820px with the sidebar open the content frame is only **549px**, so
+`sm` left both tables scrolling on a tablet (259px and 160px over).
+
+The account list's four cell bodies were lifted into `Identity`, `Roles`,
+`SignInMethods` and `Actions` so the two views cannot drift apart.
+
+### Touch targets under 32px
+
+| Control | Was | Now | File |
+|---|---|---|---|
+| Sidebar trigger | 28×28 | `size-9 sm:size-7` | `components/layout/app-layout.tsx` |
+| Footer bar | `h-9` | `h-11 sm:h-9` | `components/layout/app-footer.tsx` |
+| Credits button | `h-6` | `h-8 sm:h-6` | `features/panel/credits-dialog.tsx` |
+| Connection lights | `h-6` | `h-8 sm:h-6` | `features/servers/connection-lights.tsx` |
+| "How do I get this" | `h-auto` (16px) | `h-8 sm:h-auto` | `features/settings/credential-field.tsx` |
+| Breadcrumb link | 20px | `py-2 sm:py-0` | `components/layout/breadcrumbs.tsx` |
+
+The shadcn `Switch` (32×18) is **left alone**: the track is the target by
+design, and 32px of width is enough for a thumb.
+
+### Two more, found on the way
+
+- **Page padding** `p-6` → `p-4 sm:p-6` in `app-layout.tsx`. On the
+  players page two paddings plus a `<details>` took 375px down to 278;
+  the cards gained 45px back.
+- **The credential row could not shrink.** Every child carried
+  `shrink-0` under `sm:flex-nowrap`, so a long label ran **53px past the
+  frame at 820px**. The `<Label>` is now `min-w-0 truncate` — the one
+  thing on that line that may give way.
+
+### `settings.title` was a key that does not exist
+
+In the mobile section select's `sr-only` label
+(`features/settings/settings-page.tsx`), so only a screen reader would
+have said it. Replaced with `nav.settings`.
+
+Then **every** `t('...')` literal in `frontend/src` was checked against
+both locale files: 20 hits, 19 of which resolve through i18next plural
+suffixes (`_one`/`_other`). `settings.title` was the only real one.
+
+### Texture packs: three named, five hold icons
+
+The user asked whether the list under Item-Icons is complete. Counted
+against the installation at `/Volumes/ESD-USB/ProjectZomboid`:
+
+```
+strings -n 6 <pack> | grep -c '^Item_'
+```
+
+| Pack | `Item_*` sprites | was listed |
+|---|---|---|
+| UI2.pack | 3848 | yes |
+| UI.pack | 563 | yes |
+| ApComUI.pack | 44 | yes |
+| **RadioIcons.pack** | **13** | **no** |
+| **IconsMoveables.pack** | **7** | **no** |
+
+Twenty vanilla icons never arrived. `IconController::WANTED_PACKS` now
+names all five, and `IconUploadTest::testTellsTheInterfaceEveryPackThat
+HoldsItemIcons` carries the counts as its failure message. **Proved by
+reverting**: with three packs the test fails.
+
+The interface needed no change — the card renders `status.wanted`.
+
+### Shipping the vanilla art: asked, and declined with reasons
+
+> "Die Texturpakete die wir lokal bereits für die vanilla items und
+> fahrzeuge haben könnten wir aber auch committen"
+
+Not done, and the reasoning belongs here so it is not revisited blind:
+
+- **Rule 10b and `backend/.gitignore:8` already answer it** — the
+  artwork is The Indie Stone's. The terms permit *showing* it in a
+  non-commercial fan project with a visible notice (`/app/credits`);
+  redistributing it in a repository is a different act.
+- **81 MB** — `backend/var/icons` is 17 MB (4352 files) and
+  `backend/var/vehicle-models` is 64 MB. In every clone, every CI run
+  and every image layer, permanently, because git does not forget.
+- **Mod models belong to their authors**, which the credits page states.
+
+The operator's path already exists: upload the packs, or run
+`app:icons:extract <path>`. If first-run guidance is wanted, that is the
+thing to build — not a commit of the art.
+
+### What was verified
+
+Fifteen routes × three widths, in the browser:
+
+| Width | Result |
+|---|---|
+| 390 | no overflow, no live scroller, no target under 32px, no raw key |
+| 820 | no overflow, no live scroller |
+| 1512 | no overflow, tables still tables (1157px / 1022px), cards hidden, padding 24px, centred 237/237 |
+
+Suites after the change: **800 backend** (14343 assertions), **362
+frontend**, lint **0 errors**.
+
+One diagnosis worth keeping: the panel first answered "Diese Seite konnte
+nicht geladen werden" on every route. Not a code fault — the **service
+worker was serving a precache manifest whose assets the rebuild had
+removed**. Unregistering it and clearing `caches` fixed it. Worth
+recognising quickly after any `npm run build` during a browser session.
+
+Version bumped to **1.0.7**.

@@ -22,7 +22,9 @@ export function AppLayout() {
             how wide the sidebar is. */}
         <SidebarInset className="h-svh overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
-            <SidebarTrigger className="-ml-1" />
+            {/* The one control that opens the navigation on a phone, so
+                it gets a touch target rather than shadcn's 28px. */}
+            <SidebarTrigger className="-ml-1 size-9 sm:size-7" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumbs />
 
@@ -37,7 +39,11 @@ export function AppLayout() {
               without it flex-1 grows past the viewport instead. The
               scrolling lives here rather than on the page, which is
               what keeps the header and footer still. */}
-          <main className="pz-surface min-h-0 flex-1 overflow-y-auto p-6">
+          {/* `overflow-x-hidden` alongside: `overflow-y-auto` alone makes
+              the x axis `auto` too, so anything a few pixels too wide
+              drew a horizontal bar across the page. Content that really
+              needs to scroll sideways carries its own scroller. */}
+          <main className="pz-surface min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
             <PageTransition />
           </main>
 
