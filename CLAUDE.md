@@ -582,6 +582,71 @@ the fault was its *shape*.
 - `frontend/src/lib/api.test.ts` guards both directions: the client must
   keep stringifying, and no feature module may do it twice.
 
+## 10g0. Narrow is a width to design for, not to squeeze into
+
+A pass over fifteen pages at 390, 820 and 1512 px found nine faults, and
+two of them cost the operator a control rather than looking untidy. The
+user set the standard: **"Auch mobil muss die UX perfekt sein und es darf
+nichts zu schmal sein"**, and then narrowed it further — **"mobil sollten
+möglichst gar keine horizontalen scrollbars angezeigt werden müssen"**,
+and where one is unavoidable, **"sollte die ansicht mobil so angepasst
+werden das es besser bedienbar ist"**.
+
+So a sideways scroller on a phone is a shape to replace, not a scroller
+to tidy.
+
+- **A table wider than its frame becomes cards, and the breakpoint is
+  `lg`.** `sm` is wrong: at 820px with the sidebar open the content
+  frame is **549px**, so both five-column tables still scrolled on a
+  tablet. Lift the cell bodies into components used by both views, or
+  they drift apart.
+- **`overflow-y-auto` makes the x axis `auto` too.** A few stray pixels
+  then draw a bar across the whole page. `overflow-x-hidden` beside it,
+  and anything genuinely wide carries its own scroller.
+- **`scrollbar-gutter: stable` reserves on the end edge only**, which
+  puts every centred page half a scrollbar off centre — 229 left against
+  244 right, and the user saw it. `both-edges` fixes that and costs
+  **twice** the bar, 30 of 390 pixels, so it belongs from `lg` up; below
+  that let the bar overlay (`scrollbar-width: none`), which is what a
+  phone does natively. And put the rule on the element that scrolls: it
+  sat on `html` while `main` was the scroller.
+- **Measure the header and footer, not just `main`.** The worst fault was
+  a 150px button label pushing the language and theme buttons to 414px in
+  a 375px header — outside the viewport, with `overflow-x-hidden` hiding
+  the evidence. A label that long is icon-only below `sm`.
+- **32px is the floor for anything touchable.** Six controls were under
+  it, including the sidebar trigger — the one button that opens the
+  navigation on a phone.
+- **One child on a `flex-nowrap` row must be allowed to give way.** Every
+  child `shrink-0` ran the credential row 53px past the frame; the label
+  is `min-w-0 truncate` now.
+- **A probe that reports everything reports nothing.** Skip what lives
+  inside a scroller of its own, skip `truncate`, and count a scroller
+  only when `scrollWidth > clientWidth`. Otherwise every table is a false
+  positive and the real fault is buried.
+
+## 10g0b. A raw translation key can hide where only a screen reader looks
+
+`settings.title` sat in an `sr-only` label and exists in neither locale.
+Nothing on screen showed it; a screen reader would have read the key
+aloud.
+
+Check the whole surface rather than the page in front of you: every
+`t('...')` literal in `frontend/src`, against both files. Of 20 hits, 19
+resolved through i18next plural suffixes (`_one`, `_other`) and one was
+real — so **the check has to know about the suffixes**, or it produces
+nineteen false alarms and gets ignored.
+
+## 10g0c. A service worker serves the build that no longer exists
+
+Every route answered "Diese Seite konnte nicht geladen werden" after a
+rebuild, with **no console error and every asset returning 200**. The
+precache manifest still named the previous build's chunks.
+
+After any `npm run build` during a browser session, unregister the worker
+and clear `caches` before debugging the code. Fifteen minutes went into
+correct code because the symptom looks like an application fault.
+
 ## 10g1. A grid `1fr` is not zero-minimum
 
 Reported twice from the browser and both times it looked like a
