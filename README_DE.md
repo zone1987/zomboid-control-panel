@@ -192,9 +192,11 @@ Weiter geht es beim [ersten Anmelden](#das-erste-mal-anmelden).
 
 ### Coolify: was du danach noch tun kannst
 
-- **Automatische Updates.** Unter *Configuration → General* gibt es
-  **Automatic Deployment**. Schalte es ein, und Coolify holt neue
-  Versionen selbst.
+- **Automatische Updates.** Nicht über den Schalter **Automatic
+  Deployment** unter *Configuration → General* — der beobachtet ein
+  Git-Repository, und dieses Panel kommt als fertiges Image, dort ist
+  also nichts zu sehen. Der Deploy-Webhook erledigt es stattdessen:
+  [Aktualisieren, ohne zu klicken](#aktualisieren-ohne-zu-klicken).
 - **Neustart.** Der **Restart**-Knopf oben rechts.
 - **Ins Protokoll schauen.** Der Reiter **Logs** — dort steht, was das
   Panel beim Start macht und ob etwas fehlt.
@@ -445,8 +447,8 @@ kostet dieselbe Berechtigung wie der entsprechende Knopf im Panel. Etwas
 
 ## Aktualisieren
 
-**In Coolify:** klick auf **Redeploy**. Oder schalte unter *Configuration →
-General* die **Automatic Deployment** ein, dann macht Coolify es selbst.
+**In Coolify:** klick auf **Redeploy**. Die Compose-Datei setzt
+`pull_policy: always`, das aktuelle Image wird also jedes Mal geholt.
 
 **Mit Docker:**
 
@@ -460,6 +462,79 @@ Die Datenbank wird beim Start automatisch angepasst — du musst nichts tun.
 Das Panel sagt dir oben im Kopfbereich, wenn es eine neuere Version gibt.
 Nach einem Update meldet die Bridge-Seite, ob auch die Bridge erneuert
 werden muss.
+
+### Aktualisieren, ohne zu klicken
+
+Hier steckt eine Falle, die benannt gehört, denn der Schalter, der
+richtig klingt, ist der falsche.
+
+Coolify hat unter *Configuration → General* die **Automatic
+Deployment** — und die hilft bei diesem Panel nicht. Sie beobachtet ein
+**Git-Repository** auf neue Commits. Dieses Panel wird als fertiges Image
+ausgeliefert, eine neue Version ändert also keine Datei, die Coolify
+sieht: sie ändert nur, auf welches Image der Tag `latest` zeigt. Ein
+wandernder Registry-Tag ist kein Ereignis, und von allein merkt das
+niemand.
+
+Was funktioniert, ist Coolify Bescheid zu sagen. Genau dafür gibt es
+einen **Deploy-Webhook** — wird er aufgerufen, holt Coolify das aktuelle
+Image und startet einen neuen Container.
+
+**1. API-Zugriff erlauben.** In Coolify unter *Settings → Advanced* den
+**API Access** einschalten, falls er aus ist.
+
+**2. Token anlegen.** *Keys & Tokens → API Tokens → Add*, mindestens mit
+der Berechtigung **deploy**. Gleich kopieren — Coolify zeigt ihn nur
+einmal.
+
+**3. Die Webhook-Adresse holen.** Öffne deine Anwendung, dann *Automation
+→ Webhooks*. Der oberste, der **Deploy webhook**, ist der richtige. Er
+sieht so aus:
+
+```
+https://coolify.example.com/api/v1/deploy?uuid=DEINE-UUID&force=false
+```
+
+Die vier darunter — GitHub, GitLab, Bitbucket, Gitea — sind für etwas
+anderes: mit ihnen reagiert Coolify auf einen Git-Push. Die brauchst du
+hier nicht.
+
+**4. Ihn aufrufen, wann immer das Panel erneuert werden soll.**
+
+```bash
+curl --fail \
+  --header "Authorization: Bearer DEIN-TOKEN" \
+  "https://coolify.example.com/api/v1/deploy?uuid=DEINE-UUID&force=false"
+```
+
+`force=false` ist richtig so: es heißt „nicht von Grund auf neu bauen".
+Hier wird nichts gebaut — das Image ist fertig und kommt aus der
+Registry.
+
+Diesen Aufruf legst du hin, wo es dir passt: als Cron-Eintrag auf
+irgendeinem Rechner, als Knopf in deinen eigenen Werkzeugen oder in einer
+CI.
+
+<details>
+<summary>Eigener Fork? Aus GitHub Actions deployen</summary>
+
+Wenn du das Image selbst baust, kann der Release-Workflow den Webhook für
+dich aufrufen. Lege unter *Settings → Secrets and variables → Actions*
+zwei Repository-Secrets an:
+
+| Secret | Wert |
+|---|---|
+| `COOLIFY_WEBHOOK` | die Deploy-Webhook-Adresse aus Schritt 3 |
+| `COOLIFY_TOKEN` | der API-Token aus Schritt 2 |
+
+Den Job hat `.github/workflows/release.yml` bereits. Er läuft **nach**
+der Veröffentlichung des Releases — also nachdem das Image gepusht wurde,
+und das geschieht erst, wenn dieses Image zweimal gestartet ist und
+geantwortet hat. Coolify wird also nie aufgefordert, etwas zu holen, das
+es nicht gibt oder das nicht läuft. Fehlen die Secrets, überspringt der
+Job sich einfach.
+
+</details>
 
 ### Bei einer bestimmten Version bleiben
 

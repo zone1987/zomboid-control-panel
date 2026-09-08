@@ -96,8 +96,8 @@ is testing a commit that is not the one being shipped.
 | Workflow | Fires on | Does |
 |---|---|---|
 | `checks.yml` | pull request | backend suite, frontend lint/test/build, image **built and started but never pushed** |
-| `main.yml` | push to main | image built, started, pushed as `latest` |
-| `release.yml` | tag `v*` | gate → frontend build → image pushed as the version → GitHub release |
+| `main.yml` | push to main | image built, started, pushed as `main` and the short SHA |
+| `release.yml` | tag `v*` | gate → frontend build → image pushed as the version **and `latest`** → GitHub release → Coolify told to pull |
 
 **`strict: true` on main's protection is load-bearing.** "Require
 branches to be up to date before merging" makes the commit that passed
@@ -122,8 +122,19 @@ Four things the pipeline enforces so they cannot be forgotten:
   `.github/scripts/start-image.sh`, which three workflows call — change
   the check once, not three times.
 - **A release only comes from main**, and only from a green one.
-- **`latest` moves on every merge to main**, and again on a release. A
-  prerelease tag (one containing `-`) deliberately does not move it.
+- **`latest` moves only on a release**, never on a merge to main. The
+  compose file defaults to `latest` with `pull_policy: always`, so
+  moving it from main would put untagged code into a production
+  container at its next restart. Main publishes `main` and the short
+  SHA; a prerelease tag (one containing `-`) moves nothing.
+- **The deployment is told, because nothing watches a registry tag.**
+  Coolify's "Automatic Deployment" reacts to git commits, and a release
+  changes no file it can see — so `release.yml` calls the Coolify deploy
+  webhook itself, from `COOLIFY_WEBHOOK` and `COOLIFY_TOKEN`. It runs
+  **after** the release is published and therefore after the image was
+  pushed, which happens only once that image has started twice and
+  answered. Absent secrets skip the job rather than failing it, so a
+  fork is not broken by it.
 
 Versioning is semantic: a fix that changes nothing for the operator is a
 patch, a new capability is a minor, and anything that makes an existing

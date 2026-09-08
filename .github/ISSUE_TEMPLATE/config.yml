@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation or setup question
+    url: https://github.com/zone1987/zomboid-control-panel/discussions
+    about: >-
+      "It will not start", "RCON says not reachable", "no players are
+      listed" — the README's "When something does not work" answers most
+      of these by the message you are seeing. Ask here if it does not.
+
+  - name: A security problem
+    url: https://github.com/zone1987/zomboid-control-panel/security/advisories/new
+    about: >-
+      Report it privately here, never as a public issue. This panel holds
+      RCON and FTP credentials for other people's game servers.

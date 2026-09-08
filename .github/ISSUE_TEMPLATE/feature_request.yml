@@ -1,0 +1,59 @@
+name: Feature request
+description: Something the panel should be able to do
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The standard this panel is held to is **intuitive**, not
+        "has the feature" — so the most useful thing you can write is
+        what you are actually trying to get done, not the control you
+        have in mind. The control is the easy part.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation on your server, not the button you want.
+      placeholder: |
+        When a player reports being stuck in scenery I want to see where
+        they are and move them, without alt-tabbing into the game.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: How you imagine it working
+      description: Optional. A rough shape is fine.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the panel?
+      options:
+        - Players
+        - The map
+        - Items
+        - Vehicles
+        - Events and weather
+        - Server configuration
+        - Chat or the console
+        - Discord
+        - Users and permissions
+        - The Lua bridge
+        - Something new / not sure
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        **One thing worth knowing before you write:** this panel runs
+        *remotely*, reaching the game only over RCON, FTP and the Lua
+        bridge. So host CPU and memory readings, starting a stopped
+        server, or anything needing the panel to sit beside the game
+        cannot work here — the README's *What the panel deliberately
+        cannot do* says which and why. If your idea touches one of
+        those, say what you are after anyway: there is often a remote
+        equivalent worth building.

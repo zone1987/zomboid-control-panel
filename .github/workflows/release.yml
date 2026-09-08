@@ -122,6 +122,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # `latest` is computed here but only applied by the push step
+          # at the end of this job -- after the image has been started
+          # twice and answered. A build that fails to start leaves
+          # `latest` pointing at the previous release, which is what a
+          # deployment tracking it should keep running.
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -230,3 +235,52 @@ jobs:
             A bridge on disk is not yet a running bridge — the game loads it
             at start, and the panel's bridge page reports the version that is
             actually answering, not the file.
+
+  deploy:
+    name: Tell Coolify to pull
+    runs-on: ubuntu-latest
+    needs: [release]
+    # A prerelease does not move `latest`, so there is nothing for a
+    # deployment tracking it to pull.
+    if: ${{ !contains(github.ref_name, '-') }}
+
+    steps:
+      # Coolify cannot see that `latest` now points somewhere else --
+      # a registry tag moving is not an event anything watches -- so the
+      # release tells it.
+      #
+      # The order this depends on: `image` pushes the tags only after the
+      # built image has started twice and answered, and this job needs
+      # `release`, which needs `image`. So by the time Coolify is asked
+      # to pull, the image exists, has been proven to start, and its
+      # release notes are published.
+      #
+      # Skipped rather than failed when the secrets are absent: a fork,
+      # or anybody else running this pipeline, has no Coolify to call.
+      - name: Trigger the deployment
+        env:
+          WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$WEBHOOK" ] || [ -z "$TOKEN" ]; then
+            echo "::notice::COOLIFY_WEBHOOK or COOLIFY_TOKEN is not set; nothing to deploy to."
+            exit 0
+          fi
+
+          code=$(curl --silent --show-error --location \
+            --max-time 60 \
+            --output response.txt \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $TOKEN" \
+            "$WEBHOOK")
+
+          echo "Coolify answered $code"
+          cat response.txt
+
+          # A 2xx means Coolify accepted the request and queued a
+          # deployment; it does not mean the container is up yet. The
+          # panel's own version line is what proves that.
+          case "$code" in
+            2*) echo "::notice::Coolify queued a deployment for ${GITHUB_REF_NAME}." ;;
+            *)  echo "::error::Coolify refused the deploy webhook (HTTP $code)."; exit 1 ;;
+          esac

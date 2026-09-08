@@ -1,0 +1,60 @@
+name: Release checklist
+description: Cut a new version — the steps, in order
+title: 'Release vX.Y.Z'
+labels: ['release']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The pipeline enforces most of this, so the list is short. What it
+        cannot check is the part that needs judgement: the version number
+        and whether the bridge moved.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >-
+        Semantic. A fix that changes nothing for the operator is a patch,
+        a new capability is a minor, and anything that makes an existing
+        installation need attention on upgrade is a major.
+      placeholder: 1.0.8
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: before
+    attributes:
+      label: Before tagging
+      options:
+        - label: Everything intended is merged into `main`
+        - label: '`app.version` in `backend/config/services.yaml` matches the version above — the release job refuses a mismatch'
+        - label: '`BRIDGE_VERSION` bumped **only if the Lua actually changed** (it has its own upgrade path: the operator uploads it and restarts the game server)'
+        - label: CONTEXT.md has an entry for what is going out
+        - label: Both READMEs describe any new setting
+
+  - type: checkboxes
+    id: cut
+    attributes:
+      label: Cutting it
+      options:
+        - label: '`git tag -a vX.Y.Z -m "…"` on `main`, then `git push origin vX.Y.Z`'
+        - label: The Release workflow finished green — gate, frontend, image, release, deploy
+
+  - type: checkboxes
+    id: after
+    attributes:
+      label: Afterwards, checked rather than assumed
+      options:
+        - label: 'The GitHub release exists and carries `ZomboidControlBridge.lua` and its `.sha256`'
+        - label: '`ghcr.io/…:X.Y.Z` and `…:latest` resolve to the **same digest** — a `latest` left behind is how a deployment keeps running the previous version'
+        - label: The running panel reports the new version in its footer
+        - label: If the bridge moved — said so plainly, because only the operator can upload it and restart
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything unusual about this one
+      placeholder: |
+        Needs a manual step, has a migration worth watching, or reverts
+        something from the last release.
