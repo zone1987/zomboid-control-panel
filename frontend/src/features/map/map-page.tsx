@@ -91,7 +91,10 @@ export function MapPage() {
     // and any arithmetic over header and padding sizes goes stale the
     // moment one of them changes. `min-h` keeps it usable on a short
     // window, where scrolling to the map is better than a sliver of it.
-    <div className="relative min-h-[30rem] w-full flex-1">
+    // `-mb-4` cancels the page wrapper's `pb-4`, which is the gap other
+    // pages want above the footer. The map is edge-to-edge, so it left
+    // 40px below against 24px on the other three sides.
+    <div className="relative -mb-4 min-h-[30rem] w-full flex-1">
       <WorldMap
         source={PROJECT_ZOMBOID_MAP}
         players={players}

@@ -63,6 +63,9 @@ security:
         - { path: ^/api/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/setup, roles: PUBLIC_ACCESS }
         - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        # The login page asks which providers to offer before anybody has
+        # signed in, which is the whole point of it.
+        - { path: ^/api/login/providers$, roles: PUBLIC_ACCESS }
         - { path: ^/api/session$, roles: PUBLIC_ACCESS }
         - { path: ^/api/passkeys/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/connect/(google|steam)$, roles: PUBLIC_ACCESS }

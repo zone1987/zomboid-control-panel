@@ -7160,3 +7160,84 @@ image rather than pulling. The compose file lost `pull_policy` when
 not yet settled on the real installation.
 
 Version bumped to **1.0.4**.
+
+---
+
+## 2026-09-08 — Map spacing, and login buttons that lead somewhere
+
+Checked the deployed panel after the 1.0.4 redeploy. The map now renders
+(650px on an 806px window, 688px on a phone, no overlaps, no scrollbar),
+and the footer reads `Panel v1.0.4` with no update banner. Two further
+faults came out of looking at it.
+
+### The gap below the map was 40px against 24px everywhere else
+
+Measured rather than eyeballed: `gapLeft: 24, gapRight: 24, gapTop: 24,
+gapBottom: 40`. The extra 16px is `pb-4` on `.pz-page`, which every other
+page wants as breathing room above the footer. The map is edge-to-edge,
+so it read as a mistake. `-mb-4` on the map page cancels it; all four
+sides are now 24.
+
+### The attribution overlapped the places button
+
+`© The Indie Stone · projectzomboidmap.com · B42.20.2` ran under the
+"Orte" button by **15px** at 540px wide. The attribution had
+`max-w-[calc(100%-6rem)]`, but the button is 87px plus its own 0.75rem
+edge — 6rem was never enough. Now 8rem, verified at 390 and 540px.
+
+**Why the earlier probe missed it**: it compared the map's *siblings*,
+and both of these live *inside* the map. Widening it to include
+descendants found the clash immediately — and buried it in 200 lines of
+noise from the map's own markers, which overlap each other by design. A
+useful probe here needs the wider net and a filter for the elements that
+are chrome rather than content.
+
+### Login buttons for providers nobody can use
+
+The user asked for the Google and Steam buttons to appear only when a
+provider can actually sign somebody in. Their first framing — "when at
+least one user is connected" — has a trap worth recording: with nobody
+linked the button disappears, and the first person can never link,
+because linking happens while signed in. So the condition chosen was
+**configured *and* linked**, with linking always available under Account.
+
+`GET /api/login/providers` (`LoginProvidersEndpoint`) answers
+`{google, steam}`:
+
+- **Google** needs credentials *and* a linked account: without the client
+  id the redirect cannot even be built.
+- **Steam** needs only a linked account. Steam signs in over OpenID and
+  needs no key — `STEAM_API_KEY` only reads names and avatars afterwards,
+  which is a deliberate asymmetry rather than an oversight.
+
+It is `PUBLIC_ACCESS` in `security.yaml`, which the first test run caught:
+the endpoint answered `auth.required`, and it is asked *before* a login by
+definition.
+
+Guarded by `LoginProvidersTest` (6 cases: nothing offered on a fresh
+install, Steam on a link alone, Google refused with a link but no
+credentials, refused with credentials but no link, offered with both, and
+reachable unauthenticated) and `login-providers.test.ts` (4 cases reading
+the page's own wiring, proven by restoring an ungated button and watching
+it fail).
+
+The divider above the buttons is now conditional too: a label reading
+"or continue with" over an empty area is worse than no label.
+
+**Not verified in a browser**, and worth saying plainly: every attempt to
+view the login page in ddev redirected to `/app` because the session was
+live, and one attempt bounced through Steam's OpenID and signed back in.
+The endpoint and the wiring are covered by tests; the rendered result is
+not.
+
+### Left alone at the user's request
+
+Google linking redirects to `/app/` and appears to do nothing. The cause
+is visible in `GoogleAuthenticator::onAuthenticationSuccess`, which
+always returns `RedirectResponse('/app/')` — so a *linking* attempt looks
+identical to a sign-in. Credentials are configured and the outbound
+redirect to Google is correct (verified: the consent screen loads with
+the right client id and redirect uri). The user asked to leave it for
+now.
+
+Version bumped to **1.0.5**.
