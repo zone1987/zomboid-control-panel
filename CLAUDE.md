@@ -320,6 +320,23 @@ Two rules follow from it:
   re-registers and answers `/api/...` itself, so `page.route` never
   sees the request and an interception test looks like a broken
   component. Unregister it before mocking, not only before debugging.
+- **Truncate for display, never before parsing.** The deploy probe cut
+  the response to 500 characters — right for an error message shown as
+  text, fatal for a success body: Coolify answers with ~8 kB of
+  application, the cut JSON would not parse, and `applicationName` came
+  back `null` beside an HTTP 200. No exception, no log, just an empty
+  field. Parse the whole body and shorten only what is displayed.
+- **Ask the API before repeating "it cannot be done".** The card's own
+  text claimed a platform cannot be asked whether a deploy would work.
+  Coolify's OpenAPI lists five token permissions and a
+  `GET /applications/{uuid}` that changes nothing — so a real check was
+  available all along. A sentence in the interface asserting an
+  impossibility is a claim to verify, not a constraint to design around.
+- **The browser's HTTP cache holds a stale index.html too.** After a
+  rebuild, Chrome asked for an `index-<hash>.js` that no longer existed;
+  the server answered the SPA shell, and the module failed on MIME type
+  with a blank page. Unregistering the service worker was not enough —
+  `Network.clearBrowserCache` was. So rule 10g0c has a second half.
 
 ## 6d. Send only what changed
 

@@ -8443,3 +8443,203 @@ Both were proven separately.
 - The pre-existing findings from the previous entry (sub-32px touch
   targets, `ServerFileBrowser.php:117` reversed arguments) are still
   open.
+
+---
+
+## 2026-09-08 (late) — v1.2.3 released; the Coolify test button rebuilt
+
+**v1.2.3 is out.** The language fix from PR #15 shipped: gate → frontend
+build → image pushed as 1.2.3 and `latest` → release published, all four
+jobs `success`. The operator's item names should be German after their
+next deployment.
+
+### The new request, and the assumption it overturned
+
+The user: *"der button 'Test senden' startet direkt ein deployment in
+coolify. Können wir das so umbauen. das es zwar die verbindung prüft
+aber nicht direkt das deployment startet?"* — plus, separately, a real
+**"Jetzt deployen"** button, and: *"Können wir dann auch mit dem panel
+automatisch darauf reagieren wenn das deployment in coolify durch ist
+das es vielleicht automatisch von selbst neulädt"*.
+
+The card's own text claimed this was impossible — *"man kann eine
+Plattform nicht fragen, ob es klappen würde"*. **That was wrong.**
+Coolify's OpenAPI (fetched from
+`raw.githubusercontent.com/coollabsio/coolify/main/openapi.json`, 1 MB)
+shows five token permissions — `read`, `read:sensitive`, `write`,
+`deploy`, `root` — and a `GET /applications/{uuid}` that changes
+nothing.
+
+**The uuid is already in the webhook the operator pasted**
+(`?uuid=7yjy9uoz032inopxjf2mzvcl`), so the probe needs no new field.
+
+### Decisions the user made
+
+1. **Two buttons**: a harmless "check the connection" and a real "deploy
+   now" **with a plain-language confirmation** naming the restart.
+2. **The browser follows the deployment and reloads.** This is
+   structural rather than a preference: the panel restarts partway
+   through its own deployment, so a backend watching itself would die
+   mid-answer. `POST /deploy` returns `deployment_uuid`, and
+   `GET /deployments/{uuid}` reports on that exact one.
+3. The user **created a new Coolify token with `read` and `deploy`** and
+   entered it locally and on production. The old one had `deploy` only —
+   which is why the probe treats a 403 as *still deployable*.
+
+### Backend: written, tested, and measured against the real Coolify
+
+**`backend/src/Panel/DeployProbeVerdict.php`** — eight states:
+`ready`, `noReadPermission`, `tokenRejected`, `notFound`,
+`unreachable`, `notConfigured`, `noUuid`, `refused`. `looksReady()` is
+true for `ready` **and** `noReadPermission`, because Coolify's `deploy`
+and `read` are separate rights: a token that cannot read can still
+deploy, and reporting that as broken would be the collapsed-state fault
+again. Carries `applicationName` and `applicationState`.
+
+**`backend/src/Panel/DeployProbe.php`** — `probe()` and
+`statusOf($deploymentUuid)`. `readUrlFrom()` and `baseOf()` are static
+and pure, so the uuid extraction is testable without HTTP. 401 →
+`tokenRejected`, 403 → `noReadPermission`, 404 → `notFound`, anything
+else → `refused` (kept as its own state, never bent).
+
+**`backend/src/Panel/DeploymentStatus.php`** — `running`, `finished`,
+`failed`, `cancelled`, `unknown`, `notFound`, `unreachable`.
+**Coolify's `status` is a free string with no enum in the spec**, so
+`fromReported()` maps the words it knows and keeps anything else as
+`unknown` — and `unknown` is deliberately **not** settled, so the
+interface keeps asking rather than declaring a result it cannot see.
+
+**`DeployTrigger::deploymentUuidIn()`** plus a `deploymentUuid` on
+`DeployOutcome`, so the interface follows the deployment it started
+rather than the newest one it can see.
+
+**`backend/src/Command/DeployProbeCommand.php`** — `app:deploy:probe`,
+optionally with a deployment uuid. Useful to the operator later, and it
+is how this was verified.
+
+**Routes** in `SettingsController`: `POST /api/settings/deploy/probe`
+and `GET /api/settings/deploy/status/{deploymentUuid}` — a GET because
+the browser asks repeatedly and asking changes nothing.
+
+### Measured against the operator's own Coolify — it works
+
+`ddev exec … "php bin/console app:deploy:probe"`:
+
+```
+state         ready
+http status   200
+application   Zomboid Control Panel
+running       running:healthy
+detail        —
+```
+
+Nothing was deployed. And the probe endpoint through the browser
+answered `{"state":"ready","status":200,...}` with HTTP 200.
+
+### A bug found and fixed in the writing, worth its own note
+
+`$body = mb_substr(trim($response->getContent(false)), 0, 500)` — the
+truncation was meant for failure detail, and it **destroyed the success
+answer**: Coolify returns roughly 8 kB of application, so the cut JSON
+would not parse and `applicationName` came back `null` beside a 200. No
+error, no exception, just an empty field.
+
+The fix parses the whole body and shortens only the failure detail.
+`testReadsTheNameOutOfAnAnswerLongerThanTheDetailLimit` fails with
+*"Failed asserting that null is identical to 'Zomboid Control Panel'"*
+when reverted — proven, not assumed. **A truncation applied before
+parsing is a silent data loss**; that belongs in CLAUDE.md.
+
+**26 unit tests** in `DeployProbeTest`, including
+`testNeverCallsTheDeployHook`, which asserts the exact single request
+`GET …/applications/{uuid}` — the reported bug cannot return.
+
+### Not done — resume here
+
+1. **`frontend/src/features/settings/deploy-card.tsx` is untouched**
+   (164 lines). It still has one button wired to `testDeployHook` at
+   `:45-48`, `:118-126`. Needs: a "check" button calling the new probe,
+   a "deploy now" button behind a confirmation dialog naming the
+   restart, and the progress/reload flow.
+2. **`clearServerCache`-style API functions** for `probeDeploy` and
+   `deployStatus` in `settings.ts` — pass the object, never
+   `JSON.stringify` (rule 10f2).
+3. **The reload flow**, which is the delicate part: after `POST
+   /deploy`, hold the returned `deploymentUuid`, poll
+   `/deploy/status/{uuid}`, expect the panel itself to become
+   unreachable partway through (that is success, not failure), then poll
+   `/api/health` until it answers and reload. An `unknown` status must
+   not be read as done, and a failed deployment must say so rather than
+   reloading into the old version.
+4. **Seven locales** for every new key: `settings.deploy.probe.*` (eight
+   states), the two button labels, the confirmation text, the progress
+   text.
+5. **Functional tests** for both endpoints, with the warning capture
+   from rule 10h2.
+6. **Remove the now-false sentence** `settings.deploy.testWarning`
+   ("Das rollt wirklich aus: man kann eine Plattform nicht fragen, ob es
+   klappen würde") in all seven locales — it is the claim this work
+   disproved.
+7. `app.version` → 1.2.4, then browser check at 390/820/1512, PR, merge,
+   tag.
+
+### Also open, from earlier
+
+- **The cache card's sentence is unclear**: *"Die Namen werden beim
+  nächsten Laden neu gelesen"* — the user asked *"welche Namen?"*. It
+  means the item and vehicle names, and the sentence never says so.
+  `settings.cacheClearedDetail_*` in seven locales.
+- Their screenshot showed **"9 Einträge für 1 Server geleert"** where
+  local said 21 — the difference is 2 languages instead of 7, which is
+  the same `SupportedLanguages` bug, visible as a number. Should be 21
+  after v1.2.3.
+- **`APP_PUBLIC_URL` on production looks wrong**: the Steam redirect
+  carried `openid.return_to=http://zomboid.andreas-gerhardt.com/...`
+  while the site serves HTTPS.
+- Sub-32px touch targets; `ServerFileBrowser.php:117` reversed
+  `StorageException` arguments.
+
+### Frontend done, verified in the browser — 2026-09-08, late
+
+`deploy-card.tsx` now has **two buttons**. Measured with a request
+listener attached:
+
+- **"Verbindung prüfen"** fires exactly `POST /api/settings/deploy/probe`
+  and nothing else, and renders *"Verbindung steht — Anwendung: Zomboid
+  Control Panel · running:healthy"*. The reported bug cannot recur.
+- **"Jetzt deployen"** opens the confirmation naming the restart, and
+  **Abbrechen issues no request at all** (`callsAfterCancelling: []`).
+
+New files: `use-deployment-watch.ts` (the browser follows the
+deployment, expects the panel to vanish mid-flight, then polls
+`/api/health` and reloads), `deploy-confirm.tsx`.
+`testDeployHook` was renamed `triggerDeployment` — "test" was the wrong
+word for the button that replaces the panel. `settings.deploy.test` and
+`settings.deploy.testWarning` are deleted from all seven locales; the
+warning was the false claim this work disproved.
+
+888 backend tests, 403 frontend tests, 40 locale tests, lint 0 errors,
+tsc clean, build clean. No horizontal scroll at 390/820/1512; the two
+new buttons are both above the 32px floor.
+
+### Two environment problems hit on the way, both worth knowing
+
+1. **`backend/.env` had lost its `DATABASE_URL` line** — a tracked
+   file, modified outside this work, which broke *every* functional
+   test with `EnvNotFoundException` (including the already-merged
+   `CacheClearTest`, which is how it was identified as environmental
+   rather than mine). `git checkout -- backend/.env` restored it. Worth
+   watching: if it disappears again, something is rewriting that file.
+2. **The browser's HTTP cache served a stale `index.html`**, asking for
+   an asset hash that no longer existed; the server answered the SPA
+   shell and the module died on MIME type with a blank page and one
+   console error. Unregistering the service worker did **not** fix it;
+   `Network.clearBrowserCache` over CDP did. Added to CLAUDE.md 6c.
+
+### Still open after this
+
+- The cache card's *"Die Namen werden beim nächsten Laden neu
+  gelesen"* — the user asked *"welche Namen?"*. Not yet reworded.
+- `APP_PUBLIC_URL` on production carries `http://` in the Steam
+  redirect.
+- Sub-32px touch targets; `ServerFileBrowser.php:117`.

@@ -62,17 +62,50 @@ export type DeployResult = {
   httpStatus?: number | null
   detail?: string | null
   message: string
+  /** Which deployment to follow; Coolify names the one it queued. */
+  deploymentUuid?: string | null
 }
 
 /**
- * Fires the deploy hook for real.
- *
- * There is no "would this work" to ask a hosting platform, so the test
- * button does the thing. On a panel already running the current release
- * that is a restart, which the interface says before it is pressed.
+ * Fires the deploy hook for real: the platform pulls the image and the
+ * panel restarts. `probeDeployHook` is the one that only asks.
  */
-export function testDeployHook(): Promise<DeployResult> {
+export function triggerDeployment(): Promise<DeployResult> {
   return apiFetch<DeployResult>('/settings/deploy/test', { method: 'POST', body: {} })
+}
+
+export type DeployProbeResult = {
+  status: string
+  state:
+    | 'ready'
+    | 'noReadPermission'
+    | 'tokenRejected'
+    | 'notFound'
+    | 'unreachable'
+    | 'notConfigured'
+    | 'noUuid'
+    | 'refused'
+  httpStatus?: number | null
+  detail?: string | null
+  applicationName?: string | null
+  applicationState?: string | null
+  messageKey: string
+}
+
+/** Reads the platform. Starts no deployment. */
+export function probeDeployHook(): Promise<DeployProbeResult> {
+  return apiFetch<DeployProbeResult>('/settings/deploy/probe', { method: 'POST', body: {} })
+}
+
+export type DeploymentProgress = {
+  state: 'running' | 'finished' | 'failed' | 'cancelled' | 'unknown' | 'notFound' | 'unreachable'
+  reported?: string | null
+  detail?: string | null
+  settled: boolean
+}
+
+export function deploymentProgress(deploymentUuid: string): Promise<DeploymentProgress> {
+  return apiFetch<DeploymentProgress>(`/settings/deploy/status/${encodeURIComponent(deploymentUuid)}`)
 }
 
 export type CacheClearResult = {

@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Entity\AppSetting;
 use App\Server\Cache\ServerCacheCleaner;
 use App\Security\Permission\Permission;
+use App\Panel\DeployProbe;
+use App\Panel\DeployProbeVerdict;
 use App\Panel\DeployTrigger;
 use App\Settings\SettingsProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -308,6 +310,36 @@ final class SettingsController extends AbstractController
                 default => Response::HTTP_BAD_GATEWAY,
             },
         );
+    }
+
+    /** Reads the platform; starts nothing. */
+    #[Route('/deploy/probe', name: 'api_settings_probe_deploy', methods: ['POST'])]
+    public function probeDeploy(DeployProbe $probe): JsonResponse
+    {
+        $verdict = $probe->probe();
+
+        return new JsonResponse(
+            $verdict->toArray() + ['status' => $verdict->looksReady() ? 'ok' : 'failed'],
+            match ($verdict->state) {
+                DeployProbeVerdict::READY, DeployProbeVerdict::NO_READ_PERMISSION => Response::HTTP_OK,
+                DeployProbeVerdict::NOT_CONFIGURED, DeployProbeVerdict::NO_UUID => Response::HTTP_CONFLICT,
+                default => Response::HTTP_BAD_GATEWAY,
+            },
+        );
+    }
+
+    /**
+     * How far a running deployment has got.
+     *
+     * A GET: the browser asks repeatedly while the panel restarts, and
+     * nothing about asking changes anything.
+     */
+    #[Route('/deploy/status/{deploymentUuid}', name: 'api_settings_deploy_status', methods: ['GET'])]
+    public function deployStatus(string $deploymentUuid, DeployProbe $probe): JsonResponse
+    {
+        $status = $probe->statusOf($deploymentUuid);
+
+        return new JsonResponse($status->toArray());
     }
 
     #[Route('/cache', name: 'api_settings_clear_cache', methods: ['POST'])]

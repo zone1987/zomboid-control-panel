@@ -85,7 +85,7 @@ final readonly class DeployTrigger
                 'status' => $status,
             ]);
 
-            return DeployOutcome::queued($status, $body);
+            return DeployOutcome::queued($status, $body, self::deploymentUuidIn($body));
         }
 
         $this->logger->warning('The deploy hook refused: {status} {body}', [
@@ -94,6 +94,24 @@ final readonly class DeployTrigger
         ]);
 
         return DeployOutcome::refused($status, $body);
+    }
+
+    /**
+     * The uuid Coolify gives the deployment it just queued, so the
+     * interface can follow that one rather than the newest it sees.
+     */
+    public static function deploymentUuidIn(string $body): ?string
+    {
+        $payload = json_decode($body, true);
+
+        if (!\is_array($payload) || !\is_array($payload['deployments'] ?? null)) {
+            return null;
+        }
+
+        $first = $payload['deployments'][0] ?? null;
+        $uuid = \is_array($first) ? ($first['deployment_uuid'] ?? null) : null;
+
+        return \is_string($uuid) && preg_match('/^[A-Za-z0-9_-]{6,64}$/', $uuid) === 1 ? $uuid : null;
     }
 
     private function url(): ?string
