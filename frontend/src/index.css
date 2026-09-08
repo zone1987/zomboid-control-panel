@@ -8,11 +8,11 @@
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
+  --card: oklch(1 0 0 / 82%);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.52 0.132 162);
+  --primary: oklch(0.5 0.17 162);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -22,9 +22,9 @@
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
+  --border: oklch(0.92 0.004 286.32 / 62%);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.52 0.132 162);
+  --ring: oklch(0.5 0.17 162);
 
   --chart-1: oklch(0.52 0.132 142.5);
   --chart-2: oklch(0.58 0.115 195);
@@ -33,17 +33,33 @@
   --chart-5: oklch(0.6 0.17 20);
 
   --sidebar: oklch(0.985 0 0);
-  --sidebar-glow: color-mix(in oklab, var(--primary) 4%, transparent);
-  /* Fainter than the sidebar's: a card holds coloured state alerts
-     that must not sit on a tint of their own. */
+  /* One field behind the whole shell rather than a tint per panel, so
+     the sidebar, the bars and the content read as one surface. */
+  --page-glow-a: color-mix(in oklab, var(--primary) 7%, transparent);
+  --page-glow-b: color-mix(in oklab, var(--chart-4) 5%, transparent);
+  --page-glow-c: color-mix(in oklab, var(--chart-2) 4%, transparent);
+  /* Fainter than the page's: a card holds coloured state alerts that
+     must not sit on a tint of their own. */
   --card-glow: color-mix(in oklab, var(--primary) 2.5%, transparent);
+  /* Grey with a trace of the accent -- not plain grey, not a bright
+     green. The hover state deepens rather than brightens. */
+  --scrollbar-thumb: color-mix(
+    in oklab,
+    var(--primary) 10%,
+    color-mix(in oklab, var(--foreground) 24%, transparent)
+  );
+  --scrollbar-thumb-hover: color-mix(
+    in oklab,
+    var(--primary) 18%,
+    color-mix(in oklab, var(--foreground) 38%, transparent)
+  );
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.52 0.132 162);
+  --sidebar-primary: oklch(0.5 0.17 162);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.52 0.132 162);
+  --sidebar-border: oklch(0.92 0.004 286.32 / 55%);
+  --sidebar-ring: oklch(0.5 0.17 162);
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-900);
   --info: var(--color-violet-500);
@@ -57,11 +73,11 @@
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
+  --card: oklch(0.21 0.006 285.885 / 78%);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.765 0.155 162);
+  --primary: oklch(0.8 0.21 162);
   --primary-foreground: oklch(0.141 0.005 285.823);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
@@ -71,9 +87,9 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.765 0.155 162);
+  --ring: oklch(0.8 0.21 162);
 
   --chart-1: oklch(0.765 0.155 143);
   --chart-2: oklch(0.72 0.12 195);
@@ -82,15 +98,27 @@
   --chart-5: oklch(0.7 0.17 20);
 
   --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-glow: color-mix(in oklab, var(--primary) 7%, transparent);
+  --page-glow-a: color-mix(in oklab, var(--primary) 12%, transparent);
+  --page-glow-b: color-mix(in oklab, var(--chart-4) 10%, transparent);
+  --page-glow-c: color-mix(in oklab, var(--chart-2) 8%, transparent);
   --card-glow: color-mix(in oklab, var(--primary) 4%, transparent);
+  --scrollbar-thumb: color-mix(
+    in oklab,
+    var(--primary) 12%,
+    color-mix(in oklab, var(--foreground) 20%, transparent)
+  );
+  --scrollbar-thumb-hover: color-mix(
+    in oklab,
+    var(--primary) 20%,
+    color-mix(in oklab, var(--foreground) 34%, transparent)
+  );
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.765 0.155 162);
+  --sidebar-primary: oklch(0.8 0.21 162);
   --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.765 0.155 162);
+  --sidebar-border: oklch(1 0 0 / 6%);
+  --sidebar-ring: oklch(0.8 0.21 162);
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-600);
   --info: var(--color-violet-500);
@@ -153,7 +181,107 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    /* A hairline rather than a 3px rule: the halo below is what makes
+       focus visible, and a thick outline fought the soft borders. */
+    outline-color: color-mix(in oklab, var(--ring) 35%, transparent);
+  }
+
+  /*
+   * Focus as a glow.
+   *
+   * Keyboard focus has to be unmissable, but a saturated 3px line
+   * looked like an error state next to the frosted bars. A blurred
+   * halo in the accent is just as findable and belongs to the same
+   * visual language.
+   */
+  :focus-visible,
+  [data-slot='sidebar-menu-button']:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  [role='tab']:focus-visible {
+    outline: none !important;
+    /*
+     * `!important` on the shadow, and the ring colour supplied as well.
+     *
+     * A component's `focus-visible:ring-*` utility sits in the utilities
+     * layer, which beats this layer whatever the specificity -- so a
+     * plain `box-shadow` here lost, and writing Tailwind's
+     * `--tw-ring-shadow` lost too because the same utility reassigns it.
+     * Several components also declare `ring-*` with no colour, which
+     * resolves to a transparent ring: focus then painted nothing at all.
+     */
+    --tw-ring-color: color-mix(in oklab, var(--ring) 55%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--ring) 55%, transparent),
+      0 0 12px 2px color-mix(in oklab, var(--ring) 40%, transparent) !important;
+  }
+
+  /*
+   * The active navigation entry.
+   *
+   * `data-[active=true]:bg-sidebar-accent` painted a flat, opaque panel
+   * with a hard edge, which read as a different design language from
+   * everything around it. A gradient in the accent, fading out towards
+   * the right, sits with the page's own field and needs no border.
+   */
+  [data-slot='sidebar-menu-button'][data-active='true'] {
+    position: relative;
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--primary) 17%, transparent),
+      color-mix(in oklab, var(--primary) 5%, transparent) 60%,
+      transparent
+    );
+    /* The sidebar carries a gradient and a hatch, so there is something
+       behind this to blur -- unlike an opaque surface, where the filter
+       would cost work and show nothing. */
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    backdrop-filter: blur(10px) saturate(150%);
+    box-shadow: none;
+    transition:
+      background 200ms ease,
+      -webkit-backdrop-filter 200ms ease,
+      backdrop-filter 200ms ease;
+  }
+
+  /*
+   * The same glass on hover for an entry that is not active, at about
+   * half the strength -- so pointing at something and being on it read
+   * as the same language rather than two different ones. The selector
+   * repeats the attribute to outweigh `hover:bg-sidebar-accent`, which
+   * sits in the utilities layer.
+   */
+  [data-slot='sidebar-menu-button']:not([data-active='true']):hover[data-slot='sidebar-menu-button'],
+  [data-slot='sidebar-header'] [data-slot='dropdown-menu-trigger']:hover[data-slot='dropdown-menu-trigger'],
+  [data-slot='sidebar-header'] [data-slot='dropdown-menu-trigger'][data-state='open'] {
+    /* `hover:bg-sidebar-accent` paints a grey behind this from the
+       utilities layer, and it showed through wherever the gradient ran
+       out. The shorthand resets it, so the tint is the only colour. */
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--primary) 11%, transparent),
+      color-mix(in oklab, var(--primary) 3%, transparent) 60%,
+      transparent
+    );
+    background-color: transparent !important;
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: blur(8px) saturate(140%);
+    transition:
+      background 180ms ease,
+      -webkit-backdrop-filter 180ms ease,
+      backdrop-filter 180ms ease;
+  }
+
+  [data-slot='sidebar-menu-button'][data-active='true']:hover {
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--primary) 26%, transparent),
+      color-mix(in oklab, var(--primary) 10%, transparent) 62%,
+      transparent
+    );
+    -webkit-backdrop-filter: blur(16px) saturate(175%);
+    backdrop-filter: blur(16px) saturate(175%);
   }
 
   /* Reserved up front, so a grid does not reflow when the page grows
@@ -184,6 +312,50 @@
       width: 0;
       height: 0;
     }
+  }
+
+  /*
+   * The bar itself: thin, on the panel's own colours, and visible
+   * without announcing itself.
+   *
+   * The default is a white column against a dark shell, which is the
+   * loudest thing on the page. `thin` plus a track the colour of the
+   * surface leaves a 8px thumb that reads as part of the frame.
+   *
+   * Firefox takes `scrollbar-color`; WebKit and Blink need the
+   * pseudo-elements, so both are given rather than picking one.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    /* Inset by a transparent border, so the thumb is thinner than the
+       track it sits in and never touches the content beside it. */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
+  }
+
+  /* The corner where two bars meet, which otherwise stays default grey. */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* Tailwind 4 sets `cursor: default` on buttons, unlike 3, so nothing
@@ -451,12 +623,71 @@
  * and amber as "look here", and a background that means nothing cannot
  * be mistaken for one of those.
  */
-[data-slot='sidebar-inner'] {
-  background-image: linear-gradient(
-    to bottom,
-    var(--sidebar-glow) 0%,
-    transparent 55%
+/*
+ * The page's own light, behind everything.
+ *
+ * Three off-centre pools rather than one radial gradient: they overlap
+ * at different sizes, so the field has a direction and a
+ * concentration instead of an obvious bullseye. A very fine diagonal
+ * hatch sits on top, which is what stops the large soft shapes from
+ * banding on a wide screen.
+ *
+ * Static -- there is nothing here for `prefers-reduced-motion` to
+ * honour -- and meaningless, so it cannot be read as a state.
+ */
+.pz-page-field {
+  position: relative;
+  isolation: isolate;
+}
+
+.pz-page-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      62rem 42rem at 12% -8%,
+      var(--page-glow-a) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      48rem 34rem at 92% 6%,
+      var(--page-glow-b) 0%,
+      transparent 66%
+    ),
+    radial-gradient(
+      70rem 46rem at 68% 108%,
+      var(--page-glow-c) 0%,
+      transparent 72%
+    );
+}
+
+/* The hatch: 2px lines at 8% of a percent of the foreground, which is
+   below the threshold of noticing and above the threshold of banding. */
+.pz-page-field::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    115deg,
+    color-mix(in oklab, var(--foreground) 1.5%, transparent) 0px,
+    color-mix(in oklab, var(--foreground) 1.5%, transparent) 1px,
+    transparent 1px,
+    transparent 7px
   );
+}
+
+/* Everything in the shell lets it through. */
+.pz-page-field [data-slot='sidebar-inner'],
+.pz-page-field [data-slot='sidebar-inset'],
+.pz-page-field > header,
+.pz-page-field footer {
+  background-color: transparent;
 }
 
 /*
@@ -539,6 +770,38 @@ button:focus-visible .lucide-chevron-right {
   transform: scaleY(1);
 }
 
+/*
+ * Every row a pointer can land on gets the same easing.
+ *
+ * Menu, select and table rows had `transition: all 0s`, so hover
+ * switched them instantly while the sidebar beside them faded -- which
+ * is what "holprig" describes. The properties are named rather than
+ * `all`, so a width or a transform animation is not caught by accident.
+ */
+[data-slot='dropdown-menu-item'],
+[data-slot='dropdown-menu-checkbox-item'],
+[data-slot='dropdown-menu-radio-item'],
+[data-slot='dropdown-menu-sub-trigger'],
+[data-slot='select-item'],
+[data-slot='table-row'],
+[data-slot='checkbox'],
+[data-slot='switch'],
+[data-slot='switch-thumb'],
+[data-slot='slider-thumb'],
+[data-slot='tabs-trigger'],
+[data-slot='breadcrumb-link'],
+[data-slot='sidebar-menu-sub-button'] {
+  transition-property: background-color, background-image, border-color, color,
+    box-shadow, opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* The thumb travels, so it carries its own, slightly longer easing. */
+[data-slot='switch-thumb'] {
+  transition-duration: 200ms;
+}
+
 /* Buttons and badges: a touch of give, so a click feels answered. */
 button:not(:disabled):active,
 [role='button']:not([aria-disabled='true']):active {
@@ -578,3 +841,30 @@ select,
     border-color 150ms ease,
     box-shadow 150ms ease;
 }
+
+/*
+ * The glow under a primary action.
+ *
+ * Two shadows: a tight one that reads as lift, and a wide soft one
+ * that reads as light. Both are the accent, so they follow the theme
+ * rather than being a grey drop shadow tinted green.
+ */
+.pz-glow {
+  box-shadow:
+    0 1px 2px color-mix(in oklab, var(--primary) 34%, transparent),
+    0 6px 22px -8px color-mix(in oklab, var(--primary) 62%, transparent);
+  transition:
+    box-shadow 180ms ease,
+    background-color 150ms ease;
+}
+
+.pz-glow:hover {
+  box-shadow:
+    0 1px 2px color-mix(in oklab, var(--primary) 42%, transparent),
+    0 8px 28px -8px color-mix(in oklab, var(--primary) 78%, transparent);
+}
+
+.pz-glow:active {
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--primary) 30%, transparent);
+}
+

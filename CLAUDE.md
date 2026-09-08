@@ -1040,3 +1040,96 @@ Permitted and encouraged, with rules learnt the hard way:
   three paragraphs of conclusion. Give it an explicit "change no file,
   report only what the tool shows, say 'not present' rather than
   guessing", and demand a file:line for every claim.
+
+## 10k. Colour, depth and movement: the rules that came out of one evening
+
+The user asked for the panel to stop looking *"grau und trist"*, and
+the pass that followed produced more general lessons than visual ones.
+
+- **Two accents at a different hue read as a mistake, not as variety.**
+  `--primary` sat at hue 143 while every success state used emerald at
+  ~162. Nineteen degrees apart, side by side, and the user spotted it
+  immediately. Unified onto 162, keeping lightness and chroma so the
+  contrast barely moved (dark 8.84 → 8.93:1, light 5.23 → 5.05:1).
+  `--chart-1` was left alone: a chart series is *meant* to differ.
+- **The obvious shade usually fails AA.** `emerald-600` on white is
+  **3.77:1**. The pattern that works is a darker text over a faint tint
+  of the same hue: emerald-700 on emerald-50 is 5.21:1, and
+  emerald-300 on emerald-900/40 is 6.38:1. Computed for amber, red and
+  violet too, so warning/danger/info follow the same recipe.
+- **A translucent surface can *raise* contrast, but only measured.**
+  Cards at 78% over a darker page field took the muted description from
+  6.74 to **6.95:1**. That was luck in the right direction; the rule is
+  that the effective ground is a blend and has to be recomputed, never
+  assumed from the token.
+- **Half-coloured is worse than grey.** A green tick inside a grey
+  pill, an amber triangle inside a neutral alert: nine sites asserted a
+  colour and then withheld it from the container. `Alert` had only
+  `default` and `destructive`, so every "good" or "warning" box was
+  faking it. Adding the variants was the single highest-leverage
+  change.
+- **Colour what reports a state; leave counts and names alone.** "5092
+  Items" is a count. "Hinterlegt", "deaktiviert", "stale" are states —
+  and a stale bridge that looked identical to "no chat log yet" is the
+  case that makes it worth doing.
+- **Never colour a deliberate third state.** `ability-rows.tsx` keeps
+  *unknown* grey on purpose (rule 6c). Green or red there would be
+  exactly the collapse that file exists to prevent.
+- **`prefers-reduced-motion` is not a reason to build nothing.** The
+  user put it plainly: *"das ist ja auch absolut korrekt. heißt aber
+  nicht das wir den usern die bewegung aktiv haben keine bewegung
+  bieten können."* One global block already silences every transition
+  and animation, so movement can be used freely — proven by measuring
+  the card's transition duration collapse to `1e-05s` under
+  `reducedMotion: 'reduce'`.
+- **A static gradient carries no meaning, which is why it is safe.** It
+  cannot be mistaken for a state colour, and it needs no motion
+  exemption. Three off-centre pools plus a 1px hatch beat one radial
+  gradient, which reads as a bullseye and bands on a wide screen.
+- **`backdrop-filter` does nothing over an opaque surface.** Cards were
+  `oklch(1 0 0)` with no alpha, so the blur the user asked for would
+  have been pure cost. Give the surface an alpha first, then blur, then
+  recompute the text contrast.
+- **Check every selector against the source before committing.**
+  `.pz-row-link` and `[data-slot='chevron']` matched nothing —
+  rules promising an effect nobody could see. `.lucide-chevron-right`
+  is what those icons actually carry.
+- **A visual effect has to be measured with the state applied.** An
+  outline that only paints on `:focus-visible` reports its width at
+  rest too; reading the computed value of an unfocused element proves
+  nothing. Press Tab, then read.
+- **A layer beats specificity, so neither one alone fixes focus.** The
+  focus halo lived in `@layer base` and every component's
+  `focus-visible:ring-*` utility overrode it -- utilities win over base
+  whatever the selector. Writing Tailwind's own `--tw-ring-shadow`
+  failed too, because the same utility reassigns it. What worked was
+  `!important` on the shadow plus supplying `--tw-ring-color`: several
+  components declare a ring with no colour, which resolves to
+  *transparent* and paints nothing. Measured with Tab pressed on nine
+  controls: four were invisible, now none are.
+- **Lightning CSS drops a standard property that follows its own
+  prefix.** `backdrop-filter` written after `-webkit-backdrop-filter`
+  vanished from the build, so the blur was `none` in the browser while
+  the source read correctly. Prefix first, standard second -- and read
+  the built file, not the source, when a property does not arrive.
+- **An opaque utility shows through wherever a gradient runs out.**
+  `hover:bg-sidebar-accent` painted `oklch(0.274 …)` with no alpha
+  behind the accent tint, which the user saw as a grey block on the
+  right where the gradient faded. The shorthand `background:` did not
+  reset it; `background-color: transparent !important` did.
+- **One glyph, one file, every colour `currentColor`.** The mark was a
+  PNG at three sizes plus AVIF and WebP, and could not follow the
+  accent. Drawn as an inline SVG at opacities of `currentColor` it takes
+  the colour of whatever contains it -- and the favicon, which inherits
+  nothing, is the one place the hue is written out.
+- **A `size-*` class on an icon inside a shadcn component is a
+  suggestion.** `SidebarMenuButton` carries `[&>svg]:size-4`, so a mark
+  asking for `size-8` rendered at 16px. Measure
+  `getBoundingClientRect()` rather than trusting the class, and use
+  `size-9!` where the parent asserts a size.
+- **Trust the user's eye on aesthetics and the arithmetic on
+  legibility.** They were right about the two greens, the mismatched
+  help link, the loud scrollbar, the hard rules cutting the gradient,
+  and the top-bar blur that made the page darker at the top than the
+  bottom. Every one of those was a real fault. The numbers are for
+  contrast, not for taste.

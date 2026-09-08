@@ -1,7 +1,6 @@
 import { Outlet, useLocation } from 'react-router'
 
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import { ActiveServerProvider } from '@/features/servers/active-server'
 import { AppSidebar } from './app-sidebar'
 import { AppFooter } from './app-footer'
@@ -13,7 +12,10 @@ import { ThemeToggle } from './theme-toggle'
 export function AppLayout() {
   return (
     <ActiveServerProvider>
-      <SidebarProvider>
+      {/* One light field behind the whole shell, so the sidebar, the
+          bars and the content read as one surface rather than three
+          panels that happen to touch. */}
+      <SidebarProvider className="pz-page-field">
         <AppSidebar />
 
         {/* Capped at the viewport so the bars stay put and only the
@@ -21,11 +23,10 @@ export function AppLayout() {
             takes the bars out of the flow and then they no longer know
             how wide the sidebar is. */}
         <SidebarInset className="h-svh overflow-hidden">
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <header className="flex h-14 shrink-0 items-center gap-2 px-4">
             {/* The one control that opens the navigation on a phone, so
                 it gets a touch target rather than shadcn's 28px. */}
             <SidebarTrigger className="-ml-1 size-9 sm:size-7" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumbs />
 
             <div className="ml-auto flex items-center gap-1">

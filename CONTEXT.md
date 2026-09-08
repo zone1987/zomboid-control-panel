@@ -9257,3 +9257,261 @@ Checked every selector against the source rather than assuming.
 `oklch(0.765 0.155 162)` at `scaleY(1)`; and under
 `reducedMotion: 'reduce'` the card's transition duration collapses to
 `1e-05s`. 921 backend, 414 frontend tests; lint 0 errors.
+
+---
+
+## 2026-09-08 (late night) — the visual pass
+
+**Branch `fix/gd-in-the-image`, `app.version` 1.2.7. Nothing released
+yet — the user is still on 1.2.6, so none of the last three commits'
+work is live.**
+
+### Where it started
+
+*"Das Panel sieht halt aktuell wirklich trist und farblos aus"*, and
+then, holding two greens beside each other: *"wir sollten nicht 2
+verschiedene grüntöne benutzen … ich persönlich finde das grün vom
+'Hinterlegt' hinweis ganz angenehm"*.
+
+The requests arrived one at a time and each was right. In order:
+`Hinterlegt` badges green → colour the states generally → gradients
+behind cards → a gradient behind the sidebar → **one** gradient for the
+whole page → hover effects → transitions → animations → thinner
+scrollbars, not plain grey → card and button blur → brighter buttons →
+softer borders → remove the trigger separator → remove the footer
+dividers → remove the header rule → focus "richtig blury" → button
+background blur → and finally **revert the top-bar blur**.
+
+### What is in place
+
+**One accent.** `--primary`, `--ring`, `--sidebar-primary` and
+`--sidebar-ring` all moved from hue 143 to 162 and then up in chroma to
+**0.5/0.17 (light)** and **0.8/0.21 (dark)** at the user's *"der button
+muss auffallen"*. Light had to go *deeper* rather than brighter —
+brighter dropped white-on-green to 3.76:1; L=0.50/C=0.17 gives
+`rgb(0,126,67)` at **5.14:1**. Dark at L=0.80/C=0.21 gives
+`rgb(0,229,147)` with the black label at **11.97:1**.
+
+**Variants** on `Badge` and `Alert`: `success`, `warning`, `info`, with
+the shades computed (see CLAUDE.md 10k). Applied to the "Hinterlegt"
+markers, the half-coloured pairs (`cache-card`, `translation-notice`,
+`bridge-card`), and the states an operator hunts for — a utility that
+is **off**, a climate override outliving its season, a deactivated
+account, a **stale bridge** that had looked identical to "no chat log
+yet".
+
+**`VerifiedBadge`** was two copies with six hand-written colour classes
+each, both commented "must match the other". Now
+`features/servers/verified-badge.tsx`.
+
+**One page-wide field**: `.pz-page-field` on the `SidebarProvider`,
+three off-centre radial pools (`--page-glow-a/b/c`) plus a 1px diagonal
+hatch, with the sidebar, both bars and the inset made transparent so it
+runs behind everything. Cards keep a fainter one of their own
+(`--card-glow`).
+
+**Glass**: `--card` carries an alpha (82% light, 78% dark) and cards
+have `backdrop-blur-md`. `outline`, `secondary` and `ghost` buttons are
+translucent with `backdrop-blur-sm`; `default` and `destructive` stay
+opaque because an action's colour *is* the signal.
+
+**Movement**: card lift and border warm on hover, a 2px accent bar
+growing from the left of the active sidebar entry, chevrons sliding
+2px, buttons giving half a pixel on press, alerts rising 4px on
+arrival, and transitions on inputs and badges. All silenced by the
+existing reduced-motion block — verified at `1e-05s`.
+
+**Scrollbars**: `thin`, 8px, a track that is transparent and a thumb
+tokenised as grey carrying ~10-12% of the accent
+(`--scrollbar-thumb`), deepening rather than brightening on hover. The
+user asked for *"nichts leuchtend grün … aber auch nicht einfach plump
+in grau"* after a first attempt used 45% primary.
+
+**Borders**: `--border` 12% → **7%** (dark) and to 62% alpha (light),
+`--sidebar-border` to 6%/55%. The trigger/breadcrumb separator, both
+footer dividers, the header's `border-b` and the footer's `border-t`
+are gone — with one gradient behind the shell a rule reads as a seam.
+
+**Focus** is a glow now, not a 3px line: `1px` ring plus a `12px`
+blurred halo at 40% of `--ring`, with `outline: none !important` on the
+elements whose own classes were re-asserting the 3px rule.
+
+### Reverted at the user's request
+
+The **frosted top bar** (`.pz-bar`, `background-color` at 72% plus
+`blur(10px) saturate(140%)`). Content scrolling under a hard edge was a
+real problem, but the fix made the top of the page darker than the
+bottom and cut the gradient in two — *"das passt jetzt nicht mehr zum
+restlichen stil"*. The class and its CSS were removed entirely, not
+left dormant.
+
+### Open, and known
+
+1. **The focus halo does not paint.** Measured with Tab actually
+   pressed: `outline: none 3px` (so the outline suppression works) but
+   `box-shadow: rgba(0,0,0,0) 0px 0px 0px 0px, …` — a component class
+   is setting an empty ring that wins over the base-layer rule. Next
+   step: find which `focus-visible:ring-*` utility is emitting it
+   (`button.tsx` and `sidebar.tsx` both carry `ring-*` classes) and
+   either raise specificity or set the halo on the same layer.
+   **Focus is currently invisible for keyboard users, which is a
+   regression and must be fixed before this ships.**
+2. **Nothing is committed since `992e09c`.** The accent raise, the
+   glass, the scrollbars, the border softening, the removed rules, the
+   focus work and the bar revert are all in the working tree.
+3. **Tests and lint have not been run since those edits.** Last known
+   green: 921 backend, 414 frontend, lint 0 errors.
+4. **The user pointed at https://reactbits.dev/get-started/index** as
+   worth a look; not yet examined.
+5. Everything from the earlier entries still stands: the GD fix, the
+   interval dropdown, the reload toggle, the secret reveal, the icon
+   and vehicle chunking — **none of it released**. The user is on
+   1.2.6.
+
+## 2026-09-08 (night) — the focus regression, the glass, and a mark that can be coloured
+
+Continues the visual pass. Everything below was measured in the browser
+against `https://zomboidcontrol.ddev.site/app/servers` with Playwright,
+not read off the source.
+
+### The focus halo now paints — the regression is closed
+
+The entry before this one recorded focus as invisible for keyboard
+users. Two causes, both found by measuring rather than reasoning:
+
+1. **The layer, not the specificity.** The rule sits in `@layer base`
+   and every `focus-visible:ring-*` utility is in `@layer utilities`,
+   which wins regardless of selector weight. Writing Tailwind's own
+   `--tw-ring-shadow` from the base layer failed for the same reason —
+   the utility reassigns it.
+2. **A ring with no colour is transparent.** Components declaring
+   `focus-visible:ring-2` without a colour resolved to
+   `oklab(0 0 0 / 0) 0px 0px 0px 0px` — a ring that exists and paints
+   nothing.
+
+The fix in `frontend/src/index.css` (the `:focus-visible` block around
+line 198): `--tw-ring-color` supplied, and `!important` on the
+`box-shadow`. **Verified by pressing Tab across nine controls**: before,
+four of nine painted nothing (Danksagungen, Server, RCON, FTP); after,
+`invisible: []` — all nine carry
+`oklab(0.8 -0.199722 0.0648936 / 0.55) 0 0 0 1px` plus the 12px glow.
+
+### The active sidebar entry: glass instead of a grey slab
+
+The user's screenshot showed a hard, opaque panel with a visible edge.
+`data-[active=true]:bg-sidebar-accent` and `hover:bg-sidebar-accent`
+were removed from `frontend/src/components/ui/sidebar.tsx` (two
+occurrences), and the entry is now a gradient plus a real
+`backdrop-filter` in `index.css`. Measured, all four states distinct:
+
+| State | blur | gradient start |
+|---|---|---|
+| inactive, at rest | none | none |
+| inactive, hovered | 8px / 1.4 | 11 % |
+| active | 10px / 1.5 | 17 % |
+| active, hovered | 16px / 1.75 | 26 % |
+
+The glow was built and then removed at the user's request ("das glow
+kann hingegen weg"): `box-shadow: none`.
+
+**A build trap worth keeping.** The blur read `backdrop-filter: none` in
+the browser while the source was correct. Lightning CSS had **dropped
+the unprefixed property** because it followed `-webkit-backdrop-filter`.
+Prefix first, standard second. Only reading the built
+`backend/public/app/assets/index-*.css` showed it.
+
+**And the grey the user spotted twice.** `hover:bg-sidebar-accent`
+painted `oklch(0.274 0.006 286.033)` — no alpha — *behind* the accent
+tint, so it showed as a grey block wherever the gradient faded out.
+`background:` as a shorthand did not reset it, because the utility wins
+for the `background-color` component; `background-color: transparent
+!important` did. The same fault hit the server switcher in the sidebar
+header, which is a `dropdown-menu-trigger` rather than a
+`sidebar-menu-button` and so was missed by the first selector — both are
+named in the rule now, including `[data-state='open']`.
+
+### A mark that can be coloured
+
+`frontend/src/components/brand-mark.tsx` is new: a hexagon holding three
+stacked layers with a control point, every colour `currentColor` at an
+opacity. It replaces `<BrandLogo variant="mark">` in
+`components/layout/app-sidebar.tsx`. The login page keeps `BrandLogo`
+with `variant="badge"` — a different, larger appearance, deliberately
+untouched.
+
+`frontend/public/favicon.svg` is redrawn to match. It was already
+hand-drawn but carried hard-coded `#7cbf58` from the **old** palette
+(hue ~130, against the current 162) and could not be tinted. A favicon
+inherits no colour, so `#34d399` is written out there — the one place
+that is right.
+
+Two measured corrections along the way:
+
+- The mark asked for `size-8` and **rendered at 16px**:
+  `SidebarMenuButton` carries `[&>svg]:size-4`. Now `size-9!` → 36px
+  measured.
+- The glyph filled **39 %** of its box. Hexagon and layers were grown;
+  now 77 %.
+
+Colour verified as inherited: `oklch(0.8 0.21 162)`, and
+`imgInHeader: 0` proves it is inline SVG rather than a picture.
+
+### Menu, table and switch rows had no easing at all
+
+The user called hovering the open server dropdown "holprig", and the
+measurement said why: `transition: all` with **`transition-duration:
+0s`** on every `dropdown-menu-item` — hover switched instantly while the
+sidebar beside it faded.
+
+A rule in `index.css` (just above the button "give" rule) now names the
+rows a pointer can land on and gives them 150ms: dropdown items,
+checkbox/radio items, sub-triggers, select items, table rows,
+checkboxes, switches, slider thumbs, tabs triggers, breadcrumb links and
+sidebar sub-buttons. The switch **thumb** gets 200ms because it travels
+rather than tints. The properties are named individually rather than
+`all`, so a width or transform animation is not swept up by accident.
+
+**Three selectors were written and then deleted**: `command-item`,
+`context-menu-item` and `menubar-item` match nothing — those components
+do not exist in this project. Checked against the source with a grep per
+slot, per rule 10k.
+
+Measured on pages that actually contain them: menu items 0.15s
+(`/app/servers`, dropdown open), tabs trigger 0.15s (`/app/settings`),
+table row 0.15s (`/app/users`), switch 0.15s and its thumb 0.2s
+(`…/discord`). Under `reducedMotion: 'reduce'` both a menu item and a
+nav button collapse to `1e-05s`, so the global block still covers the
+new rules.
+
+### Verification state
+
+- **Backend: 921 tests, 14600 assertions, green.**
+- **Frontend: 414 tests in 37 files, green.**
+- **Lint: 0 errors, 23 warnings** — the same 23 as before this work, all
+  pre-existing `set-state-in-effect` notices.
+- `npx tsc --noEmit`: silent.
+- Browser: focus (9/9), the four sidebar states, the switcher hover, the
+  mark's size and colour.
+
+**A method note that cost time twice.** The panel at
+`zomboidcontrol.ddev.site` serves a **built** bundle, not Vite — so a
+CSS change is invisible until `npm run build`, and then still invisible
+until the service worker *and* `Network.clearBrowserCache` are cleared
+(rule 10g0c, both halves). The first measurement of this session read
+the previous build and looked like a broken selector.
+
+### Open
+
+1. **Nothing is committed.** Working tree carries CLAUDE.md, CONTEXT.md,
+   `index.css`, `sidebar.tsx`, `app-sidebar.tsx`, `brand-mark.tsx`
+   (new), `favicon.svg`, plus the earlier `app-footer.tsx`,
+   `app-layout.tsx`, `button.tsx`, `card.tsx`, `tabs.tsx`.
+2. **Nothing is released since v1.2.6.** The GD fix, the interval
+   dropdown, the reload toggle, the secret read-back and the chunked
+   icon/vehicle uploads are all unreleased.
+3. `https://reactbits.dev/get-started/index` — the user suggested it as
+   a source of ideas; not looked at yet.
+4. Pre-existing, untouched: sub-32px touch targets (sidebar trigger
+   28×28), reversed `StorageException` arguments at
+   `ServerFileBrowser.php:117`, the React Router `HydrateFallback`
+   warning, and production `APP_PUBLIC_URL` carrying `http://`.
