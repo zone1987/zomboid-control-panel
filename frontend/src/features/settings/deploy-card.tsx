@@ -26,6 +26,7 @@ export function DeployCard({
   tokenState,
   enabled,
   url,
+  token,
   onUrl,
   onToken,
   onEnabled,
@@ -34,6 +35,7 @@ export function DeployCard({
   tokenState?: SettingState
   enabled: boolean
   url: string
+  token: string
   onUrl: (value: string) => void
   onToken: (value: string) => void
   onEnabled: (value: boolean) => void
@@ -83,7 +85,7 @@ export function DeployCard({
           id="deploy-webhook-token"
           label={t('settings.deploy.tokenLabel')}
           state={tokenState}
-          value=""
+          value={token}
           onChange={onToken}
         />
 

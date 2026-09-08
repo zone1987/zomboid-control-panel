@@ -259,6 +259,7 @@ export function SettingsPage() {
                 data?.items[SETTING_KEYS.deployOnRelease]?.value) === '1'
             }
             url={field(SETTING_KEYS.deployWebhookUrl).value}
+            token={field(SETTING_KEYS.deployWebhookToken).value}
             onUrl={field(SETTING_KEYS.deployWebhookUrl).onChange}
             onToken={field(SETTING_KEYS.deployWebhookToken).onChange}
             onEnabled={(value) =>

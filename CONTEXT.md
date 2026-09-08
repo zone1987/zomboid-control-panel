@@ -7839,3 +7839,26 @@ sentence.
 Coolify's *Allowed API IPs* currently contains `0.0.0.0`. With the
 trigger now coming from the panel's own machine, that can go — the three
 fixed addresses are enough.
+
+### 1.2.1 — the token field could not be typed into
+
+Reported immediately after the release: "ich kann den API-Token nicht
+eingeben, dort lässt sich gar nichts eingeben."
+
+`DeployCard` passed `value=""` to the token's `CredentialField`. A
+controlled input with a constant value resets on every keystroke, so the
+field looked normal and accepted nothing. The other secret fields on the
+page spread `{...field(KEY)}`, which supplies the draft value as well as
+the handler; my card took `onToken` but never the value to go with it.
+
+Fixed by giving the card a `token` prop and passing
+`field(SETTING_KEYS.deployWebhookToken).value`.
+
+Verified in the browser end to end: typed, saved, `configured: true`,
+the value correctly **not** returned in plaintext, and the test button
+using the stored token. The probe data was removed again afterwards.
+
+Worth naming as a shape: **a controlled input with a hardcoded value is
+a read-only field that does not look read-only.** Nothing catches it —
+not the type checker, not the test suite, not a screenshot. Only typing
+into it does.
