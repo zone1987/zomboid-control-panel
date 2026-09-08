@@ -1,6 +1,6 @@
 # ZomboidControl
 
-[![CI](https://img.shields.io/github/actions/workflow/status/zone1987/zomboid-control-panel/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/actions/workflows/ci.yml)
+[![Main](https://img.shields.io/github/actions/workflow/status/zone1987/zomboid-control-panel/main.yml?branch=main&label=main&logo=githubactions&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/actions/workflows/main.yml)
 [![Release](https://img.shields.io/github/v/release/zone1987/zomboid-control-panel?logo=github&label=release)](https://github.com/zone1987/zomboid-control-panel/releases/latest)
 [![Image](https://img.shields.io/badge/ghcr.io-zomboid--control--panel-2496ED?logo=docker&logoColor=white)](https://github.com/zone1987/zomboid-control-panel/pkgs/container/zomboid-control-panel)
 [![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](backend/composer.json)
