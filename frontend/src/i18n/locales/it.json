@@ -1700,13 +1700,35 @@
       "step2": "In Keys & Tokens → API Tokens crea un token con il permesso deploy. Copialo subito — viene mostrato una volta sola.",
       "step3": "Apri la tua applicazione, poi Automation → Webhooks, e copia il Deploy webhook in cima. Non quelli di GitHub o GitLab sotto.",
       "step4": "Incolla entrambi qui, invia una prova, poi attiva la distribuzione automatica.",
-      "test": "Invia una prova",
-      "testWarning": "Questo distribuisce davvero: non si può chiedere a una piattaforma se funzionerebbe. Se sei già alla versione attuale, il pannello si riavvia.",
       "title": "Auto-deploy in Coolify",
       "tokenLabel": "Token API",
       "unreachable": "La piattaforma non ha risposto.",
       "urlLabel": "Webhook di deploy",
-      "why": "La tua piattaforma non può accorgersi da sola di una versione nuova: questo pannello viene distribuito come immagine, e una release non cambia nessun file che lei osservi. Perciò glielo dice il pannello."
+      "why": "La tua piattaforma non può accorgersi da sola di una versione nuova: questo pannello viene distribuito come immagine, e una release non cambia nessun file che lei osservi. Perciò glielo dice il pannello.",
+      "check": "Verifica la connessione",
+      "now": "Distribuisci ora",
+      "confirmTitle": "Distribuire ora la nuova versione?",
+      "confirmBody": "Coolify scarica l’immagine attuale e riavvia il pannello. Di solito richiede uno o due minuti, durante i quali il pannello non è raggiungibile. Questa pagina si ricaricherà da sola al termine.",
+      "confirmAction": "Distribuisci",
+      "probe": {
+        "ready": "La connessione funziona",
+        "application": "Applicazione: {{name}}",
+        "noReadPermission": "Il token può distribuire ma non leggere",
+        "tokenRejected": "Il token è stato rifiutato",
+        "notFound": "Nessuna applicazione ha questo identificatore",
+        "unreachable": "Coolify non era raggiungibile",
+        "notConfigured": "Non è ancora stato inserito alcun indirizzo webhook",
+        "noUuid": "L’indirizzo webhook non contiene l’identificatore dell’applicazione",
+        "refused": "Coolify ha rifiutato la richiesta"
+      },
+      "watch": {
+        "deploying": "Distribuzione in corso …",
+        "restarting": "Il pannello si sta riavviando …",
+        "reloading": "Ricaricamento della pagina …",
+        "failed": "La distribuzione è fallita",
+        "unknown": "Coolify segnala uno stato che non riconosciamo",
+        "hint": "Questa pagina si ricaricherà appena il pannello risponderà di nuovo. Puoi lasciare la finestra aperta."
+      }
     },
     "description": "Credenziali valide per tutta l'applicazione.",
     "discordApplicationId": "Application ID",

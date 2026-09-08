@@ -1700,13 +1700,35 @@
       "step2": "Under Keys & Tokens → API Tokens, create a token with the deploy permission. Copy it now — it is shown once.",
       "step3": "Open your application, then Automation → Webhooks, and copy the topmost Deploy webhook. Not the GitHub or GitLab ones below it.",
       "step4": "Paste both here, send a test, then switch automatic deployment on.",
-      "test": "Send a test",
-      "testWarning": "This really deploys: there is no way to ask a platform whether it would work. If you are already on the current version, it restarts the panel.",
       "title": "Auto-deploy in Coolify",
       "tokenLabel": "API token",
       "unreachable": "The platform did not answer.",
       "urlLabel": "Deploy webhook",
-      "why": "Your platform cannot see a new release on its own: this panel ships as an image, and a release changes no file it watches. So the panel tells it."
+      "why": "Your platform cannot see a new release on its own: this panel ships as an image, and a release changes no file it watches. So the panel tells it.",
+      "check": "Check the connection",
+      "now": "Deploy now",
+      "confirmTitle": "Roll out the new version now?",
+      "confirmBody": "Coolify pulls the current image and restarts the panel. That usually takes a minute or two, during which the panel is unreachable. This page reloads itself afterwards.",
+      "confirmAction": "Roll out",
+      "probe": {
+        "ready": "The connection works",
+        "application": "Application: {{name}}",
+        "noReadPermission": "The token may deploy but not read",
+        "tokenRejected": "The token was rejected",
+        "notFound": "No application carries that identifier",
+        "unreachable": "Coolify could not be reached",
+        "notConfigured": "No webhook address has been entered yet",
+        "noUuid": "The webhook address carries no application identifier",
+        "refused": "Coolify refused the request"
+      },
+      "watch": {
+        "deploying": "Rolling out …",
+        "restarting": "The panel is restarting …",
+        "reloading": "Reloading the page …",
+        "failed": "The rollout failed",
+        "unknown": "Coolify reports a state we do not recognise",
+        "hint": "This page reloads as soon as the panel answers again. You can leave the window open."
+      }
     },
     "description": "Credentials that apply to the whole application.",
     "discordApplicationId": "Application ID",

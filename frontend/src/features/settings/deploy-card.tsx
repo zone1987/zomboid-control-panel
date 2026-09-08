@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react'
+import { CheckCircle2, PlugZap, Rocket, RefreshCw, TriangleAlert, XCircle } from 'lucide-react'
 
 import { ApiError, errorField } from '@/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -11,7 +12,15 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { CredentialField } from './credential-field'
 import { DeployHookInstructions } from './instructions'
-import { testDeployHook, type DeployResult, type SettingState } from './settings'
+import { DeployConfirm } from './deploy-confirm'
+import { useDeploymentWatch } from './use-deployment-watch'
+import {
+  probeDeployHook,
+  triggerDeployment,
+  type DeployProbeResult,
+  type DeployResult,
+  type SettingState,
+} from './settings'
 
 /**
  * Updating the panel without anybody clicking anything.
@@ -42,9 +51,26 @@ export function DeployCard({
 }) {
   const { t } = useTranslation()
 
-  const test = useMutation<DeployResult>({
-    mutationFn: testDeployHook,
-    onSuccess: () => toast.success(t('settings.deploy.queued')),
+  const [asking, setAsking] = useState(false)
+  const watch = useDeploymentWatch()
+
+  // Reads the platform and starts nothing, so it can be pressed to
+  // answer a question rather than to commit to one.
+  const check = useMutation<DeployProbeResult>({
+    mutationFn: probeDeployHook,
+    onSuccess: (result) =>
+      result.state === 'ready' || result.state === 'noReadPermission'
+        ? toast.success(t(result.messageKey))
+        : toast.error(t(result.messageKey)),
+    onError: () => toast.error(t('settings.deploy.probe.unreachable')),
+  })
+
+  const deploy = useMutation<DeployResult>({
+    mutationFn: triggerDeployment,
+    onSuccess: (result) => {
+      toast.success(t('settings.deploy.queued'))
+      watch.start(result.deploymentUuid ?? null)
+    },
     onError: () => toast.error(t('settings.deploy.failed')),
   })
 
@@ -52,12 +78,12 @@ export function DeployCard({
   // endpoint works out which setting is at fault and names it; this
   // shows that rather than making the operator decode a 403.
   const failure =
-    test.error instanceof ApiError
+    deploy.error instanceof ApiError
       ? {
-          message: errorField(test.error, 'message'),
-          advice: errorField(test.error, 'advice'),
-          status: (test.error.payload as { status?: number } | null)?.status ?? null,
-          detail: errorField(test.error, 'detail'),
+          message: errorField(deploy.error, 'message'),
+          advice: errorField(deploy.error, 'advice'),
+          status: (deploy.error.payload as { status?: number } | null)?.status ?? null,
+          detail: errorField(deploy.error, 'detail'),
         }
       : null
 
@@ -108,33 +134,93 @@ export function DeployCard({
           </div>
         </div>
 
-        {/* There is no way to ask a platform "would this work", so the
-            button does the thing — and says so before it is pressed. */}
-        {/* Stacked rather than beside the button: sharing a row left the
-            warning 93px wide and 240px tall in a narrow frame. */}
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">{t('settings.deploy.testWarning')}</p>
-
+        {/* Two buttons, because they answer different questions: one
+            reads the platform, the other replaces the panel. */}
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="outline"
-            disabled={!configured || test.isPending}
-            onClick={() => test.mutate()}
+            disabled={!configured || check.isPending}
+            onClick={() => check.mutate()}
           >
-            <RefreshCw className={test.isPending ? 'size-4 animate-spin' : 'size-4'} />
-            {t('settings.deploy.test')}
+            {check.isPending ? (
+              <RefreshCw className="size-4 animate-spin" />
+            ) : (
+              <PlugZap className="size-4" />
+            )}
+            {t('settings.deploy.check')}
+          </Button>
+
+          <Button
+            type="button"
+            disabled={!configured || deploy.isPending || watch.phase !== 'idle'}
+            onClick={() => setAsking(true)}
+          >
+            {deploy.isPending || watch.phase !== 'idle' ? (
+              <RefreshCw className="size-4 animate-spin" />
+            ) : (
+              <Rocket className="size-4" />
+            )}
+            {t('settings.deploy.now')}
           </Button>
         </div>
 
-        {test.data !== undefined && (
+        <DeployConfirm
+          open={asking}
+          onOpenChange={setAsking}
+          onConfirm={() => {
+            setAsking(false)
+            deploy.mutate()
+          }}
+        />
+
+        {check.data !== undefined && !check.isPending && (
           <Alert>
-            <CheckCircle2 className="size-4" />
-            <AlertTitle>{t('settings.deploy.queued')}</AlertTitle>
-            <AlertDescription>{t('settings.deploy.queuedHint')}</AlertDescription>
+            {check.data.state === 'ready' || check.data.state === 'noReadPermission' ? (
+              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <TriangleAlert className="size-4 text-amber-600 dark:text-amber-400" />
+            )}
+            <AlertTitle>{t(check.data.messageKey)}</AlertTitle>
+            <AlertDescription className="space-y-1">
+              {check.data.applicationName != null && (
+                <p>
+                  {t('settings.deploy.probe.application', {
+                    name: check.data.applicationName,
+                  })}
+                  {check.data.applicationState != null && (
+                    <span className="font-mono text-xs opacity-80">
+                      {' '}
+                      · {check.data.applicationState}
+                    </span>
+                  )}
+                </p>
+              )}
+              {check.data.httpStatus != null && check.data.state !== 'ready' && (
+                <p className="font-mono text-xs opacity-80">HTTP {check.data.httpStatus}</p>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
-        {test.isError && (
+        {watch.phase !== 'idle' && (
+          <Alert variant={watch.phase === 'failed' ? 'destructive' : undefined}>
+            {watch.phase === 'failed' ? (
+              <XCircle className="size-4" />
+            ) : (
+              <RefreshCw className="size-4 animate-spin" />
+            )}
+            <AlertTitle>{t(`settings.deploy.watch.${watch.phase}`)}</AlertTitle>
+            <AlertDescription className="space-y-1">
+              <p>{t('settings.deploy.watch.hint')}</p>
+              {watch.reported != null && (
+                <p className="font-mono text-xs opacity-80">{watch.reported}</p>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {deploy.isError && (
           <Alert variant="destructive">
             <XCircle className="size-4" />
             <AlertTitle>

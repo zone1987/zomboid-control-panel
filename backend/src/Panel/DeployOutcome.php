@@ -18,12 +18,14 @@ final readonly class DeployOutcome
         public string $state,
         public ?int $status,
         public ?string $detail,
+        /** Coolify names the deployment it queued; the interface follows that one. */
+        public ?string $deploymentUuid = null,
     ) {
     }
 
-    public static function queued(int $status, string $detail): self
+    public static function queued(int $status, string $detail, ?string $deploymentUuid = null): self
     {
-        return new self('queued', $status, $detail === '' ? null : $detail);
+        return new self('queued', $status, $detail === '' ? null : $detail, $deploymentUuid);
     }
 
     /** Reached and answered, but the answer was no. */
@@ -123,6 +125,7 @@ final readonly class DeployOutcome
             'detail' => $this->detail,
             'message' => $this->messageKey(),
             'advice' => $this->adviceKey(),
+            'deploymentUuid' => $this->deploymentUuid,
         ];
     }
 }

@@ -1700,13 +1700,35 @@
       "step2": "En Keys & Tokens → API Tokens, crea un token con el permiso deploy. Cópialo ya — solo se muestra una vez.",
       "step3": "Abre tu aplicación, luego Automation → Webhooks, y copia el Deploy webhook de arriba. No los de GitHub o GitLab de debajo.",
       "step4": "Pega ambos aquí, envía una prueba y después activa el despliegue automático.",
-      "test": "Enviar una prueba",
-      "testWarning": "Esto despliega de verdad: no hay forma de preguntar a una plataforma si funcionaría. Si ya estás en la versión actual, reinicia el panel.",
       "title": "Auto-deploy en Coolify",
       "tokenLabel": "Token de API",
       "unreachable": "La plataforma no respondió.",
       "urlLabel": "Webhook de despliegue",
-      "why": "Tu plataforma no puede ver una versión nueva por sí sola: este panel se distribuye como imagen, y una publicación no cambia ningún archivo que ella vigile. Por eso se lo dice el panel."
+      "why": "Tu plataforma no puede ver una versión nueva por sí sola: este panel se distribuye como imagen, y una publicación no cambia ningún archivo que ella vigile. Por eso se lo dice el panel.",
+      "check": "Comprobar la conexión",
+      "now": "Desplegar ahora",
+      "confirmTitle": "¿Desplegar la nueva versión ahora?",
+      "confirmBody": "Coolify descarga la imagen actual y reinicia el panel. Suele tardar uno o dos minutos, durante los cuales el panel no está disponible. Esta página se recargará después por sí sola.",
+      "confirmAction": "Desplegar",
+      "probe": {
+        "ready": "La conexión funciona",
+        "application": "Aplicación: {{name}}",
+        "noReadPermission": "El token puede desplegar, pero no leer",
+        "tokenRejected": "El token fue rechazado",
+        "notFound": "Ninguna aplicación tiene ese identificador",
+        "unreachable": "No se pudo acceder a Coolify",
+        "notConfigured": "Todavía no se ha indicado la dirección del webhook",
+        "noUuid": "La dirección del webhook no incluye el identificador de la aplicación",
+        "refused": "Coolify rechazó la petición"
+      },
+      "watch": {
+        "deploying": "Desplegando …",
+        "restarting": "El panel se está reiniciando …",
+        "reloading": "Recargando la página …",
+        "failed": "El despliegue falló",
+        "unknown": "Coolify informa de un estado que no reconocemos",
+        "hint": "Esta página se recargará en cuanto el panel vuelva a responder. Puedes dejar la ventana abierta."
+      }
     },
     "description": "Credenciales que valen para toda la aplicación.",
     "discordApplicationId": "ID de aplicación",

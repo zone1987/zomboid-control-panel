@@ -1700,13 +1700,35 @@
       "step2": "Unter Keys & Tokens → API Tokens einen Token mit der Berechtigung deploy anlegen. Gleich kopieren — er wird nur einmal gezeigt.",
       "step3": "Deine Anwendung öffnen, dann Automation → Webhooks, und den obersten Deploy-Webhook kopieren. Nicht die GitHub- oder GitLab-Hooks darunter.",
       "step4": "Beides hier eintragen, einen Test senden, dann die automatische Aktualisierung einschalten.",
-      "test": "Test senden",
-      "testWarning": "Das rollt wirklich aus: man kann eine Plattform nicht fragen, ob es klappen würde. Läufst du schon auf der aktuellen Version, startet das Panel neu.",
       "title": "Auto-Deploy in Coolify",
       "tokenLabel": "API-Token",
       "unreachable": "Die Plattform hat nicht geantwortet.",
       "urlLabel": "Deploy-Webhook",
-      "why": "Deine Plattform bekommt eine neue Version nicht von allein mit: dieses Panel wird als Image ausgeliefert, und ein Release ändert keine Datei, die sie beobachtet. Also sagt das Panel Bescheid."
+      "why": "Deine Plattform bekommt eine neue Version nicht von allein mit: dieses Panel wird als Image ausgeliefert, und ein Release ändert keine Datei, die sie beobachtet. Also sagt das Panel Bescheid.",
+      "check": "Verbindung prüfen",
+      "now": "Jetzt deployen",
+      "confirmTitle": "Neue Version jetzt ausrollen?",
+      "confirmBody": "Coolify holt das aktuelle Abbild und startet das Panel neu. Das dauert meist eine bis zwei Minuten, in denen das Panel nicht erreichbar ist. Diese Seite lädt sich danach von selbst neu.",
+      "confirmAction": "Ausrollen",
+      "probe": {
+        "ready": "Verbindung steht",
+        "application": "Anwendung: {{name}}",
+        "noReadPermission": "Token darf ausrollen, aber nicht lesen",
+        "tokenRejected": "Token wurde abgelehnt",
+        "notFound": "Unter dieser Kennung gibt es keine Anwendung",
+        "unreachable": "Coolify war nicht erreichbar",
+        "notConfigured": "Noch keine Webhook-Adresse hinterlegt",
+        "noUuid": "In der Webhook-Adresse fehlt die Anwendungs-Kennung",
+        "refused": "Coolify hat die Anfrage abgelehnt"
+      },
+      "watch": {
+        "deploying": "Wird ausgerollt …",
+        "restarting": "Panel startet neu …",
+        "reloading": "Seite wird neu geladen …",
+        "failed": "Das Ausrollen ist fehlgeschlagen",
+        "unknown": "Coolify meldet einen unbekannten Zustand",
+        "hint": "Diese Seite lädt sich neu, sobald das Panel wieder antwortet. Du kannst das Fenster offen lassen."
+      }
     },
     "description": "Zugangsdaten, die die gesamte Anwendung betreffen.",
     "discordApplicationId": "Anwendungs-ID",
