@@ -143,6 +143,7 @@ export function SettingsPage() {
   // would suggest the transfer still needed confirming.
   const savable = SAVABLE_TABS.includes(tab)
   const redirectUri = data?.googleRedirectUri ?? ''
+  const linkRedirectUri = data?.googleLinkRedirectUri ?? ''
 
   if (isPending) {
     return <Skeleton className="h-96 w-full" />
@@ -305,7 +306,12 @@ export function SettingsPage() {
                 id="google-client-id"
                 label={t('settings.googleClientId')}
                 placeholder="123456789-abc.apps.googleusercontent.com"
-                instructions={<GoogleOAuthInstructions redirectUri={redirectUri} />}
+                instructions={
+                  <GoogleOAuthInstructions
+                    redirectUri={redirectUri}
+                    linkRedirectUri={linkRedirectUri}
+                  />
+                }
                 {...field(SETTING_KEYS.googleClientId)}
               />
 

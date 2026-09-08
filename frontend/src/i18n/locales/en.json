@@ -1688,7 +1688,7 @@
     "googleClientSecret": "Client secret",
     "googleDescription": "Optional. Allows signing in with a Google account that has been linked to an existing login.",
     "googleNote": "This address must match exactly, including scheme and path. It can only be changed in the Google Console, not here.",
-    "googleRedirectLabel": "Authorised redirect URI:",
+    "googleRedirectLabel": "Add both redirect URIs at Google",
     "googleStep1": "Open the Google Cloud Console and create a project if you do not have one.",
     "googleStep2": "Under Credentials, create an OAuth client ID of type Web application.",
     "googleStep3": "Add the address below as an authorised redirect URI.",

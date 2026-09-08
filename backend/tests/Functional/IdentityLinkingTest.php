@@ -170,6 +170,62 @@ final class IdentityLinkingTest extends FunctionalTestCase
         );
     }
 
+    /**
+     * The invitation shortcut: an invited account has no password yet,
+     * and finishing sign-up with Google instead of setting one is what
+     * the match by address exists for.
+     */
+    public function testMatchesAnInvitedAccountByEmail(): void
+    {
+        $invited = $this->createUser('invited@example.com', withPassword: false);
+
+        self::assertSame(
+            $invited->getId()->toRfc4122(),
+            $this->linker->findInvitedByEmail('invited@example.com')?->getId()->toRfc4122(),
+        );
+    }
+
+    /**
+     * The account that has been in use for months must not accept
+     * whoever later controls a Google account with the same address --
+     * somebody who left the company, or a domain that changed hands.
+     * That is a sign-in nobody granted.
+     */
+    public function testDoesNotMatchAnAccountThatHasAPassword(): void
+    {
+        $this->createUser('established@example.com');
+
+        self::assertNull($this->linker->findInvitedByEmail('established@example.com'));
+    }
+
+    public function testDoesNotMatchAnAccountThatHasAPasskey(): void
+    {
+        $user = $this->createUser('passkey@example.com', withPassword: false);
+        $this->addCredential($user);
+        $this->em->refresh($user);
+
+        self::assertNull(
+            $this->linker->findInvitedByEmail('passkey@example.com'),
+            'a passkey is a way in, so the account is activated',
+        );
+    }
+
+    public function testDoesNotMatchAnAccountThatAlreadyLinkedAProvider(): void
+    {
+        $user = $this->createUser('linked@example.com', withPassword: false);
+        $this->linker->link($user, OAuthIdentity::PROVIDER_STEAM, '76561198000000042', 'SomePlayer');
+
+        self::assertNull(
+            $this->linker->findInvitedByEmail('linked@example.com'),
+            'an account signing in through a provider is in use, not awaiting an invitation',
+        );
+    }
+
+    public function testMatchesNothingForAnUnknownAddress(): void
+    {
+        self::assertNull($this->linker->findInvitedByEmail('nobody@example.com'));
+    }
+
     private function createUser(string $email, bool $withPassword = true): User
     {
         $user = new User($email, 'Test User');

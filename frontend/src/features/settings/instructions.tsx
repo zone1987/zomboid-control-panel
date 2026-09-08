@@ -53,7 +53,13 @@ export function SteamKeyInstructions() {
   )
 }
 
-export function GoogleOAuthInstructions({ redirectUri }: { redirectUri: string }) {
+export function GoogleOAuthInstructions({
+  redirectUri,
+  linkRedirectUri,
+}: {
+  redirectUri: string
+  linkRedirectUri: string
+}) {
   const { t } = useTranslation()
 
   return (
@@ -66,10 +72,15 @@ export function GoogleOAuthInstructions({ redirectUri }: { redirectUri: string }
         ]}
       />
 
+      {/* Both, because signing in and linking start separate flows and
+          Google refuses a redirect uri it was not given. */}
       <div className="space-y-1">
         <p className="text-xs font-medium">{t('settings.googleRedirectLabel')}</p>
         <code className="block overflow-x-auto rounded bg-background px-2 py-1 text-xs">
           {redirectUri}
+        </code>
+        <code className="block overflow-x-auto rounded bg-background px-2 py-1 text-xs">
+          {linkRedirectUri}
         </code>
       </div>
 

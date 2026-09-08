@@ -86,14 +86,15 @@ export function MapPage() {
   }, [])
 
   return (
-    // `flex-1` against the layout's column rather than a percentage: the
-    // scrolling parent only has `min-h`, so `h-full` resolves to zero,
-    // and any arithmetic over header and padding sizes goes stale the
-    // moment one of them changes. `min-h` keeps it usable on a short
-    // window, where scrolling to the map is better than a sliver of it.
-    // `-mb-4` cancels the page wrapper's `pb-4`, which is the gap other
-    // pages want above the footer. The map is edge-to-edge, so it left
-    // 40px below against 24px on the other three sides.
+    // `flex-1` against the layout's column: the scrolling parent has
+    // `min-h-full` rather than a height, so a percentage resolves to
+    // zero, and arithmetic over header and padding sizes goes stale the
+    // moment one of them changes.
+    //
+    // `-mb-4` cancels the wrapper's `pb-4`, the gap other pages want
+    // above the footer; the map is edge-to-edge and it left 40px below
+    // against 24px on the other three sides. `min-h` keeps the map
+    // usable on a short window, where scrolling to it beats a sliver.
     <div className="relative -mb-4 min-h-[30rem] w-full flex-1">
       <WorldMap
         source={PROJECT_ZOMBOID_MAP}

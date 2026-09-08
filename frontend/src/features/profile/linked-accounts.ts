@@ -16,5 +16,8 @@ export function unlinkAccount(provider: string): Promise<{ status: string }> {
 
 /** Linking leaves the SPA, so this is a navigation rather than a fetch. */
 export function startLinking(provider: 'google' | 'steam'): void {
-  window.location.href = provider === 'steam' ? '/api/connect/steam/link' : '/api/connect/google'
+  // Both use their own `/link` route rather than the sign-in one: that
+  // route authenticates whoever returns and lands them on the dashboard,
+  // so a successful link looked like nothing had happened.
+  window.location.href = `/api/connect/${provider}/link`
 }
