@@ -1795,7 +1795,9 @@
       "title": "Icônes d'objets depuis le jeu",
       "tooLarge": "Ensemble, les fichiers sont trop lourds. Envoie-les un par un.",
       "where": "Pour en ajouter : une installation du jeu les garde sous media/texturepacks",
-      "working": "En cours …"
+      "working": "En cours …",
+      "ofFiles": "Fichier {{index}} sur {{files}}",
+      "sent": "{{sent}} sur {{size}} Mo envoyés"
     },
     "iconsTab": "Icônes d'objets",
     "mailDescription": "Nécessaire pour les invitations et les réinitialisations de mot de passe. Saisis les données de ton fournisseur de messagerie.",

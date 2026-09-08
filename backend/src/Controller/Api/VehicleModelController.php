@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Security\Permission\Permission;
+use App\Server\Items\Icons\ChunkedUpload;
+use App\Server\Items\Icons\UploadRefused;
 use App\Server\Vehicles\Models\ModelStore;
 use App\Server\Vehicles\Models\VehicleCatalogue;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -147,6 +149,67 @@ final class VehicleModelController extends AbstractController
         }
 
         return new JsonResponse(['status' => 'done', 'stored' => $stored, 'results' => $results]);
+    }
+
+    /**
+     * Takes one piece of a model file.
+     *
+     * The base game's largest model is under a megabyte, so this is not
+     * needed today -- but a mod is free to ship something far larger,
+     * and PHP refuses an oversized request at startup, before any code
+     * runs, answering HTML rather than a reason.
+     */
+    #[Route('/chunk', name: 'api_vehicle_models_chunk', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
+    public function chunk(Request $request, ChunkedUpload $upload): JsonResponse
+    {
+        $name = ChunkedUpload::safeFileName((string) $request->request->get('name'), ...self::ALLOWED);
+        $file = $request->files->get('chunk');
+
+        if ($name === null || !$file instanceof UploadedFile) {
+            return $this->refuse('vehicleModels.badName');
+        }
+
+        $bytes = @file_get_contents($file->getPathname());
+
+        if ($bytes === false) {
+            return $this->refuse('vehicleModels.unreadable');
+        }
+
+        try {
+            $received = $upload->appendAny($name, $request->request->getInt('offset'), $bytes, false);
+        } catch (UploadRefused $refused) {
+            return $this->refuse($refused->messageKey());
+        }
+
+        return new JsonResponse(['status' => 'ok', 'received' => $received]);
+    }
+
+    /** Keeps a model that has fully arrived. */
+    #[Route('/finish', name: 'api_vehicle_models_finish', methods: ['POST'])]
+    #[IsGranted(Permission::EditServers->value)]
+    public function finishUpload(Request $request, ChunkedUpload $upload): JsonResponse
+    {
+        $payload = $request->toArray();
+        $name = ChunkedUpload::safeFileName((string) ($payload['name'] ?? ''), ...self::ALLOWED);
+
+        if ($name === null) {
+            return $this->refuse('vehicleModels.badName');
+        }
+
+        try {
+            $contents = $upload->takeAny($name, (int) ($payload['bytes'] ?? 0));
+        } catch (UploadRefused $refused) {
+            return $this->refuse($refused->messageKey());
+        }
+
+        try {
+            $this->models->write($name, $contents);
+        } catch (\InvalidArgumentException) {
+            return $this->refuse('vehicleModels.badName');
+        }
+
+        return new JsonResponse(['status' => 'ok', 'name' => $name]);
     }
 
     /** The reason it was refused, or null when it was kept. */

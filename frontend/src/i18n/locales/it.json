@@ -1795,7 +1795,9 @@
       "title": "Icone degli oggetti dal gioco",
       "tooLarge": "Insieme i file sono troppo grandi. Caricali uno alla volta.",
       "where": "Per aggiungerne altre: un'installazione del gioco le tiene sotto media/texturepacks",
-      "working": "In corso …"
+      "working": "In corso …",
+      "ofFiles": "File {{index}} di {{files}}",
+      "sent": "{{sent}} di {{size}} MB inviati"
     },
     "iconsTab": "Icone oggetti",
     "mailDescription": "Necessario per gli inviti e per reimpostare le password. Inserisci i dati del tuo provider di posta.",

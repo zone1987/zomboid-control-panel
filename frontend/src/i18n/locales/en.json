@@ -1795,7 +1795,9 @@
       "title": "Item icons from the game",
       "tooLarge": "Together the files are too large. Please upload them one at a time.",
       "where": "To add more: a game installation holds these under media/texturepacks",
-      "working": "Working …"
+      "working": "Working …",
+      "ofFiles": "File {{index}} of {{files}}",
+      "sent": "{{sent}} of {{size}} MB sent"
     },
     "iconsTab": "Item icons",
     "mailDescription": "Required for invitations and password resets. Enter your mail provider's details.",

@@ -24,14 +24,14 @@ final readonly class ChunkedUpload
         return preg_match('/^[A-Za-z0-9._-]+$/', $name) === 1 ? $name : null;
     }
 
-    public function appendAny(string $name, int $offset, string $bytes): int
+    public function appendAny(string $name, int $offset, string $bytes, bool $mustLookLikeAPack = true): int
     {
-        $partial = $this->temporaryDirectory.'/'.$name.'.part';
+        $partial = $this->partialFor($name);
 
         if ($offset === 0) {
             @unlink($partial);
 
-            if (!self::looksLikeAPack($bytes)) {
+            if ($mustLookLikeAPack && !self::looksLikeAPack($bytes)) {
                 throw new UploadRefused('icons.notATexturePack');
             }
         }
@@ -53,7 +53,7 @@ final readonly class ChunkedUpload
 
     public function takeAny(string $name, int $expectedBytes): string
     {
-        $partial = $this->temporaryDirectory.'/'.$name.'.part';
+        $partial = $this->partialFor($name);
         $actual = is_file($partial) ? (int) filesize($partial) : 0;
 
         if ($actual !== $expectedBytes) {
@@ -70,6 +70,34 @@ final readonly class ChunkedUpload
         }
 
         return $contents;
+    }
+
+    /** A name is already validated by the caller; basename is the belt. */
+    private function partialFor(string $name): string
+    {
+        return $this->temporaryDirectory.'/'.basename($name).'.part';
+    }
+
+    /** Any name a model or a pack may carry, without leaving the directory. */
+    public static function safeFileName(string $name, string ...$extensions): ?string
+    {
+        $name = basename(trim($name));
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            return null;
+        }
+
+        if (preg_match('/^[A-Za-z0-9._-]+$/', $name) !== 1) {
+            return null;
+        }
+
+        if ($extensions === []) {
+            return $name;
+        }
+
+        $suffix = mb_strtolower(pathinfo($name, \PATHINFO_EXTENSION));
+
+        return \in_array($suffix, $extensions, true) ? $name : null;
     }
 
     public static function looksLikeAPack(string $opening): bool

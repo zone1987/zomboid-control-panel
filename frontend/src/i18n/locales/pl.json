@@ -1827,7 +1827,9 @@
       "title": "Ikony przedmiotów z gry",
       "tooLarge": "Razem pliki są za duże. Wgraj je po jednym.",
       "where": "Żeby dodać więcej: instalacja gry trzyma je w media/texturepacks",
-      "working": "Pracuję …"
+      "working": "Pracuję …",
+      "ofFiles": "Plik {{index}} z {{files}}",
+      "sent": "Przesłano {{sent}} z {{size}} MB"
     },
     "iconsTab": "Ikony przedmiotów",
     "mailDescription": "Potrzebne do zaproszeń i resetowania haseł. Podaj dane swojego dostawcy poczty.",

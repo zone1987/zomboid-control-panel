@@ -78,7 +78,7 @@ export function VehicleModelsCard() {
       <CardContent className="space-y-4">
         <Alert>
           <Car className="size-4" />
-          <AlertTitle>
+          <AlertTitle className="line-clamp-none">
             {status?.available === true
               ? t('settings.vehicleModels.have', {
                   models: status.models,
