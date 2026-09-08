@@ -116,6 +116,70 @@ final class ConnectController extends AbstractController
         return new RedirectResponse('/app/profile?linked=steam');
     }
 
+    /**
+     * Linking Google to the signed-in account.
+     *
+     * Separate from `/google`, which is a *sign-in*: that route is
+     * handled by GoogleAuthenticator, which authenticates whoever comes
+     * back and lands them on `/app/`. Reusing it to link made a
+     * successful link look like nothing had happened -- the operator was
+     * simply returned to the dashboard.
+     */
+    #[Route('/google/link', name: 'api_connect_google_link', methods: ['GET'])]
+    public function linkGoogle(
+        Request $request,
+        GoogleClientFactory $clients,
+        #[CurrentUser] User $user,
+    ): RedirectResponse {
+        if (!$clients->isConfigured()) {
+            return new RedirectResponse('/app/profile?error=auth.google.notConfigured');
+        }
+
+        $provider = $clients->create();
+        $code = $request->query->get('code');
+
+        if (!\is_string($code) || $code === '') {
+            return new RedirectResponse($provider->getAuthorizationUrl([
+                'scope' => ['openid', 'profile', 'email'],
+                'redirect_uri' => $this->googleLinkUri(),
+            ]));
+        }
+
+        try {
+            $token = $provider->getAccessToken('authorization_code', [
+                'code' => $code,
+                'redirect_uri' => $this->googleLinkUri(),
+            ]);
+
+            /** @var \League\OAuth2\Client\Provider\GoogleUser $googleUser */
+            $googleUser = $provider->getResourceOwner($token);
+        } catch (\Throwable) {
+            return new RedirectResponse('/app/profile?error=auth.google.failed');
+        }
+
+        try {
+            $this->linker->link(
+                $user,
+                OAuthIdentity::PROVIDER_GOOGLE,
+                $googleUser->getId(),
+                $googleUser->getName(),
+            );
+        } catch (IdentityAlreadyLinked) {
+            return new RedirectResponse('/app/profile?error=auth.identityTaken');
+        }
+
+        return new RedirectResponse('/app/profile?linked=google');
+    }
+
+    /** Google checks this against the value used to start the flow. */
+    private function googleLinkUri(): string
+    {
+        return $this->urls->generate(
+            'api_connect_google_link',
+            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
+        );
+    }
+
     #[Route('/{provider}', name: 'api_connect_unlink', methods: ['DELETE'])]
     public function unlink(string $provider, #[CurrentUser] User $user): JsonResponse
     {

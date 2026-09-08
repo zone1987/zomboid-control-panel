@@ -7241,3 +7241,88 @@ the right client id and redirect uri). The user asked to leave it for
 now.
 
 Version bumped to **1.0.5**.
+
+---
+
+## 2026-09-08 (later) — Google linking, who may sign in, and a layout fault I caused
+
+### Linking Google did nothing visible
+
+`/api/connect/google` is a **sign-in** route: GoogleAuthenticator handles
+it and lands whoever comes back on `/app/`. The profile page used that
+same route to *link*, so a successful link looked identical to being
+dumped back at the dashboard.
+
+Steam already had the right shape — `/api/connect/steam/link`, a separate
+route with `#[CurrentUser]` returning to `/app/profile`. Google now has
+`/api/connect/google/link` built the same way, with its own redirect uri
+(Google checks it against the one the flow started with) and
+`?linked=google` on return.
+
+### Who may sign in with a provider
+
+The user asked that only accounts that exist *and* have the provider
+linked may sign in. Most of that was already true:
+
+- **Steam** refuses an unknown identity outright.
+- **Google** refuses too — but had a back door.
+
+`IdentityLinker::findInvitedByEmail` matched on **the address alone**,
+despite its name. So an account in use for months would accept whoever
+later controlled a Google account with that address: somebody who left
+the company, or a domain that changed hands. A sign-in nobody granted.
+
+The user confirmed the invitation shortcut itself should stay — *"wenn
+das Konto eingeladen wurde ist es ja ok wenn es automatisch verknüpft
+... es ist ja quasi ein erwünschter User"* — with the boundary being
+*"es soll sich nur nicht jeder X-Beliebige User einfach so anmelden
+können"*.
+
+So the match is now narrowed to accounts that are genuinely still
+awaiting activation. Three conditions, each one a way in that proves the
+account is already in use:
+
+| Rejected when | Why |
+|---|---|
+| a password is set | activation is finished |
+| a passkey exists | same reasoning `canUnlink` already uses |
+| any provider is linked | the account signs in already |
+
+Five cases in `IdentityLinkingTest`, proven by restoring the email-only
+match and watching three of them fail.
+
+### A layout fault I introduced yesterday
+
+The user's screenshot showed the profile page at **413px** in a 1241px
+area, and narrower still after adding a passkey — the width was following
+the content.
+
+The cause was mine: making `.pz-page` a flex column (so the map could ask
+for `flex-1`) meant every page was sized to its content rather than
+stretched. `mx-auto max-w-3xl` collapsed to the longest line.
+
+`items-stretch` did **not** fix it: `mx-auto` sets automatic margins, and
+those defeat stretch in flexbox. A `100cqh` container-query attempt made
+it worse — the map overshot by 68px and the surface scrolled.
+
+What works is `[&>*]:w-full` on the column: the width rule wins, and
+`mx-auto` still centres within it. Measured afterwards on three page
+shapes, which is the point — one page proves nothing here:
+
+| Page | Width | Expected |
+|---|---|---|
+| profile | 768 | `max-w-3xl` |
+| settings | 1024 | `max-w-5xl` |
+| players | 1193 | fills 1241 minus padding |
+
+And the map keeps 760px with four equal 24px gaps and no scrollbar.
+
+### Attribution on a phone
+
+`© The Indie Stone · projectzomboidmap.com · B42.20.2` still ran under
+the places button at 390px. The user suggested shortening it. **The
+Indie Stone's notice stays at every size** — it is the condition the
+artwork is shown under (rule 10b), not decoration. The tile source and
+build id drop below `sm`. Measured: 112px of clearance at 390px.
+
+Version bumped to **1.0.6**.

@@ -90,7 +90,12 @@ export function MapControls({
           className="rounded bg-background/85 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground"
           title={t('map.external.description')}
         >
-          © The Indie Stone · projectzomboidmap.com · B42.20.2
+          {/* The Indie Stone's notice stays at every size -- it is the
+              condition the artwork is shown under, not decoration. The
+              tile source and the build id are dropped on a phone, where
+              the full line ran under the places button. */}
+          © The Indie Stone
+          <span className="hidden sm:inline"> · projectzomboidmap.com · B42.20.2</span>
         </a>
       </div>
     </>

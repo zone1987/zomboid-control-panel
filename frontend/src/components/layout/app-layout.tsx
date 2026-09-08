@@ -61,11 +61,13 @@ function PageTransition() {
   // min-h-full rather than h-full: a child at exactly 100% height
   // overhangs the scroller's own bottom padding, so the last element sat
   // flush against the footer. pb-4 is the gap, on the child.
-  //
-  // A column, so a page that wants the remaining height asks for `flex-1`
-  // instead of computing it from header and padding sizes that change.
   return (
-    <div key={pathname} className="pz-page flex min-h-full flex-col pb-4">
+    // A column so a page can claim the remaining height with `flex-1`.
+    // `[&>*]:w-full` because a flex column otherwise sizes children to
+    // their content, and `mx-auto max-w-3xl` collapsed to the width of
+    // its longest line -- visibly narrower, and changing as cards were
+    // added. The width rule wins; `mx-auto` still centres within it.
+    <div key={pathname} className="pz-page flex min-h-full flex-col pb-4 [&>*]:w-full">
       <Outlet />
     </div>
   )
