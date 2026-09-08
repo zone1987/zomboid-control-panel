@@ -9141,3 +9141,55 @@ fetched the stored key (32 characters), the type stayed `password`, and
 the eye switched it to `text` and back. `SettingsSecretsTest` has 6
 cases, including **403 without the permission** and 404 for a key the
 mask does not cover.
+
+### Colour: the panel had two greens — 2026-09-08, night
+
+The user: *"Das Panel sieht halt aktuell wirklich trist und farblos
+aus"*, then more precisely, holding two greens side by side: *"wir
+sollten nicht 2 verschiedene grüntöne benutzen … ich persönlich finde
+das grün vom 'Hinterlegt' hinweis ganz angenehm"*.
+
+They were right, and the arithmetic says why: **`--primary` sat at hue
+143 while every success state used emerald at ~162.** Nineteen degrees
+apart reads as a mismatch rather than as one accent.
+
+**Unified onto hue 162**, keeping lightness and chroma, so the computed
+contrast barely moved: dark 8.84 → 8.93:1, light 5.23 → 5.05:1, both
+still past AA. Eight tokens changed — `--primary`, `--ring`,
+`--sidebar-ring`, `--sidebar-primary` in both themes. `--chart-1` was
+deliberately left at 143: chart colours are a series meant to differ
+from each other.
+
+Measured afterwards: badge text `oklch(0.845 0.143 164.978)` against
+the help link's `oklch(0.765 0.155 162)` — three degrees apart now.
+
+### A `success` badge variant, with computed shades
+
+`Badge variant="success"`, applied to the three "Hinterlegt" markers
+(`credential-field.tsx:87`, `server-detail-page.tsx:328` and `:426`).
+
+The shades are computed, not picked — **emerald-600 on white is
+3.77:1 and fails AA for small text**, which is the obvious choice and
+the wrong one:
+
+| | text | ground | ratio |
+|---|---|---|---|
+| light | emerald-700 | emerald-50 | **5.21:1** |
+| dark | emerald-300 | emerald-900/40 | **6.38:1** |
+
+Also computed for the variants not yet built: amber-700/amber-50
+4.75:1, red-700/red-50 5.91:1, violet-700/violet-50 6.48:1, and their
+dark counterparts all above 5.6:1. So warning, danger and info can
+follow the same pattern when they are added.
+
+### Decided, not yet built
+
+The user chose **"Zustände einfärben, Struktur grau lassen"** over
+tinting whole cards. A read-only survey of every neutral badge, alert
+and state icon is running, so the next pass colours what reports a
+state and leaves counts and labels alone.
+
+Then, at the user's suggestion: *"vielleicht kann man ja auch dezente
+verläufe hinter cards anzeigen. Oder einen gradient hinter der sidebar
+ganz dezent"* — a very faint gradient behind the sidebar for depth,
+which does not compete with state colour because it carries no meaning.

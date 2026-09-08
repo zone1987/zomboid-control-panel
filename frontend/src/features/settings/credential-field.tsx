@@ -84,7 +84,7 @@ export function CredentialField({
         </Label>
 
         {state?.configured && !state.fromEnvironment && (
-          <Badge variant="secondary" className="shrink-0 text-xs">
+          <Badge variant="success" className="shrink-0 text-xs">
             {t('settings.configured')}
           </Badge>
         )}

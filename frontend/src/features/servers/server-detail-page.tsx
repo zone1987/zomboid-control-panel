@@ -325,7 +325,7 @@ export function ServerDetailPage() {
                 <div className="flex items-center gap-2">
                   <Label htmlFor="ftp-password">{t('servers.password')}</Label>
                   {server.ftp?.hasPassword && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="success" className="text-xs">
                       {t('settings.configured')}
                     </Badge>
                   )}
@@ -423,7 +423,7 @@ export function ServerDetailPage() {
                 <div className="flex items-center gap-2">
                   <Label htmlFor="rcon-password">{t('servers.rconPassword')}</Label>
                   {server.rcon?.hasPassword && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="success" className="text-xs">
                       {t('settings.configured')}
                     </Badge>
                   )}
