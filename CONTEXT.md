@@ -8643,3 +8643,36 @@ new buttons are both above the 32px floor.
 - `APP_PUBLIC_URL` on production carries `http://` in the Steam
   redirect.
 - Sub-32px touch targets; `ServerFileBrowser.php:117`.
+
+### v1.2.4 tagged — 2026-09-08
+
+`4858a4c` on main, three things in it:
+
+- **PR #16** — the Coolify probe: "Verbindung prüfen" reads
+  `GET /applications/{uuid}` and starts nothing; "Jetzt deployen" is its
+  own button behind a confirmation; the browser follows the deployment
+  and reloads.
+- **PR #16** — the cache confirmation names *which* names it affects
+  (the user asked "welche Namen?").
+- **PR #17** — the README badge pointed at `ci.yml`, deleted when the
+  pipeline was split into `checks.yml` / `main.yml` / `release.yml`. It
+  showed "repo or workflow not found" on the project page in both
+  READMEs. Now `main.yml`, verified by fetching both URLs: the new one
+  renders "passing", the old one the error. All six badges were checked;
+  PHP 8.4 and React 19 match `composer.json` and `package.json`.
+
+**The badge is the same family as everything else found today**: broken
+since the pipeline split, visible to every visitor, and covered by no
+test. Worth remembering that a rendered badge is a claim nothing
+verifies.
+
+`main.yml` for `4858a4c` concluded `success`, so the release gate's
+conditions were met before tagging.
+
+### For the operator, after v1.2.4 deploys
+
+- The **first** rollout to 1.2.4 still happens under the old panel, so
+  the old single button applies this once. From 1.2.4 the two are
+  separate.
+- v1.2.3 already carries the language fix, so item names should be
+  German. If not, the items page now names the state.
