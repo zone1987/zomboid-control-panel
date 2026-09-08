@@ -1,0 +1,123 @@
+name: Checks
+
+# The gate a change passes before it may enter main, and the only place
+# the suites run. Main and the release trust this result rather than
+# repeating it, which is why the branch protection rule "require
+# branches to be up to date before merging" is not optional: it makes
+# the commit that was tested the commit that gets merged.
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          # Doctrine appends `_test` in the test environment, so the
+          # database the suite opens is `db_test` -- created here under
+          # that final name, not under the one in DATABASE_URL.
+          POSTGRES_DB: db_test
+          POSTGRES_USER: db
+          POSTGRES_PASSWORD: db
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://db:db@127.0.0.1:5432/db?serverVersion=17&charset=utf8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, intl, zip, sodium, ftp, curl, mbstring
+          coverage: none
+
+      - name: Install dependencies
+        working-directory: backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run migrations
+        working-directory: backend
+        env:
+          APP_ENV: test
+        run: php bin/console doctrine:migrations:migrate --no-interaction
+
+      - name: Run tests
+        working-directory: backend
+        run: php bin/phpunit
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test
+
+      - name: Type-check and build
+        working-directory: frontend
+        run: npm run build
+
+  image:
+    name: Image builds and starts
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built and started, never pushed: a pull request has nothing to
+      # publish, but an image that cannot start must fail here rather
+      # than after the merge.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: zomboidcontrol:candidate
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the image against a database
+        run: .github/scripts/start-image.sh configured
+
+      - name: Start again with nothing configured
+        run: .github/scripts/start-image.sh unconfigured
+
+      - name: Report container logs when something failed
+        if: failure()
+        run: docker logs ci-app

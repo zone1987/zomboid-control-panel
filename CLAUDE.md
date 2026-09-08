@@ -86,13 +86,44 @@ The flow, in order, for every change without exception:
    the bridge as a download. Watch it finish; a release job that failed
    leaves users on the previous version with no warning.
 
-Two things the pipeline enforces so they cannot be forgotten:
+### Three workflows, each doing its part once
+
+The suites run **on the pull request and nowhere else**. Main and the
+release trust that result rather than repeating it, which is safe only
+because of the branch protection rule below — remove it and the pipeline
+is testing a commit that is not the one being shipped.
+
+| Workflow | Fires on | Does |
+|---|---|---|
+| `checks.yml` | pull request | backend suite, frontend lint/test/build, image **built and started but never pushed** |
+| `main.yml` | push to main | image built, started, pushed as `latest` |
+| `release.yml` | tag `v*` | gate → frontend build → image pushed as the version → GitHub release |
+
+**`strict: true` on main's protection is load-bearing.** "Require
+branches to be up to date before merging" makes the commit that passed
+`checks.yml` the commit that lands, so not re-running the suites on main
+is a saving rather than a gap. The required checks are named exactly:
+*Backend tests*, *Frontend build*, *Image builds and starts* — rename a
+job and the protection silently stops requiring it.
+
+**The release gate proves what it no longer runs.** Before anything is
+built, `release.yml` checks that the tagged commit is an ancestor of
+`origin/main` **and** that main's own run for that exact SHA concluded
+`success`, waiting up to ten minutes if it is still going. A tag on a
+feature branch, or on a main whose run failed, stops there.
+
+Four things the pipeline enforces so they cannot be forgotten:
 
 - **The tag must match `app.version`.** The release job refuses
   otherwise, because a release named 1.0.1 while the panel reports 1.0.0
   makes the in-panel update notice permanently wrong.
 - **The image is proven to start before it is pushed**, twice: once with
-  every secret supplied, once with only `APP_PUBLIC_URL`.
+  every secret supplied, once with only `APP_PUBLIC_URL`. Both live in
+  `.github/scripts/start-image.sh`, which three workflows call — change
+  the check once, not three times.
+- **A release only comes from main**, and only from a green one.
+- **`latest` moves on every merge to main**, and again on a release. A
+  prerelease tag (one containing `-`) deliberately does not move it.
 
 Versioning is semantic: a fix that changes nothing for the operator is a
 patch, a new capability is a minor, and anything that makes an existing

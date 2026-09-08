@@ -1,0 +1,80 @@
+name: Main
+
+# What lands on main has already passed Checks as the very commit that
+# was merged -- branch protection requires the branch to be up to date
+# first -- so the suites are not repeated here. This publishes `latest`
+# and nothing else, which is what somebody tracking main pulls between
+# two releases.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build and publish image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short
+            type=raw,value=latest
+
+      # Built and proven to start before it is pushed: a broken image
+      # that only fails at deploy time is the expensive kind.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: zomboidcontrol:candidate
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the image against a database
+        run: .github/scripts/start-image.sh configured
+
+      - name: Start again with nothing configured
+        run: .github/scripts/start-image.sh unconfigured
+
+      - name: Report container logs when something failed
+        if: failure()
+        run: docker logs ci-app
+
+      # amd64 only, deliberately. Building arm64 here means QEMU
+      # emulation on an amd64 runner -- over twenty minutes of every
+      # push, for an architecture this deployment does not use. An ARM
+      # host (a Hetzner CAX, Apple Silicon) needs a native arm64 runner
+      # added, not emulation switched back on.
+      - name: Push the image that was proven to start
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
