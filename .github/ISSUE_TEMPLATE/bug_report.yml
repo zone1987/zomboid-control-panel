@@ -1,0 +1,101 @@
+name: Bug report
+description: Something in the panel does not work
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. The three things that shorten a fix
+        most are **what you clicked**, **what happened**, and **the
+        panel version** — everything else below is a bonus.
+
+        Please do not paste passwords, tokens or the contents of your
+        `.env` here. If a log line contains one, replace it with
+        `REDACTED`.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        I clicked "Install" on the bridge page and got a red toast saying
+        "upload failed". I expected the bridge to be installed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: The clicks, in order. "Every time" or "once, and not since" is useful too.
+      placeholder: |
+        1. Open Servers → my server → Bridge
+        2. Click Install
+        3. The toast appears after about ten seconds
+        Happens every time.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Panel version
+      description: The footer at the bottom left shows it, e.g. `v1.0.7`.
+      placeholder: v1.0.7
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is it installed?
+      options:
+        - Coolify
+        - Docker Compose
+        - Something else (say so below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it go wrong?
+      options:
+        - In the interface
+        - Talking to the game server (RCON)
+        - File access (FTP/SFTP)
+        - The Lua bridge
+        - Discord
+        - Signing in
+        - Starting the panel at all
+        - Somewhere else / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Anything the panel or the container said
+      description: |
+        Container logs (`docker compose logs app`, or the **Logs** tab in
+        Coolify), and the browser console if the fault is in the
+        interface. Check for secrets before pasting.
+      render: text
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      description: Only if the fault is in the interface.
+      placeholder: Safari 18 on an iPhone / Firefox 133 on Windows
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am on the current version, or I have said which older one I am on
+          required: true
+        - label: There are no passwords, tokens or keys in what I pasted
+          required: true

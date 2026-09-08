@@ -37,3 +37,6 @@
 # The artwork and code are The Indie Stone's and never belong in a
 # repository; see CLAUDE.md 10b.
 /installations/
+
+# Written by .github/scripts/start-image.sh when run locally.
+/procs.txt

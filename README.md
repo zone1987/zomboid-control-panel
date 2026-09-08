@@ -186,9 +186,11 @@ time](#logging-in-for-the-first-time).
 
 ### Coolify: what else you can do afterwards
 
-- **Automatic updates.** Under *Configuration → General* there is
-  **Automatic Deployment**. Switch it on and Coolify fetches new versions
-  itself.
+- **Automatic updates.** Not the **Automatic Deployment** switch under
+  *Configuration → General* — it watches a git repository, and this
+  panel ships as an image, so there is nothing there for it to see. The
+  deploy webhook does the job instead: [Updating without clicking
+  anything](#updating-without-clicking-anything).
 - **Restart.** The **Restart** button at the top right.
 - **Read the log.** The **Logs** tab — it shows what the panel does at
   start and whether anything is missing.
@@ -425,8 +427,8 @@ Doing something through Discord is never a shortcut past your rights.
 
 ## Updating
 
-**In Coolify:** click **Redeploy**. Or switch on **Automatic Deployment**
-under *Configuration → General* and Coolify does it itself.
+**In Coolify:** click **Redeploy**. The compose file sets
+`pull_policy: always`, so the current image is fetched every time.
 
 **With Docker:**
 
@@ -440,6 +442,74 @@ anything.
 
 The panel tells you in its header when a newer version exists. After an
 update, the bridge page reports whether the bridge needs renewing too.
+
+### Updating without clicking anything
+
+There is a trap here worth naming, because the switch that sounds right
+is the wrong one.
+
+Coolify has **Automatic Deployment** under *Configuration → General*, and
+it does not help with this panel. It watches a **git repository** for new
+commits. This panel ships as a prebuilt image, so a new release changes
+no file Coolify is watching — only which image the tag `latest` points
+at. A moving registry tag is not an event, and nothing notices it on its
+own.
+
+What works is telling Coolify. It offers a **deploy webhook** for exactly
+this, and calling it makes Coolify pull the current image and start a new
+container.
+
+**1. Allow API access.** In Coolify under *Settings → Advanced*, switch
+**API Access** on if it is off.
+
+**2. Make a token.** *Keys & Tokens → API Tokens → Add*, with at least
+the **deploy** permission. Copy it now — Coolify shows it once.
+
+**3. Get the webhook URL.** Open your application, then *Automation →
+Webhooks*. The one at the top, the **Deploy webhook**, is the one you
+want. It looks like this:
+
+```
+https://coolify.example.com/api/v1/deploy?uuid=YOUR-UUID&force=false
+```
+
+The four below it — GitHub, GitLab, Bitbucket, Gitea — are for a
+different job: they let Coolify react to a git push. Do not use those
+here.
+
+**4. Call it whenever you want the panel renewed.**
+
+```bash
+curl --fail \
+  --header "Authorization: Bearer YOUR-TOKEN" \
+  "https://coolify.example.com/api/v1/deploy?uuid=YOUR-UUID&force=false"
+```
+
+`force=false` is right: it means "do not rebuild from scratch". Nothing
+is being built here — the image is finished and comes from the registry.
+
+Put that call wherever suits you: a cron entry on any machine, a button
+in your own tooling, or a CI job.
+
+<details>
+<summary>Running your own fork? Deploy from GitHub Actions</summary>
+
+If you build the image yourself, the release workflow can call the
+webhook for you. Add two repository secrets under *Settings → Secrets and
+variables → Actions*:
+
+| Secret | Value |
+|---|---|
+| `COOLIFY_WEBHOOK` | the deploy webhook URL from step 3 |
+| `COOLIFY_TOKEN` | the API token from step 2 |
+
+`.github/workflows/release.yml` already has the job. It runs **after** the
+release is published — which is after the image was pushed, which happens
+only once that image has been started twice and answered. So Coolify is
+never asked to pull something that does not exist or does not work. With
+the secrets unset the job simply skips.
+
+</details>
 
 ### Staying on a particular version
 

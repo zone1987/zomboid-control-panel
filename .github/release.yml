@@ -1,0 +1,35 @@
+# Shapes the "What's Changed" list that `generate_release_notes` adds
+# under the hand-written body in `workflows/release.yml`.
+#
+# The order here is the order on the page, and it is deliberate: an
+# operator reading a release wants to know first whether anything needs
+# doing on their side, then what is new, then what is fixed. The
+# internals come last because they change nothing for them.
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - question
+
+  categories:
+    - title: ⚠️ Needs attention when you upgrade
+      labels: ['breaking', 'bridge']
+
+    - title: ✨ New
+      labels: ['enhancement']
+
+    - title: 🐛 Fixed
+      labels: ['bug']
+
+    - title: 🔒 Security
+      labels: ['security']
+
+    - title: 📖 Documentation
+      labels: ['documentation']
+
+    - title: 🔧 Internals
+      labels: ['chore', 'ci', 'refactor', 'test', 'performance']
+
+    - title: Everything else
+      labels: ['*']
