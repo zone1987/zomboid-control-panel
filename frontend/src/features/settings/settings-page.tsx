@@ -46,6 +46,23 @@ type Draft = Partial<Record<SettingKey, string>>
 /** The tabs that hold editable fields; the rest upload files instead. */
 const SAVABLE_TABS = ['steam', 'google', 'discord', 'mail', 'privacy']
 
+/**
+ * The sections, for the select a phone gets instead of the tab list.
+ *
+ * `settings-tabs.test.ts` reads the TabsTrigger values from this file,
+ * so the two lists cannot drift apart unnoticed.
+ */
+const SECTIONS: { id: string; label: (t: (key: string) => string) => string }[] = [
+  { id: 'steam', label: () => 'Steam' },
+  { id: 'google', label: () => 'Google' },
+  { id: 'discord', label: () => 'Discord' },
+  { id: 'mail', label: (t) => t('settings.mailTab') },
+  { id: 'icons', label: (t) => t('settings.iconsTab') },
+  { id: 'vehicles', label: (t) => t('settings.vehiclesTab') },
+  { id: 'privacy', label: (t) => t('settings.privacyTab') },
+  { id: 'security', label: (t) => t('settings.securityTab') },
+]
+
 export function SettingsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -164,36 +181,62 @@ export function SettingsPage() {
         value={tab}
         onValueChange={setTab}
         orientation="vertical"
-        className="gap-6 sm:grid sm:grid-cols-[12rem_1fr] sm:items-start"
+        // `flex-col` below `sm`: the wrapper only stacks itself for a
+        // *horizontal* tab set, so a vertical one sat beside the panel
+        // and left it 167px of a 375px screen -- fields cut off
+        // mid-word. The grid takes over from `sm` upwards.
+        className="flex flex-col gap-6 sm:grid sm:grid-cols-[12rem_1fr] sm:items-start"
       >
-        <TabsList className="h-auto w-full flex-col items-stretch gap-0.5 bg-transparent p-0">
-          <TabGroupLabel>{t('settings.groupAccess')}</TabGroupLabel>
-          <TabsTrigger value="steam" className="justify-start">
+        {/* A phone gets a select instead of the tab list. Eight stacked
+            links ate half the screen; a scrolling strip hid the active
+            one off its left edge and gave no clue what else was there.
+            A select always shows where you are and opens the full list. */}
+        <div className="sm:hidden">
+          <Label htmlFor="settings-section" className="sr-only">
+            {t('nav.settings')}
+          </Label>
+          <Select value={tab} onValueChange={setTab}>
+            <SelectTrigger id="settings-section" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SECTIONS.map((section) => (
+                <SelectItem key={section.id} value={section.id}>
+                  {section.label(t)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <TabsList className="hidden h-auto w-full items-stretch gap-0.5 bg-transparent p-0 sm:flex">
+          <TabGroupLabel className="hidden sm:block sm:w-auto">{t('settings.groupAccess')}</TabGroupLabel>
+          <TabsTrigger value="steam" className="justify-start py-2 sm:py-1">
             Steam
           </TabsTrigger>
-          <TabsTrigger value="google" className="justify-start">
+          <TabsTrigger value="google" className="justify-start py-2 sm:py-1">
             Google
           </TabsTrigger>
-          <TabsTrigger value="discord" className="justify-start">
+          <TabsTrigger value="discord" className="justify-start py-2 sm:py-1">
             Discord
           </TabsTrigger>
-          <TabsTrigger value="mail" className="justify-start">
+          <TabsTrigger value="mail" className="justify-start py-2 sm:py-1">
             {t('settings.mailTab')}
           </TabsTrigger>
 
-          <TabGroupLabel className="mt-3">{t('settings.groupGameContent')}</TabGroupLabel>
-          <TabsTrigger value="icons" className="justify-start">
+          <TabGroupLabel className="mt-3 hidden sm:block">{t('settings.groupGameContent')}</TabGroupLabel>
+          <TabsTrigger value="icons" className="justify-start py-2 sm:py-1">
             {t('settings.iconsTab')}
           </TabsTrigger>
-          <TabsTrigger value="vehicles" className="justify-start">
+          <TabsTrigger value="vehicles" className="justify-start py-2 sm:py-1">
             {t('settings.vehiclesTab')}
           </TabsTrigger>
 
-          <TabGroupLabel className="mt-3">{t('settings.groupPrivacy')}</TabGroupLabel>
-          <TabsTrigger value="privacy" className="justify-start">
+          <TabGroupLabel className="mt-3 hidden sm:block">{t('settings.groupPrivacy')}</TabGroupLabel>
+          <TabsTrigger value="privacy" className="justify-start py-2 sm:py-1">
             {t('settings.privacyTab')}
           </TabsTrigger>
-          <TabsTrigger value="security" className="justify-start">
+          <TabsTrigger value="security" className="justify-start py-2 sm:py-1">
             {t('settings.securityTab')}
           </TabsTrigger>
         </TabsList>

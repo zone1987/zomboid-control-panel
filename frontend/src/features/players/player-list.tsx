@@ -90,7 +90,9 @@ export function PlayerList({
             role="tab"
             aria-selected={scope === option}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+              // py-2 on a phone: py-1 leaves a 24px target, under what a
+              // finger reliably hits.
+              'flex items-center gap-1.5 rounded-md px-2.5 py-2 text-xs transition-colors sm:py-1',
               scope === option
                 ? 'bg-secondary font-medium text-secondary-foreground'
                 : 'text-muted-foreground hover:text-foreground',
@@ -182,7 +184,8 @@ export function PlayerList({
 
       {/* Somebody who never connected still has to be actionable. */}
       <Collapsible>
-        <CollapsibleTrigger className="w-full text-left font-mono text-[11px] tracking-wide text-muted-foreground uppercase hover:text-foreground">
+        {/* py-2 on a phone: the bare text line is a 17px target. */}
+        <CollapsibleTrigger className="w-full py-2 text-left font-mono text-[11px] tracking-wide text-muted-foreground uppercase hover:text-foreground sm:py-0">
           › {t('players.manualTarget')}
         </CollapsibleTrigger>
 

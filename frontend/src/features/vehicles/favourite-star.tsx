@@ -23,7 +23,9 @@ export function FavouriteStar({
       aria-label={label}
       title={label}
       className={cn(
-        'pz-interactive absolute right-1 top-1 rounded-sm p-1',
+        // p-2 on a phone: p-1 around a 14px icon leaves a 22px target,
+        // under the 32px a finger reliably hits.
+        'pz-interactive absolute right-1 top-1 rounded-sm p-2.5 sm:p-1',
         marked ? 'text-primary' : 'text-muted-foreground/40 hover:bg-accent hover:text-foreground',
         className,
       )}

@@ -28,7 +28,7 @@ final class IconController extends AbstractController
      * name its author chose, and an operator running twenty mods needs
      * those icons as much as the base game's.
      */
-    public const WANTED_PACKS = ['UI.pack', 'UI2.pack', 'ApComUI.pack'];
+    public const WANTED_PACKS = ['UI.pack', 'UI2.pack', 'ApComUI.pack', 'RadioIcons.pack', 'IconsMoveables.pack'];
 
     public function __construct(
         private readonly IconStore $store,

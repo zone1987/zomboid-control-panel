@@ -36,7 +36,9 @@ export function TypeFilter({
         type="button"
         aria-pressed={active.length === 0}
         className={cn(
-          'pz-interactive rounded-full border px-2.5 py-1 text-xs',
+          // py-2 on a phone: py-1 leaves a 26px chip, under the 32px a
+          // finger reliably hits.
+          'pz-interactive rounded-full border px-2.5 py-2 text-xs sm:py-1',
           active.length === 0
             ? 'border-primary bg-primary/10 text-foreground'
             : 'text-muted-foreground hover:bg-accent',
@@ -55,7 +57,9 @@ export function TypeFilter({
             type="button"
             aria-pressed={on}
             className={cn(
-              'pz-interactive rounded-full border px-2.5 py-1 text-xs',
+              // py-2 on a phone: py-1 leaves a 26px chip, under the 32px a
+          // finger reliably hits.
+          'pz-interactive rounded-full border px-2.5 py-2 text-xs sm:py-1',
               on
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'text-muted-foreground hover:bg-accent',

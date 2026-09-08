@@ -156,6 +156,30 @@
     scrollbar-gutter: stable;
   }
 
+  /* The scrolling frame centres its pages, and reserving the gutter on
+     the right alone put a centred card 15px off centre. `both-edges`
+     costs twice the bar, which is 30 of 390 pixels on a phone -- so it
+     is spent only where there is room for it and something to centre. */
+  @media (min-width: 1024px) {
+    .pz-surface {
+      scrollbar-gutter: stable both-edges;
+    }
+  }
+
+  /* Below that the bar overlays instead of claiming a column, which is
+     what a phone does natively; a desktop browser narrowed to a phone
+     otherwise leaves 15px more on the right than on the left. */
+  @media (max-width: 1023px) {
+    .pz-surface {
+      scrollbar-width: none;
+    }
+
+    .pz-surface::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+  }
+
   /* Tailwind 4 sets `cursor: default` on buttons, unlike 3, so nothing
      in the panel showed a pointer. Done here rather than per component:
      the rule is "if it can be clicked, say so", and a class on every

@@ -260,7 +260,7 @@ export function VehiclesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-xs"
+                    className="h-8 px-2 text-xs sm:h-6"
                     onClick={() => chooseBody(null)}
                   >
                     <X className="size-3" />

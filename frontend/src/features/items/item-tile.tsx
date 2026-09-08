@@ -37,20 +37,31 @@ export function ItemTile({
       >
         <ItemIcon item={item} className="size-10" />
 
-        <span className="line-clamp-2 text-xs leading-tight">{name}</span>
+        {/* `hyphens-auto` breaks German names where a reader expects it
+            and shows the hyphen; `break-words` is the backstop for bare
+            identifiers, which offer the hyphenator nothing to work with
+            and otherwise pushed the tile past the scroller. */}
+        <span className="line-clamp-2 hyphens-auto break-words text-xs leading-tight">
+          {name}
+        </span>
       </button>
 
       {/* The type is what a console command takes, so it is shown and
           copyable rather than hidden in a tooltip. */}
-      <Copyable value={item.type} className="mt-0.5 justify-center text-[0.65rem]" />
+      <Copyable
+        value={item.type}
+        className="mt-0.5 min-h-8 justify-center py-2 text-[0.65rem] sm:min-h-0 sm:py-0"
+      />
 
       {/* A fixed three-column grid: justify-between shifts the buttons
           outward as soon as the count grows a digit. */}
-      <div className="mt-1.5 grid grid-cols-[1.5rem_1fr_1.5rem] items-center">
+      {/* 2rem columns on a phone: a 1.5rem button is under the 32px a
+          finger reliably hits. */}
+      <div className="mt-1.5 grid grid-cols-[2rem_1fr_2rem] items-center sm:grid-cols-[1.5rem_1fr_1.5rem]">
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 justify-self-start"
+          className="size-8 justify-self-start sm:size-6"
           disabled={count === 0}
           aria-label={`${name} weniger`}
           onClick={() => onChange(count - 1)}
@@ -70,7 +81,7 @@ export function ItemTile({
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 justify-self-end"
+          className="size-8 justify-self-end sm:size-6"
           aria-label={`${name} mehr`}
           onClick={() => onChange(count + 1)}
         >

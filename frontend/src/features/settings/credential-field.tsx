@@ -31,10 +31,14 @@ export function CredentialField({
 
   return (
     <div className="flex h-full flex-col space-y-2">
-      {/* One line, never wrapping: a second row of badges would push this
-          field's input below its neighbour's in a two-column row. */}
-      <div className="flex min-h-6 items-center gap-2 overflow-hidden">
-        <Label htmlFor={id} className="shrink-0">
+      {/* One line from `sm` up, where a second row of badges would push
+          this field's input below its neighbour's in a two-column row.
+          On a phone there is no second column, and not wrapping pushed
+          the help button off the screen. */}
+      <div className="flex min-h-6 flex-wrap items-center gap-2 sm:flex-nowrap sm:overflow-hidden">
+        {/* The one thing on the line that may shrink: with every child
+            `shrink-0` a long label pushed the row past the page. */}
+        <Label htmlFor={id} className="min-w-0 truncate">
           {label}
         </Label>
 
@@ -58,7 +62,7 @@ export function CredentialField({
             type="button"
             variant="link"
             size="sm"
-            className="ml-auto h-auto p-0 text-xs"
+            className="h-8 shrink-0 p-0 text-xs sm:ml-auto sm:h-auto"
             onClick={() => setShowInstructions((previous) => !previous)}
           >
             {t('settings.howTo')}
