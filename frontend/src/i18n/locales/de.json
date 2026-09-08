@@ -1688,7 +1688,7 @@
     "googleClientSecret": "Client-Secret",
     "googleDescription": "Optional. Erlaubt die Anmeldung über ein Google-Konto, das mit einem bestehenden Zugang verknüpft wurde.",
     "googleNote": "Diese Adresse muss exakt übereinstimmen, einschließlich Protokoll und Pfad. Sie lässt sich nur in der Google Console ändern, nicht hier.",
-    "googleRedirectLabel": "Autorisierte Weiterleitungs-URI:",
+    "googleRedirectLabel": "Beide Weiterleitungs-URIs bei Google eintragen",
     "googleStep1": "Öffne die Google Cloud Console und lege ein Projekt an, falls noch keines existiert.",
     "googleStep2": "Erstelle unter „Anmeldedaten“ eine OAuth-Client-ID vom Typ „Webanwendung“.",
     "googleStep3": "Trage die untenstehende Adresse als autorisierte Weiterleitungs-URI ein.",

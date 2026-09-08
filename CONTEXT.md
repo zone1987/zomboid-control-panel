@@ -7325,4 +7325,18 @@ Indie Stone's notice stays at every size** — it is the condition the
 artwork is shown under (rule 10b), not decoration. The tile source and
 build id drop below `sm`. Measured: 112px of clearance at 390px.
 
+### Google needs both redirect uris registered
+
+Linking starts its own flow, and Google refuses a redirect uri it was
+not given. The settings page showed only the sign-in one, so a linking
+attempt would have been rejected by Google with an error the operator
+could not act on. Both are shown now — `.../google/check` for signing in
+and `.../google/link` for linking — with the label saying to register
+both. Verified: the endpoint returns two distinct absolute urls built
+from `APP_PUBLIC_URL`.
+
+**Not verified end to end**: whether the new link route completes against
+the real Google, because that needs the second uri registered in the
+user's Google console first.
+
 Version bumped to **1.0.6**.

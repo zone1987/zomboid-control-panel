@@ -29,6 +29,8 @@ export type SettingState = {
 export type SettingsResponse = {
   items: Record<SettingKey, SettingState>
   googleRedirectUri: string
+  /** Linking is a separate flow, so Google needs this uri registered too. */
+  googleLinkRedirectUri: string
   /** Where Discord posts its interactions; the operator pastes it in. */
   discordInteractionUrl: string
   /**

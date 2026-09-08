@@ -79,6 +79,10 @@ final class SettingsController extends AbstractController
             // Generated server-side: a dev server on another port would
             // otherwise show a redirect URI Google never calls.
             'googleRedirectUri' => $this->googleRedirectUri(),
+            // Both have to be registered with Google: signing in and
+            // linking start separate flows, and Google refuses a redirect
+            // uri it was not given.
+            'googleLinkRedirectUri' => $this->absoluteUrl('api_connect_google_link'),
             // Discord will not accept an application until this URL
             // answers its signed probe, so the operator needs it to
             // hand and should not have to assemble it themselves.
@@ -96,7 +100,13 @@ final class SettingsController extends AbstractController
      */
     private function googleRedirectUri(): string
     {
-        $path = $this->urls->generate('api_connect_google_check');
+        return $this->absoluteUrl('api_connect_google_check');
+    }
+
+    /** Built from APP_PUBLIC_URL, never from the request. */
+    private function absoluteUrl(string $route): string
+    {
+        $path = $this->urls->generate($route);
 
         return rtrim($this->publicUrl, '/').$path;
     }
