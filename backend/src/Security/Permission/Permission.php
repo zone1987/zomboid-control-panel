@@ -32,6 +32,17 @@ enum Permission: string
     case InviteUsers = 'users.invite';
     case ManageUsers = 'users.manage';
     case EditSettings = 'settings.edit';
+
+    /**
+     * Reading a stored secret back in the clear.
+     *
+     * Separate from editing on purpose: entering a token and being
+     * able to read every existing one are different powers, and a
+     * deploy hook is as good as a login. Without this the reveal
+     * control is not rendered at all -- an eye that refuses is worse
+     * than no eye.
+     */
+    case RevealSecrets = 'settings.reveal';
     case ManageDiscord = 'discord.manage';
 
     /**
@@ -71,6 +82,7 @@ enum Permission: string
                 self::InviteUsers,
                 self::ManageUsers,
                 self::EditSettings,
+                self::RevealSecrets,
             ],
         ];
     }
@@ -85,7 +97,8 @@ enum Permission: string
     public function isSensitive(): bool
     {
         return match ($this) {
-            self::EditServers, self::UseConsole, self::ManageUsers, self::EditSettings => true,
+            self::EditServers, self::UseConsole, self::ManageUsers,
+            self::EditSettings, self::RevealSecrets => true,
             default => false,
         };
     }

@@ -59,6 +59,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         apache2 libapache2-mod-fcgid supervisor \
         libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2 \
+        libpng16-16 libjpeg62-turbo libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/

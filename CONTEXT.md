@@ -9040,3 +9040,68 @@ already existed with `getPanelVersion` and `hasUpdate`, and only the
 build caught it (`dashboard-page.tsx` no longer type-checked).
 `git checkout` restored it and the three new fields were added instead.
 Read a file before replacing it, even when creating what looks new.
+
+### GD: built but not loadable — the second test caught it
+
+`Dockerfile` gained gd, and the first probe of the built image said:
+
+```
+Unable to load dynamic library 'gd' … libpng16.so.16: cannot open
+shared object file
+```
+
+**The extension was compiled in the vendor stage and the runtime stage
+had none of its libraries.** `Dockerfile:61` lists what the final image
+keeps -- `libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2` -- and
+gd needs `libpng16-16 libjpeg62-turbo libfreetype6` beside them.
+
+Added, rebuilt, and verified inside the image: `gd loaded: true`,
+`imagecreatefromstring: true`, `imagepng: true`, and a 4×4 image
+actually created. **Without that second check the "fix" would have
+failed in production again** -- a build that succeeds is not an
+extension that loads.
+
+### Vehicle models are reassembled — the user asked, and it is proven
+
+*"Aber werden Fahrzeugmodelle mit mehr als 8MB nicht auch in chunks
+gesplittet?"* and then the sharper one: *"aber werden die modelle auch
+wieder zusammengesetzt? Das ist ja die frage"*.
+
+`tests/Unit/Server/Vehicles/Models/ChunkedModelUploadTest.php`, 8 cases:
+a 20 kB model sent in 8 kB pieces comes back **byte-identical**; a piece
+out of order is refused rather than written at the wrong offset; a short
+arrival is refused **and the partial file discarded**, so half a model
+never reaches the store; the partial file is gone once taken; two
+uploads do not write into each other; restarting at offset 0 replaces
+rather than appends; and only `.fbx`/`.png`/`.txt` names are accepted.
+
+`takeAny($name, $bytes)` is what makes it safe: it compares the
+assembled length against what the browser promised and throws
+`icons.sizeMismatch` otherwise.
+
+### Secrets: readable again, but only with a new permission
+
+The user: *"alle Passwortfelder … nach dem speichern weiterhin noch den
+eingegebenen wert anzeigen"*, and after being shown the trade-off chose
+**"Klartext, aber nur für Administratoren"**, then sharpened it:
+*"Dann dürfen aber auch User ohne die richtige Berechtigung auch das
+eye icon nicht sehen"* — an eye that refuses is worse than no eye.
+
+- **`Permission::RevealSecrets = 'settings.reveal'`** — new, grouped
+  under `administration`, marked `isSensitive()`. Separate from
+  `EditSettings` on purpose: entering a token and being able to read
+  every existing one are different powers, and a deploy hook is as good
+  as a login.
+- **`GET /api/settings/reveal/{name}`** — its own endpoint rather than
+  a field in the list, so a secret travels only when somebody asked for
+  that one, not on every view of the settings page. Validates against
+  `AppSetting::SECRET_KEYS`, the same list the mask is built from.
+
+**Still to do on this**: `CredentialField` must hide the reveal control
+entirely without the permission, and fetch the value when it is used.
+It is the single component behind the mail password, the Discord bot
+token, the Google client secret, the Steam key, the Coolify token and
+the per-server FTP/RCON passwords — so one change covers every place
+the user pointed at. The login, setup and reset pages use
+`PasswordInput` directly and must keep their eye: there the reader is
+typing, not reading back a stored value.
