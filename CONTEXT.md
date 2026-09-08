@@ -8676,3 +8676,94 @@ conditions were met before tagging.
   separate.
 - v1.2.3 already carries the language fix, so item names should be
   German. If not, the items page now names the state.
+
+---
+
+## 2026-09-08 (night) — Steam got an http return address
+
+**Branch `fix/steam-return-url`. `app.version` → 1.2.5.**
+
+### The report
+
+Noticed while signing in to the user's production panel: Steam's login
+page carried
+
+```
+openid.return_to=http://zomboid.andreas-gerhardt.com/api/connect/steam/check
+```
+
+while the site itself serves HTTPS. Steam shows that address to the
+reader as the site asking them to sign in, and the return trip would
+have been unencrypted — CLAUDE.md 5 calls Steam OpenID an account
+takeover risk if handled loosely.
+
+### Two causes, one on top of the other
+
+**1. Three call sites built the URL from the request.** CLAUDE.md 10j
+already says not to: *"Build the URL from APP_PUBLIC_URL, never from the
+request. Behind a proxy the request host is the container's."* Google
+and Discord follow that; Steam never did.
+`ConnectController::steam()`, `::linkSteam()` and
+`SteamAuthenticator::returnUrl()` all called `generate(...,
+ABSOLUTE_URL)`.
+
+They are now one class, `SteamReturnUrl`, and that matters beyond
+tidiness: **OpenID compares `return_to` on the way out against the one
+presented at verification**, so three copies that could drift is a
+login that breaks when one is fixed.
+
+**2. `trusted_proxies` was configured nowhere at all.** So Symfony
+discarded Coolify's `X-Forwarded-Proto` and `$request->isSecure()` was
+false. `framework.yaml` now sets `trusted_proxies: '%env(TRUSTED_PROXIES)%'`
+with the four forwarded headers, defaulting to the private ranges
+Docker and Coolify use — **deliberately not `REMOTE_ADDR`**: the
+compose file uses `expose` rather than `ports` so only the proxy can
+reach the container, but trusting whoever connects would stop being
+safe the moment somebody published a port.
+
+### A third defect found while fixing it
+
+`ConnectController::googleLinkUri()` called `$this->urls` — **a
+property that did not exist**. The constructor took only
+`IdentityLinker` and `EntityManagerInterface`. So "link a Google
+account" from the profile page would have died on an undefined
+property. It never showed up because nothing tests that path and the
+container does not check property access. `$urls` and `$publicUrl` are
+constructor arguments now, and the method builds from `APP_PUBLIC_URL`
+like everything else.
+
+### Why this never appeared locally — worth knowing
+
+**ddev produced `https` even with the old code.** Reverting
+`SteamReturnUrl` to request-derived behaviour and asking
+`/api/connect/steam` still returned
+`return_to=https://zomboidcontrol.ddev.site/...`, while 6 of the 8 unit
+tests went red. ddev's proxy setup satisfies Symfony where Coolify's
+does not.
+
+So the local environment **cannot reproduce this class of fault**, and
+the unit tests are the only thing that can. Same shape as the
+`SupportedLanguages` bug from this afternoon: identical code, two
+environments, different behaviour.
+
+### Proven
+
+- `tests/Unit/Security/OAuth/SteamReturnUrlTest.php` — 8 cases:
+  https is preserved, a missing scheme becomes https, a trailing slash
+  is not doubled, an explicit `http://localhost` is kept for local
+  setups, login and linking use different routes,
+  `testDoesNotAskTheRequestForTheHost` asserts `ABSOLUTE_PATH` is what
+  is requested. 6 fail on revert.
+- **In the browser**: `/api/connect/steam` redirects to Steam with
+  `openid.return_to=https://zomboidcontrol.ddev.site/api/connect/steam/check`.
+- 896 backend tests green; `lint:container` clean; an empty
+  `TRUSTED_PROXIES` does not break the container.
+
+### Left alone
+
+The release badge showing v1.2.3 after v1.2.4 shipped is **GitHub's
+Camo image proxy**, not a configuration fault: the README URL is
+correct and shields.io answers `v1.2.4` directly, but Camo serves an
+older copy with a steady `age` header. The user chose to leave it —
+nothing in this repository can change it, and a cache-busting parameter
+would force a README edit per release.

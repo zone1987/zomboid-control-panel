@@ -67,6 +67,12 @@ services:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
 
+    # Steam compares return_to on the way out against the way back, so
+    # every call site has to build it the same way.
+    App\Security\OAuth\SteamReturnUrl:
+        arguments:
+            $publicUrl: '%env(APP_PUBLIC_URL)%'
+
     App\Invitation\InvitationService:
         arguments:
             $publicUrl: '%env(APP_PUBLIC_URL)%'
