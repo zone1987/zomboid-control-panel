@@ -8874,3 +8874,80 @@ concatenating two adjacent lines. Read separately, the DOM said
   symmetric 16 px padding, and the screenshots read cleanly. The
   remaining sub-32px control is the shadcn `Switch` (32×18), which is
   the same everywhere in the panel.
+
+---
+
+## 2026-09-08 (night, later) — GD was missing from the image
+
+**Branch `fix/gd-in-the-image`. Three more requests queued behind it.**
+
+### The report
+
+v1.2.6 deployed, and **all five packs failed** -- including the small
+ones that had worked before, so it was no longer about size. Measured
+against production:
+
+| Request | Answer |
+|---|---|
+| `POST /api/icons/chunk` | **200** |
+| `POST /api/icons/finish` | **500** |
+
+The upload arrives; assembling it fails. Locally both answer 200.
+
+### The cause
+
+`Dockerfile:27` installs `pdo_pgsql zip intl ftp sodium curl mbstring
+xml fileinfo` -- **no `gd`**. `IconExtractor` needs
+`imagecreatefromstring`, `imagecreatetruecolor` and `imagepng` to cut
+icons out of the atlases; without the extension those functions are
+undefined and PHP dies with a fatal error, which reaches the browser as
+a 500 and the card as "Der Upload ist fehlgeschlagen".
+
+That is exactly why `/chunk` worked and `/finish` did not: the first
+only writes bytes to disk, the second decodes an image.
+
+**ddev ships gd** (`php -m` confirms), and `composer.json` did not
+require it, so nothing local could ever have caught this. **The fourth
+time today** that identical code behaved differently in the two
+environments -- after `SupportedLanguages`, the Steam scheme, and the
+panel cache.
+
+### The fix
+
+- **`Dockerfile`** — `libpng-dev libjpeg62-turbo-dev libfreetype6-dev`,
+  `docker-php-ext-configure gd --with-freetype --with-jpeg`, and `gd`
+  in the install list.
+- **`backend/composer.json`** — `"ext-gd": "*"`. Lock refreshed with
+  `composer update --lock`, which changed only the content hash plus
+  that line. From now on a missing gd stops `composer install` in CI
+  rather than surfacing as a 500 in production.
+
+**Not yet verified in a built image**: Docker Hub answered 500 to the
+token request while trying (`failed to fetch anonymous token`). The CI
+image job will prove it; if that also fails, retry the local build.
+
+### Three further requests from the user, not yet built
+
+1. **The release check is hourly; they want 5 minutes or less.**
+   `MainSchedule.php:44` has `RecurringMessage::every('1 hour', new
+   DeployNewRelease())` -- but the comment there is load-bearing:
+   *"The update check itself is cached for six hours, so asking more
+   often would only re-read the cache."*
+   `PanelUpdateChecker::CACHE_SECONDS = 21600`. **Both have to come
+   down or the shorter interval does nothing.** Mind GitHub's
+   unauthenticated rate limit of 60 requests an hour -- at 5 minutes
+   that is 12/hour for one panel, which is fine, but the cache should
+   still absorb bursts.
+2. **"Neue Fassung" appears after a redeployment**, even after the
+   panel reloaded itself when the Coolify deploy finished. Cause:
+   `use-deployment-watch.ts` calls `window.location.reload()`, which
+   does **not** replace the service worker -- it keeps serving the old
+   build, so the update prompt appears immediately afterwards. The user
+   is right that the button makes sense for the PWA in general; it
+   should just not be needed straight after a deploy the panel itself
+   triggered. Rule 10g0c, met from the other side: unregister the
+   worker (or `registration.update()` then `skipWaiting`) before
+   reloading.
+3. Same point restated: pressing **"Jetzt deployen"** should end in a
+   panel that is genuinely on the new version, without a second manual
+   step.

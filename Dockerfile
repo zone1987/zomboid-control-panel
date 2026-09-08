@@ -19,12 +19,19 @@ FROM php:8.4-fpm-bookworm AS vendor
 
 # ftp, sodium, curl and mbstring are hard requirements of the lock file;
 # without them composer install refuses to resolve.
+#
+# gd cuts the item icons out of the game's texture atlases. Without it
+# imagecreatefromstring is simply undefined, so /api/icons/finish died
+# with a fatal error and the interface said only "upload failed" --
+# while ddev, which ships gd, worked throughout.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git unzip libpq-dev libzip-dev libicu-dev libsodium-dev \
         libcurl4-openssl-dev libxml2-dev libonig-dev \
+        libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
-        pdo_pgsql zip intl ftp sodium curl mbstring xml fileinfo \
+        pdo_pgsql zip intl ftp sodium curl mbstring xml fileinfo gd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
