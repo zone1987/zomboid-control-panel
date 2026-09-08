@@ -44,7 +44,7 @@ import {
 const PAGE_SIZE = 120
 
 export function VehiclesPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { id = '' } = useParams()
   const renderer = useVehicleRenderer()
 
@@ -91,9 +91,11 @@ export function VehiclesPage() {
 
   const { data: server } = useQuery({ queryKey: ['server', id], queryFn: () => getServer(id) })
 
+  // The language is part of the key: the names come from the game's own
+  // files, so switching language has to fetch rather than reuse.
   const { data: catalogue, isPending } = useQuery({
-    queryKey: ['vehicles', id],
-    queryFn: () => listVehicles(id),
+    queryKey: ['vehicles', id, i18n.language],
+    queryFn: () => listVehicles(id, i18n.language),
     retry: false,
     staleTime: 300_000,
   })

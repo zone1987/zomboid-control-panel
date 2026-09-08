@@ -3,9 +3,29 @@ import { initReactI18next } from 'react-i18next'
 
 import en from './locales/en.json'
 
-export const SUPPORTED_LANGUAGES = ['de', 'en'] as const
+export const SUPPORTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'it', 'pl', 'ru'] as const
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
+
+/**
+ * Languages nobody has reviewed as a native speaker.
+ *
+ * Said out loud in the switcher rather than left for the reader to
+ * discover: a clumsy sentence is easier to forgive when it did not
+ * claim to be finished.
+ */
+export const UNREVIEWED_LANGUAGES: readonly SupportedLanguage[] = ['es', 'fr', 'it', 'pl', 'ru']
+
+/** What each language calls itself. */
+export const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
+  de: 'Deutsch',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  it: 'Italiano',
+  pl: 'Polski',
+  ru: 'Русский',
+}
 
 const STORAGE_KEY = 'zomboidcontrol.language'
 
@@ -20,7 +40,13 @@ function detectLanguage(): SupportedLanguage {
     // Blocked site data falls through to browser detection.
   }
 
-  return navigator.language.startsWith('de') ? 'de' : 'en'
+  // `navigator.language` is a tag like `pt-BR`, so match on the primary
+  // subtag: `de-AT` is German, and `de` on its own is too.
+  const primary = navigator.language.split('-')[0]
+
+  return SUPPORTED_LANGUAGES.includes(primary as SupportedLanguage)
+    ? (primary as SupportedLanguage)
+    : 'en'
 }
 
 /**

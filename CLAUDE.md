@@ -54,6 +54,39 @@ conversation in the terminal, not of the codebase.
 Translation files (`frontend/src/i18n/locales/*.json`) hold the respective
 language, and are the only place German appears in the repository.
 
+## 1a. Seven languages, and a new key belongs in all of them
+
+`de`, `en`, `es`, `fr`, `it`, `pl`, `ru`. English and German are written
+by hand; the other five are machine-translated and say so in the
+switcher, which is the honest version of shipping them at all.
+
+`locales.test.ts` enforces the rest, 40 cases over every language: same
+keys, no empty value, same interpolations, and the plural forms each
+language actually uses. Adding a key to `en.json` alone turns six of
+them red — which is the point.
+
+Three things that are not obvious and each cost something:
+
+- **Polish and Russian need four plural forms** (`_one`, `_few`,
+  `_many`, `_other`) where English has two. And their `_one` resolves
+  for **21, 31, 101**, so it must carry `{{count}}` even though English
+  spells the number out. A check comparing placeholders against English
+  calls the correct translation a fault.
+- **`SupportedLanguages` reads the directory**, so the backend needs no
+  edit — but a *new* language does need its name in `LANGUAGE_NAMES` and
+  a decision about `UNREVIEWED_LANGUAGES`.
+- **A key path is not always a path.** `roles.permissions.chat.read` is
+  three levels deep, because the permission name contains a dot. Walk
+  the tree and key by the joined path; splitting on `.` finds nothing
+  and reports every language as broken.
+
+**Names that come from the game are not ours to translate.** Items and
+vehicles are read from the installation's own
+`media/lua/shared/Translate/<CODE>/` files at run time — `ItemName.json`
+and the `IGUI_VehicleName*` entries in `IG_UI.json`. Do not type those
+into a locale file; read them, and fall back to English where the game
+has nothing.
+
 ## 1b. Commit messages follow Conventional Commits
 
 `type(scope): summary`, with the type from `feat`, `fix`, `docs`, `style`,

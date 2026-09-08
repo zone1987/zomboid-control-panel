@@ -23,18 +23,18 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           # `main` and the short SHA, never `latest`. The compose file
@@ -47,7 +47,7 @@ jobs:
 
       # Built and proven to start before it is pushed: a broken image
       # that only fails at deploy time is the expensive kind.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           target: runtime
@@ -72,7 +72,7 @@ jobs:
       # host (a Hetzner CAX, Apple Silicon) needs a native arm64 runner
       # added, not emulation switched back on.
       - name: Push the image that was proven to start
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: runtime
