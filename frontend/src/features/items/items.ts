@@ -10,6 +10,35 @@ export type Item = {
   weight?: number
 }
 
+/**
+ * Why the names are, or are not, in the reader's language.
+ *
+ * Five ways of having no translation used to look identical, so an
+ * operator read English names with nothing said about it.
+ */
+export type TranslationState =
+  | 'translated'
+  | 'noSuchLanguage'
+  | 'unsupportedLanguage'
+  | 'pathMissing'
+  | 'noCredentials'
+  | 'unreachable'
+  | 'unreadable'
+
+export type TranslationVerdict = {
+  state: TranslationState
+  language: string | null
+  path: string | null
+  count: number
+}
+
+/** The states the operator can do something about. */
+export const TRANSLATION_FAULTS: TranslationState[] = [
+  'pathMissing',
+  'unreachable',
+  'unreadable',
+]
+
 export type ItemCatalogue = {
   items: Item[]
   generatedAt: number | null
@@ -17,6 +46,7 @@ export type ItemCatalogue = {
   available: boolean
   /** The language the names came back in, when the server had that file. */
   language?: string | null
+  translation?: TranslationVerdict
   limits: { perCommand: number; maxTotal: number }
 }
 

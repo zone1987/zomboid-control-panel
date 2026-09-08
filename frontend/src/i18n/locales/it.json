@@ -998,7 +998,12 @@
     "search": "Cerca oggetti — nome o tipo",
     "selected": "Selezionati",
     "someFailed": "Il server ha rifiutato {{count}} oggetti.",
-    "title": "Oggetti"
+    "title": "Oggetti",
+    "translationTitle": "I nomi degli oggetti sono in inglese",
+    "translationPath": "Percorso tentato:",
+    "translation_pathMissing": "Il file di lingua del gioco non si trova in questo percorso. Di solito le credenziali FTP si aprono sulla cartella dei salvataggi mentre il media/ del gioco è altrove. Controlla il percorso base nelle credenziali del server.",
+    "translation_unreachable": "Il server ha rifiutato le credenziali o non è stato raggiungibile. Controlla utente, password e host FTP nelle credenziali del server.",
+    "translation_unreadable": "Il file di lingua è stato trovato ma non è la tabella prevista. Potrebbe essere stato trasferito in modo incompleto, oppure una mod lo ha sostituito."
   },
   "logs": {
     "capped": "le righe più vecchie oltre {{max}} vengono scartate",
@@ -1859,7 +1864,22 @@
       "good": "Tutto a posto",
       "noSender": "Ancora nessun indirizzo mittente",
       "partial": "Configurato in parte"
-    }
+    },
+    "groupServer": "Server",
+    "cacheTab": "Cache",
+    "cacheTitle": "Svuota la cache",
+    "cacheDescription": "Scarta ciò che il pannello ha letto dal server di gioco. La richiesta successiva interrogherà di nuovo il server.",
+    "cacheWhatItDrops": "Vengono svuotati: i cataloghi di oggetti e veicoli, i nomi di oggetti e veicoli per lingua, l’elenco dei comandi RCON e la sessione del server rilevata.",
+    "cacheWhatItKeeps": "Restano intatti: la posizione di lettura del mirror della chat e il contatore dei comandi del ponte. Sono posizioni, non cache: scartarle salterebbe dei messaggi.",
+    "cacheClear": "Svuota la cache",
+    "cacheClearing": "Svuotamento …",
+    "cacheCleared_one": "{{count}} voce svuotata",
+    "cacheCleared_other": "{{count}} voci svuotate",
+    "cacheClearedDetail_one": "{{count}} voce svuotata su {{servers}} server. I nomi verranno riletti al prossimo caricamento.",
+    "cacheClearedDetail_other": "{{count}} voci svuotate su {{servers}} server. I nomi verranno riletti al prossimo caricamento.",
+    "cachePartial": "Non è stato possibile scartare tutto. Riprova.",
+    "cacheNothing": "Non è configurato alcun server, quindi non c’era nulla da svuotare.",
+    "cacheFailed": "Non è stato possibile svuotare la cache."
   },
   "setup": {
     "alreadyCompleted": "La configurazione iniziale è già stata completata.",

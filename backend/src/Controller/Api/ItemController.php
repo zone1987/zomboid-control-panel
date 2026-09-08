@@ -12,6 +12,7 @@ use App\Security\Permission\Permission;
 use App\Server\Players\ModerationRecorder;
 use App\Server\Items\ItemCatalogue;
 use App\Server\Items\ItemTranslations;
+use App\Server\Translation\TranslationVerdict;
 use App\Settings\SupportedLanguages;
 use App\Server\Items\ItemGiver;
 use App\Server\Rcon\RconException;
@@ -49,7 +50,8 @@ final class ItemController extends AbstractController
             return $this->notFound();
         }
 
-        $catalogue = $this->catalogue->forServer($server, $request->query->getBoolean('refresh'));
+        $refresh = $request->query->getBoolean('refresh');
+        $catalogue = $this->catalogue->forServer($server, $refresh);
 
         // The bridge reports names in the server's own language, which is
         // usually English. The game ships a file per language, so the
@@ -58,9 +60,11 @@ final class ItemController extends AbstractController
 
         // Only a language the interface itself speaks: anything else is
         // a path the caller made up.
-        $names = $this->languages->supports($language)
-            ? $this->translations->forLanguage($server, $language)
-            : [];
+        $verdict = $this->languages->supports($language)
+            ? $this->translations->verdictFor($server, $language, $refresh)
+            : TranslationVerdict::unsupportedLanguage($language);
+
+        $names = $verdict->names;
 
         if ($names !== []) {
             $catalogue['items'] = array_map(
@@ -69,8 +73,11 @@ final class ItemController extends AbstractController
                     : $item,
                 $catalogue['items'],
             );
-            $catalogue['language'] = ItemTranslations::normalise($language);
+            $catalogue['language'] = $verdict->language;
         }
+
+        // Present whichever way it went: the empty case is the one worth explaining.
+        $catalogue['translation'] = $verdict->toArray();
 
         $response = new JsonResponse([
             ...$catalogue,
@@ -87,7 +94,7 @@ final class ItemController extends AbstractController
             '%s-%d-%s',
             $catalogue['generatedAt'] ?? 0,
             $catalogue['fileSize'] ?? 0,
-            $catalogue['language'] ?? 'none',
+            $verdict->state,
         ));
         $response->setPrivate();
         $response->headers->set('Cache-Control', 'private, max-age=60, must-revalidate');

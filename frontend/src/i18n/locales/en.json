@@ -998,7 +998,12 @@
     "search": "Search items — name or type",
     "selected": "Selected",
     "someFailed": "The server refused {{count}} item(s).",
-    "title": "Items"
+    "title": "Items",
+    "translationTitle": "Item names are in English",
+    "translationPath": "Path tried:",
+    "translation_pathMissing": "The game’s language file is not at this path. Usually the FTP credentials open on the savegame directory while the game’s own media/ sits somewhere else. Please check the base path in the server credentials.",
+    "translation_unreachable": "The server refused the credentials or could not be reached. Please check the FTP user, password and host in the server credentials.",
+    "translation_unreadable": "The language file was found but is not the table it should be. It may have transferred incompletely, or a mod replaced it."
   },
   "logs": {
     "capped": "oldest lines dropped beyond {{max}}",
@@ -1859,7 +1864,22 @@
       "good": "Everything in order",
       "noSender": "No sender address yet",
       "partial": "Partly set up"
-    }
+    },
+    "groupServer": "Server",
+    "cacheTab": "Cache",
+    "cacheTitle": "Clear the cache",
+    "cacheDescription": "Discards what the panel read from the game server. The next request asks the server again.",
+    "cacheWhatItDrops": "Cleared: the item and vehicle catalogues, the item and vehicle names per language, the RCON command list and the detected server session.",
+    "cacheWhatItKeeps": "Left alone: the chat mirror’s read position and the bridge command counter. Those are positions rather than caches — discarding them would skip messages.",
+    "cacheClear": "Clear the cache",
+    "cacheClearing": "Clearing …",
+    "cacheCleared_one": "Cleared {{count}} entry",
+    "cacheCleared_other": "Cleared {{count}} entries",
+    "cacheClearedDetail_one": "Cleared {{count}} entry across {{servers}} server. The names are read again on the next load.",
+    "cacheClearedDetail_other": "Cleared {{count}} entries across {{servers}} servers. The names are read again on the next load.",
+    "cachePartial": "Not everything could be discarded. Please try again.",
+    "cacheNothing": "No server is set up, so there was nothing to clear.",
+    "cacheFailed": "The cache could not be cleared."
   },
   "setup": {
     "alreadyCompleted": "Setup has already been completed.",

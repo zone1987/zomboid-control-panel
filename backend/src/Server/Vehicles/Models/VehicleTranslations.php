@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Server\Vehicles\Models;
 
+use App\Entity\FtpConfig;
 use App\Entity\GameServer;
 use App\Server\Storage\FileBrowserInterface;
 use App\Server\Storage\StorageException;
+use App\Server\Translation\TranslationVerdict;
 use Psr\Cache\CacheItemPoolInterface;
 
 /**
@@ -27,6 +29,9 @@ final readonly class VehicleTranslations
     /** Changes only when the game is updated. */
     private const TTL_SECONDS = 604800;
 
+    /** A failure is worth retrying long before the game is patched. */
+    private const FAILURE_TTL_SECONDS = 900;
+
     /** 628 kB in Russian, the largest shipped; the ceiling is generous. */
     private const MAX_BYTES = 4194304;
 
@@ -42,10 +47,16 @@ final readonly class VehicleTranslations
      */
     public function forLanguage(GameServer $server, string $language): array
     {
+        return $this->verdictFor($server, $language)->names;
+    }
+
+    /** Why the names are, or are not, in that language. */
+    public function verdictFor(GameServer $server, string $language, bool $refresh = false): TranslationVerdict
+    {
         $code = self::normalise($language);
 
         if ($code === null) {
-            return [];
+            return TranslationVerdict::unsupportedLanguage($language);
         }
 
         $entry = $this->cache->getItem(sprintf(
@@ -54,17 +65,20 @@ final readonly class VehicleTranslations
             $code,
         ));
 
-        if ($entry->isHit() && \is_array($entry->get())) {
-            /** @var array<string, string> */
-            return $entry->get();
+        $cached = $entry->get();
+
+        if (!$refresh && $entry->isHit() && $cached instanceof TranslationVerdict) {
+            return $cached;
         }
 
-        $names = $this->read($server, $code);
+        $verdict = $this->read($server, $code);
 
-        $entry->set($names)->expiresAfter(self::TTL_SECONDS);
+        $entry->set($verdict)->expiresAfter(
+            $verdict->needsAttention() ? self::FAILURE_TTL_SECONDS : self::TTL_SECONDS,
+        );
         $this->cache->save($entry);
 
-        return $names;
+        return $verdict;
     }
 
     /**
@@ -146,28 +160,25 @@ final readonly class VehicleTranslations
     }
 
     /** @return array<string, string> */
-    private function read(GameServer $server, string $code): array
+    private function read(GameServer $server, string $code): TranslationVerdict
     {
         $config = $server->getFtpConfig();
+        $path = sprintf('%s/%s/%s', self::DIRECTORY, $code, self::FILENAME);
 
         if ($config === null) {
-            return [];
+            return TranslationVerdict::noCredentials();
         }
 
         try {
-            $raw = $this->files->readTail(
-                $config,
-                sprintf('%s/%s/%s', self::DIRECTORY, $code, self::FILENAME),
-                self::MAX_BYTES,
-            );
-        } catch (StorageException) {
-            return [];
+            $raw = $this->files->readTail($config, $path, self::MAX_BYTES);
+        } catch (StorageException $exception) {
+            return $this->explain($config, $code, $path, $exception);
         }
 
         $payload = json_decode(trim($raw), true);
 
         if (!\is_array($payload)) {
-            return [];
+            return TranslationVerdict::unreadable($code, $path);
         }
 
         // Older builds nested everything under an IG_UI key; current
@@ -198,6 +209,30 @@ final readonly class VehicleTranslations
             $names[$script] = $name;
         }
 
-        return $names;
+        return $names === []
+            ? TranslationVerdict::unreadable($code, $path)
+            : TranslationVerdict::translated($code, $names, $path);
+    }
+
+    /** Whether the installation is reachable at all is a separate question. */
+    private function explain(
+        FtpConfig $config,
+        string $code,
+        string $path,
+        StorageException $exception,
+    ): TranslationVerdict {
+        $fallback = TranslationVerdict::fromStorageFailure($code, $path, $exception->messageKey());
+
+        if ($fallback->state === TranslationVerdict::UNREACHABLE) {
+            return $fallback;
+        }
+
+        try {
+            return $this->files->directoryExists($config, self::DIRECTORY)
+                ? TranslationVerdict::noSuchLanguage($code, $path)
+                : TranslationVerdict::pathMissing($code, $path);
+        } catch (StorageException) {
+            return $fallback;
+        }
     }
 }

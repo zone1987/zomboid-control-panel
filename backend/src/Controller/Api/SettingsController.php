@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Entity\AppSetting;
+use App\Server\Cache\ServerCacheCleaner;
 use App\Security\Permission\Permission;
 use App\Panel\DeployTrigger;
 use App\Settings\SettingsProvider;
@@ -306,6 +307,17 @@ final class SettingsController extends AbstractController
                 'notConfigured' => Response::HTTP_CONFLICT,
                 default => Response::HTTP_BAD_GATEWAY,
             },
+        );
+    }
+
+    #[Route('/cache', name: 'api_settings_clear_cache', methods: ['POST'])]
+    public function clearCache(ServerCacheCleaner $cleaner): JsonResponse
+    {
+        $verdict = $cleaner->clear();
+
+        return new JsonResponse(
+            $verdict->toArray() + ['status' => $verdict->succeeded() ? 'ok' : 'failed'],
+            $verdict->succeeded() ? Response::HTTP_OK : Response::HTTP_BAD_GATEWAY,
         );
     }
 

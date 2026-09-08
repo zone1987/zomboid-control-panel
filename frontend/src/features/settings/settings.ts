@@ -75,6 +75,25 @@ export function testDeployHook(): Promise<DeployResult> {
   return apiFetch<DeployResult>('/settings/deploy/test', { method: 'POST', body: {} })
 }
 
+export type CacheClearResult = {
+  status: string
+  state: 'cleared' | 'partiallyCleared' | 'nothingToClear' | 'failed'
+  keys: number
+  servers: number
+  detail?: string | null
+}
+
+/**
+ * Drops what the panel read from the game server.
+ *
+ * The read positions -- the chat mirror's offset and the bridge command
+ * counter -- are left alone: those are not caches, and dropping them
+ * loses messages.
+ */
+export function clearServerCache(): Promise<CacheClearResult> {
+  return apiFetch<CacheClearResult>('/settings/cache', { method: 'POST', body: {} })
+}
+
 export function testSteamKey(): Promise<{ status: string; sample?: string }> {
   return apiFetch<{ status: string; sample?: string }>('/settings/steam/test', {
     method: 'POST',

@@ -287,6 +287,39 @@ Two rules follow from it:
   needed", never "applied".
 - **Never coerce an unrecognised value.** Tell the operator what it is
   and that it stays untouched.
+- **An empty collection is a state, not an absence.** `ItemTranslations`
+  returned `[]` four times for four causes — no credentials, path not
+  found, login refused, file not a table — and a fifth, benign one: the
+  game ships no such language. The operator saw English item names with
+  nothing said, and the likely fix (the FTP base path opens on the
+  savegame directory, so the game's own `media/` is elsewhere) was
+  invisible. Where a lookup can fail in more than one way, return a
+  verdict that names the way.
+- **Cache a failure for minutes, a fact for a week.** The same code
+  cached that empty array for seven days, so fixing the FTP path would
+  have changed nothing until the next week. A separate, short TTL for
+  the failing case is part of the fix, not a refinement of it.
+- **A cache key built from the success value hides the recovery.** The
+  items ETag was `generatedAt-fileSize-language`, and `language` is
+  absent exactly when the translation failed — so every failure shares
+  one key with every other, and a repaired server still gets a 304. Key
+  on the verdict's state.
+- **Not everything in the cache pool is a cache.** A "clear the cache"
+  button that drops `discord.chat.<server>` makes the chat mirror treat
+  the next run as a first run and **silently skip** what arrived in
+  between; `events.bridge.<server>` loses one up/down event, and
+  `bridge.sequence.<server>` costs a resync. Those three are positions
+  and counters. `ServerCacheCleaner` names the keys it clears and says
+  on screen which it leaves alone — enumerate, never `clear()` the pool.
+- **The same panel version against the same game server can differ.**
+  Item names were German locally and English in production on 1.2.1
+  with identical credentials, because each instance has its own
+  database and its own cache. Before blaming the game server, ask what
+  is per-instance — a cached failure outlives its cause.
+- **The service worker also defeats request mocking.** After a build it
+  re-registers and answers `/api/...` itself, so `page.route` never
+  sees the request and an interception test looks like a broken
+  component. Unregister it before mocking, not only before debugging.
 
 ## 6d. Send only what changed
 

@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getServer } from '@/features/servers/servers'
 import { listPlayers } from '@/features/players/players'
 import { ItemTile } from './item-tile'
+import { TranslationNotice } from './translation-notice'
 import { ItemRow } from './item-row'
 import {
   displayName,
@@ -177,6 +178,8 @@ export function ItemsPage() {
           {server ? t('items.descriptionFor', { server: server.name }) : t('items.description')}
         </p>
       </div>
+
+      <TranslationNotice verdict={catalogue?.translation} />
 
       {catalogue?.available !== true ? (
         <Alert>
