@@ -8331,3 +8331,115 @@ Left alone deliberately rather than mixed into this branch:
   reversed, as recorded in the entry above.
 - **React Router warns** `No HydrateFallback element provided to render
   during initial hydration` on every page.
+
+---
+
+## 2026-09-08 (evening) — the real cause: the image has no frontend/src
+
+**Status: fixed and proven inside the built image. Branch
+`fix/languages-in-the-image`. `app.version` → 1.2.3.**
+
+### The correction, stated plainly
+
+**Both earlier entries today name the wrong cause.** The seven-day
+cached failure was a real defect and worth fixing, but it was *not* why
+the user's item names were English. The cache-clear button did not help
+them, which is the evidence that should have moved me off the
+hypothesis sooner.
+
+The user came back with: *"Nein die Item Namen sind immernoch englisch.
+Und ich habe gesehen das der request an den Server eine leere response
+zurück gibt."* — and offered their production panel to test against.
+
+### What the new field settled in one request
+
+`GET /api/servers/<id>/items?language=de` against
+`https://zomboid.andreas-gerhardt.com`:
+
+```json
+"translation": {"state":"unsupportedLanguage","language":"de","path":null,"count":0}
+```
+
+`unsupportedLanguage` means `SupportedLanguages::supports('de')`
+returned **false** — for German. No FTP call was made at all, which is
+why `path` is null.
+
+And the same endpoint with `language=en`:
+
+```json
+"translation": {"state":"translated","path":"media/lua/shared/Translate/EN/ItemName.json","count":4889}
+```
+
+**So FTP was never broken.** It read 4889 English names from the very
+directory I had spent two entries suspecting. `basePath` is `/` and it
+is correct.
+
+This is the diagnosis field earning its keep on the first real use: it
+named the cause instead of sending me back to the FTP path a third
+time.
+
+### The mechanism
+
+`services.yaml:105` bound
+`$localeDirectory: '%kernel.project_dir%/../frontend/src/i18n/locales'`.
+
+`Dockerfile:84-85` copies **only** `/app` (the backend) and the built
+assets to `/app/public/app`. Verified inside the image: `/frontend/src`
+**does not exist**. So `glob()` returned nothing, and
+`SupportedLanguages::all()` fell to its `if (!in_array('en', $found))`
+branch and answered `['en']` — every language but English refused, with
+nothing logged.
+
+It therefore **never worked in production**, on any version. "Es hat
+schonmal funktioniert" was true only of the local panel, which has
+`frontend/src` beside `backend/`. Two panels, same version, same game
+server, different filesystem — CLAUDE.md 6c's newest line, met in the
+wild.
+
+### The fix, in three parts
+
+1. **`backend/src/Settings/SupportedLanguages.php`** — a
+   `private const SHIPPED = ['de','en','es','fr','it','pl','ru']`
+   unioned into whatever the directory yields. A directory that cannot
+   be read is no longer an installation that speaks one language.
+2. **`Dockerfile`** — copies `/build/src/i18n/locales` to
+   `/app/resources/locales` and sets `ENV
+   APP_LOCALE_DIRECTORY=/app/resources/locales`.
+3. **`backend/config/services.yaml`** — `app.locale_directory` reads
+   `APP_LOCALE_DIRECTORY` with the frontend path as its default,
+   following the existing `app.repository` pattern.
+
+The constant is the safety net, the copied files are the normal path.
+Both were proven separately.
+
+### Proven, not assumed
+
+- **`tests/Unit/Settings/SupportedLanguagesTest.php`** — 5 cases, 14
+  assertions. Written **before** the fix and it failed 3 with *"de is
+  shipped but not supported"*, reproducing production locally.
+  `testTheShippedFilesAndTheFallbackNameTheSameLanguages` reads the real
+  locale directory and compares it against `SHIPPED`, so an eighth
+  language without a constant entry fails here rather than silently
+  going missing in the image only.
+- **Inside the actually-built image**: `/frontend/src` absent, all seven
+  json files present at `/app/resources/locales`, and
+  `SupportedLanguages` answers `de,en,es,fr,it,pl,ru` with
+  `supports('de') === true`. With the *old* path hardcoded it now also
+  answers all seven — the net holds.
+- 857 backend tests, 40 locale tests green.
+
+### Still open
+
+- **Not yet released.** Branch is committed but the PR, merge, tag
+  v1.2.3 and release remain. Only after that deployment will the user's
+  item names be German.
+- **`openid.return_to` is `http://` on production** —
+  `http://zomboid.andreas-gerhardt.com/api/connect/steam/check`, seen in
+  the Steam login redirect while the site itself serves HTTPS. That
+  points at `APP_PUBLIC_URL` lacking its scheme or set to `http://`
+  there. Not touched in this branch; it is a separate defect and worth
+  its own look, because CLAUDE.md 10j makes that variable
+  load-bearing for every service→panel call.
+- The pre-existing findings from the previous entry (sub-32px touch
+  targets, `ServerFileBrowser.php:117` reversed arguments) are still
+  open.
