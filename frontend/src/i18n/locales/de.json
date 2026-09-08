@@ -1913,7 +1913,9 @@
     "cacheClearedDetail_other": "{{count}} Einträge für {{servers}} Server geleert. Die Item- und Fahrzeugnamen werden beim nächsten Öffnen wieder vom Server gelesen.",
     "cachePartial": "Nicht alles konnte verworfen werden. Bitte erneut versuchen.",
     "cacheNothing": "Es ist kein Server eingerichtet, also war nichts zu leeren.",
-    "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden."
+    "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden.",
+    "noPermission": "Zum Ändern fehlt dir die Berechtigung „Einstellungen bearbeiten“.",
+    "revealFailed": "Der gespeicherte Wert konnte nicht gelesen werden."
   },
   "setup": {
     "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen.",

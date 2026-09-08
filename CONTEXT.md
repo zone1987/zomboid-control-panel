@@ -9105,3 +9105,39 @@ the per-server FTP/RCON passwords — so one change covers every place
 the user pointed at. The login, setup and reset pages use
 `PasswordInput` directly and must keep their eye: there the reader is
 typing, not reading back a stored value.
+
+### Stored secrets are readable again — one permission, not two
+
+The user asked for it, was shown the trade-off, chose "only for
+administrators", then simplified: *"wenn wir die felder deaktivieren
+brauchen wir das eye icon auch nicht entfernen"*. Asked which
+permission should govern it, they chose **one**: `settings.edit`.
+
+So `Permission::RevealSecrets` was **built and then removed again** —
+worth recording, because the two-permission version is written up
+above and someone reading only that would rebuild it. One permission
+covers editing and reading back; there is no second thing to explain.
+
+- **`GET /api/settings/reveal/{name}`**, gated on `EditSettings`,
+  validated against `AppSetting::SECRET_KEYS`. Its own endpoint so a
+  secret travels only when somebody asked for that one.
+- **`CredentialField` fetches on first focus** — not on render, and
+  only when the field is empty, the setting is configured, it does not
+  come from the environment, and the reader may edit. So a page view
+  leaks nothing: measured, a reload plus a tab switch made **zero**
+  reveal calls.
+- **Every field is disabled without `settings.edit`**, with the reason
+  underneath rather than silently inert.
+- **One change reaches all of them**: `field()` in `settings-page.tsx`
+  now passes `name: key`, so the mail password, Discord bot token,
+  Google client secret, Steam key, Coolify token and the per-server
+  FTP/RCON passwords all gained it at once.
+- The login, setup and reset pages use `PasswordInput` directly and
+  keep their eye untouched: there the reader is typing, not reading a
+  stored value back.
+
+**Verified in the browser**: the Steam field was empty, focusing it
+fetched the stored key (32 characters), the type stayed `password`, and
+the eye switched it to `text` and back. `SettingsSecretsTest` has 6
+cases, including **403 without the permission** and 404 for a key the
+mask does not cover.

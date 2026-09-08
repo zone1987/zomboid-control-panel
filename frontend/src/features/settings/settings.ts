@@ -110,6 +110,15 @@ export function deploymentProgress(deploymentUuid: string): Promise<DeploymentPr
   return apiFetch<DeploymentProgress>(`/settings/deploy/status/${encodeURIComponent(deploymentUuid)}`)
 }
 
+/** One stored secret in the clear; needs `settings.reveal`. */
+export function revealSecret(name: string): Promise<{
+  name: string
+  value: string | null
+  fromEnvironment: boolean
+}> {
+  return apiFetch(`/settings/reveal/${encodeURIComponent(name)}`)
+}
+
 export type CacheClearResult = {
   status: string
   state: 'cleared' | 'partiallyCleared' | 'nothingToClear' | 'failed'

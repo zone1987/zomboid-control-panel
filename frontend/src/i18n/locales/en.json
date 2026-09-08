@@ -1913,7 +1913,9 @@
     "cacheClearedDetail_other": "Cleared {{count}} entries across {{servers}} servers. The item and vehicle names are read from the server again the next time you open them.",
     "cachePartial": "Not everything could be discarded. Please try again.",
     "cacheNothing": "No server is set up, so there was nothing to clear.",
-    "cacheFailed": "The cache could not be cleared."
+    "cacheFailed": "The cache could not be cleared.",
+    "noPermission": "Changing this needs the \"edit settings\" permission.",
+    "revealFailed": "The stored value could not be read."
   },
   "setup": {
     "alreadyCompleted": "Setup has already been completed.",

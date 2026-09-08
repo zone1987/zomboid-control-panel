@@ -1913,7 +1913,9 @@
     "cacheClearedDetail_other": "{{count}} voci svuotate su {{servers}} server. I nomi di oggetti e veicoli verranno riletti dal server alla prossima apertura.",
     "cachePartial": "Non è stato possibile scartare tutto. Riprova.",
     "cacheNothing": "Non è configurato alcun server, quindi non c’era nulla da svuotare.",
-    "cacheFailed": "Non è stato possibile svuotare la cache."
+    "cacheFailed": "Non è stato possibile svuotare la cache.",
+    "noPermission": "Per modificarlo serve il permesso «modifica impostazioni».",
+    "revealFailed": "Non è stato possibile leggere il valore salvato."
   },
   "setup": {
     "alreadyCompleted": "La configurazione iniziale è già stata completata.",

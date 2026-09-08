@@ -153,6 +153,8 @@ export function SettingsPage() {
   })
 
   const field = (key: SettingKey) => ({
+    // Carried so a secret field can read its own stored value back.
+    name: key,
     state: data?.items[key],
     value: draft[key] ?? (data?.items[key]?.secret ? '' : (data?.items[key]?.value ?? '')),
     onChange: (value: string) => setDraft((previous) => ({ ...previous, [key]: value })),

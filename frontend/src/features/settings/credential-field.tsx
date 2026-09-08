@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { ChevronDown, Lock } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
@@ -7,11 +9,13 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import type { SettingState } from './settings'
+import { useAuth } from '@/features/auth/auth-context'
+import { revealSecret, type SettingState } from './settings'
 
 export function CredentialField({
   id,
   label,
+  name,
   state,
   value,
   onChange,
@@ -20,6 +24,8 @@ export function CredentialField({
 }: {
   id: string
   label: string
+  /** The setting key, so a stored secret can be read back. */
+  name?: string
   state: SettingState | undefined
   value: string
   onChange: (value: string) => void
@@ -27,7 +33,42 @@ export function CredentialField({
   instructions?: ReactNode
 }) {
   const { t } = useTranslation()
+  const { can } = useAuth()
   const [showInstructions, setShowInstructions] = useState(false)
+
+  const mayEdit = can('settings.edit')
+
+  /**
+   * Puts the stored secret into the field on first focus.
+   *
+   * Otherwise an operator could never see what they had entered, and
+   * the only way to check a token was to paste it again. It travels
+   * only when the field is actually touched, not on every page view.
+   */
+  const reveal = useMutation({
+    mutationFn: () => revealSecret(name ?? ''),
+    onSuccess: (answer) => {
+      if (answer.value !== null) {
+        onChange(answer.value)
+      }
+    },
+    onError: () => toast.error(t('settings.revealFailed')),
+  })
+
+  const fetchStoredValue = () => {
+    if (
+      name === undefined
+      || value !== ''
+      || state?.configured !== true
+      || state.fromEnvironment
+      || !mayEdit
+      || reveal.isPending
+    ) {
+      return
+    }
+
+    reveal.mutate()
+  }
 
   return (
     <div className="flex h-full flex-col space-y-2">
@@ -77,19 +118,26 @@ export function CredentialField({
         <PasswordInput
           id={id}
           autoComplete="off"
+          disabled={!mayEdit || reveal.isPending}
           value={value}
           placeholder={state.configured ? t('settings.unchangedPlaceholder') : placeholder}
           onChange={(event) => onChange(event.target.value)}
+          onFocus={fetchStoredValue}
         />
       ) : (
         <Input
           id={id}
           type="text"
           autoComplete="off"
+          disabled={!mayEdit}
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
         />
+      )}
+
+      {!mayEdit && (
+        <p className="text-muted-foreground text-xs">{t('settings.noPermission')}</p>
       )}
 
       {state?.fromEnvironment && !showInstructions && (

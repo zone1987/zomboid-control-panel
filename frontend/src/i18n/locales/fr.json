@@ -1913,7 +1913,9 @@
     "cacheClearedDetail_other": "{{count}} entrées vidées pour {{servers}} serveurs. Les noms d’objets et de véhicules seront relus depuis le serveur à la prochaine ouverture.",
     "cachePartial": "Tout n’a pas pu être écarté. Veuillez réessayer.",
     "cacheNothing": "Aucun serveur n’est configuré, il n’y avait donc rien à vider.",
-    "cacheFailed": "Le cache n’a pas pu être vidé."
+    "cacheFailed": "Le cache n’a pas pu être vidé.",
+    "noPermission": "Modifier ceci demande la permission « modifier les réglages ».",
+    "revealFailed": "La valeur enregistrée n’a pas pu être lue."
   },
   "setup": {
     "alreadyCompleted": "La configuration initiale est déjà terminée.",

@@ -349,12 +349,10 @@ final class SettingsController extends AbstractController
      *
      * Its own endpoint rather than a field in the list: a secret then
      * travels only when somebody asked for that one, not on every view
-     * of the settings page. Gated on RevealSecrets rather than
-     * EditSettings, because entering a token and being able to read
-     * every existing one are different powers.
+     * of the settings page.
      */
     #[Route('/reveal/{name}', name: 'api_settings_reveal', methods: ['GET'])]
-    #[IsGranted(Permission::RevealSecrets->value)]
+    #[IsGranted(Permission::EditSettings->value)]
     public function reveal(string $name): JsonResponse
     {
         // The same list the mask is built from, so a new secret is

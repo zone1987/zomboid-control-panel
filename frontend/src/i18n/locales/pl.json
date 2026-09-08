@@ -1955,7 +1955,9 @@
     "cacheClearedDetail_other": "Wyczyszczono {{count}} wpisu dla {{servers}} serwerów. Nazwy przedmiotów i pojazdów zostaną ponownie odczytane z serwera przy następnym otwarciu.",
     "cachePartial": "Nie udało się odrzucić wszystkiego. Spróbuj ponownie.",
     "cacheNothing": "Nie skonfigurowano żadnego serwera, więc nie było czego czyścić.",
-    "cacheFailed": "Nie udało się wyczyścić pamięci podręcznej."
+    "cacheFailed": "Nie udało się wyczyścić pamięci podręcznej.",
+    "noPermission": "Do zmiany potrzebne jest uprawnienie „edycja ustawień”.",
+    "revealFailed": "Nie udało się odczytać zapisanej wartości."
   },
   "setup": {
     "alreadyCompleted": "Konfiguracja została już ukończona.",
