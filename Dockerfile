@@ -83,6 +83,11 @@ WORKDIR /app
 
 COPY --from=vendor --chown=www-data:www-data /app /app
 COPY --from=frontend --chown=www-data:www-data /backend/public/app /app/public/app
+# SupportedLanguages reads these; without them every language but
+# English was refused at run time.
+COPY --from=frontend --chown=www-data:www-data /build/src/i18n/locales /app/resources/locales
+
+ENV APP_LOCALE_DIRECTORY=/app/resources/locales
 
 RUN mkdir -p /app/var/cache /app/var/log \
     && chown -R www-data:www-data /app/var

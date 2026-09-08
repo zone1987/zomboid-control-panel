@@ -13,6 +13,19 @@ namespace App\Settings;
  */
 final class SupportedLanguages
 {
+    /**
+     * The languages shipped when this was built.
+     *
+     * The directory below is the source of truth where it exists, but
+     * the Docker image carries the compiled interface without its
+     * sources -- and an unreadable directory must not narrow the panel
+     * to English while reporting nothing.
+     * `SupportedLanguagesTest` fails if the two disagree.
+     *
+     * @var list<string>
+     */
+    private const SHIPPED = ['de', 'en', 'es', 'fr', 'it', 'pl', 'ru'];
+
     /** @var list<string>|null */
     private ?array $codes = null;
 
@@ -37,13 +50,11 @@ final class SupportedLanguages
             }
         }
 
-        sort($found);
+        // A missing or unreadable directory is not an installation that
+        // speaks one language; it is one whose files cannot be read.
+        $found = array_values(array_unique([...$found, ...self::SHIPPED]));
 
-        // English is the fallback the interface itself falls back to, so
-        // it is always in the set even if the file were missing.
-        if (!\in_array('en', $found, true)) {
-            $found[] = 'en';
-        }
+        sort($found);
 
         return $this->codes = $found;
     }
