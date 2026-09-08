@@ -9193,3 +9193,67 @@ Then, at the user's suggestion: *"vielleicht kann man ja auch dezente
 verläufe hinter cards anzeigen. Oder einen gradient hinter der sidebar
 ganz dezent"* — a very faint gradient behind the sidebar for depth,
 which does not compete with state colour because it carries no meaning.
+
+### Colour, depth and movement — 2026-09-08, late night
+
+The user, escalating from *"trist und farblos"* through *"vielleicht
+kann man ja auch dezente verläufe hinter cards anzeigen"* to
+*"transitions wären überall toll"* / *"animationen"* / *"bewegung"*,
+and then the important clarification: *"das ist ja auch absolut
+korrekt. heißt aber nicht das wir den usern die bewegung aktiv haben
+keine bewegung bieten können"* — reduced-motion is right, and not a
+reason to give everybody else nothing.
+
+**A read-only survey found why the panel looked half-finished.**
+`Alert` had only `default` and `destructive`, so **nine sites faked a
+state** with a coloured icon inside a neutral box or a hand-written
+border. That reads as unfinished rather than quiet. The survey listed
+every neutral badge and alert with the state it reports and whether
+colour would help or be noise.
+
+**Variants added, shades computed** (`alert.tsx`, `badge.tsx`):
+success, warning and info, on the same arithmetic as before — the
+naive pick fails, emerald-600 on white being 3.77:1. Measured
+afterwards in the browser: the light success alert is **7.19:1** for
+its title and **5.09:1** for its description.
+
+**Applied where the survey ranked it highest** — the half-coloured
+pairs first, since each already asserted a colour and then withheld it
+from its container: `cache-card.tsx` (green tick in a grey box),
+`translation-notice.tsx` (amber triangle in a neutral alert),
+`bridge-card.tsx` (green tick in a grey pill). Then the states an
+operator hunts for: a utility that is **off** (`world-page.tsx`), a
+climate **override outliving its season** (`climate-page.tsx`), a
+**deactivated account** (`account-list.tsx`), a **stale bridge**
+(`players-page.tsx`, which had looked identical to "no chat log yet").
+
+**`VerifiedBadge` was duplicated** in `server-list-page.tsx` and
+`server-detail-page.tsx`, each with six hand-written colour classes and
+a comment saying it had to match the other — which a copy cannot
+guarantee. Now `features/servers/verified-badge.tsx`, used by both.
+
+**Depth**: `--sidebar-glow` and `--card-glow` tokens, per theme, at
+4%/7% and 2.5%/4% of the accent. Static gradients, so
+`prefers-reduced-motion` has nothing to honour, and meaningless, so
+they cannot be mistaken for a state colour. The card's is fainter
+because coloured alerts sit inside it.
+
+**Movement**, all through transitions the existing reduced-motion block
+silences automatically: cards warm their border and lift on hover, the
+sidebar's active entry grows a 2px accent bar from the left rather than
+recolouring the whole row, chevrons slide 2px, buttons give half a
+pixel on press, and alerts rise 4px as they arrive so a reader can tell
+one is new.
+
+**Two dead selectors caught before committing**: `.pz-row-link` and
+`[data-slot='chevron']` match nothing in the codebase — rules that
+would have promised an effect nobody could see. Replaced with
+`.lucide-chevron-right`, which is what those icons actually carry.
+Checked every selector against the source rather than assuming.
+
+**Verified in the browser**: the card border moves from `oklch(1 0 0 /
+0.12)` to a green-tinted one with a soft shadow; the chevron reports
+`transition-property: transform`; the active sidebar mark is 2px of
+`oklch(0.765 0.155 162)` at `scaleY(1)`; and under
+`reducedMotion: 'reduce'` the card's transition duration collapses to
+`1e-05s`. 921 backend, 414 frontend tests; lint 0 errors.

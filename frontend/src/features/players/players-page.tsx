@@ -135,7 +135,7 @@ export function PlayersPage() {
       )}
 
       {bridge && bridge.version !== null && bridge.version !== bridge.expectedVersion && (
-        <Alert>
+        <Alert variant="warning">
           <AlertTitle>{t('players.bridgeOutdated')}</AlertTitle>
           <AlertDescription>
             {t('players.bridgeOutdatedHint', {

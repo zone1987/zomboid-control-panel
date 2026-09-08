@@ -20,8 +20,8 @@ export function TranslationNotice({ verdict }: { verdict?: TranslationVerdict })
   }
 
   return (
-    <Alert>
-      <TriangleAlert className="size-4 text-amber-600 dark:text-amber-400" />
+    <Alert variant="warning">
+      <TriangleAlert className="size-4" />
       <AlertTitle>{t('items.translationTitle')}</AlertTitle>
       <AlertDescription className="space-y-1">
         <p>{t(`items.translation_${verdict.state}`)}</p>

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { CircleCheckBig, FolderSearch, PlugZap, Trash2, Users } from 'lucide-react'
+import { FolderSearch, PlugZap, Trash2, Users } from 'lucide-react'
 
 import { ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { VerifiedBadge } from './verified-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -490,18 +491,6 @@ export function ServerDetailPage() {
   )
 }
 
-/** Matches the list view, so a verified connection looks the same everywhere. */
-function VerifiedBadge({ label }: { label: string }) {
-  return (
-    <Badge
-      variant="secondary"
-      className="gap-1 border-emerald-600/30 bg-emerald-600/15 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300"
-    >
-      <CircleCheckBig className="size-3 fill-emerald-600/25 dark:fill-emerald-400/25" />
-      {label}
-    </Badge>
-  )
-}
 
 function PathField({
   id,

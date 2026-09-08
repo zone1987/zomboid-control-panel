@@ -115,7 +115,7 @@ export function BridgeCard({ server }: { server: GameServer }) {
             />
 
             {state === 'current' && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="success" className="gap-1">
                 <CircleCheckBig className="size-3.5 text-emerald-500" />
                 {t('servers.bridgeUpToDate')}
               </Badge>

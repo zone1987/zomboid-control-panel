@@ -77,7 +77,7 @@ export function AccountList() {
           </Badge>
         )}
         {!account.active && (
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="warning" className="text-xs">
             {t('users.deactivated')}
           </Badge>
         )}

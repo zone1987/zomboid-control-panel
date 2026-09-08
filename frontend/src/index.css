@@ -33,6 +33,10 @@
   --chart-5: oklch(0.6 0.17 20);
 
   --sidebar: oklch(0.985 0 0);
+  --sidebar-glow: color-mix(in oklab, var(--primary) 4%, transparent);
+  /* Fainter than the sidebar's: a card holds coloured state alerts
+     that must not sit on a tint of their own. */
+  --card-glow: color-mix(in oklab, var(--primary) 2.5%, transparent);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.52 0.132 162);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -78,6 +82,8 @@
   --chart-5: oklch(0.7 0.17 20);
 
   --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar-glow: color-mix(in oklab, var(--primary) 7%, transparent);
+  --card-glow: color-mix(in oklab, var(--primary) 4%, transparent);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.765 0.155 162);
   --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
@@ -434,4 +440,141 @@
       transparent 65%
     );
   pointer-events: none;
+}
+
+/**
+ * A faint gradient behind the sidebar and the cards.
+ *
+ * Static, not animated, so `prefers-reduced-motion` has nothing to
+ * honour. It carries no meaning either, which is what keeps it from
+ * competing with the state colours: an operator reads green as "set"
+ * and amber as "look here", and a background that means nothing cannot
+ * be mistaken for one of those.
+ */
+[data-slot='sidebar-inner'] {
+  background-image: linear-gradient(
+    to bottom,
+    var(--sidebar-glow) 0%,
+    transparent 55%
+  );
+}
+
+/*
+ * Cards get the same treatment, fainter and from the other corner, so
+ * a page of them does not read as a row of identical rectangles. The
+ * alerts inside carry their own colour and are opaque, so nothing
+ * shows through them.
+ */
+[data-slot='card'] {
+  background-image: linear-gradient(
+    160deg,
+    var(--card-glow) 0%,
+    transparent 42%
+  );
+}
+
+/*
+ * Movement, and the one rule it follows.
+ *
+ * Everything below is a transition or a short entry animation, so the
+ * `prefers-reduced-motion` block above switches all of it off for
+ * anybody who asked for that -- which is why it can be used freely
+ * here rather than argued over case by case.
+ *
+ * Durations are short on purpose: 150ms reads as responsive, 300ms as
+ * sluggish once a page is used every day.
+ */
+
+/* A card lifts very slightly and its border warms toward the accent. */
+[data-slot='card'] {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+[data-slot='card']:hover {
+  border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
+  box-shadow: 0 1px 12px -4px color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+/* A link row that leads somewhere: its trailing chevron slides, so the
+   row reads as a door rather than as text. Scoped to lucide's own
+   class, which is what those icons actually carry. */
+a:hover .lucide-chevron-right,
+a:focus-visible .lucide-chevron-right,
+button:hover .lucide-chevron-right,
+button:focus-visible .lucide-chevron-right {
+  transform: translateX(2px);
+}
+
+.lucide-chevron-right {
+  transition: transform 150ms ease;
+}
+
+/* Sidebar entries: the accent grows in from the left edge instead of
+   the whole row changing colour at once. */
+[data-slot='sidebar-menu-button'] {
+  position: relative;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+[data-slot='sidebar-menu-button']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.35rem;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--primary);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 160ms ease;
+}
+
+[data-slot='sidebar-menu-button'][data-active='true']::before,
+[data-slot='sidebar-menu-button']:hover::before {
+  transform: scaleY(1);
+}
+
+/* Buttons and badges: a touch of give, so a click feels answered. */
+button:not(:disabled):active,
+[role='button']:not([aria-disabled='true']):active {
+  transform: translateY(0.5px);
+}
+
+[data-slot='badge'] {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+/* An alert arriving after an action: it fades up rather than appearing,
+   which is what tells a reader it is new. */
+@keyframes pz-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-slot='alert'] {
+  animation: pz-rise 220ms ease-out;
+}
+
+/* Inputs already have a ring; this makes it arrive rather than snap. */
+input,
+textarea,
+select,
+[data-slot='select-trigger'] {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }

@@ -280,7 +280,7 @@ function UtilityRow({
           </Badge>
         )
       ) : (
-        <Badge variant="outline" className="text-muted-foreground">
+        <Badge variant="warning">
           {t('events.shutOff')}
         </Badge>
       )}

@@ -26,6 +26,10 @@ const badgeVariants = cva(
          */
         success:
           "border-emerald-600/20 bg-emerald-50 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-900/40 dark:text-emerald-300",
+        warning:
+          "border-amber-600/20 bg-amber-50 text-amber-700 dark:border-amber-400/25 dark:bg-amber-900/40 dark:text-amber-300",
+        info:
+          "border-violet-600/20 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-900/40 dark:text-violet-300",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
       },
