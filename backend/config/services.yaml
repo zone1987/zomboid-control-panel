@@ -8,7 +8,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     # The one place the panel's own version is declared.
-    app.version: '1.0.7'
+    app.version: '1.1.0'
     app.repository: '%env(default:app.default_repository:GITHUB_REPOSITORY)%'
     app.default_repository: 'zone1987/zomboid-control-panel'
     app.default_secrets_path: '%kernel.project_dir%/var/secrets'
