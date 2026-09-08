@@ -15,6 +15,21 @@ const badgeVariants = cva(
           "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
         outline:
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        /**
+         * A state worth reading as good: something is set, connected,
+         * or working.
+         *
+         * The shades are computed rather than picked. On white,
+         * emerald-600 is 3.77:1 and fails AA for small text, so the
+         * text is emerald-700 over an emerald-50 tint: 5.21:1. In dark
+         * emerald-300 over emerald-900/40 clears 6:1.
+         */
+        success:
+          "border-emerald-600/20 bg-emerald-50 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-900/40 dark:text-emerald-300",
+        warning:
+          "border-amber-600/20 bg-amber-50 text-amber-700 dark:border-amber-400/25 dark:bg-amber-900/40 dark:text-amber-300",
+        info:
+          "border-violet-600/20 bg-violet-50 text-violet-700 dark:border-violet-400/25 dark:bg-violet-900/40 dark:text-violet-300",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
       },

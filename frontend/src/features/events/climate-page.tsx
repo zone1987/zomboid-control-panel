@@ -225,7 +225,7 @@ function Summary({ reading, serverId }: { reading: ClimateReading; serverId: str
             thing somebody comes here to undo. */}
         {snowPinned && (
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1">
+            <Badge variant="warning" className="gap-1">
               <Lock className="size-3" />
               {t('climate.snowPinned')}
             </Badge>

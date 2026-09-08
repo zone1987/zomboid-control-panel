@@ -81,7 +81,10 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
+      // `space-y-4` because a panel may hold more than one card, and
+      // without it they touch -- which read as one card with a line
+      // through it rather than two.
+      className={cn("flex-1 space-y-4 outline-none", className)}
       {...props}
     />
   )

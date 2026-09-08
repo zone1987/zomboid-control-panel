@@ -8874,3 +8874,650 @@ concatenating two adjacent lines. Read separately, the DOM said
   symmetric 16 px padding, and the screenshots read cleanly. The
   remaining sub-32px control is the shadcn `Switch` (32×18), which is
   the same everywhere in the panel.
+
+---
+
+## 2026-09-08 (night, later) — GD was missing from the image
+
+**Branch `fix/gd-in-the-image`. Three more requests queued behind it.**
+
+### The report
+
+v1.2.6 deployed, and **all five packs failed** -- including the small
+ones that had worked before, so it was no longer about size. Measured
+against production:
+
+| Request | Answer |
+|---|---|
+| `POST /api/icons/chunk` | **200** |
+| `POST /api/icons/finish` | **500** |
+
+The upload arrives; assembling it fails. Locally both answer 200.
+
+### The cause
+
+`Dockerfile:27` installs `pdo_pgsql zip intl ftp sodium curl mbstring
+xml fileinfo` -- **no `gd`**. `IconExtractor` needs
+`imagecreatefromstring`, `imagecreatetruecolor` and `imagepng` to cut
+icons out of the atlases; without the extension those functions are
+undefined and PHP dies with a fatal error, which reaches the browser as
+a 500 and the card as "Der Upload ist fehlgeschlagen".
+
+That is exactly why `/chunk` worked and `/finish` did not: the first
+only writes bytes to disk, the second decodes an image.
+
+**ddev ships gd** (`php -m` confirms), and `composer.json` did not
+require it, so nothing local could ever have caught this. **The fourth
+time today** that identical code behaved differently in the two
+environments -- after `SupportedLanguages`, the Steam scheme, and the
+panel cache.
+
+### The fix
+
+- **`Dockerfile`** — `libpng-dev libjpeg62-turbo-dev libfreetype6-dev`,
+  `docker-php-ext-configure gd --with-freetype --with-jpeg`, and `gd`
+  in the install list.
+- **`backend/composer.json`** — `"ext-gd": "*"`. Lock refreshed with
+  `composer update --lock`, which changed only the content hash plus
+  that line. From now on a missing gd stops `composer install` in CI
+  rather than surfacing as a 500 in production.
+
+**Not yet verified in a built image**: Docker Hub answered 500 to the
+token request while trying (`failed to fetch anonymous token`). The CI
+image job will prove it; if that also fails, retry the local build.
+
+### Three further requests from the user, not yet built
+
+1. **The release check is hourly; they want 5 minutes or less.**
+   `MainSchedule.php:44` has `RecurringMessage::every('1 hour', new
+   DeployNewRelease())` -- but the comment there is load-bearing:
+   *"The update check itself is cached for six hours, so asking more
+   often would only re-read the cache."*
+   `PanelUpdateChecker::CACHE_SECONDS = 21600`. **Both have to come
+   down or the shorter interval does nothing.** Mind GitHub's
+   unauthenticated rate limit of 60 requests an hour -- at 5 minutes
+   that is 12/hour for one panel, which is fine, but the cache should
+   still absorb bursts.
+2. **"Neue Fassung" appears after a redeployment**, even after the
+   panel reloaded itself when the Coolify deploy finished. Cause:
+   `use-deployment-watch.ts` calls `window.location.reload()`, which
+   does **not** replace the service worker -- it keeps serving the old
+   build, so the update prompt appears immediately afterwards. The user
+   is right that the button makes sense for the PWA in general; it
+   should just not be needed straight after a deploy the panel itself
+   triggered. Rule 10g0c, met from the other side: unregister the
+   worker (or `registration.update()` then `skipWaiting`) before
+   reloading.
+3. Same point restated: pressing **"Jetzt deployen"** should end in a
+   panel that is genuinely on the new version, without a second manual
+   step.
+
+### The same branch grew four more requests — 2026-09-08, night
+
+All on `fix/gd-in-the-image`, since they share the deploy card.
+
+**1. The release check is configurable now.** `deploy.check_minutes`
+holds one of `DeployTrigger::CHECK_INTERVALS` = 5, 10, 15, 30, 60, 360,
+720, 1440. The scheduler fires at the floor (5 minutes) and
+`DeployNewReleaseHandler::dueNow()` decides whether the chosen interval
+has elapsed, writing `deploy.last_check` — so changing it needs no
+restart. `PanelUpdateChecker::CACHE_SECONDS` came down from 21600 to
+300, because a cache above the interval would make a shorter setting
+re-read a stale answer.
+
+**One minute was asked for and then withdrawn**, correctly: at that
+rate the panel makes sixty GitHub calls an hour, exactly the
+unauthenticated limit, and a rate-limited check answers "cannot tell"
+rather than a version. Five is the floor, and a test asserts it.
+
+**2. `deploy.reload_panel` — a second switch.** Rolling out in the
+background is one decision; taking the page away from whoever is
+reading it is another. Only with this on does an open panel reload
+itself.
+
+**3. The reload now replaces the service worker.**
+`reloadOntoTheNewBuild()` in `use-app-update.ts` unregisters the
+worker and clears `caches` before `location.reload()`. Without that the
+worker kept answering from its precache, so the panel came back on the
+*old* build and then offered "Neue Version" — a second manual step
+after a deployment it had just performed itself. Rule 10g0c, met from
+the other side.
+
+**4. The top bar says a deployment is running.**
+`/api/panel/version` gained `autoDeploy`, `deploying` and
+`reloadPanel`; `AppUpdateBanner` polls it every 30 s and shows a
+spinner with wording that differs by whether the panel will reload
+itself. `deploying` is read from the claim row, which needed
+`AppSettingRepository::claimed()` — `findAllAsMap()` drops a null
+value and a claim row *is* one, so its existence is the whole
+information (rule 6c again).
+
+### Wording, corrected four times on the user's reading
+
+- **"Neue Version automatisch ausrollen"** was ambiguous once a second
+  switch sat beside it. Now **"Coolify-Deployment automatisch starten"**
+  with the user's own sentence: *"Sobald eine neue Version verfügbar
+  ist, wird sie in deinem Coolify automatisch deployt."*
+- **"Wie oft nach einer neuen Fassung sehen"** → **"Panelupdate-
+  Prüfintervall"**.
+- **The reload hint explained the off state** (*"Aus bedeutet: der
+  Knopf … erscheint"*), which the user rightly called pointless —
+  everybody knows what an off switch means. Cut to one sentence.
+- **"Fassung" replaced by "Version" in all 14 places** in `de.json`,
+  not only the new ones. The user reads it as unusual, and consistency
+  beats leaving nine old ones behind.
+
+### Two faults only the browser showed
+
+1. **`settings.deploy.intervalHours` printed as a raw key.** The
+   dropdown showed the key itself. Cause: the entry exists only as
+   plural forms, and i18next resolves those through `count`.
+2. **Then `{{minutes}}` printed verbatim** in every option, because the
+   translation named its own placeholder while i18next was filling
+   `count`. Both keys use `{{count}}` now.
+
+Neither was visible to the locale test, which checks that placeholders
+*match between languages* — they did. Only clicking the dropdown open
+showed it. Rule 6b, earning its place again.
+
+### Verified
+
+- Dropdown reads **"Alle 5 / 10 / 15 / 30 Minuten, Jede Stunde, Alle
+  6 / 12 / 24 Stunden"** — no placeholders, no raw keys, no "Fassung".
+- Order on screen: both switches together, then the interval, then the
+  buttons.
+- The interval and the second switch are **disabled until the first is
+  on**, with the reason rather than hidden.
+- 907 backend tests (7 new in `DeployIntervalTest`, 4 in
+  `PanelVersionTest`), 414 frontend, 40 locale; lint 0 errors; tsc
+  clean; `lint:container` clean.
+- 390 / 820 / 1512 px: no horizontal scroll; the remaining short
+  controls are the shadcn `Switch` (32×18) and the pre-existing "Wie
+  komme ich daran?" link.
+
+**A mistake worth recording:** I overwrote `panel-version.ts`, which
+already existed with `getPanelVersion` and `hasUpdate`, and only the
+build caught it (`dashboard-page.tsx` no longer type-checked).
+`git checkout` restored it and the three new fields were added instead.
+Read a file before replacing it, even when creating what looks new.
+
+### GD: built but not loadable — the second test caught it
+
+`Dockerfile` gained gd, and the first probe of the built image said:
+
+```
+Unable to load dynamic library 'gd' … libpng16.so.16: cannot open
+shared object file
+```
+
+**The extension was compiled in the vendor stage and the runtime stage
+had none of its libraries.** `Dockerfile:61` lists what the final image
+keeps -- `libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2` -- and
+gd needs `libpng16-16 libjpeg62-turbo libfreetype6` beside them.
+
+Added, rebuilt, and verified inside the image: `gd loaded: true`,
+`imagecreatefromstring: true`, `imagepng: true`, and a 4×4 image
+actually created. **Without that second check the "fix" would have
+failed in production again** -- a build that succeeds is not an
+extension that loads.
+
+### Vehicle models are reassembled — the user asked, and it is proven
+
+*"Aber werden Fahrzeugmodelle mit mehr als 8MB nicht auch in chunks
+gesplittet?"* and then the sharper one: *"aber werden die modelle auch
+wieder zusammengesetzt? Das ist ja die frage"*.
+
+`tests/Unit/Server/Vehicles/Models/ChunkedModelUploadTest.php`, 8 cases:
+a 20 kB model sent in 8 kB pieces comes back **byte-identical**; a piece
+out of order is refused rather than written at the wrong offset; a short
+arrival is refused **and the partial file discarded**, so half a model
+never reaches the store; the partial file is gone once taken; two
+uploads do not write into each other; restarting at offset 0 replaces
+rather than appends; and only `.fbx`/`.png`/`.txt` names are accepted.
+
+`takeAny($name, $bytes)` is what makes it safe: it compares the
+assembled length against what the browser promised and throws
+`icons.sizeMismatch` otherwise.
+
+### Secrets: readable again, but only with a new permission
+
+The user: *"alle Passwortfelder … nach dem speichern weiterhin noch den
+eingegebenen wert anzeigen"*, and after being shown the trade-off chose
+**"Klartext, aber nur für Administratoren"**, then sharpened it:
+*"Dann dürfen aber auch User ohne die richtige Berechtigung auch das
+eye icon nicht sehen"* — an eye that refuses is worse than no eye.
+
+- **`Permission::RevealSecrets = 'settings.reveal'`** — new, grouped
+  under `administration`, marked `isSensitive()`. Separate from
+  `EditSettings` on purpose: entering a token and being able to read
+  every existing one are different powers, and a deploy hook is as good
+  as a login.
+- **`GET /api/settings/reveal/{name}`** — its own endpoint rather than
+  a field in the list, so a secret travels only when somebody asked for
+  that one, not on every view of the settings page. Validates against
+  `AppSetting::SECRET_KEYS`, the same list the mask is built from.
+
+**Still to do on this**: `CredentialField` must hide the reveal control
+entirely without the permission, and fetch the value when it is used.
+It is the single component behind the mail password, the Discord bot
+token, the Google client secret, the Steam key, the Coolify token and
+the per-server FTP/RCON passwords — so one change covers every place
+the user pointed at. The login, setup and reset pages use
+`PasswordInput` directly and must keep their eye: there the reader is
+typing, not reading back a stored value.
+
+### Stored secrets are readable again — one permission, not two
+
+The user asked for it, was shown the trade-off, chose "only for
+administrators", then simplified: *"wenn wir die felder deaktivieren
+brauchen wir das eye icon auch nicht entfernen"*. Asked which
+permission should govern it, they chose **one**: `settings.edit`.
+
+So `Permission::RevealSecrets` was **built and then removed again** —
+worth recording, because the two-permission version is written up
+above and someone reading only that would rebuild it. One permission
+covers editing and reading back; there is no second thing to explain.
+
+- **`GET /api/settings/reveal/{name}`**, gated on `EditSettings`,
+  validated against `AppSetting::SECRET_KEYS`. Its own endpoint so a
+  secret travels only when somebody asked for that one.
+- **`CredentialField` fetches on first focus** — not on render, and
+  only when the field is empty, the setting is configured, it does not
+  come from the environment, and the reader may edit. So a page view
+  leaks nothing: measured, a reload plus a tab switch made **zero**
+  reveal calls.
+- **Every field is disabled without `settings.edit`**, with the reason
+  underneath rather than silently inert.
+- **One change reaches all of them**: `field()` in `settings-page.tsx`
+  now passes `name: key`, so the mail password, Discord bot token,
+  Google client secret, Steam key, Coolify token and the per-server
+  FTP/RCON passwords all gained it at once.
+- The login, setup and reset pages use `PasswordInput` directly and
+  keep their eye untouched: there the reader is typing, not reading a
+  stored value back.
+
+**Verified in the browser**: the Steam field was empty, focusing it
+fetched the stored key (32 characters), the type stayed `password`, and
+the eye switched it to `text` and back. `SettingsSecretsTest` has 6
+cases, including **403 without the permission** and 404 for a key the
+mask does not cover.
+
+### Colour: the panel had two greens — 2026-09-08, night
+
+The user: *"Das Panel sieht halt aktuell wirklich trist und farblos
+aus"*, then more precisely, holding two greens side by side: *"wir
+sollten nicht 2 verschiedene grüntöne benutzen … ich persönlich finde
+das grün vom 'Hinterlegt' hinweis ganz angenehm"*.
+
+They were right, and the arithmetic says why: **`--primary` sat at hue
+143 while every success state used emerald at ~162.** Nineteen degrees
+apart reads as a mismatch rather than as one accent.
+
+**Unified onto hue 162**, keeping lightness and chroma, so the computed
+contrast barely moved: dark 8.84 → 8.93:1, light 5.23 → 5.05:1, both
+still past AA. Eight tokens changed — `--primary`, `--ring`,
+`--sidebar-ring`, `--sidebar-primary` in both themes. `--chart-1` was
+deliberately left at 143: chart colours are a series meant to differ
+from each other.
+
+Measured afterwards: badge text `oklch(0.845 0.143 164.978)` against
+the help link's `oklch(0.765 0.155 162)` — three degrees apart now.
+
+### A `success` badge variant, with computed shades
+
+`Badge variant="success"`, applied to the three "Hinterlegt" markers
+(`credential-field.tsx:87`, `server-detail-page.tsx:328` and `:426`).
+
+The shades are computed, not picked — **emerald-600 on white is
+3.77:1 and fails AA for small text**, which is the obvious choice and
+the wrong one:
+
+| | text | ground | ratio |
+|---|---|---|---|
+| light | emerald-700 | emerald-50 | **5.21:1** |
+| dark | emerald-300 | emerald-900/40 | **6.38:1** |
+
+Also computed for the variants not yet built: amber-700/amber-50
+4.75:1, red-700/red-50 5.91:1, violet-700/violet-50 6.48:1, and their
+dark counterparts all above 5.6:1. So warning, danger and info can
+follow the same pattern when they are added.
+
+### Decided, not yet built
+
+The user chose **"Zustände einfärben, Struktur grau lassen"** over
+tinting whole cards. A read-only survey of every neutral badge, alert
+and state icon is running, so the next pass colours what reports a
+state and leaves counts and labels alone.
+
+Then, at the user's suggestion: *"vielleicht kann man ja auch dezente
+verläufe hinter cards anzeigen. Oder einen gradient hinter der sidebar
+ganz dezent"* — a very faint gradient behind the sidebar for depth,
+which does not compete with state colour because it carries no meaning.
+
+### Colour, depth and movement — 2026-09-08, late night
+
+The user, escalating from *"trist und farblos"* through *"vielleicht
+kann man ja auch dezente verläufe hinter cards anzeigen"* to
+*"transitions wären überall toll"* / *"animationen"* / *"bewegung"*,
+and then the important clarification: *"das ist ja auch absolut
+korrekt. heißt aber nicht das wir den usern die bewegung aktiv haben
+keine bewegung bieten können"* — reduced-motion is right, and not a
+reason to give everybody else nothing.
+
+**A read-only survey found why the panel looked half-finished.**
+`Alert` had only `default` and `destructive`, so **nine sites faked a
+state** with a coloured icon inside a neutral box or a hand-written
+border. That reads as unfinished rather than quiet. The survey listed
+every neutral badge and alert with the state it reports and whether
+colour would help or be noise.
+
+**Variants added, shades computed** (`alert.tsx`, `badge.tsx`):
+success, warning and info, on the same arithmetic as before — the
+naive pick fails, emerald-600 on white being 3.77:1. Measured
+afterwards in the browser: the light success alert is **7.19:1** for
+its title and **5.09:1** for its description.
+
+**Applied where the survey ranked it highest** — the half-coloured
+pairs first, since each already asserted a colour and then withheld it
+from its container: `cache-card.tsx` (green tick in a grey box),
+`translation-notice.tsx` (amber triangle in a neutral alert),
+`bridge-card.tsx` (green tick in a grey pill). Then the states an
+operator hunts for: a utility that is **off** (`world-page.tsx`), a
+climate **override outliving its season** (`climate-page.tsx`), a
+**deactivated account** (`account-list.tsx`), a **stale bridge**
+(`players-page.tsx`, which had looked identical to "no chat log yet").
+
+**`VerifiedBadge` was duplicated** in `server-list-page.tsx` and
+`server-detail-page.tsx`, each with six hand-written colour classes and
+a comment saying it had to match the other — which a copy cannot
+guarantee. Now `features/servers/verified-badge.tsx`, used by both.
+
+**Depth**: `--sidebar-glow` and `--card-glow` tokens, per theme, at
+4%/7% and 2.5%/4% of the accent. Static gradients, so
+`prefers-reduced-motion` has nothing to honour, and meaningless, so
+they cannot be mistaken for a state colour. The card's is fainter
+because coloured alerts sit inside it.
+
+**Movement**, all through transitions the existing reduced-motion block
+silences automatically: cards warm their border and lift on hover, the
+sidebar's active entry grows a 2px accent bar from the left rather than
+recolouring the whole row, chevrons slide 2px, buttons give half a
+pixel on press, and alerts rise 4px as they arrive so a reader can tell
+one is new.
+
+**Two dead selectors caught before committing**: `.pz-row-link` and
+`[data-slot='chevron']` match nothing in the codebase — rules that
+would have promised an effect nobody could see. Replaced with
+`.lucide-chevron-right`, which is what those icons actually carry.
+Checked every selector against the source rather than assuming.
+
+**Verified in the browser**: the card border moves from `oklch(1 0 0 /
+0.12)` to a green-tinted one with a soft shadow; the chevron reports
+`transition-property: transform`; the active sidebar mark is 2px of
+`oklch(0.765 0.155 162)` at `scaleY(1)`; and under
+`reducedMotion: 'reduce'` the card's transition duration collapses to
+`1e-05s`. 921 backend, 414 frontend tests; lint 0 errors.
+
+---
+
+## 2026-09-08 (late night) — the visual pass
+
+**Branch `fix/gd-in-the-image`, `app.version` 1.2.7. Nothing released
+yet — the user is still on 1.2.6, so none of the last three commits'
+work is live.**
+
+### Where it started
+
+*"Das Panel sieht halt aktuell wirklich trist und farblos aus"*, and
+then, holding two greens beside each other: *"wir sollten nicht 2
+verschiedene grüntöne benutzen … ich persönlich finde das grün vom
+'Hinterlegt' hinweis ganz angenehm"*.
+
+The requests arrived one at a time and each was right. In order:
+`Hinterlegt` badges green → colour the states generally → gradients
+behind cards → a gradient behind the sidebar → **one** gradient for the
+whole page → hover effects → transitions → animations → thinner
+scrollbars, not plain grey → card and button blur → brighter buttons →
+softer borders → remove the trigger separator → remove the footer
+dividers → remove the header rule → focus "richtig blury" → button
+background blur → and finally **revert the top-bar blur**.
+
+### What is in place
+
+**One accent.** `--primary`, `--ring`, `--sidebar-primary` and
+`--sidebar-ring` all moved from hue 143 to 162 and then up in chroma to
+**0.5/0.17 (light)** and **0.8/0.21 (dark)** at the user's *"der button
+muss auffallen"*. Light had to go *deeper* rather than brighter —
+brighter dropped white-on-green to 3.76:1; L=0.50/C=0.17 gives
+`rgb(0,126,67)` at **5.14:1**. Dark at L=0.80/C=0.21 gives
+`rgb(0,229,147)` with the black label at **11.97:1**.
+
+**Variants** on `Badge` and `Alert`: `success`, `warning`, `info`, with
+the shades computed (see CLAUDE.md 10k). Applied to the "Hinterlegt"
+markers, the half-coloured pairs (`cache-card`, `translation-notice`,
+`bridge-card`), and the states an operator hunts for — a utility that
+is **off**, a climate override outliving its season, a deactivated
+account, a **stale bridge** that had looked identical to "no chat log
+yet".
+
+**`VerifiedBadge`** was two copies with six hand-written colour classes
+each, both commented "must match the other". Now
+`features/servers/verified-badge.tsx`.
+
+**One page-wide field**: `.pz-page-field` on the `SidebarProvider`,
+three off-centre radial pools (`--page-glow-a/b/c`) plus a 1px diagonal
+hatch, with the sidebar, both bars and the inset made transparent so it
+runs behind everything. Cards keep a fainter one of their own
+(`--card-glow`).
+
+**Glass**: `--card` carries an alpha (82% light, 78% dark) and cards
+have `backdrop-blur-md`. `outline`, `secondary` and `ghost` buttons are
+translucent with `backdrop-blur-sm`; `default` and `destructive` stay
+opaque because an action's colour *is* the signal.
+
+**Movement**: card lift and border warm on hover, a 2px accent bar
+growing from the left of the active sidebar entry, chevrons sliding
+2px, buttons giving half a pixel on press, alerts rising 4px on
+arrival, and transitions on inputs and badges. All silenced by the
+existing reduced-motion block — verified at `1e-05s`.
+
+**Scrollbars**: `thin`, 8px, a track that is transparent and a thumb
+tokenised as grey carrying ~10-12% of the accent
+(`--scrollbar-thumb`), deepening rather than brightening on hover. The
+user asked for *"nichts leuchtend grün … aber auch nicht einfach plump
+in grau"* after a first attempt used 45% primary.
+
+**Borders**: `--border` 12% → **7%** (dark) and to 62% alpha (light),
+`--sidebar-border` to 6%/55%. The trigger/breadcrumb separator, both
+footer dividers, the header's `border-b` and the footer's `border-t`
+are gone — with one gradient behind the shell a rule reads as a seam.
+
+**Focus** is a glow now, not a 3px line: `1px` ring plus a `12px`
+blurred halo at 40% of `--ring`, with `outline: none !important` on the
+elements whose own classes were re-asserting the 3px rule.
+
+### Reverted at the user's request
+
+The **frosted top bar** (`.pz-bar`, `background-color` at 72% plus
+`blur(10px) saturate(140%)`). Content scrolling under a hard edge was a
+real problem, but the fix made the top of the page darker than the
+bottom and cut the gradient in two — *"das passt jetzt nicht mehr zum
+restlichen stil"*. The class and its CSS were removed entirely, not
+left dormant.
+
+### Open, and known
+
+1. **The focus halo does not paint.** Measured with Tab actually
+   pressed: `outline: none 3px` (so the outline suppression works) but
+   `box-shadow: rgba(0,0,0,0) 0px 0px 0px 0px, …` — a component class
+   is setting an empty ring that wins over the base-layer rule. Next
+   step: find which `focus-visible:ring-*` utility is emitting it
+   (`button.tsx` and `sidebar.tsx` both carry `ring-*` classes) and
+   either raise specificity or set the halo on the same layer.
+   **Focus is currently invisible for keyboard users, which is a
+   regression and must be fixed before this ships.**
+2. **Nothing is committed since `992e09c`.** The accent raise, the
+   glass, the scrollbars, the border softening, the removed rules, the
+   focus work and the bar revert are all in the working tree.
+3. **Tests and lint have not been run since those edits.** Last known
+   green: 921 backend, 414 frontend, lint 0 errors.
+4. **The user pointed at https://reactbits.dev/get-started/index** as
+   worth a look; not yet examined.
+5. Everything from the earlier entries still stands: the GD fix, the
+   interval dropdown, the reload toggle, the secret reveal, the icon
+   and vehicle chunking — **none of it released**. The user is on
+   1.2.6.
+
+## 2026-09-08 (night) — the focus regression, the glass, and a mark that can be coloured
+
+Continues the visual pass. Everything below was measured in the browser
+against `https://zomboidcontrol.ddev.site/app/servers` with Playwright,
+not read off the source.
+
+### The focus halo now paints — the regression is closed
+
+The entry before this one recorded focus as invisible for keyboard
+users. Two causes, both found by measuring rather than reasoning:
+
+1. **The layer, not the specificity.** The rule sits in `@layer base`
+   and every `focus-visible:ring-*` utility is in `@layer utilities`,
+   which wins regardless of selector weight. Writing Tailwind's own
+   `--tw-ring-shadow` from the base layer failed for the same reason —
+   the utility reassigns it.
+2. **A ring with no colour is transparent.** Components declaring
+   `focus-visible:ring-2` without a colour resolved to
+   `oklab(0 0 0 / 0) 0px 0px 0px 0px` — a ring that exists and paints
+   nothing.
+
+The fix in `frontend/src/index.css` (the `:focus-visible` block around
+line 198): `--tw-ring-color` supplied, and `!important` on the
+`box-shadow`. **Verified by pressing Tab across nine controls**: before,
+four of nine painted nothing (Danksagungen, Server, RCON, FTP); after,
+`invisible: []` — all nine carry
+`oklab(0.8 -0.199722 0.0648936 / 0.55) 0 0 0 1px` plus the 12px glow.
+
+### The active sidebar entry: glass instead of a grey slab
+
+The user's screenshot showed a hard, opaque panel with a visible edge.
+`data-[active=true]:bg-sidebar-accent` and `hover:bg-sidebar-accent`
+were removed from `frontend/src/components/ui/sidebar.tsx` (two
+occurrences), and the entry is now a gradient plus a real
+`backdrop-filter` in `index.css`. Measured, all four states distinct:
+
+| State | blur | gradient start |
+|---|---|---|
+| inactive, at rest | none | none |
+| inactive, hovered | 8px / 1.4 | 11 % |
+| active | 10px / 1.5 | 17 % |
+| active, hovered | 16px / 1.75 | 26 % |
+
+The glow was built and then removed at the user's request ("das glow
+kann hingegen weg"): `box-shadow: none`.
+
+**A build trap worth keeping.** The blur read `backdrop-filter: none` in
+the browser while the source was correct. Lightning CSS had **dropped
+the unprefixed property** because it followed `-webkit-backdrop-filter`.
+Prefix first, standard second. Only reading the built
+`backend/public/app/assets/index-*.css` showed it.
+
+**And the grey the user spotted twice.** `hover:bg-sidebar-accent`
+painted `oklch(0.274 0.006 286.033)` — no alpha — *behind* the accent
+tint, so it showed as a grey block wherever the gradient faded out.
+`background:` as a shorthand did not reset it, because the utility wins
+for the `background-color` component; `background-color: transparent
+!important` did. The same fault hit the server switcher in the sidebar
+header, which is a `dropdown-menu-trigger` rather than a
+`sidebar-menu-button` and so was missed by the first selector — both are
+named in the rule now, including `[data-state='open']`.
+
+### A mark that can be coloured
+
+`frontend/src/components/brand-mark.tsx` is new: a hexagon holding three
+stacked layers with a control point, every colour `currentColor` at an
+opacity. It replaces `<BrandLogo variant="mark">` in
+`components/layout/app-sidebar.tsx`. The login page keeps `BrandLogo`
+with `variant="badge"` — a different, larger appearance, deliberately
+untouched.
+
+`frontend/public/favicon.svg` is redrawn to match. It was already
+hand-drawn but carried hard-coded `#7cbf58` from the **old** palette
+(hue ~130, against the current 162) and could not be tinted. A favicon
+inherits no colour, so `#34d399` is written out there — the one place
+that is right.
+
+Two measured corrections along the way:
+
+- The mark asked for `size-8` and **rendered at 16px**:
+  `SidebarMenuButton` carries `[&>svg]:size-4`. Now `size-9!` → 36px
+  measured.
+- The glyph filled **39 %** of its box. Hexagon and layers were grown;
+  now 77 %.
+
+Colour verified as inherited: `oklch(0.8 0.21 162)`, and
+`imgInHeader: 0` proves it is inline SVG rather than a picture.
+
+### Menu, table and switch rows had no easing at all
+
+The user called hovering the open server dropdown "holprig", and the
+measurement said why: `transition: all` with **`transition-duration:
+0s`** on every `dropdown-menu-item` — hover switched instantly while the
+sidebar beside it faded.
+
+A rule in `index.css` (just above the button "give" rule) now names the
+rows a pointer can land on and gives them 150ms: dropdown items,
+checkbox/radio items, sub-triggers, select items, table rows,
+checkboxes, switches, slider thumbs, tabs triggers, breadcrumb links and
+sidebar sub-buttons. The switch **thumb** gets 200ms because it travels
+rather than tints. The properties are named individually rather than
+`all`, so a width or transform animation is not swept up by accident.
+
+**Three selectors were written and then deleted**: `command-item`,
+`context-menu-item` and `menubar-item` match nothing — those components
+do not exist in this project. Checked against the source with a grep per
+slot, per rule 10k.
+
+Measured on pages that actually contain them: menu items 0.15s
+(`/app/servers`, dropdown open), tabs trigger 0.15s (`/app/settings`),
+table row 0.15s (`/app/users`), switch 0.15s and its thumb 0.2s
+(`…/discord`). Under `reducedMotion: 'reduce'` both a menu item and a
+nav button collapse to `1e-05s`, so the global block still covers the
+new rules.
+
+### Verification state
+
+- **Backend: 921 tests, 14600 assertions, green.**
+- **Frontend: 414 tests in 37 files, green.**
+- **Lint: 0 errors, 23 warnings** — the same 23 as before this work, all
+  pre-existing `set-state-in-effect` notices.
+- `npx tsc --noEmit`: silent.
+- Browser: focus (9/9), the four sidebar states, the switcher hover, the
+  mark's size and colour.
+
+**A method note that cost time twice.** The panel at
+`zomboidcontrol.ddev.site` serves a **built** bundle, not Vite — so a
+CSS change is invisible until `npm run build`, and then still invisible
+until the service worker *and* `Network.clearBrowserCache` are cleared
+(rule 10g0c, both halves). The first measurement of this session read
+the previous build and looked like a broken selector.
+
+### Open
+
+1. **Committed** as `9e844f8` on `style/glass-focus-and-mark`, opened as
+   PR #21 into main, CI running.
+2. **A correction to what an earlier note in this file claimed.** It
+   said "nothing is released since v1.2.6" and that the GD fix and the
+   rest were unreleased. That was wrong: `v1.2.6` points at the same
+   commit as `main` (`07e0d73`, the merge of PR #20), so the chunked
+   icon/vehicle uploads **did** ship in v1.2.6. What is unreleased is
+   the seven commits on this branch — the two gd commits, the deploy
+   interval and reload toggle, the secret read-back, and the three
+   style commits. `app.version` was already bumped to `1.2.7` for them,
+   which is why the tag and not the version is what is missing.
+   Established with `git rev-parse main v1.2.6` and
+   `git log v1.2.6..main` (empty).
+3. `https://reactbits.dev/get-started/index` — the user suggested it as
+   a source of ideas; not looked at yet.
+4. Pre-existing, untouched: sub-32px touch targets (sidebar trigger
+   28×28), reversed `StorageException` arguments at
+   `ServerFileBrowser.php:117`, the React Router `HydrateFallback`
+   warning, and production `APP_PUBLIC_URL` carrying `http://`.

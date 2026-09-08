@@ -3,12 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { ChevronRight, CircleCheckBig, Plus, Server as ServerIcon } from 'lucide-react'
+import { ChevronRight, Plus, Server as ServerIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
+import { VerifiedBadge } from './verified-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -141,15 +141,3 @@ export function ServerListPage() {
   )
 }
 
-/** A verified connection reads as done at a glance: filled, and green. */
-function VerifiedBadge({ label }: { label: string }) {
-  return (
-    <Badge
-      variant="secondary"
-      className="gap-1 border-emerald-600/30 bg-emerald-600/15 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300"
-    >
-      <CircleCheckBig className="size-3 fill-emerald-600/25 dark:fill-emerald-400/25" />
-      {label}
-    </Badge>
-  )
-}

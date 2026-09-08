@@ -18,6 +18,8 @@ export const SETTING_KEYS = {
   deployWebhookUrl: 'deploy.webhook_url',
   deployWebhookToken: 'deploy.webhook_token',
   deployOnRelease: 'deploy.on_release',
+  deployCheckMinutes: 'deploy.check_minutes',
+  deployReloadPanel: 'deploy.reload_panel',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
@@ -106,6 +108,15 @@ export type DeploymentProgress = {
 
 export function deploymentProgress(deploymentUuid: string): Promise<DeploymentProgress> {
   return apiFetch<DeploymentProgress>(`/settings/deploy/status/${encodeURIComponent(deploymentUuid)}`)
+}
+
+/** One stored secret in the clear; needs `settings.reveal`. */
+export function revealSecret(name: string): Promise<{
+  name: string
+  value: string | null
+  fromEnvironment: boolean
+}> {
+  return apiFetch(`/settings/reveal/${encodeURIComponent(name)}`)
 }
 
 export type CacheClearResult = {

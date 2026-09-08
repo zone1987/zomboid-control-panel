@@ -9,6 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { CredentialField } from './credential-field'
 import { DeployHookInstructions } from './instructions'
@@ -21,6 +28,9 @@ import {
   type DeployResult,
   type SettingState,
 } from './settings'
+
+/** Mirrors DeployTrigger::CHECK_INTERVALS; the backend refuses others. */
+const CHECK_INTERVALS = [5, 10, 15, 30, 60, 360, 720, 1440]
 
 /**
  * Updating the panel without anybody clicking anything.
@@ -36,18 +46,26 @@ export function DeployCard({
   enabled,
   url,
   token,
+  checkMinutes,
+  reloadPanel,
   onUrl,
   onToken,
   onEnabled,
+  onCheckMinutes,
+  onReloadPanel,
 }: {
   urlState?: SettingState
   tokenState?: SettingState
   enabled: boolean
   url: string
   token: string
+  checkMinutes: string
+  reloadPanel: boolean
   onUrl: (value: string) => void
   onToken: (value: string) => void
   onEnabled: (value: boolean) => void
+  onCheckMinutes: (value: string) => void
+  onReloadPanel: (value: boolean) => void
 }) {
   const { t } = useTranslation()
 
@@ -132,6 +150,57 @@ export function DeployCard({
               {configured ? t('settings.deploy.autoHint') : t('settings.deploy.needsUrl')}
             </p>
           </div>
+        </div>
+
+        {/* Rolling out in the background is one decision; taking the
+            page away from whoever is reading it is another. The two
+            switches sit together because they read as a pair. */}
+        <div className="flex items-start gap-3 rounded-md border p-3">
+          <Switch
+            id="deploy-reload-panel"
+            checked={reloadPanel}
+            disabled={!configured || !enabled}
+            onCheckedChange={onReloadPanel}
+          />
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor="deploy-reload-panel" className="font-normal">
+              {t('settings.deploy.reloadLabel')}
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              {t('settings.deploy.reloadHint')}
+            </p>
+          </div>
+        </div>
+
+        {/* Below both switches: it governs when either of them acts,
+            so it reads as their shared setting rather than as a step
+            between them. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="deploy-check-minutes">{t('settings.deploy.intervalLabel')}</Label>
+          <Select
+            value={checkMinutes}
+            disabled={!configured || !enabled}
+            onValueChange={onCheckMinutes}
+          >
+            <SelectTrigger id="deploy-check-minutes" className="w-full sm:max-w-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CHECK_INTERVALS.map((minutes) => (
+                <SelectItem key={minutes} value={String(minutes)}>
+                  {/* Hours read as hours: "every 1440 minutes" is a
+                      number to work out rather than an answer. i18next
+                      needs `count` for its plural forms. */}
+                  {minutes % 60 === 0
+                    ? t('settings.deploy.intervalHours', { count: minutes / 60 })
+                    : t('settings.deploy.intervalOption', { count: minutes })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            {t('settings.deploy.intervalHint')}
+          </p>
         </div>
 
         {/* Two buttons, because they answer different questions: one

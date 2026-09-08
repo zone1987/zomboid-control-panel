@@ -42,7 +42,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import { listServers } from '@/features/servers/servers'
 import { useActiveServer } from '@/features/servers/active-server'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { BrandLogo } from '@/components/brand-logo'
+import { BrandMark } from '@/components/brand-mark'
 import { pagesOf, SERVER_SECTIONS } from './server-pages'
 
 export function AppSidebar() {
@@ -76,7 +76,7 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg" tooltip={activeServer?.name ?? t('servers.noneSelected')}>
-                  <BrandLogo variant="mark" priority className="size-8 shrink-0" />
+                  <BrandMark className="text-primary size-9! shrink-0" />
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">
                       {activeServer?.name ?? t('common.appName')}

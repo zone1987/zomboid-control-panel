@@ -8,6 +8,8 @@ use App\Message\DeployNewRelease;
 use App\Panel\DeployTrigger;
 use App\Panel\PanelUpdateChecker;
 use App\Repository\AppSettingRepository;
+use App\Settings\SettingsProvider;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -29,10 +31,15 @@ final readonly class DeployNewReleaseHandler
     /** Prefix rather than a bare version, so the row is recognisable. */
     private const CLAIM = 'deploy.requested.';
 
+    /** When the check last actually ran, so an interval can be honoured. */
+    private const LAST_CHECK = 'deploy.last_check';
+
     public function __construct(
         private PanelUpdateChecker $updates,
         private DeployTrigger $deployer,
         private AppSettingRepository $settings,
+        private SettingsProvider $store,
+        private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
     }
@@ -40,6 +47,13 @@ final readonly class DeployNewReleaseHandler
     public function __invoke(DeployNewRelease $message): void
     {
         if (!$this->deployer->isEnabled()) {
+            return;
+        }
+
+        // The scheduler fires at the shortest interval on offer; the
+        // operator's choice is honoured here, so changing it takes
+        // effect without a restart.
+        if (!$this->dueNow()) {
             return;
         }
 
@@ -65,5 +79,20 @@ final readonly class DeployNewReleaseHandler
             'version' => $latest,
             'state' => $outcome->state,
         ]);
+    }
+
+    /** Whether the operator's chosen interval has elapsed. */
+    private function dueNow(): bool
+    {
+        $now = $this->clock->now();
+        $last = $this->store->get(self::LAST_CHECK);
+        $due = $last === null
+            || $now->getTimestamp() - (int) $last >= $this->deployer->checkIntervalMinutes() * 60;
+
+        if ($due) {
+            $this->store->set(self::LAST_CHECK, (string) $now->getTimestamp());
+        }
+
+        return $due;
     }
 }

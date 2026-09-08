@@ -66,8 +66,8 @@ export function CacheCard() {
         </Button>
 
         {outcome !== null && outcome.state !== 'failed' && (
-          <Alert>
-            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+          <Alert variant="success">
+            <CheckCircle2 className="size-4" />
             <AlertDescription>
               {outcome.state === 'nothingToClear'
                 ? t('settings.cacheNothing')

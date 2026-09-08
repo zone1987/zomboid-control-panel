@@ -1,4 +1,3 @@
-import { Separator } from '@/components/ui/separator'
 import { CreditsDialog } from '@/features/panel/credits-dialog'
 import { ConnectionLights } from '@/features/servers/connection-lights'
 import { BridgeVersionLine } from './bridge-version-line'
@@ -21,13 +20,11 @@ export function AppFooter() {
   return (
     // Taller on a phone so the two buttons in it can be touched: a 36px
     // bar leaves room for 24px controls and no more.
-    <footer className="flex h-11 shrink-0 items-center gap-2 overflow-hidden border-t px-4 sm:h-9">
+    <footer className="flex h-11 shrink-0 items-center gap-2 overflow-hidden px-4 sm:h-9">
+      {/* No rules between these: the gap parts them, and a line across
+          a bar the page's own gradient runs behind reads as a seam. */}
       <PanelVersionLine labelled />
-
-      <FooterDivider />
       <BridgeVersionLine />
-
-      <FooterDivider />
 
       {/* The Indie Stone's terms ask for a visible notice, and the panel
           shows the game's own art throughout. The button opens it here;
@@ -41,8 +38,3 @@ export function AppFooter() {
   )
 }
 
-/** Short and faint: it parts facts of equal weight, so it should be the
- *  quietest thing in the bar. */
-function FooterDivider() {
-  return <Separator orientation="vertical" className="h-3 bg-border/50" />
-}

@@ -60,6 +60,17 @@ class AppSettingRepository extends ServiceEntityRepository
         );
     }
 
+    /**
+     * Whether a row exists at all, value or not.
+     *
+     * `findAllAsMap()` drops a null value, and a claim row is exactly
+     * that -- its existence is the whole information.
+     */
+    public function claimed(string $job): bool
+    {
+        return $this->findOneBy(['name' => mb_substr($job, 0, 64)]) !== null;
+    }
+
     /** @return array<string, string> */
     public function findAllAsMap(): array
     {

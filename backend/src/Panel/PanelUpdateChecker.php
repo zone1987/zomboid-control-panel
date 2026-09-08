@@ -19,7 +19,13 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final readonly class PanelUpdateChecker
 {
     private const CACHE_KEY = 'panel.latest_release';
-    private const CACHE_SECONDS = 21600;
+    /**
+     * Long enough that many panel views share one GitHub call, short
+     * enough that it never outlives the operator's chosen interval --
+     * a cache above that would make a shorter setting re-read a stale
+     * answer instead of asking.
+     */
+    private const CACHE_SECONDS = 300;
     private const TIMEOUT_SECONDS = 5;
 
     public function __construct(

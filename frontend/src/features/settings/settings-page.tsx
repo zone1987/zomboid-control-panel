@@ -153,6 +153,8 @@ export function SettingsPage() {
   })
 
   const field = (key: SettingKey) => ({
+    // Carried so a secret field can read its own stored value back.
+    name: key,
     state: data?.items[key],
     value: draft[key] ?? (data?.items[key]?.secret ? '' : (data?.items[key]?.value ?? '')),
     onChange: (value: string) => setDraft((previous) => ({ ...previous, [key]: value })),
@@ -273,6 +275,27 @@ export function SettingsPage() {
               setDraft((previous) => ({
                 ...previous,
                 [SETTING_KEYS.deployOnRelease]: value ? '1' : '',
+              }))
+            }
+            checkMinutes={
+              draft[SETTING_KEYS.deployCheckMinutes] ??
+              data?.items[SETTING_KEYS.deployCheckMinutes]?.value ??
+              '60'
+            }
+            onCheckMinutes={(value) =>
+              setDraft((previous) => ({
+                ...previous,
+                [SETTING_KEYS.deployCheckMinutes]: value,
+              }))
+            }
+            reloadPanel={
+              (draft[SETTING_KEYS.deployReloadPanel] ??
+                data?.items[SETTING_KEYS.deployReloadPanel]?.value) === '1'
+            }
+            onReloadPanel={(value) =>
+              setDraft((previous) => ({
+                ...previous,
+                [SETTING_KEYS.deployReloadPanel]: value ? '1' : '',
               }))
             }
           />

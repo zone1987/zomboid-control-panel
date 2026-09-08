@@ -6,7 +6,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        // `backdrop-blur` needs a translucent background to act on, which
+      // is why --card carries an alpha now. Without the blur the page
+      // field reads as dirt behind the card rather than as depth.
+      "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm backdrop-blur-md",
         className
       )}
       {...props}
