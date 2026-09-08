@@ -8,7 +8,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     # The one place the panel's own version is declared.
-    app.version: '1.2.6'
+    app.version: '1.2.7'
 
     # The image copies them here; a checkout has them in the frontend.
     app.locale_directory: '%env(default:app.default_locale_directory:APP_LOCALE_DIRECTORY)%'

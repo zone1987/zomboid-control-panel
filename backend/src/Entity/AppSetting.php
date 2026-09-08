@@ -49,6 +49,18 @@ class AppSetting
     /** Off unless the operator says otherwise: this restarts their panel. */
     public const DEPLOY_ON_RELEASE = 'deploy.on_release';
 
+    /** How often to look, in minutes; the scheduler runs at the floor. */
+    public const DEPLOY_CHECK_MINUTES = 'deploy.check_minutes';
+
+    /**
+     * Whether an open panel reloads itself once the deployment is done.
+     *
+     * Separate from DEPLOY_ON_RELEASE: rolling out in the background is
+     * one decision, taking the page away from whoever is reading it is
+     * another.
+     */
+    public const DEPLOY_RELOAD_PANEL = 'deploy.reload_panel';
+
 
     /**
      * The Discord bot's token, panel-wide rather than per server.

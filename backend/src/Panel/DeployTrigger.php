@@ -34,10 +34,45 @@ final readonly class DeployTrigger
         return $this->url() !== null;
     }
 
+    /**
+     * The intervals the interface offers, in minutes.
+     *
+     * Five is the floor on purpose: at one minute the panel would make
+     * sixty GitHub calls an hour, which is exactly the unauthenticated
+     * limit, and a rate-limited check answers "cannot tell" rather than
+     * a version.
+     */
+    public const CHECK_INTERVALS = [5, 10, 15, 30, 60, 360, 720, 1440];
+
+    /** What an installation that never chose gets. */
+    public const DEFAULT_CHECK_MINUTES = 60;
+
     /** Whether the operator asked for a release to deploy itself. */
     public function isEnabled(): bool
     {
         return $this->settings->get(AppSetting::DEPLOY_ON_RELEASE) === '1' && $this->isConfigured();
+    }
+
+    /** Whether an open panel takes the new version by itself. */
+    public function reloadsThePanel(): bool
+    {
+        return $this->settings->get(AppSetting::DEPLOY_RELOAD_PANEL) === '1';
+    }
+
+    /**
+     * How often the operator wants the check to run.
+     *
+     * The scheduler fires at the shortest interval on offer and this
+     * decides whether enough time has passed, so changing it needs no
+     * restart -- and an unrecognised stored value is not coerced to the
+     * default silently, it simply is not one of the choices.
+     */
+    public function checkIntervalMinutes(): int
+    {
+        $stored = $this->settings->get(AppSetting::DEPLOY_CHECK_MINUTES);
+        $minutes = $stored === null ? 0 : (int) $stored;
+
+        return \in_array($minutes, self::CHECK_INTERVALS, true) ? $minutes : self::DEFAULT_CHECK_MINUTES;
     }
 
     /**

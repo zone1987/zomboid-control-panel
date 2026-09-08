@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { reloadOntoTheNewBuild } from '@/features/panel/use-app-update'
 import { deploymentProgress, type DeploymentProgress } from './settings'
 
 /** Phases a reader cares about while their own panel is being replaced. */
@@ -59,7 +60,10 @@ export function useDeploymentWatch(): DeploymentWatch {
 
         if (response.ok) {
           setPhase('reloading')
-          window.location.reload()
+
+          // Not a plain reload: the service worker would keep serving
+          // the build that was just replaced.
+          void reloadOntoTheNewBuild()
 
           return
         }

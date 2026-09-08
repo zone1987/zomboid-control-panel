@@ -54,6 +54,8 @@ final class SettingsController extends AbstractController
         AppSetting::DEPLOY_WEBHOOK_URL,
         AppSetting::DEPLOY_WEBHOOK_TOKEN,
         AppSetting::DEPLOY_ON_RELEASE,
+        AppSetting::DEPLOY_CHECK_MINUTES,
+        AppSetting::DEPLOY_RELOAD_PANEL,
     ];
 
     public function __construct(

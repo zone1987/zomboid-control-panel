@@ -42,16 +42,16 @@
   "bridge": {
     "noReading": "Noch nichts gelesen",
     "notInstalled": "Nicht installiert",
-    "outdated": "Neuere Fassung verfügbar",
+    "outdated": "Neuere Version verfügbar",
     "pathMissing": "Für diesen Server ist kein Pfad zu media/lua/server hinterlegt.",
     "refused": "Der Server hat die Anfrage abgelehnt.",
     "reload": {
-      "active": "Aktiv — kein Neustart nötig. Die neue Fassung antwortet bereits.",
+      "active": "Aktiv — kein Neustart nötig. Die neue Version antwortet bereits.",
       "noRcon": "Hochgeladen. Ohne RCON-Zugang kann nicht neu geladen werden, also ist ein Neustart nötig.",
       "notAnswering": "Hochgeladen, aber die Bridge meldet sich nicht mehr. Bitte den Spielserver neu starten.",
       "notReloaded": "Hochgeladen. Der Spielserver hat die Datei nicht erkannt, also ist ein Neustart nötig.",
       "unknown": "Hochgeladen. Ob die Bridge neu geladen wurde, ließ sich nicht feststellen — bitte den Spielserver neu starten.",
-      "wrongVersion": "Hochgeladen, aber es läuft noch eine andere Fassung. Bitte den Spielserver neu starten."
+      "wrongVersion": "Hochgeladen, aber es läuft noch eine andere Version. Bitte den Spielserver neu starten."
     },
     "restartNeeded": "Hochgeladen, aber noch nicht geladen — der Spielserver muss neu gestartet werden.",
     "stale": "Keine aktuelle Meldung"
@@ -481,7 +481,7 @@
     "unknownCount_other": "{{count}} von einem Mod",
     "unrecognised": "unbekannter Wert",
     "unrecognisedChoice": "Unbekannt ({{value}})",
-    "unrecognisedHint": "Dieser Server steht auf einem Wert, den diese Fassung des Spiels nicht kennt. Er bleibt unverändert, solange hier nichts anderes gewählt wird.",
+    "unrecognisedHint": "Dieser Server steht auf einem Wert, den diese Version des Spiels nicht kennt. Er bleibt unverändert, solange hier nichts anderes gewählt wird.",
     "valueCount_one": "Ein Wert",
     "valueCount_other": "{{count}} Werte",
     "was": "war: {{value}}",
@@ -695,7 +695,7 @@
     "generic": "Es ist ein Fehler aufgetreten.",
     "network": "Der Server ist nicht erreichbar.",
     "notFound": "Nicht gefunden.",
-    "outdatedBody": "Das Dashboard wurde aktualisiert, während diese Seite offen war. Ein Neuladen holt die neue Fassung.",
+    "outdatedBody": "Das Dashboard wurde aktualisiert, während diese Seite offen war. Ein Neuladen holt die neue Version.",
     "outdatedTitle": "Diese Seite ist veraltet",
     "reload": "Neu laden",
     "routeBody": "Etwas ist beim Öffnen schiefgegangen. Ein Neuladen hilft meistens; bleibt es dabei, hilft die Meldung unten beim Melden weiter.",
@@ -1122,7 +1122,7 @@
     "vehicles": "Fahrzeuge"
   },
   "panel": {
-    "reloadForUpdate": "Neue Fassung laden",
+    "reloadForUpdate": "Neue Version laden",
     "upToDate": "Aktuell",
     "updateAvailable": "Version {{version}} ist verfügbar",
     "updateUnknown": "Nicht prüfbar",
@@ -1605,7 +1605,7 @@
     "bridgeNeedsPath": "Trage zuerst den Pfad zu media/lua/server ein, dann kann die Mod hochgeladen werden.",
     "bridgeNotInstalled": "Nicht installiert",
     "bridgeRestartHint": "Nach dem Hochladen muss der Zomboid-Server neu gestartet werden, damit die Mod geladen wird.",
-    "bridgeRestartPending": "Die Datei auf dem Server ist bereits {{installed}}, geladen ist aber noch {{running}}. Starte den Zomboid-Server neu, damit die neue Fassung greift.",
+    "bridgeRestartPending": "Die Datei auf dem Server ist bereits {{installed}}, geladen ist aber noch {{running}}. Starte den Zomboid-Server neu, damit die neue Version greift.",
     "bridgeStatusUnknown": "Der Server ist gerade nicht erreichbar, deshalb lässt sich nicht feststellen, welche Version dort liegt.",
     "bridgeTitle": "Bridge-Mod",
     "bridgeUpToDate": "Bridge ist aktuell",
@@ -1687,8 +1687,8 @@
       "adviceUnreachable": "Unter der Adresse hat nichts geantwortet. Prüf, ob das Panel sie erreicht: Hostname, Zertifikat, und ob die Plattform überhaupt läuft.",
       "adviceUuid": "Unter der Adresse wurde nichts gefunden. Die uuid im Webhook gehört zu genau einer Anwendung: kopier sie erneut unter Automation → Webhooks der gemeinten Anwendung.",
       "allowlist": "Falls \"Allowed API IPs\" gesetzt ist, trag die Adresse dieses Panels ein. Der Aufruf kommt von dem Rechner, auf dem das Panel läuft — deine Liste kann also eng bleiben.",
-      "autoHint": "Stündlich geprüft. Das Panel startet dabei neu, das dauert einen Moment.",
-      "autoLabel": "Neue Version automatisch ausrollen",
+      "autoHint": "Sobald eine neue Version verfügbar ist, wird sie in deinem Coolify automatisch deployt.",
+      "autoLabel": "Coolify-Deployment automatisch starten",
       "description": "Wenn eine neue Version erscheint, Coolify sagen, dass es sie holen soll. Das ersetzt Coolifys eigenen Schalter \"Automatic Deployment\", der ein Git-Repository beobachtet und eine neue Version dieses Panels deshalb nie sieht. Es passiert nichts, solange du es nicht einschaltest.",
       "failed": "Es hat nicht geklappt",
       "needsUrl": "Trag zuerst die Webhook-Adresse ein.",
@@ -1728,7 +1728,17 @@
         "failed": "Das Ausrollen ist fehlgeschlagen",
         "unknown": "Coolify meldet einen unbekannten Zustand",
         "hint": "Diese Seite lädt sich neu, sobald das Panel wieder antwortet. Du kannst das Fenster offen lassen."
-      }
+      },
+      "reloadLabel": "Panel danach automatisch neu laden",
+      "reloadHint": "Ein offenes Panel holt sich die neue Version selbst, sobald das Deployment durch ist.",
+      "intervalLabel": "Panelupdate-Prüfintervall",
+      "intervalHint": "Läuft im Hintergrund. Kürzere Abstände finden eine neue Version schneller.",
+      "intervalOption_one": "Jede Minute",
+      "intervalOption_other": "Alle {{count}} Minuten",
+      "deployingNotice": "Eine neue Version wird gerade ausgerollt. Das Panel lädt sich danach von selbst neu.",
+      "deployingNoticeManual": "Eine neue Version wird gerade ausgerollt. Danach erscheint oben der Knopf „Neue Version“.",
+      "intervalHours_one": "Jede Stunde",
+      "intervalHours_other": "Alle {{count}} Stunden"
     },
     "description": "Zugangsdaten, die die gesamte Anwendung betreffen.",
     "discordApplicationId": "Anwendungs-ID",

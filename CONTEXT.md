@@ -8951,3 +8951,92 @@ image job will prove it; if that also fails, retry the local build.
 3. Same point restated: pressing **"Jetzt deployen"** should end in a
    panel that is genuinely on the new version, without a second manual
    step.
+
+### The same branch grew four more requests — 2026-09-08, night
+
+All on `fix/gd-in-the-image`, since they share the deploy card.
+
+**1. The release check is configurable now.** `deploy.check_minutes`
+holds one of `DeployTrigger::CHECK_INTERVALS` = 5, 10, 15, 30, 60, 360,
+720, 1440. The scheduler fires at the floor (5 minutes) and
+`DeployNewReleaseHandler::dueNow()` decides whether the chosen interval
+has elapsed, writing `deploy.last_check` — so changing it needs no
+restart. `PanelUpdateChecker::CACHE_SECONDS` came down from 21600 to
+300, because a cache above the interval would make a shorter setting
+re-read a stale answer.
+
+**One minute was asked for and then withdrawn**, correctly: at that
+rate the panel makes sixty GitHub calls an hour, exactly the
+unauthenticated limit, and a rate-limited check answers "cannot tell"
+rather than a version. Five is the floor, and a test asserts it.
+
+**2. `deploy.reload_panel` — a second switch.** Rolling out in the
+background is one decision; taking the page away from whoever is
+reading it is another. Only with this on does an open panel reload
+itself.
+
+**3. The reload now replaces the service worker.**
+`reloadOntoTheNewBuild()` in `use-app-update.ts` unregisters the
+worker and clears `caches` before `location.reload()`. Without that the
+worker kept answering from its precache, so the panel came back on the
+*old* build and then offered "Neue Version" — a second manual step
+after a deployment it had just performed itself. Rule 10g0c, met from
+the other side.
+
+**4. The top bar says a deployment is running.**
+`/api/panel/version` gained `autoDeploy`, `deploying` and
+`reloadPanel`; `AppUpdateBanner` polls it every 30 s and shows a
+spinner with wording that differs by whether the panel will reload
+itself. `deploying` is read from the claim row, which needed
+`AppSettingRepository::claimed()` — `findAllAsMap()` drops a null
+value and a claim row *is* one, so its existence is the whole
+information (rule 6c again).
+
+### Wording, corrected four times on the user's reading
+
+- **"Neue Version automatisch ausrollen"** was ambiguous once a second
+  switch sat beside it. Now **"Coolify-Deployment automatisch starten"**
+  with the user's own sentence: *"Sobald eine neue Version verfügbar
+  ist, wird sie in deinem Coolify automatisch deployt."*
+- **"Wie oft nach einer neuen Fassung sehen"** → **"Panelupdate-
+  Prüfintervall"**.
+- **The reload hint explained the off state** (*"Aus bedeutet: der
+  Knopf … erscheint"*), which the user rightly called pointless —
+  everybody knows what an off switch means. Cut to one sentence.
+- **"Fassung" replaced by "Version" in all 14 places** in `de.json`,
+  not only the new ones. The user reads it as unusual, and consistency
+  beats leaving nine old ones behind.
+
+### Two faults only the browser showed
+
+1. **`settings.deploy.intervalHours` printed as a raw key.** The
+   dropdown showed the key itself. Cause: the entry exists only as
+   plural forms, and i18next resolves those through `count`.
+2. **Then `{{minutes}}` printed verbatim** in every option, because the
+   translation named its own placeholder while i18next was filling
+   `count`. Both keys use `{{count}}` now.
+
+Neither was visible to the locale test, which checks that placeholders
+*match between languages* — they did. Only clicking the dropdown open
+showed it. Rule 6b, earning its place again.
+
+### Verified
+
+- Dropdown reads **"Alle 5 / 10 / 15 / 30 Minuten, Jede Stunde, Alle
+  6 / 12 / 24 Stunden"** — no placeholders, no raw keys, no "Fassung".
+- Order on screen: both switches together, then the interval, then the
+  buttons.
+- The interval and the second switch are **disabled until the first is
+  on**, with the reason rather than hidden.
+- 907 backend tests (7 new in `DeployIntervalTest`, 4 in
+  `PanelVersionTest`), 414 frontend, 40 locale; lint 0 errors; tsc
+  clean; `lint:container` clean.
+- 390 / 820 / 1512 px: no horizontal scroll; the remaining short
+  controls are the shadcn `Switch` (32×18) and the pre-existing "Wie
+  komme ich daran?" link.
+
+**A mistake worth recording:** I overwrote `panel-version.ts`, which
+already existed with `getPanelVersion` and `hasUpdate`, and only the
+build caught it (`dashboard-page.tsx` no longer type-checked).
+`git checkout` restored it and the three new fields were added instead.
+Read a file before replacing it, even when creating what looks new.

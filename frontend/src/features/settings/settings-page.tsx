@@ -275,6 +275,27 @@ export function SettingsPage() {
                 [SETTING_KEYS.deployOnRelease]: value ? '1' : '',
               }))
             }
+            checkMinutes={
+              draft[SETTING_KEYS.deployCheckMinutes] ??
+              data?.items[SETTING_KEYS.deployCheckMinutes]?.value ??
+              '60'
+            }
+            onCheckMinutes={(value) =>
+              setDraft((previous) => ({
+                ...previous,
+                [SETTING_KEYS.deployCheckMinutes]: value,
+              }))
+            }
+            reloadPanel={
+              (draft[SETTING_KEYS.deployReloadPanel] ??
+                data?.items[SETTING_KEYS.deployReloadPanel]?.value) === '1'
+            }
+            onReloadPanel={(value) =>
+              setDraft((previous) => ({
+                ...previous,
+                [SETTING_KEYS.deployReloadPanel]: value ? '1' : '',
+              }))
+            }
           />
         </TabsContent>
 

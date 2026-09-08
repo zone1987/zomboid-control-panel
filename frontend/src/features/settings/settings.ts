@@ -18,6 +18,8 @@ export const SETTING_KEYS = {
   deployWebhookUrl: 'deploy.webhook_url',
   deployWebhookToken: 'deploy.webhook_token',
   deployOnRelease: 'deploy.on_release',
+  deployCheckMinutes: 'deploy.check_minutes',
+  deployReloadPanel: 'deploy.reload_panel',
 } as const
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
