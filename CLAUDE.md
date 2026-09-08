@@ -722,6 +722,56 @@ After any `npm run build` during a browser session, unregister the worker
 and clear `caches` before debugging the code. Fifteen minutes went into
 correct code because the symptom looks like an application fault.
 
+## 10g0d. An HTTP code is a fact, not an instruction
+
+A deploy hook answered `403 You are not allowed to access the API`, and
+working out which of two settings caused it took an hour of probing. An
+operator must not repeat that.
+
+- **Map the code to the setting to change**, and put that on screen.
+  `DeployOutcome::adviceKey()` names nine cases; the platform's own words
+  go underneath, small, because they are what to quote and rarely what to
+  act on.
+- **Two identical codes can mean different things, and the body says
+  which.** Coolify names the missing permission when a token is short of
+  one and says nothing when the address list refused — so a bare 403
+  points at the allow-list and a 403 mentioning a permission points at
+  the token.
+- **Some failures are ours.** `405 This endpoint has changed to a POST
+  request` is a bug in the caller; the advice says "update the panel",
+  not "check your settings".
+- **Probe to eliminate, and do not trust one negative.** The same token
+  failed from the user's own machine, which I read as "not the address
+  list" — their IP had simply changed since the list was written. The
+  answer that actually settled it was that an *invented* token returned
+  401 while theirs returned 403: recognised, but not allowed.
+
+## 10g0e. Who makes the call decides what has to be open
+
+The release pipeline called the deploy hook from a GitHub runner, and
+runners have no fixed address: GitHub publishes **416 ranges** and changes
+them without notice. Making that work meant opening the platform's
+allow-list to `0.0.0.0`, which the platform itself warns against.
+
+**The panel already runs on an address the operator trusts.** It asks
+GitHub hourly whether a newer release exists, so the trigger belongs
+there, and the allow-list can stay closed.
+
+Before adding an outward call to CI, ask what it forces the user to open.
+
+## 10g0f. One job, many panels: let the database decide
+
+Several panels sharing a database all notice the same release in the same
+minute, and all would deploy it.
+
+- **A row named after the job is the lock.** `INSERT … ON CONFLICT DO
+  NOTHING` on a primary key lets exactly one caller through, with no lock
+  service and no window where two both read "nobody has it".
+- **Claim before acting, not after.** A call that times out may still
+  have done its work; asking twice is worse than waiting.
+- **A failed claim is not permission.** If the database cannot record it,
+  return false — "could not tell" must not read as "it is mine".
+
 ## 10g1. A grid `1fr` is not zero-minimum
 
 Reported twice from the browser and both times it looked like a

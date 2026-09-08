@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Entity\AppSetting;
 use App\Security\Permission\Permission;
+use App\Panel\DeployTrigger;
 use App\Settings\SettingsProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -45,6 +46,11 @@ final class SettingsController extends AbstractController
         AppSetting::DISCORD_BOT_TOKEN,
         AppSetting::DISCORD_APPLICATION_ID,
         AppSetting::DISCORD_PUBLIC_KEY,
+        // The panel asks its own host to pull a new release; see
+        // DeployTrigger for why the call belongs here rather than in CI.
+        AppSetting::DEPLOY_WEBHOOK_URL,
+        AppSetting::DEPLOY_WEBHOOK_TOKEN,
+        AppSetting::DEPLOY_ON_RELEASE,
     ];
 
     public function __construct(
@@ -278,6 +284,29 @@ final class SettingsController extends AbstractController
         }
 
         return new JsonResponse(['status' => 'ok', 'bot' => $bot['username'], 'id' => $bot['id']]);
+    }
+
+    /**
+     * Fires the deploy hook for real.
+     *
+     * There is no way to ask a platform "would this work" -- so the test
+     * button does the thing, and says so before it is pressed. On a
+     * panel already running the current release the deployment is a
+     * restart, which is the honest cost of finding out.
+     */
+    #[Route('/deploy/test', name: 'api_settings_test_deploy', methods: ['POST'])]
+    public function testDeployHook(DeployTrigger $deployer): JsonResponse
+    {
+        $outcome = $deployer->fire();
+
+        return new JsonResponse(
+            $outcome->toArray() + ['status' => $outcome->succeeded() ? 'ok' : 'failed'],
+            match ($outcome->state) {
+                'queued' => Response::HTTP_OK,
+                'notConfigured' => Response::HTTP_CONFLICT,
+                default => Response::HTTP_BAD_GATEWAY,
+            },
+        );
     }
 
     #[Route('/steam/test', name: 'api_settings_test_steam', methods: ['POST'])]

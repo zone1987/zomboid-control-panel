@@ -158,3 +158,30 @@ export function DiscordInstructions({
     </div>
   )
 }
+
+export function DeployHookInstructions() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="space-y-2">
+      <p>{t('settings.deploy.why')}</p>
+
+      <StepList
+        items={[
+          t('settings.deploy.step1'),
+          t('settings.deploy.step2'),
+          t('settings.deploy.step3'),
+          t('settings.deploy.step4'),
+        ]}
+      />
+
+      <p className="text-muted-foreground">{t('settings.deploy.allowlist')}</p>
+
+      <p>
+        <DocLink href="https://coolify.io/docs/api-reference/authorization">
+          coolify.io/docs
+        </DocLink>
+      </p>
+    </div>
+  )
+}

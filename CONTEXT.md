@@ -7697,3 +7697,145 @@ was proved by breaking the `explode` and watching it fail.
   from the bridge translated in the panel, not translations inside the
   Lua: the bridge cannot know the reader's language, and every change to
   it costs an upload and a game-server restart. Not done here.
+
+---
+
+## 2026-09-08 — The panel deploys itself, and says why when it cannot
+
+### How this started
+
+The release pipeline called Coolify's deploy webhook from a GitHub
+runner, and it failed with `403 You are not allowed to access the API`.
+Diagnosing that by hand took an hour and three wrong turns, which is the
+reason the final shape looks the way it does.
+
+The probing, in order, because the sequence is the method:
+
+| Probe | Answer | What it ruled out |
+|---|---|---|
+| `/api/health` | `OK` | The API is running |
+| `/api/v1/deploy` with no token | `401 Unauthenticated` | — |
+| Same with an invented token | `401 Unauthenticated` | The real token **is** recognised |
+| Real token from a GitHub runner | `403 not allowed` | — |
+| Real token from the user's own machine | **`403` as well** | Not the runner's address specifically |
+
+That last one sent me to the wrong conclusion — I said the address list
+was excluded and it must be the global switch. The screenshot showed
+`API access: Enabled` with three addresses listed, and the user's current
+IP was `84.155.168.132` against `84.155.166.233` on the list: **their own
+address had changed**. So it had been the allow-list all along, and my
+"proof" was a coincidence.
+
+Then `405 This endpoint has changed to a POST request` — the recipe the
+user had been given used GET.
+
+### Why the call moved into the panel
+
+Opening the list to `0.0.0.0` made Coolify print its own warning: *"API
+access is open to every source."* The user was right to dislike it.
+
+GitHub publishes **416 IP ranges** for Actions and changes them without
+notice, so an allow-list cannot cover a runner. But the panel already
+asks GitHub hourly whether a newer release exists
+(`PanelUpdateChecker`), and it runs on the operator's own machine — an
+address that is already on their list.
+
+So the trigger moved from CI into the panel, and `0.0.0.0` came back out.
+
+### What was built
+
+| Piece | Where |
+|---|---|
+| The call, four outcomes | `backend/src/Panel/DeployTrigger.php` |
+| The outcome and its advice | `backend/src/Panel/DeployOutcome.php` |
+| Hourly, once per release | `backend/src/MessageHandler/DeployNewReleaseHandler.php` |
+| The claim | `AppSettingRepository::claim()` / `release()` |
+| Settings, test button, guide | `frontend/src/features/settings/deploy-card.tsx` |
+| Endpoint | `POST /api/settings/deploy/test` |
+
+Three settings: `deploy.webhook_url`, `deploy.webhook_token` (in
+`SECRET_KEYS`), `deploy.on_release`. The tab is called **Coolify**, like
+Steam and Discord beside it; the card title names what it configures —
+"Auto-deploy in Coolify" — and the description says it replaces Coolify's
+own switch and why that switch cannot work here.
+
+### Deployed once, not once per panel
+
+The user asked: with several panels running, does each one deploy?
+
+**No, and not by agreement — by the database.** Each tries to insert a
+row named `deploy.requested.<version>`; the name is the primary key, so
+`ON CONFLICT DO NOTHING` lets exactly one through. No lock service, no
+window where two can both read "nobody has it".
+
+It answers two problems at once: two panels on one database, and the same
+panel asking every hour until the container actually restarts.
+
+The claim is taken **before** the call, not after. A hook that times out
+may still have started a deployment, and asking twice is worse than
+waiting for the next release.
+
+Separate databases still deploy separately, which is correct — each panel
+has to update itself.
+
+`DeployClaimTest` proves it, and was proved by making `claim()` return
+`true` unconditionally and watching it fail.
+
+### The advice is the point
+
+The user asked for failures to be explained with recommendations. An HTTP
+code is a fact about the protocol, not an instruction, and the hour I
+spent decoding a 403 is exactly what an operator should not repeat.
+
+`DeployOutcome::adviceKey()` maps nine cases, and the interesting one is
+the pair of 403s: **Coolify names the missing permission when a token is
+short of one, and says nothing when the address list is what refused.**
+So a bare 403 points at *Settings → Advanced → Allowed API IPs*, and a
+403 mentioning a permission points at *Keys & Tokens*.
+
+| Code | Advice |
+|---|---|
+| 403, no permission named | The address list |
+| 403 naming a permission | Create a token with `deploy` |
+| 401 | Token not recognised or revoked |
+| **405** | **Ours to fix — update the panel** |
+| 404 | Wrong uuid in the webhook |
+| 429 | Coolify's 200/hour |
+| 5xx | The platform itself |
+
+Measured through the real interface against the user's real Coolify: an
+invented token produced *"The token was not recognised. Check it was
+copied whole, and that it has not been revoked under Keys & Tokens → API
+Tokens."* with `HTTP 401 — {"message":"Unauthenticated."}` quiet
+underneath.
+
+### Two layout faults the user caught in a screenshot
+
+My probe reported "no problems" both times, because it looked for
+overflow and scrollbars — not for *unusably narrow*.
+
+1. **The settings tab list ate half the frame.** At 820px with the
+   sidebar open the content is 549px, of which the list took 192, leaving
+   the card **285px**. Same fault as the tables earlier the same day and
+   the same fix: the list switches to a select at **`lg`**, not `sm`.
+   Card afterwards: **501px**.
+2. **The warning beside the test button became a column** — 93px wide,
+   240px tall. Now stacked above the button: **451 × 60**.
+
+The probe grew a check for it: a paragraph narrower than 140px, taller
+than it is wide, with more than 60 characters, is a column rather than a
+sentence.
+
+### Verified
+
+- Backend **829** tests (was 812), frontend **399**, lint 0 errors.
+- Nine settings sections × three widths in the browser: no overflow, no
+  live scroller, no raw key, no narrow column, no target under 32px.
+- The test button clicked for real against the user's Coolify, in German
+  and English.
+
+### Still open, and it is the user's to do
+
+Coolify's *Allowed API IPs* currently contains `0.0.0.0`. With the
+trigger now coming from the panel's own machine, that can go — the three
+fixed addresses are enough.
