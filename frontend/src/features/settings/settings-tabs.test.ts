@@ -43,4 +43,40 @@ describe('which settings tabs offer saving', () => {
     expect(savable).not.toContain('icons')
     expect(savable).not.toContain('vehicles')
   })
+
+  /** Clearing is not saving: a save button there would offer nothing. */
+  it('offers no saving on the cache tab', () => {
+    expect(savable).not.toContain('cache')
+  })
+})
+
+/**
+ * The phone gets a select built from SECTIONS while wider screens get
+ * the TabsList, so a tab added to one and not the other is a control
+ * that exists at 1512px and not at 390px.
+ */
+describe('the section list and the tab list', () => {
+  const source = readFileSync(
+    new URL('./settings-page.tsx', import.meta.url),
+    'utf8',
+  )
+
+  const tabs = [...source.matchAll(/TabsTrigger value="([a-z]+)"/g)].map(([, id]) => id)
+  const sections = [...source.matchAll(/\{ id: '([a-z]+)', label:/g)].map(([, id]) => id)
+  const panels = [...source.matchAll(/TabsContent value="([a-z]+)"/g)].map(([, id]) => id)
+
+  it('finds both lists', () => {
+    expect(tabs.length).toBeGreaterThan(0)
+    expect(sections.length).toBeGreaterThan(0)
+  })
+
+  it('names the same tabs in the same order', () => {
+    expect(sections).toStrictEqual(tabs)
+  })
+
+  it('gives every tab a panel to open', () => {
+    for (const id of tabs) {
+      expect(panels, `"${id}" is a tab with no content`).toContain(id)
+    }
+  })
 })

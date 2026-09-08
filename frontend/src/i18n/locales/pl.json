@@ -1022,7 +1022,12 @@
     "search": "Szukaj przedmiotów — nazwa lub typ",
     "selected": "Wybrane",
     "someFailed": "Serwer odrzucił {{count}} przedmiot(ów).",
-    "title": "Przedmioty"
+    "title": "Przedmioty",
+    "translationTitle": "Nazwy przedmiotów są w języku angielskim",
+    "translationPath": "Sprawdzana ścieżka:",
+    "translation_pathMissing": "Pliku językowego gry nie ma w tej ścieżce. Zwykle dane FTP otwierają katalog zapisu gry, podczas gdy własny katalog media/ gry znajduje się w innym miejscu. Sprawdź ścieżkę bazową w danych dostępowych serwera.",
+    "translation_unreachable": "Serwer odrzucił dane dostępowe lub był nieosiągalny. Sprawdź użytkownika, hasło i host FTP w danych dostępowych serwera.",
+    "translation_unreadable": "Plik językowy został znaleziony, ale nie jest oczekiwaną tabelą. Mógł zostać przesłany niekompletnie lub zamieniony przez moda."
   },
   "logs": {
     "capped": "najstarsze linie usunięte powyżej {{max}}",
@@ -1893,7 +1898,26 @@
       "good": "Wszystko w porządku",
       "noSender": "Brak adresu nadawcy",
       "partial": "Częściowo skonfigurowane"
-    }
+    },
+    "groupServer": "Serwer",
+    "cacheTab": "Pamięć podręczna",
+    "cacheTitle": "Wyczyść pamięć podręczną",
+    "cacheDescription": "Odrzuca to, co panel odczytał z serwera gry. Kolejne żądanie zapyta serwer ponownie.",
+    "cacheWhatItDrops": "Czyszczone są: katalogi przedmiotów i pojazdów, nazwy przedmiotów i pojazdów dla każdego języka, lista komend RCON oraz wykryta sesja serwera.",
+    "cacheWhatItKeeps": "Pozostają nietknięte: pozycja odczytu lustra czatu i licznik komend mostka. To pozycje, a nie pamięć podręczna — ich odrzucenie pominęłoby wiadomości.",
+    "cacheClear": "Wyczyść pamięć podręczną",
+    "cacheClearing": "Czyszczenie …",
+    "cacheCleared_one": "Wyczyszczono {{count}} wpis",
+    "cacheCleared_few": "Wyczyszczono {{count}} wpisy",
+    "cacheCleared_many": "Wyczyszczono {{count}} wpisów",
+    "cacheCleared_other": "Wyczyszczono {{count}} wpisu",
+    "cacheClearedDetail_one": "Wyczyszczono {{count}} wpis dla {{servers}} serwerów. Nazwy zostaną odczytane ponownie przy następnym wczytaniu.",
+    "cacheClearedDetail_few": "Wyczyszczono {{count}} wpisy dla {{servers}} serwerów. Nazwy zostaną odczytane ponownie przy następnym wczytaniu.",
+    "cacheClearedDetail_many": "Wyczyszczono {{count}} wpisów dla {{servers}} serwerów. Nazwy zostaną odczytane ponownie przy następnym wczytaniu.",
+    "cacheClearedDetail_other": "Wyczyszczono {{count}} wpisu dla {{servers}} serwerów. Nazwy zostaną odczytane ponownie przy następnym wczytaniu.",
+    "cachePartial": "Nie udało się odrzucić wszystkiego. Spróbuj ponownie.",
+    "cacheNothing": "Nie skonfigurowano żadnego serwera, więc nie było czego czyścić.",
+    "cacheFailed": "Nie udało się wyczyścić pamięci podręcznej."
   },
   "setup": {
     "alreadyCompleted": "Konfiguracja została już ukończona.",

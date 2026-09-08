@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabGroupLabel } from '@/components/ui/tab-group-label'
+import { CacheCard } from './cache-card'
 import { DeployCard } from './deploy-card'
 import { RetentionCard } from './retention-card'
 import { EncryptionKeyCard } from './encryption-key-card'
@@ -61,6 +62,7 @@ const SECTIONS: { id: string; label: (t: (key: string) => string) => string }[] 
   { id: 'icons', label: (t) => t('settings.iconsTab') },
   { id: 'vehicles', label: (t) => t('settings.vehiclesTab') },
   { id: 'deploy', label: () => 'Coolify' },
+  { id: 'cache', label: (t) => t('settings.cacheTab') },
   { id: 'privacy', label: (t) => t('settings.privacyTab') },
   { id: 'security', label: (t) => t('settings.securityTab') },
 ]
@@ -239,6 +241,11 @@ export function SettingsPage() {
             Coolify
           </TabsTrigger>
 
+          <TabGroupLabel className="mt-3 hidden lg:block">{t('settings.groupServer')}</TabGroupLabel>
+          <TabsTrigger value="cache" className="justify-start py-2 lg:py-1">
+            {t('settings.cacheTab')}
+          </TabsTrigger>
+
           <TabGroupLabel className="mt-3 hidden lg:block">{t('settings.groupPrivacy')}</TabGroupLabel>
           <TabsTrigger value="privacy" className="justify-start py-2 lg:py-1">
             {t('settings.privacyTab')}
@@ -269,6 +276,10 @@ export function SettingsPage() {
               }))
             }
           />
+        </TabsContent>
+
+        <TabsContent value="cache">
+          <CacheCard />
         </TabsContent>
 
         <TabsContent value="privacy">

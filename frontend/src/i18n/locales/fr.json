@@ -998,7 +998,12 @@
     "search": "Rechercher un objet — nom ou type",
     "selected": "Sélectionnés",
     "someFailed": "Le serveur a refusé {{count}} objet(s).",
-    "title": "Objets"
+    "title": "Objets",
+    "translationTitle": "Les noms des objets sont en anglais",
+    "translationPath": "Chemin essayé :",
+    "translation_pathMissing": "Le fichier de langue du jeu ne se trouve pas à ce chemin. En général, les identifiants FTP ouvrent sur le répertoire de sauvegarde alors que le media/ propre au jeu est ailleurs. Veuillez vérifier le chemin de base dans les identifiants du serveur.",
+    "translation_unreachable": "Le serveur a refusé les identifiants ou n’a pas pu être joint. Veuillez vérifier l’utilisateur, le mot de passe et l’hôte FTP dans les identifiants du serveur.",
+    "translation_unreadable": "Le fichier de langue a été trouvé mais n’est pas la table attendue. Il a peut-être été transféré de façon incomplète, ou un mod l’a remplacé."
   },
   "logs": {
     "capped": "lignes les plus anciennes supprimées au-delà de {{max}}",
@@ -1859,7 +1864,22 @@
       "good": "Tout est en ordre",
       "noSender": "Pas encore d'adresse d'expéditeur",
       "partial": "Partiellement configuré"
-    }
+    },
+    "groupServer": "Serveur",
+    "cacheTab": "Cache",
+    "cacheTitle": "Vider le cache",
+    "cacheDescription": "Écarte ce que le panneau a lu depuis le serveur de jeu. La prochaine requête interrogera de nouveau le serveur.",
+    "cacheWhatItDrops": "Sont vidés : les catalogues d’objets et de véhicules, les noms d’objets et de véhicules par langue, la liste des commandes RCON et la session serveur détectée.",
+    "cacheWhatItKeeps": "Restent intacts : la position de lecture du miroir de discussion et le compteur de commandes du pont. Ce sont des positions et non des caches — les écarter ferait sauter des messages.",
+    "cacheClear": "Vider le cache",
+    "cacheClearing": "Vidage …",
+    "cacheCleared_one": "{{count}} entrée vidée",
+    "cacheCleared_other": "{{count}} entrées vidées",
+    "cacheClearedDetail_one": "{{count}} entrée vidée pour {{servers}} serveur. Les noms seront relus au prochain chargement.",
+    "cacheClearedDetail_other": "{{count}} entrées vidées pour {{servers}} serveurs. Les noms seront relus au prochain chargement.",
+    "cachePartial": "Tout n’a pas pu être écarté. Veuillez réessayer.",
+    "cacheNothing": "Aucun serveur n’est configuré, il n’y avait donc rien à vider.",
+    "cacheFailed": "Le cache n’a pas pu être vidé."
   },
   "setup": {
     "alreadyCompleted": "La configuration initiale est déjà terminée.",

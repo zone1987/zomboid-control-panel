@@ -998,7 +998,12 @@
     "search": "Buscar objetos — nombre o tipo",
     "selected": "Seleccionados",
     "someFailed": "El servidor rechazó {{count}} objeto(s).",
-    "title": "Objetos"
+    "title": "Objetos",
+    "translationTitle": "Los nombres de los objetos están en inglés",
+    "translationPath": "Ruta probada:",
+    "translation_pathMissing": "El archivo de idioma del juego no está en esta ruta. Normalmente las credenciales FTP abren en el directorio de la partida guardada mientras que el media/ propio del juego está en otro lugar. Comprueba la ruta base en las credenciales del servidor.",
+    "translation_unreachable": "El servidor rechazó las credenciales o no se pudo acceder a él. Comprueba el usuario, la contraseña y el host FTP en las credenciales del servidor.",
+    "translation_unreadable": "Se encontró el archivo de idioma, pero no es la tabla esperada. Puede haberse transferido de forma incompleta o un mod lo ha reemplazado."
   },
   "logs": {
     "capped": "se descartan las líneas más antiguas a partir de {{max}}",
@@ -1859,7 +1864,22 @@
       "good": "Todo en orden",
       "noSender": "Aún no hay dirección de envío",
       "partial": "Configurado a medias"
-    }
+    },
+    "groupServer": "Servidor",
+    "cacheTab": "Caché",
+    "cacheTitle": "Vaciar la caché",
+    "cacheDescription": "Descarta lo que el panel leyó del servidor de juego. La próxima petición vuelve a preguntar al servidor.",
+    "cacheWhatItDrops": "Se vacían: los catálogos de objetos y vehículos, los nombres de objetos y vehículos por idioma, la lista de comandos RCON y la sesión detectada del servidor.",
+    "cacheWhatItKeeps": "No se tocan: la posición de lectura del reflejo del chat ni el contador de comandos del puente. Son posiciones, no cachés: descartarlas omitiría mensajes.",
+    "cacheClear": "Vaciar la caché",
+    "cacheClearing": "Vaciando …",
+    "cacheCleared_one": "{{count}} entrada vaciada",
+    "cacheCleared_other": "{{count}} entradas vaciadas",
+    "cacheClearedDetail_one": "{{count}} entrada vaciada en {{servers}} servidor. Los nombres se leerán de nuevo en la próxima carga.",
+    "cacheClearedDetail_other": "{{count}} entradas vaciadas en {{servers}} servidores. Los nombres se leerán de nuevo en la próxima carga.",
+    "cachePartial": "No se pudo descartar todo. Inténtalo de nuevo.",
+    "cacheNothing": "No hay ningún servidor configurado, así que no había nada que vaciar.",
+    "cacheFailed": "No se pudo vaciar la caché."
   },
   "setup": {
     "alreadyCompleted": "La configuración inicial ya se completó.",

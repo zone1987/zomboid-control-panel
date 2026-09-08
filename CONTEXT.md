@@ -7862,3 +7862,472 @@ Worth naming as a shape: **a controlled input with a hardcoded value is
 a read-only field that does not look read-only.** Nothing catches it —
 not the type checker, not the test suite, not a screenshot. Only typing
 into it does.
+
+---
+
+## 2026-09-08 — Item names came back English, and the panel said nothing
+
+**Status: unfinished. Branch `fix/translation-diagnosis`, nothing
+committed, backend edited, controller and frontend still to do.**
+
+### The report
+
+The user's production panel (1.2.1) showed a German interface with
+English item names, and asked why: *"liefert unsere bridge doch bereits
+die übersetzten namen der items und das hat doch auch schonmal
+funktioniert."*
+
+### What was measured, in order
+
+**Locally the whole chain is intact.** `GET
+/api/servers/<id>/items?language=de` returned `"language":"DE"` with
+`Base.WildGarlicCataplasm = Bärlauch-Wickel`, `Base.PipeBomb =
+Rohrbombe`, `Base.MakeupEyeshadow = Augen-Make-up` — the exact three
+items their screenshot showed in English. The browser's network log
+showed `items?language=de` → 200, and the rendered page showed
+"Bärlauch-Wickel", "Rohrbombe", "Gasmaske". So the code was not the
+fault.
+
+**Then the user pasted their own response.** Two attempts: the first hit
+my local server id and returned `{"status":"failed","error":
+"errors.notFound"}` (my mistake — I gave them an id from my machine).
+The second, against their own server, returned the full item list with
+**no `language` field at all** and every name in English.
+
+That is the proof. `ItemController` only sets `$catalogue['language']`
+inside `if ($names !== [])`. The field being absent means
+`ItemTranslations::forLanguage()` returned `[]` — the panel could not
+read `media/lua/shared/Translate/DE/ItemName.json` over FTP, and said
+nothing about it.
+
+### The defect, named
+
+`ItemTranslations::read()` had **four** `return []` for four different
+causes:
+
+| Cause | What the operator should do |
+|---|---|
+| no FTP credentials | configure them |
+| `StorageException` — path missing | the base path points at the savegame dir, not the installation |
+| `StorageException` — auth failed / unreachable | fix the login or the host |
+| JSON not an array | the file is not what it should be |
+
+All four looked like "this language has no translation", which is a
+benign fifth case. Textbook rule 6c.
+
+**Most likely cause on a rented server:** the transfer credentials open
+on the savegame directory, so the game's own `media/` is somewhere else
+entirely and the path simply is not there. That is a configuration
+answer, not a bug — but only if the panel says it.
+
+### What was written (backend, complete, lints clean)
+
+**`backend/src/Server/Items/TranslationVerdict.php` — new.** A readonly
+value object with six named states: `translated`, `noSuchLanguage`,
+`pathMissing`, `noCredentials`, `unreachable`, `unreadable`. Carries
+`language`, `names`, `path`. Plus:
+
+- `fromStorageFailure(language, path, messageKey)` — maps
+  `storage.authenticationFailed` and `storage.unreachable` to
+  `unreachable`, everything else to `pathMissing`. This is the one place
+  that separates "look somewhere else" from "fix the login", because
+  `StorageException` carries both.
+- `isTranslated()`, `needsAttention()` (true only for `pathMissing`,
+  `unreachable`, `unreadable` — a language the game does not ship is not
+  a fault and must not be shown as one), `toArray()`.
+
+**`backend/src/Server/Items/ItemTranslations.php` — rewritten.**
+
+- `forLanguage()` kept, now `verdictFor()->names`, so every existing
+  caller is untouched.
+- `verdictFor()` is the new entry point; it caches the **verdict**, not
+  the array.
+- **`FAILURE_TTL_SECONDS = 900`** beside `TTL_SECONDS = 604800`. This
+  matters: the old code cached the empty array for a week, so an
+  operator who fixed their FTP path would still see English names seven
+  days later. A failure is worth retrying long before the game is
+  patched.
+- An empty-but-parsed table now returns `unreadable`, not `translated`.
+
+Both files pass `php -l`.
+
+### What still has to be done
+
+1. **`backend/src/Controller/Api/ItemController.php`** — currently at
+   `:57-72`:
+
+   ```php
+   $language = $request->query->getString('language', $request->getLocale());
+   $names = $this->languages->supports($language)
+       ? $this->translations->forLanguage($server, $language)
+       : [];
+   if ($names !== []) {
+       $catalogue['items'] = array_map(..., $catalogue['items']);
+       $catalogue['language'] = ItemTranslations::normalise($language);
+   }
+   ```
+
+   Change to call `verdictFor()`, keep `language` as it is when
+   translated, and **always** add `translation` => `$verdict->toArray()`
+   so the state reaches the browser whichever way it went. Note
+   `:88-90`, where the ETag is built from `$catalogue['language'] ??
+   'none'` — the verdict state belongs in that ETag too, otherwise a
+   fixed FTP path serves a cached English response.
+
+2. **Frontend** — a line on the items page when
+   `translation.state` needs attention, naming the path that was tried.
+   Seven locales, per rule 1a.
+
+3. **A test that fails when reverted.** The shape: a `FileBrowser` stub
+   throwing `StorageException('storage.operationFailed', …)` must give
+   `pathMissing`, one throwing `storage.authenticationFailed` must give
+   `unreachable`, and a valid table must give `translated`. Plus one
+   asserting the **failure TTL is the short one** — that is the part
+   that silently rots.
+
+4. **Vehicles have the same shape.** `VehicleTranslations` reads
+   `IG_UI.json` the same way and swallows the same exception. Once the
+   item side is proven, mirror it.
+
+5. Then: build, commit, PR, merge, tag. Version would be **1.2.2**
+   (`backend/config/services.yaml`), `BRIDGE_VERSION` stays 0.21.0 —
+   the bridge is not involved.
+
+### For the user, unchanged from before
+
+- Remove `0.0.0.0` from Coolify's *Allowed API IPs*; the trigger now
+  comes from their own machine.
+- Redeploy to 1.2.1 and configure Settings → Coolify.
+- The GitHub secrets `COOLIFY_WEBHOOK` / `COOLIFY_TOKEN` are no longer
+  used by any workflow.
+
+### Resume here — the exact next edit
+
+Nothing is committed. `git status` on `fix/translation-diagnosis` shows
+two files: `TranslationVerdict.php` (untracked, new) and
+`ItemTranslations.php` (modified). Both lint clean. **The controller was
+being read when the context ran out; not a character of it is changed
+yet.**
+
+`ItemController.php:52-93` reads today, verbatim:
+
+```php
+$catalogue = $this->catalogue->forServer($server, $request->query->getBoolean('refresh'));
+
+$language = $request->query->getString('language', $request->getLocale());
+
+$names = $this->languages->supports($language)
+    ? $this->translations->forLanguage($server, $language)
+    : [];
+
+if ($names !== []) {
+    $catalogue['items'] = array_map(
+        static fn (array $item): array => isset($names[$item['type']])
+            ? [...$item, 'name' => $names[$item['type']]]
+            : $item,
+        $catalogue['items'],
+    );
+    $catalogue['language'] = ItemTranslations::normalise($language);
+}
+// … JsonResponse …
+$response->setEtag(sprintf(
+    '%s-%d-%s',
+    $catalogue['generatedAt'] ?? 0,
+    $catalogue['fileSize'] ?? 0,
+    $catalogue['language'] ?? 'none',
+));
+```
+
+It becomes:
+
+```php
+$verdict = $this->languages->supports($language)
+    ? $this->translations->verdictFor($server, $language)
+    : TranslationVerdict::noSuchLanguage($language, '');
+
+$names = $verdict->names;
+
+if ($names !== []) {
+    $catalogue['items'] = array_map(/* unchanged */);
+    $catalogue['language'] = $verdict->language;
+}
+
+// Always present, whichever way it went: the empty case is the one
+// worth explaining, and it is the one that used to say nothing.
+$catalogue['translation'] = $verdict->toArray();
+```
+
+and the ETag's third segment becomes `$verdict->state` rather than
+`$catalogue['language'] ?? 'none'` — **this part is easy to skip and
+would cost an afternoon**: without it, an operator who fixes their FTP
+path gets a 304 and still sees English.
+
+`use App\Server\Items\TranslationVerdict;` has to be added; the
+`ItemTranslations` import stays (the class is still used for
+`normalise()` elsewhere in the file — check before removing it).
+
+Then, in order: the four remaining points above (frontend line in seven
+locales, the revert-proven test, `VehicleTranslations` mirrored,
+`app.version` → 1.2.2), and finally `ddev exec -d /var/www/html/backend
+"php bin/phpunit"` plus a browser check at all three widths.
+
+**The one thing not yet known:** which of `pathMissing` /
+`unreachable` / `unreadable` the user's server actually hits. The code
+now distinguishes them, but nobody has seen the answer. Ask them to
+reload the items endpoint once 1.2.2 is deployed and read
+`translation.state` — that names the fix rather than guessing at it.
+
+---
+
+## 2026-09-08 (later) — the same game server, two panels, one of them English
+
+**Status: in progress. Branch `fix/translation-diagnosis`, nothing
+committed. Backend verdict work is written; three further pieces are
+now in scope and not yet built.**
+
+### What the user's screenshots settled, and what they overturned
+
+Two screenshots changed the diagnosis, and the earlier entry above is
+wrong in its conclusion — worth stating plainly rather than quietly
+correcting.
+
+**Screenshot one: the user's LOCAL panel, v1.2.1, Bridge v0.21.0,
+against G-Portal `176.57.168.46` — the SAME game server as
+production.** All four status lights green (Server, RCON, FTP, Bridge),
+5092 items, and the names in German: "Bärlauch-Wickel", "Rohrbombe",
+"Augen-Make-up", "Gasmaske", "Toilettenpapier".
+
+That rules out everything the previous entry named as most likely:
+
+| Earlier hypothesis | Now excluded because |
+|---|---|
+| FTP base path opens on the savegame dir | the same credentials read `media/lua/shared/Translate/DE/ItemName.json` fine |
+| credentials refused / host unreachable | FTP light green, catalogue read |
+| the game ships no DE file | it does; local proves it |
+
+**So the fault is not in the game server and not in its
+configuration.** It is a difference between the user's *two panel
+instances*, both on 1.2.1, both talking to that same server.
+
+**The user confirmed: production is its own Coolify instance with its
+own database.** Therefore its own FTP credential rows, and — decisively
+— **its own cache**.
+
+### The hypothesis that now leads, with its mechanism
+
+**A seven-day cached failure.** The old `ItemTranslations` cached the
+empty array under `TTL_SECONDS = 604800`. If the production instance
+ever got one empty read — during an FTP hiccup, or before the
+credentials were entered at all — it holds that emptiness for a week,
+long after the cause is gone. This fits the user's own words exactly:
+*"Es hat doch schonmal funktioniert"* — it worked, it failed once, and
+the cache wrote the failure down.
+
+Two things made it worse, both already fixed in the working tree:
+
+- `FAILURE_TTL_SECONDS = 900` beside the week-long success TTL.
+- The ETag's third segment was `$catalogue['language'] ?? 'none'`,
+  which is the same string for every failing cause — so a repaired
+  server still got a 304. It is `$verdict->state` now.
+
+### On the bridge — asked and answered, do not redo
+
+The user asked whether the bridge should return translated item names.
+**It cannot, and this is structural rather than a bug.**
+`ZomboidControlBridge.lua:637` writes `item:getDisplayName()` and `:642`
+tries `getItemNameFromFullType`. Both resolve through Zomboid's
+`Translator`, which has **one active locale per process** — the
+language the game server itself runs in, English here. Switching it
+would change the running game's language for everybody.
+
+That is precisely why the FTP route exists: the files sit on the server
+one per language, so the panel reads the reader's language without
+touching the game.
+
+The user chose **"FTP-Weg fertigstellen"** over a bridge change. So:
+**no bridge edit, no `BRIDGE_VERSION` bump, no upload and no server
+restart in this piece of work.**
+
+### Decisions the user made in this session
+
+1. **`refresh` clears the translation cache too.** "Neue Fassung laden"
+   handing back new items under a week-old failure's names is the
+   collapsed-state fault again. Done: `verdictFor(..., bool $refresh)`,
+   threaded from `ItemController`.
+2. **A cache-clear control in Settings**, and after two corrections the
+   placement is settled: **Einstellungen → a NEW group "Server" → an
+   entry "Cache" in it.** Not the dashboard, not under "Datenschutz"
+   where the first screenshot's arrow pointed.
+
+### Written so far, all lint-clean, none committed
+
+**`backend/src/Server/Items/TranslationVerdict.php`** — rewritten.
+Seven states as `public const`: `TRANSLATED`, `NO_SUCH_LANGUAGE`,
+`UNSUPPORTED_LANGUAGE`, `PATH_MISSING`, `NO_CREDENTIALS`,
+`UNREACHABLE`, `UNREADABLE`. Prose comments cut to single lines per
+rule 0b. `needsAttention()` is true only for `PATH_MISSING`,
+`UNREACHABLE`, `UNREADABLE`.
+
+`UNSUPPORTED_LANGUAGE` is new and replaces a misuse: the old code
+returned `noSuchLanguage` for a language code the *panel* does not
+speak, which is a different thing from one the *game* does not ship.
+
+**`backend/src/Server/Items/ItemTranslations.php`** — `verdictFor(
+GameServer, string $language, bool $refresh = false)`; caches the
+verdict, not the array; TTL now keyed on `needsAttention()` rather than
+on `names === []`, so `noSuchLanguage` gets the long TTL (it is a fact
+about the game) while a failure gets 900 s.
+
+New `explain()` makes `NO_SUCH_LANGUAGE` reachable, which it never was
+before: a failed `readTail` asks `directoryExists('media/lua/shared/
+Translate')` — present means the game ships no such language, absent
+means the path is wrong. Skipped entirely when the key is
+`storage.authenticationFailed`/`storage.unreachable`, because a refused
+login must not be reported as a missing path.
+
+**`backend/src/Controller/Api/ItemController.php`** — `verdictFor(...,
+$refresh)`; `$catalogue['language'] = $verdict->language`;
+`$catalogue['translation'] = $verdict->toArray()` **always**; ETag's
+third segment is `$verdict->state`. Both `ItemTranslations` and
+`TranslationVerdict` are imported (the former is still the constructor
+type).
+
+**`backend/tests/Unit/Server/Items/ItemTranslationsTest.php`** — new,
+15 cases. Covers each state, that a refused login does not trigger the
+directory probe (`expects(self::never())->method('directoryExists')`),
+that a refresh re-reads and *overwrites* a held verdict, and that the
+failure TTL is the short one.
+
+### Not done — resume here
+
+1. **`RecordingCache` test double is referenced but does not exist.**
+   `ItemTranslationsTest::testRetriesAFailureLongBeforeItRetriesASuccess`
+   uses `new RecordingCache()` and reads `->lifetime`. It needs a
+   `CacheItemPoolInterface` implementation recording the int passed to
+   `expiresAfter`. It replaced a helper that reflected into
+   `ArrayAdapter::$expiries` (private, no getter — too fragile).
+   `tests/Support/` holds no PHP classes today, only fixtures, so check
+   the autoload map before choosing where it lives; the sibling
+   `VehicleTranslationsTest` keeps its doubles inline.
+   **The test file cannot run until this exists.**
+
+2. **Settings → Server → Cache.** `frontend/src/features/settings/
+   settings-page.tsx`: `SECTIONS` at `:56` and the `TabsList` at
+   `:214-249` are two parallel lists, and `settings-tabs.test.ts` reads
+   the TabsTrigger values out of this file so they cannot drift. A new
+   `TabGroupLabel` for the group plus a `TabsTrigger value="cache"`,
+   plus `settings.groupServer` and `settings.cacheTab` in **seven**
+   locales. `SAVABLE_TABS` at `:48` must NOT gain 'cache' — it clears,
+   it does not save.
+
+3. **The backend endpoint behind that button.** Nothing exists yet.
+   Needs a route, a permission, and a decision on scope: the item and
+   vehicle translation keys (`items.names.*`, and the vehicle
+   equivalent) plus the catalogues, or the whole pool. Per rule 10g the
+   response must report what it actually cleared, and per 6c a clear
+   that partly failed is its own state, not a success.
+
+4. **Frontend line on the items page** when `translation.state` needs
+   attention, naming the path tried. Seven locales.
+
+5. **`VehicleTranslations` mirrors the same shape** — reads `IG_UI.json`,
+   swallows the same exception, caches the same week. Do it after items
+   is proven.
+
+6. **`app.version` → 1.2.2** in `backend/config/services.yaml`.
+   `BRIDGE_VERSION` stays 0.21.0. Then `ddev exec -d /var/www/html/
+   backend "php bin/phpunit"`, a browser check at 390/820/1512, commit,
+   PR, merge, tag.
+
+### A separate defect found in passing, not yet fixed
+
+**`backend/src/Server/Storage/ServerFileBrowser.php:117`** has its
+`StorageException` arguments the wrong way round:
+
+```php
+throw new StorageException(sprintf('Cannot write to %s.', $target), 'storage.writeFailed');
+```
+
+The constructor is `(string $messageKey, string $message)`, so the
+message key becomes an English sentence and the translation key becomes
+the message. Only reachable in `download()` when the local sink cannot
+be opened, so it has never been seen — but it would surface as an
+untranslated string. Every other call site in the file has it right.
+
+### What is still unknown
+
+Which state the user's production server actually reports. The code now
+distinguishes seven, and the panel will say — but nobody has seen the
+answer. Once 1.2.2 is deployed: reload the items endpoint and read
+`translation.state`. The strong expectation, given local works against
+the same server, is that a **cache clear alone fixes it** — which is
+what the new button is for.
+
+### Verified in the browser (Playwright MCP), 2026-09-08
+
+All at 390/820/1512 px, service worker unregistered first — it had
+re-registered itself after `npm run build` and was intercepting
+`/api/...` **before `page.route` could**, which cost two failed
+interception attempts before it was spotted. Rule 10g0c again, in a new
+guise: it does not only serve stale pages, it also defeats request
+mocking.
+
+**Settings → Server → Cache.** The group and the tab render at the
+place the user's screenshot pointed to, footer reads `v1.2.2`. Clicking
+"Zwischenspeicher leeren" → `POST /api/settings/cache` → **200** with
+`{"state":"cleared","keys":21,"servers":1,"detail":null,"status":"ok"}`.
+21 = 6 per-server keys + 2×7 languages + the global release key. The
+confirmation renders with the right plural: *"21 Einträge für 1 Server
+geleert."* At 390 px the tab list is replaced by the select, which shows
+"Cache" — so the control exists at both widths.
+
+**Item translations, read fresh after the clear.** `translation` is
+`{state: "translated", language: "DE", path:
+"media/lua/shared/Translate/DE/ItemName.json", count: 5138}` and the
+page renders "Bärlauch-Wickel", "Rohrbombe", "Augen-Make-up",
+"Gasmaske", "Toilettenpapier" over 5092 items. `pl`/`ru`/`it` with
+`refresh=1` each read their own file: "Bomba rurowa" (5143),
+"Трубчатая бомба" (5169), "Tubo bomba" (5143) — which also proves the
+new `$refresh` really reaches `verdictFor`.
+
+**The notice was proven by intercepting the response** and substituting
+`state: "pathMissing"`, because this server is healthy and the fault
+cannot be produced by clicking. It rendered in full: *"Item-Namen sind
+auf Englisch — Die Sprachdatei des Spiels ist unter diesem Pfad nicht
+auffindbar. … Versuchter Pfad:
+media/lua/shared/Translate/DE/ItemName.json"*. With `state:
+"translated"` no alert is rendered at all.
+
+**Switching the language needs no cache clearing — measured, not
+assumed.** The user proposed it twice, so it was tested through the
+actual control rather than argued from the source: clicking *Polski*
+fires exactly one request, `items?language=pl`, and the page then shows
+"Okład z czosnku niedźwiedziego", "Bomba rurowa", "Cienie do powiek"
+with no German left over. The cache key is
+`items.names.<serverId>.<LANG>` and the query key is `['items', id,
+i18n.language]`, so the languages live in separate entries and neither
+staling nor clearing is involved. Clearing on a switch would *destroy
+valid work*: going to Polish and back would re-fetch the 5138 German
+names over FTP for nothing. The case the proposal was aiming at — a
+*failed* entry held too long — is covered three other ways (900 s TTL,
+`refresh`, the new button).
+
+**Narrow-width probe: no horizontal scroll anywhere**, `docScrollsX`
+and `mainScrollsX` false at all three widths on both pages. Content
+frame at 820 px measures **549 px**, the value CLAUDE.md 10g0 already
+records. Console: 0 errors.
+
+### Pre-existing findings, NOT introduced here and NOT fixed
+
+Left alone deliberately rather than mixed into this branch:
+
+- **Touch targets under 32 px** (CLAUDE.md 10g0 sets 32 as the floor).
+  On the items page: the ± steppers are **24×24**, the item type labels
+  16 px tall, "Übersicht" breadcrumb 63×20. In the shell: the sidebar
+  trigger **28×28**, "Danksagungen" 100×24, "Verbindungen" 46×24, the
+  events expander 20×20. The sidebar trigger is the one that matters —
+  it is how navigation opens on a phone.
+- **`ServerFileBrowser.php:117`** has its `StorageException` arguments
+  reversed, as recorded in the entry above.
+- **React Router warns** `No HydrateFallback element provided to render
+  during initial hydration` on every page.

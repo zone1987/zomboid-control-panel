@@ -998,7 +998,12 @@
     "search": "Item suchen — Name oder Typ",
     "selected": "Ausgewählt",
     "someFailed": "{{count}} Item(s) hat der Server abgelehnt.",
-    "title": "Items"
+    "title": "Items",
+    "translationTitle": "Item-Namen sind auf Englisch",
+    "translationPath": "Versuchter Pfad:",
+    "translation_pathMissing": "Die Sprachdatei des Spiels ist unter diesem Pfad nicht auffindbar. Meist zeigen die FTP-Zugangsdaten auf das Savegame-Verzeichnis, während das eigene media/ des Spiels an einer anderen Stelle liegt. Bitte den Basispfad in den Server-Zugangsdaten prüfen.",
+    "translation_unreachable": "Der Server hat die Zugangsdaten abgelehnt oder war nicht erreichbar. Bitte FTP-Benutzer, Passwort und Host in den Server-Zugangsdaten prüfen.",
+    "translation_unreadable": "Die Sprachdatei wurde gefunden, ist aber nicht die erwartete Tabelle. Möglicherweise ist sie unvollständig übertragen oder durch eine Mod ersetzt."
   },
   "logs": {
     "capped": "älteste Zeilen werden ab {{max}} verworfen",
@@ -1859,7 +1864,22 @@
       "good": "Alles in Ordnung",
       "noSender": "Noch keine Absenderadresse",
       "partial": "Teilweise eingerichtet"
-    }
+    },
+    "groupServer": "Server",
+    "cacheTab": "Cache",
+    "cacheTitle": "Zwischenspeicher leeren",
+    "cacheDescription": "Verwirft, was das Panel vom Gameserver gelesen hat. Beim nächsten Aufruf wird erneut gefragt.",
+    "cacheWhatItDrops": "Geleert werden: Item- und Fahrzeugkatalog, die Item- und Fahrzeugnamen je Sprache, die RCON-Befehlsliste und die erkannte Server-Sitzung.",
+    "cacheWhatItKeeps": "Unberührt bleiben: die Leseposition des Chat-Spiegels und der Zähler der Bridge-Befehle. Das sind Positionen, keine Zwischenspeicher — sie zu verwerfen würde Nachrichten überspringen.",
+    "cacheClear": "Zwischenspeicher leeren",
+    "cacheClearing": "Wird geleert …",
+    "cacheCleared_one": "{{count}} Eintrag geleert",
+    "cacheCleared_other": "{{count}} Einträge geleert",
+    "cacheClearedDetail_one": "{{count}} Eintrag für {{servers}} Server geleert. Die Namen werden beim nächsten Laden neu gelesen.",
+    "cacheClearedDetail_other": "{{count}} Einträge für {{servers}} Server geleert. Die Namen werden beim nächsten Laden neu gelesen.",
+    "cachePartial": "Nicht alles konnte verworfen werden. Bitte erneut versuchen.",
+    "cacheNothing": "Es ist kein Server eingerichtet, also war nichts zu leeren.",
+    "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden."
   },
   "setup": {
     "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen.",
