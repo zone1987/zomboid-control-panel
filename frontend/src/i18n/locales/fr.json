@@ -2252,6 +2252,12 @@
     "updatesBody": "Steam holds a newer copy than the one on disk. The server fetches it at its next start; nothing needs doing here.",
     "leftOverTitle_one": "{{count}} mod is still on disk but no longer used",
     "leftOverTitle_other": "{{count}} mods are still on disk but no longer used",
-    "leftOverBody": "Steam does not delete an item when it leaves the list, so these take up {{size}} for nothing. They do no harm."
+    "leftOverBody": "Steam does not delete an item when it leaves the list, so these take up {{size}} for nothing. They do no harm.",
+    "slashBody_one": "{{count}} of them is only a stray slash away from being right: {{corrections}}.",
+    "slashBody_other": "{{count}} of them are only a stray slash away from being right: {{corrections}}.",
+    "repairSlashes_one": "Remove the slash",
+    "repairSlashes_other": "Remove the slashes",
+    "slashesRepaired": "Corrected. It takes effect at the next server start.",
+    "nothingToRepair": "There was nothing to correct."
   }
 }

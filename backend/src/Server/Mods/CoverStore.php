@@ -123,6 +123,18 @@ final readonly class CoverStore
 
     private function write(string $path, string $bytes): bool
     {
+        // A gd built without webp has no imagewebp() at all, and every
+        // cover then failed to save without a word — the mods page just
+        // showed placeholders. Said once, loudly, rather than never.
+        if (!\function_exists('imagewebp')) {
+            $this->logger->error(
+                'This PHP has gd without webp support, so mod covers cannot be stored. '
+                .'Rebuild the image with --with-webp.',
+            );
+
+            return false;
+        }
+
         $source = @imagecreatefromstring($bytes);
 
         if ($source === false) {

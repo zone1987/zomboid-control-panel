@@ -156,6 +156,7 @@ final readonly class ModManager
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
                 'orphanedModIds' => [],
+                'fixableModIds' => [],
                 'unmappedWorkshopIds' => [],
             ];
         }
@@ -177,6 +178,7 @@ final readonly class ModManager
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
                 'orphanedModIds' => [],
+                'fixableModIds' => [],
                 'unmappedWorkshopIds' => [],
             ];
         }
@@ -231,6 +233,17 @@ final readonly class ModManager
         // item when it leaves the list, so it sits there costing space.
         $leftOver = array_values(array_diff($manifest->downloadedIds(), $list->workshopIds));
 
+        $orphaned = array_values(array_diff($list->modIds, $allModIds));
+        $fixable = [];
+
+        foreach ($orphaned as $modId) {
+            $corrected = ModList::withoutLeadingSlashes($modId);
+
+            if ($corrected !== null && \in_array($corrected, $allModIds, true)) {
+                $fixable[$modId] = $corrected;
+            }
+        }
+
         return [
             'state' => 'found',
             'modIds' => $byWorkshopId,
@@ -243,7 +256,11 @@ final readonly class ModManager
             'truncated' => $resolution->truncated,
             // In Mods= but belonging to no installed workshop item: the
             // server will try to load something it never downloaded.
-            'orphanedModIds' => array_values(array_diff($list->modIds, $allModIds)),
+            'orphanedModIds' => $orphaned,
+            // A subset of the above: entries that become a real mod id
+            // once a leading slash comes off, so the panel can offer to
+            // fix them rather than only point at them.
+            'fixableModIds' => $fixable,
             // Downloaded but absent from Mods=, so the item is fetched
             // and then never loaded — a silent way to wonder why a mod
             // "does nothing".
@@ -329,6 +346,45 @@ final readonly class ModManager
 
         $list = $this->reader->read($config, (string) $location->path);
         $next = new ModList($list->workshopIds, $order['order'], $list->maps);
+
+        return $this->writer->write($config, (string) $location->path, $next);
+    }
+
+    /**
+     * Strips leading slashes from mod ids that would otherwise not load.
+     *
+     * Only ids that become a **real, installed** mod id once trimmed —
+     * an entry that is simply wrong stays wrong, and stays reported.
+     *
+     * @return array<string, mixed>
+     */
+    public function repairModIds(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return ['status' => $location->state, 'missingKeys' => []];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        $fixable = $this->diagnose($server)['fixableModIds'] ?? [];
+
+        if ($fixable === []) {
+            return ['status' => 'nothingToRepair', 'missingKeys' => []];
+        }
+
+        $list = $this->reader->read($config, (string) $location->path);
+
+        // Rebuilt in place rather than removed and appended, so the
+        // load order the operator has is not quietly rearranged.
+        $repaired = array_map(
+            static fn (string $modId): string => $fixable[$modId] ?? $modId,
+            $list->modIds,
+        );
+
+        $next = new ModList($list->workshopIds, array_values($repaired), $list->maps);
 
         return $this->writer->write($config, (string) $location->path, $next);
     }

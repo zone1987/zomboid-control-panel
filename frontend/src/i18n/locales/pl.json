@@ -2314,6 +2314,16 @@
     "leftOverTitle_few": "{{count}} mods are still on disk but no longer used",
     "leftOverTitle_many": "{{count}} mods are still on disk but no longer used",
     "leftOverTitle_other": "{{count}} mods are still on disk but no longer used",
-    "leftOverBody": "Steam does not delete an item when it leaves the list, so these take up {{size}} for nothing. They do no harm."
+    "leftOverBody": "Steam does not delete an item when it leaves the list, so these take up {{size}} for nothing. They do no harm.",
+    "slashBody_one": "{{count}} of them is only a stray slash away from being right: {{corrections}}.",
+    "slashBody_few": "{{count}} of them are only a stray slash away from being right: {{corrections}}.",
+    "slashBody_many": "{{count}} of them are only a stray slash away from being right: {{corrections}}.",
+    "slashBody_other": "{{count}} of them are only a stray slash away from being right: {{corrections}}.",
+    "repairSlashes_one": "Remove the slash",
+    "repairSlashes_few": "Remove the slashes",
+    "repairSlashes_many": "Remove the slashes",
+    "repairSlashes_other": "Remove the slashes",
+    "slashesRepaired": "Corrected. It takes effect at the next server start.",
+    "nothingToRepair": "There was nothing to correct."
   }
 }

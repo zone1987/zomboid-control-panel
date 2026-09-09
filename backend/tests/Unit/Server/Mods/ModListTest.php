@@ -121,6 +121,31 @@ final class ModListTest extends TestCase
         self::assertSame(['3798399158'], ModList::split((string) 3798399158));
     }
 
+    /**
+     * `Mods=\PZ_Map` was found on a live server. The game looks an id up
+     * in a map keyed by the mod.info `id=` line — an exact match, not a
+     * path — so the slash finds nothing and the mod never loads.
+     */
+    public function testALeadingSlashIsStrippedFromAModId(): void
+    {
+        self::assertSame('PZ_Map', ModList::withoutLeadingSlashes('\\PZ_Map'));
+        self::assertSame('PZ_Map', ModList::withoutLeadingSlashes('/PZ_Map'));
+    }
+
+    /**
+     * Null distinguishes "this is fixable" from "this is just wrong",
+     * so the panel offers a repair only where one exists.
+     */
+    public function testAnIdWithNoSlashHasNothingToStrip(): void
+    {
+        self::assertNull(ModList::withoutLeadingSlashes('PZ_Map'));
+    }
+
+    public function testAnIdThatIsOnlySlashesIsNotRepairable(): void
+    {
+        self::assertNull(ModList::withoutLeadingSlashes('\\\\'));
+    }
+
     public function testAMapNameSurvivesItsComma(): void
     {
         self::assertSame(['Muldraugh, KY'], ModList::split('Muldraugh, KY'));

@@ -24,12 +24,18 @@ FROM php:8.4-fpm-bookworm AS vendor
 # imagecreatefromstring is simply undefined, so /api/icons/finish died
 # with a fatal error and the interface said only "upload failed" --
 # while ddev, which ships gd, worked throughout.
+#
+# **webp is part of that requirement, not an extra.** Mod covers are
+# stored as webp, and a gd built without it has no imagewebp() at all:
+# every cover failed to save, silently, and the mods page showed nothing
+# but placeholders in production while ddev was fine. Same lesson as
+# above, one level finer.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git unzip libpq-dev libzip-dev libicu-dev libsodium-dev \
         libcurl4-openssl-dev libxml2-dev libonig-dev \
-        libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+        libpng-dev libjpeg62-turbo-dev libfreetype6-dev libwebp-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_pgsql zip intl ftp sodium curl mbstring xml fileinfo gd \
     && rm -rf /var/lib/apt/lists/*
@@ -59,7 +65,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         apache2 libapache2-mod-fcgid supervisor \
         libpq5 libzip4 libicu72 libsodium23 libonig5 libxml2 \
-        libpng16-16 libjpeg62-turbo libfreetype6 \
+        libpng16-16 libjpeg62-turbo libfreetype6 libwebp7 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
