@@ -9899,3 +9899,38 @@ along. Controlled now, every internal link closes it, and the
    would need the bridge to report it — an upload and a restart only the
    user can do (CLAUDE.md 11).
 6. `docs/coolify-step-gone` still holds `fa91b31` unpushed.
+
+### A find for stage 3, made while CI ran
+
+**`steamapps/workshop/appworkshop_108600.acf` is readable over FTP** and
+solves update detection better than the plan proposed. Steam's own
+manifest holds, per installed item:
+
+```
+"WorkshopItemDetails"
+{
+    "3770149036"
+    {
+        "manifest"            "4342273948979859371"
+        "timeupdated"         "1788687170"     <- what is installed
+        "timetouched"         "1788942440"
+        "latest_timeupdated"  "1788687170"     <- what Steam has
+        "latest_manifest"     "882019292731073492"
+    }
+}
+```
+
+So "an update is available" is `timeupdated != latest_timeupdated`,
+**measured rather than remembered**. The plan's approach — the panel
+storing what it saw at the last successful start — would have been less
+accurate and needed its own table.
+
+`WorkshopItemsInstalled` also lists what is really on disk, which is not
+the same as what `WorkshopItems=` asks for: the user's server currently
+has **two items downloaded (2875848298, 3770149036) while the ini line
+is empty** — leftovers from earlier installs. That is exactly the
+orphan case proposal 4 wants to surface, and this file is where to see
+it.
+
+Not built yet; recorded so stage 3 starts from the manifest rather than
+from a new entity.
