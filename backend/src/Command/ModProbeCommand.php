@@ -30,6 +30,8 @@ final class ModProbeCommand extends Command
         private readonly ModListReader $reader,
         private readonly WorkshopClient $workshop,
         private readonly \App\Server\Mods\CoverStore $covers,
+        private readonly \App\Server\Mods\ModInfoReader $modInfo,
+        private readonly \App\Server\Mods\ModManager $mods,
     ) {
         parent::__construct();
     }
@@ -137,6 +139,48 @@ final class ModProbeCommand extends Command
                 $first?->isCollection === true ? 'yes' : 'no',
                 mb_substr($first?->title ?? '-', 0, 30),
             ));
+        }
+
+        $io->section('Game version from the bridge');
+        $reading = $this->mods->build($server);
+        $io->writeln(sprintf('build:       %s', $reading->build->number ?? '(unknown)'));
+        $io->writeln(sprintf('source:      %s', $reading->source()));
+        $io->writeln(sprintf('reported:    %s', $reading->reported ?? '-'));
+        $io->writeln(sprintf('entered:     %s', $reading->entered ?? '-'));
+        $io->writeln(sprintf('full:        %s', $reading->fullVersion ?? '-'));
+        $io->writeln(sprintf('disagrees:   %s', $reading->disagrees() ? 'yes' : 'no'));
+
+        $io->section('Diagnosis');
+        $d = $this->mods->diagnose($server);
+        $io->writeln(sprintf('state:                %s', $d['state']));
+        $io->writeln(sprintf('missing dependencies: [%s]', implode(', ', $d['missingDependencies'])));
+        $io->writeln(sprintf('orphaned mod ids:     [%s]', implode(', ', $d['orphanedModIds'])));
+        $io->writeln(sprintf('unmapped workshop:    [%s]', implode(', ', $d['unmappedWorkshopIds'])));
+        $io->writeln(sprintf('load order:           %s changed=%s [%s]',
+            $d['loadOrder']['state'],
+            $d['loadOrder']['changed'] ? 'yes' : 'no',
+            implode(', ', $d['loadOrder']['order']),
+        ));
+
+        foreach ($d['modIds'] as $workshopId => $verdict) {
+            $io->writeln(sprintf('  %-12s %-16s [%s]', $workshopId, $verdict['state'], implode(', ', $verdict['ids'])));
+        }
+
+        $io->section('Mod ids from mod.info');
+
+        foreach (['2875848298', '3770149036', '999999999'] as $probe) {
+            $verdict = $this->modInfo->read($ftp, $probe);
+            $io->writeln(sprintf(
+                '  %-12s state=%-18s ids=[%s] versionMin=%s',
+                $probe,
+                $verdict->state,
+                implode(', ', $verdict->ids),
+                $verdict->versionMin ?? '-',
+            ));
+
+            foreach ($verdict->paths as $path) {
+                $io->writeln('       '.$path);
+            }
         }
 
         $io->section('Raw ini values');

@@ -13,7 +13,7 @@ use App\Server\Storage\StorageException;
  * claimed safehouses. Kept apart from the player roster, which changes
  * whenever somebody joins.
  */
-final readonly class ServerInfoReader implements RunningBridgeReading
+final readonly class ServerInfoReader implements RunningBridgeReading, GameVersionReading
 {
     /**
      * The two fields a reload verdict may rest on, and no others.
@@ -27,6 +27,13 @@ final readonly class ServerInfoReader implements RunningBridgeReading
         }
 
         return ['version' => $info['bridgeVersion'], 'sessionId' => $info['sessionId']];
+    }
+
+    public function gameVersion(GameServer $server): ?array
+    {
+        $game = $this->serverInfo($server)['game'] ?? null;
+
+        return \is_array($game) ? $game : null;
     }
 
     public function __construct(private FileBrowserInterface $files)
@@ -44,6 +51,7 @@ final readonly class ServerInfoReader implements RunningBridgeReading
      *     gameTime: array<string, int>|null,
      *     weather: array<string, mixed>|null,
      *     maxPlayers: int|null,
+     *     game: array<string, mixed>|null,
      *     bridgeVersion: string|null,
      *     sessionId: string|null
      * }|null
@@ -61,6 +69,9 @@ final readonly class ServerInfoReader implements RunningBridgeReading
             'gameTime' => \is_array($payload['gameTime'] ?? null) ? $payload['gameTime'] : null,
             'weather' => \is_array($payload['weather'] ?? null) ? $payload['weather'] : null,
             'maxPlayers' => isset($payload['maxPlayers']) ? (int) $payload['maxPlayers'] : null,
+            // From bridge 0.22.0; null on an older one, which is why the
+            // build stays something the operator can also enter.
+            'game' => \is_array($payload['game'] ?? null) ? $payload['game'] : null,
             'bridgeVersion' => \is_string($payload['bridgeVersion'] ?? null)
                 ? $payload['bridgeVersion']
                 : null,

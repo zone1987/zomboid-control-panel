@@ -43,6 +43,23 @@ export type Mod = {
 /** Where the mod list lives, or why there is none to write. */
 export type ModFileState = 'found' | 'noTransfer' | 'noFile' | 'ambiguous'
 
+/**
+ * Which build the server runs, and where that was learnt.
+ *
+ * Two sources kept apart on purpose: the bridge reports what the game
+ * *is*, a typed value is what somebody *believes*, and where they
+ * disagree that is worth saying rather than silently preferring one.
+ */
+export type BuildReading = {
+  build: string | null
+  source: 'bridge' | 'entered' | 'unknown'
+  reported: string | null
+  entered: string | null
+  /** The whole version, for showing rather than filtering. */
+  fullVersion: string | null
+  disagrees: boolean
+}
+
 export type InstalledMods = {
   state: ModFileState
   path: string | null
@@ -53,6 +70,7 @@ export type InstalledMods = {
   maps: string[]
   modIds: string[]
   gameBuild: string | null
+  buildReading: BuildReading | null
   items: Mod[]
 }
 
@@ -61,9 +79,32 @@ export type ModSearch = {
   hasKey: boolean
   total: number
   gameBuild: string | null
+  buildReading: BuildReading | null
   /** The tag the server's build added, so the screen can say so. */
   buildFilter: string | null
   items: Mod[]
+}
+
+/**
+ * One mod in the requirement chain.
+ *
+ * `repeats` marks a mod already above it in the branch: expanding it
+ * again is what a circle does, so it is named and left closed.
+ */
+export type DependencyNode = {
+  workshopId: string
+  title: string | null
+  /** False when the workshop could not describe it — still required. */
+  resolved: boolean
+  repeats: boolean
+  children: DependencyNode[]
+}
+
+export type DependencyTree = {
+  state: WorkshopState
+  nodes: DependencyNode[]
+  /** The walk hit its depth limit, so the chain may go further. */
+  truncated: boolean
 }
 
 export type ModDetail = {
@@ -72,15 +113,87 @@ export type ModDetail = {
   gameBuild: string | null
   item: Mod | null
   dependencies: Mod[]
+  tree: DependencyTree | null
 }
 
 export type ModChange = {
-  status: 'written' | 'notVerified' | 'keysMissing' | 'refused' | 'alreadyInstalled' | 'notInstalled' | ModFileState
+  status:
+    | 'written' | 'notVerified' | 'keysMissing' | 'refused'
+    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'alreadyListed' | 'cycle'
+    | ModFileState
   missingKeys: string[]
   written?: string[]
   verified?: boolean
   mismatched?: string[]
   restored?: boolean
+}
+
+/**
+ * Why a workshop item's mod ids are unknown.
+ *
+ * `notDownloaded` is the benign one and by far the commonest: the
+ * server fetches an item at its next start, so it resolves itself.
+ */
+export type ModIdState =
+  | 'found'
+  | 'notDownloaded'
+  | 'noModInfo'
+  | 'noWorkshopDirectory'
+  | 'noTransfer'
+  | 'unreachable'
+
+export type ModIdVerdict = {
+  state: ModIdState
+  /** The `id=` values, which are what `Mods=` needs. */
+  ids: string[]
+  /** Where each was read from, so the operator can check. */
+  paths: string[]
+  versionMin: string | null
+  /** Map folders this item ships; `Map=` takes these. */
+  maps: string[]
+}
+
+export type LoadOrderVerdict = {
+  state: 'sorted' | 'cycle'
+  order: string[]
+  /** False when the file already holds this order — nothing to apply. */
+  changed: boolean
+  tangled: string[]
+}
+
+export type ModDiagnosis = {
+  state: ModFileState | 'unreachable'
+  modIds: Record<string, ModIdVerdict>
+  missingDependencies: string[]
+  loadOrder: LoadOrderVerdict
+  /** The dependency walk hit its depth limit, so this is not the whole set. */
+  truncated: boolean
+  /** In Mods= but belonging to no installed item. */
+  orphanedModIds: string[]
+  /** Installed but absent from Mods=, so downloaded and never loaded. */
+  unmappedWorkshopIds: string[]
+  /** Shipped by an installed mod but absent from Map=, so invisible. */
+  unlistedMaps: string[]
+}
+
+export function diagnoseMods(serverId: string): Promise<ModDiagnosis> {
+  return apiFetch<ModDiagnosis>(`/servers/${serverId}/mods/diagnosis`)
+}
+
+/** Whether anything here is worth putting in front of the operator. */
+export function hasFindings(diagnosis: ModDiagnosis | undefined): boolean {
+  if (diagnosis === undefined || diagnosis.state !== 'found') {
+    return false
+  }
+
+  return (
+    diagnosis.missingDependencies.length > 0
+    || diagnosis.orphanedModIds.length > 0
+    || diagnosis.unmappedWorkshopIds.length > 0
+    || diagnosis.unlistedMaps.length > 0
+    || diagnosis.loadOrder.state === 'cycle'
+    || diagnosis.loadOrder.changed
+  )
 }
 
 export type SortOrder = 'trend' | 'subscriptions' | 'updated' | 'recent'
@@ -113,11 +226,39 @@ export function modDetail(serverId: string, workshopId: string): Promise<ModDeta
   return apiFetch<ModDetail>(`/servers/${serverId}/mods/${encodeURIComponent(workshopId)}`)
 }
 
-export function addMod(serverId: string, workshopId: string): Promise<ModChange> {
+export function listMaps(serverId: string): Promise<ModChange> {
+  return apiFetch<ModChange>(`/servers/${serverId}/mods/maps`, { method: 'POST', body: {} })
+}
+
+export function applyLoadOrder(serverId: string): Promise<ModChange & { tangled?: string[] }> {
+  return apiFetch<ModChange & { tangled?: string[] }>(`/servers/${serverId}/mods/order`, {
+    method: 'POST',
+    body: {},
+  })
+}
+
+export type ModRequirements = {
+  state: WorkshopState
+  /** Required, not installed, and not the mod being added. */
+  missing: Mod[]
+  truncated: boolean
+}
+
+export function modRequirements(serverId: string, workshopId: string): Promise<ModRequirements> {
+  return apiFetch<ModRequirements>(
+    `/servers/${serverId}/mods/${encodeURIComponent(workshopId)}/requirements`,
+  )
+}
+
+export function addMod(
+  serverId: string,
+  workshopId: string,
+  requirements: string[] = [],
+): Promise<ModChange> {
   // The object, not a string: apiFetch stringifies it itself (rule 10f2).
   return apiFetch<ModChange>(`/servers/${serverId}/mods/installed`, {
     method: 'POST',
-    body: { workshopId },
+    body: { workshopId, requirements },
   })
 }
 

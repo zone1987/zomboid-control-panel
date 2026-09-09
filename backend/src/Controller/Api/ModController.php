@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
 use App\Server\Mods\CoverStore;
+use App\Server\Mods\DependencyGraph;
 use App\Server\Mods\GameBuild;
 use App\Server\Mods\ModManager;
 use App\Server\Mods\ModPresenter;
@@ -30,6 +31,7 @@ final class ModController extends AbstractController
         private readonly ModManager $mods,
         private readonly WorkshopSource $workshop,
         private readonly CoverStore $covers,
+        private readonly DependencyGraph $graph,
     ) {
     }
 
@@ -106,6 +108,31 @@ final class ModController extends AbstractController
     }
 
     /**
+     * What is wrong with this server's mod list.
+     *
+     * Separate from `/installed` because it costs several workshop
+     * lookups and an FTP walk per mod, while the list itself is polled.
+     */
+    #[Route('/diagnosis', name: 'api_mods_diagnosis', methods: ['GET'])]
+    public function diagnosis(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            return new JsonResponse($this->mods->diagnose($server));
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+    }
+
+    /**
      * Searches the workshop.
      *
      * Answers 200 with `state: noKey` rather than an error status: a
@@ -122,7 +149,8 @@ final class ModController extends AbstractController
         }
 
         $tags = array_values(array_filter($request->query->all('tags'), \is_string(...)));
-        $build = GameBuild::of($server->getGameBuild());
+        $reading = $this->mods->build($server);
+        $build = $reading->build;
 
         // Filtered at Steam rather than afterwards: asking for a page of
         // thirty and then dropping the wrong build would leave gaps that
@@ -147,7 +175,8 @@ final class ModController extends AbstractController
             'total' => $result->total,
             // Said out loud so the screen can explain why it is showing
             // everything: an unknown build filters nothing.
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $reading->build->number,
+            'buildReading' => $reading->toArray(),
             'buildFilter' => $buildTag,
             'items' => array_map(
                 fn ($item): array => ModPresenter::present(
@@ -171,7 +200,7 @@ final class ModController extends AbstractController
             return $this->notFound();
         }
 
-        $build = GameBuild::of($server->getGameBuild());
+        $build = $this->mods->build($server)->build;
 
         $result = $this->workshop->details($workshopId);
         $item = $result->first();
@@ -191,7 +220,10 @@ final class ModController extends AbstractController
         return new JsonResponse([
             'state' => $result->state->value,
             'hasKey' => $this->workshop->hasKey(),
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $build->number,
+            // The whole chain, not just what this mod names directly:
+            // a requirement's own requirements are just as missing.
+            'tree' => $this->graph->tree($workshopId),
             'item' => ModPresenter::present($item->workshopId, $item, $build, $this->coverBase($id)),
             'dependencies' => array_map(
                 fn ($dependency): array => ModPresenter::present(
@@ -205,10 +237,103 @@ final class ModController extends AbstractController
         ]);
     }
 
+    /** Writes the sorted load order back to `Mods=`. */
+    #[Route('/order', name: 'api_mods_apply_order', methods: ['POST'])]
+    public function applyOrder(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $outcome = $this->mods->applyLoadOrder($server);
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+
+        $status = match ($outcome['status']) {
+            'written', 'alreadyOrdered' => Response::HTTP_OK,
+            'cycle', 'keysMissing' => Response::HTTP_UNPROCESSABLE_ENTITY,
+            default => Response::HTTP_BAD_GATEWAY,
+        };
+
+        return new JsonResponse($outcome, $status);
+    }
+
+    /** Adds the map folders an installed map mod ships to `Map=`. */
+    #[Route('/maps', name: 'api_mods_list_maps', methods: ['POST'])]
+    public function listMaps(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $outcome = $this->mods->listMaps($server);
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+
+        $status = match ($outcome['status']) {
+            'written', 'alreadyListed' => Response::HTTP_OK,
+            'keysMissing' => Response::HTTP_UNPROCESSABLE_ENTITY,
+            default => Response::HTTP_BAD_GATEWAY,
+        };
+
+        return new JsonResponse($outcome, $status);
+    }
+
+    /**
+     * What adding this mod would also pull in.
+     *
+     * Asked before the write, so the operator sees it and decides
+     * rather than finding new entries in their list afterwards.
+     */
+    #[Route(
+        '/{workshopId}/requirements',
+        name: 'api_mods_requirements',
+        methods: ['GET'],
+        requirements: ['workshopId' => '\d+'],
+    )]
+    public function requirements(string $id, string $workshopId): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            return new JsonResponse($this->mods->requirementsFor($server, $workshopId));
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+    }
+
     #[Route('/installed', name: 'api_mods_add', methods: ['POST'])]
     public function add(string $id, Request $request): JsonResponse
     {
-        return $this->change($id, (string) ($request->toArray()['workshopId'] ?? ''), true);
+        $payload = $request->toArray();
+        $requirements = array_values(array_filter(
+            \is_array($payload['requirements'] ?? null) ? $payload['requirements'] : [],
+            static fn (mixed $value): bool => \is_string($value)
+                && preg_match('/^\d{1,20}$/', $value) === 1,
+        ));
+
+        return $this->change($id, (string) ($payload['workshopId'] ?? ''), true, $requirements);
     }
 
     #[Route(
@@ -222,8 +347,15 @@ final class ModController extends AbstractController
         return $this->change($id, $workshopId, false);
     }
 
-    private function change(string $id, string $workshopId, bool $add): JsonResponse
-    {
+    /**
+     * @param list<string> $requirements
+     */
+    private function change(
+        string $id,
+        string $workshopId,
+        bool $add,
+        array $requirements = [],
+    ): JsonResponse {
         $server = $this->servers->find($id);
 
         if (!$server instanceof GameServer) {
@@ -238,7 +370,7 @@ final class ModController extends AbstractController
         }
 
         try {
-            $outcome = $this->mods->change($server, $workshopId, $add);
+            $outcome = $this->mods->change($server, $workshopId, $add, $requirements);
         } catch (StorageException) {
             return new JsonResponse(
                 ['status' => 'failed', 'error' => 'mods.transferFailed'],

@@ -161,6 +161,28 @@ final class ModEndpointTest extends FunctionalTestCase
         self::assertSame('noTransfer', $this->payload()['state']);
     }
 
+    /**
+     * The screen polls this for the warnings, so it has to answer even
+     * when there is no file to read — a 500 here would empty the page.
+     */
+    public function testDiagnosisAnswersWhenThereIsNoFileToRead(): void
+    {
+        $this->useWorkshop(WorkshopResult::ok([]));
+        $this->signInAsServerAdmin();
+        $id = $this->createServer();
+
+        $warnings = $this->watchWarnings(fn () => $this->request('GET', '/api/servers/'.$id.'/mods/diagnosis'));
+
+        self::assertSame([], $warnings, 'the endpoint raised: '.implode('; ', $warnings));
+        self::assertResponseIsSuccessful();
+
+        $payload = $this->payload();
+
+        self::assertSame('noTransfer', $payload['state']);
+        self::assertSame([], $payload['missingDependencies']);
+        self::assertSame('sorted', $payload['loadOrder']['state']);
+    }
+
     public function testRefusesAnIdThatIsNotANumber(): void
     {
         $this->signInAsServerAdmin();

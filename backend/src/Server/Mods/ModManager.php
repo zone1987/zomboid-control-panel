@@ -23,7 +23,16 @@ final readonly class ModManager
         private ModListReader $reader,
         private ModListWriter $writer,
         private WorkshopSource $workshop,
+        private ModInfoReader $modInfo,
+        private DependencyGraph $graph,
+        private BuildSource $builds,
     ) {
+    }
+
+    /** Which build this server runs, and where that was learnt. */
+    public function build(GameServer $server): BuildReading
+    {
+        return $this->builds->resolve($server);
     }
 
     public function locate(GameServer $server): ModFileLocation
@@ -93,7 +102,8 @@ final readonly class ModManager
 
         // Driven by the file, not by the workshop answer: an id Steam
         // cannot describe is still an id the server will try to load.
-        $build = GameBuild::of($server->getGameBuild());
+        $reading = $this->builds->resolve($server);
+        $build = $reading->build;
 
         foreach ($list->workshopIds as $workshopId) {
             $item = $byId[$workshopId] ?? null;
@@ -114,9 +124,211 @@ final readonly class ModManager
             'hasKey' => $this->workshop->hasKey(),
             'maps' => $list->maps,
             'modIds' => $list->modIds,
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $reading->build->number,
+            'buildReading' => $reading->toArray(),
             'items' => $items,
         ];
+    }
+
+    /**
+     * What is wrong with this server's mod list, if anything.
+     *
+     * Its own call rather than part of `installed()`: this costs
+     * several workshop lookups and an FTP walk per mod, and the list
+     * itself has to stay quick enough to poll.
+     *
+     * @return array<string, mixed>
+     */
+    public function diagnose(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return [
+                'state' => $location->state,
+                'modIds' => [],
+                'unlistedMaps' => [],
+                'missingDependencies' => [],
+                'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
+                'truncated' => false,
+                'orphanedModIds' => [],
+                'unmappedWorkshopIds' => [],
+            ];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        try {
+            $list = $this->reader->read($config, (string) $location->path);
+        } catch (StorageException) {
+            return [
+                'state' => 'unreachable',
+                'modIds' => [],
+                'unlistedMaps' => [],
+                'missingDependencies' => [],
+                'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
+                'truncated' => false,
+                'orphanedModIds' => [],
+                'unmappedWorkshopIds' => [],
+            ];
+        }
+
+        // Which mod ids each workshop item actually contains. Read per
+        // item because only the item itself knows.
+        $byWorkshopId = [];
+        $allModIds = [];
+
+        foreach ($list->workshopIds as $workshopId) {
+            $verdict = $this->modInfo->read($config, $workshopId);
+            $byWorkshopId[$workshopId] = $verdict->toArray();
+
+            foreach ($verdict->ids as $modId) {
+                $allModIds[] = $modId;
+            }
+        }
+
+        $resolution = $this->graph->resolve($list->workshopIds);
+        $missing = $resolution->succeeded()
+            ? DependencyGraph::missing($list->workshopIds, $resolution->required)
+            : [];
+
+        $order = LoadOrder::sort($list->modIds, self::modIdEdges($resolution->edges, $byWorkshopId));
+
+        // A map mod loads like any other, but its map only appears when
+        // the folder is named in `Map=` as well — so it is downloaded,
+        // loaded, and invisible. Easy to miss and hard to diagnose.
+        $unlistedMaps = [];
+
+        foreach ($byWorkshopId as $verdict) {
+            foreach ($verdict['maps'] ?? [] as $map) {
+                if (!\in_array($map, $list->maps, true) && !\in_array($map, $unlistedMaps, true)) {
+                    $unlistedMaps[] = $map;
+                }
+            }
+        }
+
+        return [
+            'state' => 'found',
+            'modIds' => $byWorkshopId,
+            'unlistedMaps' => $unlistedMaps,
+            'missingDependencies' => $missing,
+            'loadOrder' => $order->toArray(),
+            'truncated' => $resolution->truncated,
+            // In Mods= but belonging to no installed workshop item: the
+            // server will try to load something it never downloaded.
+            'orphanedModIds' => array_values(array_diff($list->modIds, $allModIds)),
+            // Downloaded but absent from Mods=, so the item is fetched
+            // and then never loaded — a silent way to wonder why a mod
+            // "does nothing".
+            'unmappedWorkshopIds' => array_values(array_filter(
+                $list->workshopIds,
+                static function (string $workshopId) use ($byWorkshopId, $list): bool {
+                    $known = $byWorkshopId[$workshopId]['ids'] ?? [];
+
+                    return $known !== [] && array_diff($known, $list->modIds) === $known;
+                },
+            )),
+        ];
+    }
+
+    /**
+     * Writes the sorted load order back to `Mods=`.
+     *
+     * Refuses on a cycle rather than writing some order anyway: an
+     * order that cannot be right is worse than the one already there,
+     * which at least the operator knows about.
+     *
+     * @return array<string, mixed>
+     */
+    public function applyLoadOrder(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return ['status' => $location->state, 'missingKeys' => []];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        $diagnosis = $this->diagnose($server);
+        $order = $diagnosis['loadOrder'];
+
+        if ($order['state'] !== 'sorted') {
+            return ['status' => 'cycle', 'missingKeys' => [], 'tangled' => $order['tangled']];
+        }
+
+        if ($order['changed'] !== true) {
+            // Saying so beats writing the same value and reporting
+            // success, which would look like it had done something.
+            return ['status' => 'alreadyOrdered', 'missingKeys' => []];
+        }
+
+        $list = $this->reader->read($config, (string) $location->path);
+        $next = new ModList($list->workshopIds, $order['order'], $list->maps);
+
+        return $this->writer->write($config, (string) $location->path, $next);
+    }
+
+    /**
+     * Adds the map folders a mod ships to `Map=`.
+     *
+     * Appended rather than inserted: the order in `Map=` decides which
+     * map wins where two overlap, and the existing first entry is
+     * usually the base map somebody chose deliberately.
+     *
+     * @return array<string, mixed>
+     */
+    public function listMaps(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return ['status' => $location->state, 'missingKeys' => []];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        $unlisted = $this->diagnose($server)['unlistedMaps'] ?? [];
+
+        if ($unlisted === []) {
+            return ['status' => 'alreadyListed', 'missingKeys' => []];
+        }
+
+        $list = $this->reader->read($config, (string) $location->path);
+        $next = $list;
+
+        foreach ($unlisted as $map) {
+            $next = $next->withMap($map);
+        }
+
+        return $this->writer->write($config, (string) $location->path, $next);
+    }
+
+    /**
+     * Turns workshop-id edges into mod-id edges, which is what `Mods=`
+     * is ordered by.
+     *
+     * @param list<array{0: string, 1: string}> $edges
+     * @param array<string, array<string, mixed>> $byWorkshopId
+     *
+     * @return list<array{0: string, 1: string}>
+     */
+    private static function modIdEdges(array $edges, array $byWorkshopId): array
+    {
+        $out = [];
+
+        foreach ($edges as [$parent, $child]) {
+            foreach ($byWorkshopId[$parent]['ids'] ?? [] as $parentModId) {
+                foreach ($byWorkshopId[$child]['ids'] ?? [] as $childModId) {
+                    $out[] = [$parentModId, $childModId];
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -128,8 +340,72 @@ final readonly class ModManager
      *
      * @return array<string, mixed>
      */
-    public function change(GameServer $server, string $workshopId, bool $add): array
+    /**
+     * What adding this mod would also pull in.
+     *
+     * Asked before the write so the operator sees it and decides,
+     * rather than finding four new entries in the list afterwards.
+     *
+     * @return array<string, mixed>
+     */
+    public function requirementsFor(GameServer $server, string $workshopId): array
     {
+        $location = $this->locate($server);
+        $installed = [];
+
+        if ($location->isUsable()) {
+            $config = $server->getFtpConfig();
+            \assert($config !== null);
+
+            try {
+                $installed = $this->reader->read($config, (string) $location->path)->workshopIds;
+            } catch (StorageException) {
+                $installed = [];
+            }
+        }
+
+        $resolution = $this->graph->resolve([$workshopId]);
+
+        if (!$resolution->succeeded()) {
+            return ['state' => $resolution->state->value, 'missing' => [], 'truncated' => false];
+        }
+
+        $missing = DependencyGraph::missing(
+            [...$installed, $workshopId],
+            $resolution->required,
+        );
+
+        $described = $missing === [] ? [] : $this->workshop->itemsById($missing)->items;
+        $byId = [];
+
+        foreach ($described as $item) {
+            $byId[$item->workshopId] = $item;
+        }
+
+        return [
+            'state' => WorkshopState::Ok->value,
+            'missing' => array_map(
+                fn (string $id): array => ModPresenter::present(
+                    $id,
+                    $byId[$id] ?? null,
+                    null,
+                    '/api/servers/'.$server->getId()->toRfc4122().'/mods',
+                ),
+                $missing,
+            ),
+            'truncated' => $resolution->truncated,
+        ];
+    }
+
+    /**
+     * @param list<string> $withRequirements also added, when the operator agreed
+     */
+    public function change(
+        GameServer $server,
+        string $workshopId,
+        bool $add,
+        array $withRequirements = [],
+    ): array {
         $location = $this->locate($server);
 
         if (!$location->isUsable()) {
@@ -140,7 +416,18 @@ final readonly class ModManager
         \assert($config !== null);
 
         $list = $this->reader->read($config, (string) $location->path);
-        $next = $add ? $list->withWorkshopId($workshopId) : $list->withoutWorkshopId($workshopId);
+
+        if ($add) {
+            $next = $list->withWorkshopId($workshopId);
+
+            // Added in the order the walk found them, which puts a
+            // requirement before whatever asked for it.
+            foreach ($withRequirements as $requirement) {
+                $next = $next->withWorkshopId($requirement);
+            }
+        } else {
+            $next = $list->withoutWorkshopId($workshopId);
+        }
 
         // Nothing to write is worth saying: a silent success would look
         // identical to a change that never happened.
@@ -170,6 +457,7 @@ final readonly class ModManager
             'maps' => [],
             'modIds' => [],
             'gameBuild' => null,
+            'buildReading' => null,
             'items' => [],
         ];
     }
