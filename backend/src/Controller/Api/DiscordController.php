@@ -43,6 +43,7 @@ final class DiscordController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(APP_PUBLIC_URL)%')]
         private readonly string $publicUrl,
+        private readonly \App\Server\Bridge\BridgeInstaller $bridge,
     ) {
     }
 
@@ -295,7 +296,10 @@ final class DiscordController extends AbstractController
             'reason' => 'zur Probe',
             'detail' => 'Testnachricht',
             'action' => 'test',
-            'input.version' => '0.21.0',
+            // Read rather than written out: a literal here was still
+            // showing 0.21.0 after the bridge moved on.
+            'input.version' => $this->bridge->version(),
+            'input.mods' => 'Fitted Sheets, Common Sense',
         ]);
 
         try {

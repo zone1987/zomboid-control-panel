@@ -14,10 +14,11 @@ use Psr\Cache\InvalidArgumentException;
  * Drops what the panel read from a server, so the next request asks
  * the server again.
  *
- * Three entries in the same pool are deliberately left alone:
- * `discord.chat.*` and `events.bridge.*` are positions in a stream, and
- * `bridge.sequence.*` is a command counter. Dropping those loses
- * messages or costs a resync rather than re-reading a fact.
+ * Four entries in the same pool are deliberately left alone.
+ * `discord.chat.*`, `events.bridge.*` and `events.mods.*` are positions
+ * rather than caches, and `bridge.sequence.*` is a command counter.
+ * Dropping those loses messages or costs a resync rather than
+ * re-reading a fact.
  */
 final readonly class ServerCacheCleaner
 {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Scheduler;
 
 use App\Message\CheckBridgeState;
+use App\Message\CheckModUpdates;
 use App\Message\DeployNewRelease;
 use App\Message\LiftExpiredBans;
 use App\Message\MirrorChatToDiscord;
@@ -43,6 +44,12 @@ final class MainSchedule implements ScheduleProviderInterface
             // elapsed, so changing it needs no restart. Does nothing at
             // all unless they switched deployment on.
             RecurringMessage::every('5 minutes', new DeployNewRelease()),
+        )->add(
+            // Steam checks for workshop updates on its own schedule, so
+            // polling faster than this would only re-read the same file.
+            // Costs one FTP read per server and nothing else, and stays
+            // silent unless something actually changed.
+            RecurringMessage::every('30 minutes', new CheckModUpdates()),
         );
     }
 }
