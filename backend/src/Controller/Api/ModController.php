@@ -293,10 +293,47 @@ final class ModController extends AbstractController
         return new JsonResponse($outcome, $status);
     }
 
+    /**
+     * What adding this mod would also pull in.
+     *
+     * Asked before the write, so the operator sees it and decides
+     * rather than finding new entries in their list afterwards.
+     */
+    #[Route(
+        '/{workshopId}/requirements',
+        name: 'api_mods_requirements',
+        methods: ['GET'],
+        requirements: ['workshopId' => '\d+'],
+    )]
+    public function requirements(string $id, string $workshopId): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            return new JsonResponse($this->mods->requirementsFor($server, $workshopId));
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+    }
+
     #[Route('/installed', name: 'api_mods_add', methods: ['POST'])]
     public function add(string $id, Request $request): JsonResponse
     {
-        return $this->change($id, (string) ($request->toArray()['workshopId'] ?? ''), true);
+        $payload = $request->toArray();
+        $requirements = array_values(array_filter(
+            \is_array($payload['requirements'] ?? null) ? $payload['requirements'] : [],
+            static fn (mixed $value): bool => \is_string($value)
+                && preg_match('/^\d{1,20}$/', $value) === 1,
+        ));
+
+        return $this->change($id, (string) ($payload['workshopId'] ?? ''), true, $requirements);
     }
 
     #[Route(
@@ -310,8 +347,15 @@ final class ModController extends AbstractController
         return $this->change($id, $workshopId, false);
     }
 
-    private function change(string $id, string $workshopId, bool $add): JsonResponse
-    {
+    /**
+     * @param list<string> $requirements
+     */
+    private function change(
+        string $id,
+        string $workshopId,
+        bool $add,
+        array $requirements = [],
+    ): JsonResponse {
         $server = $this->servers->find($id);
 
         if (!$server instanceof GameServer) {
@@ -326,7 +370,7 @@ final class ModController extends AbstractController
         }
 
         try {
-            $outcome = $this->mods->change($server, $workshopId, $add);
+            $outcome = $this->mods->change($server, $workshopId, $add, $requirements);
         } catch (StorageException) {
             return new JsonResponse(
                 ['status' => 'failed', 'error' => 'mods.transferFailed'],

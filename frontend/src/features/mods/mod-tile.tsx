@@ -35,7 +35,10 @@ export function ModTile({
   return (
     <div
       className={cn(
-        'flex gap-3 rounded-md border p-3 transition-colors',
+        // The whole tile is the target, so the border says so rather
+        // than an underline, which reads as a link inside a card that
+        // is itself a link.
+        'pz-mod-tile flex gap-3 rounded-md border p-3',
         installed ? 'border-primary/40 bg-primary/5' : 'hover:bg-accent/40',
       )}
     >
@@ -55,7 +58,7 @@ export function ModTile({
           <button
             type="button"
             onClick={onOpen}
-            className="min-w-0 flex-1 text-left text-sm font-medium hover:underline"
+            className="min-w-0 flex-1 text-left text-sm font-medium"
           >
             <span className="line-clamp-2">{displayName(mod)}</span>
           </button>

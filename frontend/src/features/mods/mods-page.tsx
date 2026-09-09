@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { ChevronDown, KeyRound, Search, X } from 'lucide-react'
+import { ChevronDown, KeyRound, Loader2, Search, X } from 'lucide-react'
 
+import { useDebounced } from '@/hooks/use-debounced'
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -16,17 +17,21 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ModTile } from './mod-tile'
 import { DiagnosisCard } from './diagnosis-card'
+import { RequirementsDialog } from './requirements-dialog'
 import {
   addMod,
   applyLoadOrder,
   diagnoseMods,
   listMaps,
+  modDetail,
+  modRequirements,
   categoriesOf,
   listInstalled,
   matchesSearch,
   readWorkshopId,
   removeMod,
   searchMods,
+  type Mod,
   type SortOrder,
 } from './mods'
 
@@ -42,12 +47,18 @@ export function ModsPage() {
   // find something, and an empty installed list is a dead end.
   const [tab, setTab] = useState('discover')
   const [needle, setNeedle] = useState('')
+  // What was typed, and what the query actually asks for: the second
+  // follows the first once typing pauses, so a word costs one request
+  // rather than one per keystroke.
   const [term, setTerm] = useState('')
+  const settledTerm = useDebounced(term)
   const [sort, setSort] = useState<SortOrder>('trend')
   const [tags, setTags] = useState<string[]>([])
   // Held against the mod it belongs to, so a slow answer cannot leave
   // the spinner on a different card (rule 10g3).
   const [pending, setPending] = useState<string | null>(null)
+  // What a click is waiting on: the mod, plus what it would pull in.
+  const [asking, setAsking] = useState<{ mod: Mod; missing: Mod[]; truncated: boolean } | null>(null)
 
   const installed = useQuery({
     queryKey: ['mods', id, 'installed'],
@@ -55,8 +66,8 @@ export function ModsPage() {
   })
 
   const results = useQuery({
-    queryKey: ['mods', id, 'search', term, sort, tags],
-    queryFn: () => searchMods(id, { term, sort, tags }),
+    queryKey: ['mods', id, 'search', settledTerm, sort, tags],
+    queryFn: () => searchMods(id, { term: settledTerm, sort, tags }),
     enabled: tab === 'discover',
   })
 
@@ -103,8 +114,15 @@ export function ModsPage() {
   })
 
   const change = useMutation({
-    mutationFn: ({ workshopId, add }: { workshopId: string; add: boolean }) =>
-      add ? addMod(id, workshopId) : removeMod(id, workshopId),
+    mutationFn: ({
+      workshopId,
+      add,
+      requirements = [],
+    }: {
+      workshopId: string
+      add: boolean
+      requirements?: string[]
+    }) => (add ? addMod(id, workshopId, requirements) : removeMod(id, workshopId)),
     onSuccess: async (result, variables) => {
       if (result.status === 'keysMissing') {
         toast.error(t('mods.keysMissing', { keys: result.missingKeys.join(', ') }))
@@ -128,7 +146,57 @@ export function ModsPage() {
     },
     // Cleared after the refetch, not before: clearing on success alone
     // drops the card to its stale state for one render.
-    onSettled: () => setPending(null),
+    onSettled: () => {
+      setPending(null)
+      setAsking(null)
+    },
+  })
+
+  /**
+   * Adding by id takes the same route, resolving the mod first so the
+   * dialog can name it. Without this, anything pasted into the search
+   * box skipped the requirement check entirely.
+   */
+  const addById = useMutation({
+    mutationFn: async (workshopId: string) => {
+      const detail = await modDetail(id, workshopId)
+
+      return { workshopId, mod: detail.item }
+    },
+    onSuccess: ({ workshopId, mod }) => {
+      setPending(workshopId)
+
+      if (mod === null) {
+        change.mutate({ workshopId, add: true })
+
+        return
+      }
+
+      addWithCheck.mutate(mod)
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  /**
+   * Adding asks Steam what else the mod needs first.
+   *
+   * A mod without its requirements loads and does nothing, and finding
+   * that out after a restart is the expensive way to learn it.
+   */
+  const addWithCheck = useMutation({
+    mutationFn: (mod: Mod) => modRequirements(id, mod.workshopId),
+    onSuccess: (answer, mod) => {
+      if (answer.missing.length === 0) {
+        change.mutate({ workshopId: mod.workshopId, add: true })
+
+        return
+      }
+
+      setAsking({ mod, missing: answer.missing, truncated: answer.truncated })
+    },
+    // A lookup that failed must not block the install: the operator
+    // asked for this mod, and its requirements are advice.
+    onError: (_error, mod) => change.mutate({ workshopId: mod.workshopId, add: true }),
   })
 
   // Either tab can carry it; whichever loaded first is the same answer.
@@ -136,9 +204,16 @@ export function ModsPage() {
 
   const installedIds = new Set((installed.data?.items ?? []).map((mod) => mod.workshopId))
 
-  const toggle = (workshopId: string, add: boolean) => {
-    setPending(workshopId)
-    change.mutate({ workshopId, add })
+  const toggle = (mod: Mod, add: boolean) => {
+    setPending(mod.workshopId)
+
+    if (add) {
+      addWithCheck.mutate(mod)
+
+      return
+    }
+
+    change.mutate({ workshopId: mod.workshopId, add: false })
   }
 
   const openDetail = (workshopId: string) => {
@@ -231,9 +306,9 @@ export function ModsPage() {
                       key={mod.workshopId}
                       mod={mod}
                       installed
-                      pending={pending === mod.workshopId}
+                      pending={pending === mod.workshopId && asking === null}
                       onOpen={() => openDetail(mod.workshopId)}
-                      onToggle={() => toggle(mod.workshopId, false)}
+                      onToggle={() => toggle(mod, false)}
                     />
                   ))}
                 </div>
@@ -252,7 +327,8 @@ export function ModsPage() {
               onTerm={setTerm}
               sort={sort}
               onSort={setSort}
-              onAddById={(workshopId) => toggle(workshopId, true)}
+              onAddById={(workshopId) => addById.mutate(workshopId)}
+            searching={results.isFetching || term !== settledTerm}
             />
 
             {/* `minmax(0,1fr)` so a long title cannot widen the page
@@ -296,11 +372,9 @@ export function ModsPage() {
                     key={mod.workshopId}
                     mod={mod}
                     installed={installedIds.has(mod.workshopId)}
-                    pending={pending === mod.workshopId}
+                    pending={pending === mod.workshopId && asking === null}
                     onOpen={() => openDetail(mod.workshopId)}
-                    onToggle={() =>
-                      toggle(mod.workshopId, !installedIds.has(mod.workshopId))
-                    }
+                    onToggle={() => toggle(mod, !installedIds.has(mod.workshopId))}
                   />
                 ))}
               </div>
@@ -311,6 +385,28 @@ export function ModsPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <RequirementsDialog
+        mod={asking?.mod ?? null}
+        missing={asking?.missing ?? []}
+        truncated={asking?.truncated ?? false}
+        pending={change.isPending}
+        onConfirm={(withRequirements) => {
+          if (asking === null) {
+            return
+          }
+
+          change.mutate({
+            workshopId: asking.mod.workshopId,
+            add: true,
+            requirements: withRequirements ? asking.missing.map((m) => m.workshopId) : [],
+          })
+        }}
+        onCancel={() => {
+          setAsking(null)
+          setPending(null)
+        }}
+      />
     </div>
   )
 }
@@ -431,16 +527,24 @@ function SearchField({
   value,
   onChange,
   placeholder,
+  busy,
 }: {
   value: string
   onChange: (value: string) => void
   placeholder: string
+  busy?: boolean
 }) {
   const { t } = useTranslation()
 
   return (
     <div className="relative h-9 min-w-56 flex-1">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      {/* The spinner replaces the magnifier rather than sitting beside
+          it: the field is the thing that is working. */}
+      {busy === true ? (
+        <Loader2 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+      ) : (
+        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      )}
 
       <Input
         value={value}
@@ -471,26 +575,21 @@ function DiscoverControls({
   sort,
   onSort,
   onAddById,
+  searching,
 }: {
   term: string
   onTerm: (value: string) => void
   sort: SortOrder
   onSort: (value: SortOrder) => void
   onAddById: (workshopId: string) => void
+  searching: boolean
 }) {
   const { t } = useTranslation()
-  // Held against the term it was typed for rather than copied from it
-  // by an effect, which would overwrite what somebody is typing on
-  // every refetch (rule 10g2).
-  const [edit, setEdit] = useState<{ from: string; value: string } | null>(null)
 
-  const draft = edit !== null && edit.from === term ? edit.value : term
-
-  // One field for both jobs: a second box for "paste an id here" was a
-  // control the operator had to choose between before typing. What was
-  // pasted decides instead — an id or a workshop link adds, anything
-  // else searches.
-  const pastedId = readWorkshopId(draft)
+  // One field for both jobs: what was pasted decides. An id or a
+  // workshop link offers to add it, anything else searches — and
+  // searching needs no button, since it happens as you type.
+  const pastedId = readWorkshopId(term)
 
   return (
     <div className="space-y-3">
@@ -501,27 +600,21 @@ function DiscoverControls({
 
           if (pastedId !== null) {
             onAddById(pastedId)
-            setEdit({ from: term, value: '' })
-
-            return
+            onTerm('')
           }
-
-          onTerm(draft)
         }}
       >
         <SearchField
-          value={draft}
-          onChange={(value) => setEdit({ from: term, value })}
+          value={term}
+          onChange={onTerm}
           placeholder={t('mods.searchOrId')}
+          busy={searching}
         />
 
-        <Button type="submit">
-          {pastedId === null ? t('mods.search') : t('mods.addById')}
-        </Button>
+        {/* Only for the one job a keystroke cannot do on its own. */}
+        {pastedId !== null && <Button type="submit">{t('mods.addById')}</Button>}
       </form>
 
-      {/* Said before the click rather than after it, so an operator who
-          pasted a link knows what the button will do. */}
       {pastedId !== null && (
         <p className="text-xs text-muted-foreground">
           {t('mods.idRecognised', { id: pastedId })}

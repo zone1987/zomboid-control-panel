@@ -719,6 +719,33 @@
   }
 }
 
+/* A mod tile: the whole card is the target, so hovering warms its
+   border rather than underlining the title, which read as a link
+   inside something that is already one.
+
+   The border travels rather than switching, and a faint glow arrives
+   with it -- 200ms, slower than a tint and quicker than a transition
+   somebody waits through. Silenced by the global reduced-motion block
+   like everything else. */
+.pz-mod-tile {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+
+.pz-mod-tile:hover {
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+/* An installed tile already carries the accent, so hovering deepens it
+   instead of introducing it -- otherwise the two states look alike. */
+.pz-mod-tile.border-primary\/40:hover {
+  border-color: color-mix(in oklab, var(--primary) 80%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
 /* The hatch: 2px lines at 8% of a percent of the foreground, which is
    below the threshold of noticing and above the threshold of banding. */
 .pz-page-field::after {

@@ -340,8 +340,72 @@ final readonly class ModManager
      *
      * @return array<string, mixed>
      */
-    public function change(GameServer $server, string $workshopId, bool $add): array
+    /**
+     * What adding this mod would also pull in.
+     *
+     * Asked before the write so the operator sees it and decides,
+     * rather than finding four new entries in the list afterwards.
+     *
+     * @return array<string, mixed>
+     */
+    public function requirementsFor(GameServer $server, string $workshopId): array
     {
+        $location = $this->locate($server);
+        $installed = [];
+
+        if ($location->isUsable()) {
+            $config = $server->getFtpConfig();
+            \assert($config !== null);
+
+            try {
+                $installed = $this->reader->read($config, (string) $location->path)->workshopIds;
+            } catch (StorageException) {
+                $installed = [];
+            }
+        }
+
+        $resolution = $this->graph->resolve([$workshopId]);
+
+        if (!$resolution->succeeded()) {
+            return ['state' => $resolution->state->value, 'missing' => [], 'truncated' => false];
+        }
+
+        $missing = DependencyGraph::missing(
+            [...$installed, $workshopId],
+            $resolution->required,
+        );
+
+        $described = $missing === [] ? [] : $this->workshop->itemsById($missing)->items;
+        $byId = [];
+
+        foreach ($described as $item) {
+            $byId[$item->workshopId] = $item;
+        }
+
+        return [
+            'state' => WorkshopState::Ok->value,
+            'missing' => array_map(
+                fn (string $id): array => ModPresenter::present(
+                    $id,
+                    $byId[$id] ?? null,
+                    null,
+                    '/api/servers/'.$server->getId()->toRfc4122().'/mods',
+                ),
+                $missing,
+            ),
+            'truncated' => $resolution->truncated,
+        ];
+    }
+
+    /**
+     * @param list<string> $withRequirements also added, when the operator agreed
+     */
+    public function change(
+        GameServer $server,
+        string $workshopId,
+        bool $add,
+        array $withRequirements = [],
+    ): array {
         $location = $this->locate($server);
 
         if (!$location->isUsable()) {
@@ -352,7 +416,18 @@ final readonly class ModManager
         \assert($config !== null);
 
         $list = $this->reader->read($config, (string) $location->path);
-        $next = $add ? $list->withWorkshopId($workshopId) : $list->withoutWorkshopId($workshopId);
+
+        if ($add) {
+            $next = $list->withWorkshopId($workshopId);
+
+            // Added in the order the walk found them, which puts a
+            // requirement before whatever asked for it.
+            foreach ($withRequirements as $requirement) {
+                $next = $next->withWorkshopId($requirement);
+            }
+        } else {
+            $next = $list->withoutWorkshopId($workshopId);
+        }
 
         // Nothing to write is worth saying: a silent success would look
         // identical to a change that never happened.

@@ -2149,7 +2149,6 @@
     "installedTab": "Installiert ({{count}})",
     "discoverTab": "Entdecken",
     "filterInstalled": "Installierte Mods filtern",
-    "search": "Suchen",
     "allCategories": "Alle",
     "addById": "Hinzufügen",
     "add": "Zum Server hinzufügen",
@@ -2238,6 +2237,12 @@
     "alreadyListed": "Alle installierten Karten stehen bereits drin; es wurde nichts geändert.",
     "repeats": "Steht weiter oben schon — diese Mods brauchen sich gegenseitig",
     "unresolvedDependency": "Der Workshop konnte diesen Mod nicht beschreiben",
-    "notInstalledYet": "Nicht installiert"
+    "notInstalledYet": "Nicht installiert",
+    "requirementsTitle": "{{name}} braucht weitere Mods",
+    "requirementsBody_one": "Dieser Mod setzt {{count}} weiteren voraus, der nicht installiert ist. Ohne ihn wird er geladen und tut nichts.",
+    "requirementsBody_other": "Dieser Mod setzt {{count}} weitere voraus, die nicht installiert sind. Ohne sie wird er geladen und tut nichts.",
+    "addWithRequirements_one": "Beide hinzufügen",
+    "addWithRequirements_other": "Alle {{count}} und diesen hinzufügen",
+    "addAlone": "Nur diesen hinzufügen"
   }
 }

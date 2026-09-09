@@ -2195,7 +2195,6 @@
     "installedTab": "Installed ({{count}})",
     "discoverTab": "Discover",
     "filterInstalled": "Filter the installed mods",
-    "search": "Search",
     "allCategories": "All",
     "addById": "Add",
     "add": "Add to the server",
@@ -2292,6 +2291,16 @@
     "alreadyListed": "Every installed map is already listed; nothing was changed.",
     "repeats": "Already listed further up — these mods require each other",
     "unresolvedDependency": "The workshop could not describe this one",
-    "notInstalledYet": "Not installed"
+    "notInstalledYet": "Not installed",
+    "requirementsTitle": "{{name}} needs other mods",
+    "requirementsBody_one": "It requires {{count}} mod that is not installed. Without it, it will load and do nothing.",
+    "requirementsBody_few": "It requires {{count}} mods that are not installed. Without them, it will load and do nothing.",
+    "requirementsBody_many": "It requires {{count}} mods that are not installed. Without them, it will load and do nothing.",
+    "requirementsBody_other": "It requires {{count}} mods that are not installed. Without them, it will load and do nothing.",
+    "addWithRequirements_one": "Add both",
+    "addWithRequirements_few": "Add all {{count}} plus this one",
+    "addWithRequirements_many": "Add all {{count}} plus this one",
+    "addWithRequirements_other": "Add all {{count}} plus this one",
+    "addAlone": "Add this one only"
   }
 }

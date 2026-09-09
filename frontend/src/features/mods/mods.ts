@@ -237,11 +237,28 @@ export function applyLoadOrder(serverId: string): Promise<ModChange & { tangled?
   })
 }
 
-export function addMod(serverId: string, workshopId: string): Promise<ModChange> {
+export type ModRequirements = {
+  state: WorkshopState
+  /** Required, not installed, and not the mod being added. */
+  missing: Mod[]
+  truncated: boolean
+}
+
+export function modRequirements(serverId: string, workshopId: string): Promise<ModRequirements> {
+  return apiFetch<ModRequirements>(
+    `/servers/${serverId}/mods/${encodeURIComponent(workshopId)}/requirements`,
+  )
+}
+
+export function addMod(
+  serverId: string,
+  workshopId: string,
+  requirements: string[] = [],
+): Promise<ModChange> {
   // The object, not a string: apiFetch stringifies it itself (rule 10f2).
   return apiFetch<ModChange>(`/servers/${serverId}/mods/installed`, {
     method: 'POST',
-    body: { workshopId },
+    body: { workshopId, requirements },
   })
 }
 
