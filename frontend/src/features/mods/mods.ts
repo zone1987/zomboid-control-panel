@@ -174,6 +174,23 @@ export type ModDiagnosis = {
   unmappedWorkshopIds: string[]
   /** Shipped by an installed mod but absent from Map=, so invisible. */
   unlistedMaps: string[]
+  /** Steam holds a newer copy than the one on disk. */
+  updates: string[]
+  /** Downloaded but no longer asked for, so costing space for nothing. */
+  leftOver: string[]
+  manifest: WorkshopManifest | null
+}
+
+export type WorkshopManifest = {
+  state: 'found' | 'absent' | 'unreachable' | 'noTransfer'
+  sizeOnDisk: number
+  items: Record<string, {
+    size: number
+    timeUpdated: number
+    latestTimeUpdated: number
+    /** Null when Steam has not checked — not knowing is not "current". */
+    hasUpdate: boolean | null
+  }>
 }
 
 export function diagnoseMods(serverId: string): Promise<ModDiagnosis> {
@@ -191,6 +208,8 @@ export function hasFindings(diagnosis: ModDiagnosis | undefined): boolean {
     || diagnosis.orphanedModIds.length > 0
     || diagnosis.unmappedWorkshopIds.length > 0
     || diagnosis.unlistedMaps.length > 0
+    || diagnosis.updates.length > 0
+    || diagnosis.leftOver.length > 0
     || diagnosis.loadOrder.state === 'cycle'
     || diagnosis.loadOrder.changed
   )

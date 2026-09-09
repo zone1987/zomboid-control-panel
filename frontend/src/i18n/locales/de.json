@@ -2243,6 +2243,12 @@
     "requirementsBody_other": "Dieser Mod setzt {{count}} weitere voraus, die nicht installiert sind. Ohne sie wird er geladen und tut nichts.",
     "addWithRequirements_one": "Beide hinzufügen",
     "addWithRequirements_other": "Alle {{count}} und diesen hinzufügen",
-    "addAlone": "Nur diesen hinzufügen"
+    "addAlone": "Nur diesen hinzufügen",
+    "updatesTitle_one": "Für {{count}} Mod liegt ein Update bereit",
+    "updatesTitle_other": "Für {{count}} Mods liegen Updates bereit",
+    "updatesBody": "Steam hat eine neuere Fassung als die auf der Platte. Der Server holt sie beim nächsten Start; hier ist nichts zu tun.",
+    "leftOverTitle_one": "{{count}} Mod liegt noch auf der Platte, wird aber nicht mehr genutzt",
+    "leftOverTitle_other": "{{count}} Mods liegen noch auf der Platte, werden aber nicht mehr genutzt",
+    "leftOverBody": "Steam löscht ein Item nicht, wenn es aus der Liste fällt — diese belegen {{size}} ohne Nutzen. Schaden richten sie keinen an."
   }
 }

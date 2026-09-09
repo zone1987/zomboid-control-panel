@@ -26,6 +26,7 @@ final readonly class ModManager
         private ModInfoReader $modInfo,
         private DependencyGraph $graph,
         private BuildSource $builds,
+        private ManifestReader $manifests,
     ) {
     }
 
@@ -148,6 +149,9 @@ final readonly class ModManager
                 'state' => $location->state,
                 'modIds' => [],
                 'unlistedMaps' => [],
+                'updates' => [],
+                'leftOver' => [],
+                'manifest' => null,
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -166,6 +170,9 @@ final readonly class ModManager
                 'state' => 'unreachable',
                 'modIds' => [],
                 'unlistedMaps' => [],
+                'updates' => [],
+                'leftOver' => [],
+                'manifest' => null,
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -208,10 +215,29 @@ final readonly class ModManager
             }
         }
 
+        // Steam's own record: what is downloaded, and whether it has a
+        // newer copy. Measured rather than remembered.
+        $manifest = $this->manifests->read($config);
+
+        $updates = [];
+
+        foreach ($list->workshopIds as $workshopId) {
+            if ($manifest->hasUpdate($workshopId) === true) {
+                $updates[] = $workshopId;
+            }
+        }
+
+        // Downloaded but no longer asked for: Steam does not delete an
+        // item when it leaves the list, so it sits there costing space.
+        $leftOver = array_values(array_diff($manifest->downloadedIds(), $list->workshopIds));
+
         return [
             'state' => 'found',
             'modIds' => $byWorkshopId,
             'unlistedMaps' => $unlistedMaps,
+            'updates' => $updates,
+            'leftOver' => $leftOver,
+            'manifest' => $manifest->toArray(),
             'missingDependencies' => $missing,
             'loadOrder' => $order->toArray(),
             'truncated' => $resolution->truncated,

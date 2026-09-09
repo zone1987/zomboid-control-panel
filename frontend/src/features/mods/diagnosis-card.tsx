@@ -1,11 +1,21 @@
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ArrowDownUp, Check, HelpCircle, Link2Off, Map, PackageX } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowDownUp,
+  ArrowUpCircle,
+  Check,
+  HardDrive,
+  HelpCircle,
+  Link2Off,
+  Map,
+  PackageX,
+} from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { hasFindings, type Mod, type ModDiagnosis } from './mods'
+import { formatSize, hasFindings, type Mod, type ModDiagnosis } from './mods'
 
 /**
  * What is wrong with the mod list, if anything.
@@ -60,6 +70,26 @@ export function DiagnosisCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* An update is news rather than a fault, so it is not dressed
+            as a warning — and there is nothing to press: the server
+            fetches it at its next start by itself. */}
+        {diagnosis.updates.length > 0 && (
+          <Alert>
+            <ArrowUpCircle className="size-4" />
+            <AlertTitle>{t('mods.updatesTitle', { count: diagnosis.updates.length })}</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>{t('mods.updatesBody')}</p>
+              <div className="flex flex-wrap gap-1">
+                {diagnosis.updates.map((workshopId) => (
+                  <Badge key={workshopId} variant="outline" className="max-w-full text-xs">
+                    <span className="truncate">{titleOf(workshopId)}</span>
+                  </Badge>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {diagnosis.loadOrder.state === 'cycle' && (
           <Alert variant="destructive">
             <Link2Off className="size-4" />
@@ -155,6 +185,35 @@ export function DiagnosisCard({
             body={t('mods.orphanedBody')}
             entries={diagnosis.orphanedModIds}
           />
+        )}
+
+        {/* Not a fault either: Steam simply never deletes what leaves
+            the list. Worth saying because it costs disk quietly. */}
+        {diagnosis.leftOver.length > 0 && (
+          <Alert>
+            <HardDrive className="size-4" />
+            <AlertTitle>{t('mods.leftOverTitle', { count: diagnosis.leftOver.length })}</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                {t('mods.leftOverBody', {
+                  size: formatSize(
+                    diagnosis.leftOver.reduce(
+                      (total, workshopId) =>
+                        total + (diagnosis.manifest?.items[workshopId]?.size ?? 0),
+                      0,
+                    ),
+                  ) ?? '',
+                })}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {diagnosis.leftOver.map((workshopId) => (
+                  <Badge key={workshopId} variant="outline" className="font-mono text-xs">
+                    {workshopId}
+                  </Badge>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* An incomplete walk presented as complete would say the list is
