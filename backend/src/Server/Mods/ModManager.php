@@ -26,6 +26,7 @@ final readonly class ModManager
         private ModInfoReader $modInfo,
         private DependencyGraph $graph,
         private BuildSource $builds,
+        private ManifestReader $manifests,
     ) {
     }
 
@@ -148,6 +149,9 @@ final readonly class ModManager
                 'state' => $location->state,
                 'modIds' => [],
                 'unlistedMaps' => [],
+                'updates' => [],
+                'leftOver' => [],
+                'manifest' => null,
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -166,6 +170,9 @@ final readonly class ModManager
                 'state' => 'unreachable',
                 'modIds' => [],
                 'unlistedMaps' => [],
+                'updates' => [],
+                'leftOver' => [],
+                'manifest' => null,
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -208,10 +215,29 @@ final readonly class ModManager
             }
         }
 
+        // Steam's own record: what is downloaded, and whether it has a
+        // newer copy. Measured rather than remembered.
+        $manifest = $this->manifests->read($config);
+
+        $updates = [];
+
+        foreach ($list->workshopIds as $workshopId) {
+            if ($manifest->hasUpdate($workshopId) === true) {
+                $updates[] = $workshopId;
+            }
+        }
+
+        // Downloaded but no longer asked for: Steam does not delete an
+        // item when it leaves the list, so it sits there costing space.
+        $leftOver = array_values(array_diff($manifest->downloadedIds(), $list->workshopIds));
+
         return [
             'state' => 'found',
             'modIds' => $byWorkshopId,
             'unlistedMaps' => $unlistedMaps,
+            'updates' => $updates,
+            'leftOver' => $leftOver,
+            'manifest' => $manifest->toArray(),
             'missingDependencies' => $missing,
             'loadOrder' => $order->toArray(),
             'truncated' => $resolution->truncated,
@@ -230,6 +256,42 @@ final readonly class ModManager
                 },
             )),
         ];
+    }
+
+    /**
+     * Tells Discord what changed, naming the mods rather than their ids.
+     *
+     * One message for the whole change, not one per mod: five added
+     * together are one decision, and five lines would bury it.
+     *
+     * @param list<string> $extra
+     */
+    private function announce(GameServer $server, string $workshopId, array $extra, bool $add): void
+    {
+        $ids = [$workshopId, ...$extra];
+        $described = [];
+
+        foreach ($this->workshop->itemsById($ids)->items as $item) {
+            $described[$item->workshopId] = $item;
+        }
+
+        $labels = array_map(
+            static fn (string $id): string => $described[$id]?->title ?? $id,
+            $ids,
+        );
+
+        $this->events->collect(PanelEvent::ofServer(
+            $add ? 'mods.added' : 'mods.removed',
+            $server,
+            [
+                'admin' => $this->security->getUser()?->getUserIdentifier() ?? '—',
+                'input.mods' => implode(', ', $labels),
+            ],
+            // One card per mod named in the text, requirements
+            // included: naming two and showing one would say something
+            // false about the second.
+            ModEmbed::forAll($ids, $described),
+        ));
     }
 
     /**
@@ -435,7 +497,16 @@ final readonly class ModManager
             return ['status' => $add ? 'alreadyInstalled' : 'notInstalled', 'missingKeys' => []];
         }
 
-        return $this->writer->write($config, (string) $location->path, $next);
+        $outcome = $this->writer->write($config, (string) $location->path, $next);
+
+        // Announced only once the file was written *and* read back:
+        // a message for a change that did not land would be worse
+        // than no message at all.
+        if ($outcome['status'] === 'written') {
+            $this->announce($server, $workshopId, $withRequirements, $add);
+        }
+
+        return $outcome;
     }
 
     /**

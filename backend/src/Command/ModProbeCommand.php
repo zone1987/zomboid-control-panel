@@ -32,6 +32,7 @@ final class ModProbeCommand extends Command
         private readonly \App\Server\Mods\CoverStore $covers,
         private readonly \App\Server\Mods\ModInfoReader $modInfo,
         private readonly \App\Server\Mods\ModManager $mods,
+        private readonly \App\Server\Mods\ManifestReader $manifests,
     ) {
         parent::__construct();
     }
@@ -141,6 +142,21 @@ final class ModProbeCommand extends Command
             ));
         }
 
+        $io->section('Steam manifest');
+        $manifest = $this->manifests->read($ftp);
+        $io->writeln(sprintf('state: %s, on disk: %.1f MB', $manifest->state, $manifest->sizeOnDisk / 1048576));
+
+        foreach ($manifest->toArray()['items'] as $itemId => $item) {
+            $io->writeln(sprintf(
+                '  %-12s %7.1f MB  installed=%s  latest=%s  update=%s',
+                $itemId,
+                $item['size'] / 1048576,
+                date('Y-m-d', $item['timeUpdated']),
+                $item['latestTimeUpdated'] > 0 ? date('Y-m-d', $item['latestTimeUpdated']) : '-',
+                $item['hasUpdate'] === null ? 'unknown' : ($item['hasUpdate'] ? 'YES' : 'no'),
+            ));
+        }
+
         $io->section('Game version from the bridge');
         $reading = $this->mods->build($server);
         $io->writeln(sprintf('build:       %s', $reading->build->number ?? '(unknown)'));
@@ -156,6 +172,8 @@ final class ModProbeCommand extends Command
         $io->writeln(sprintf('missing dependencies: [%s]', implode(', ', $d['missingDependencies'])));
         $io->writeln(sprintf('orphaned mod ids:     [%s]', implode(', ', $d['orphanedModIds'])));
         $io->writeln(sprintf('unmapped workshop:    [%s]', implode(', ', $d['unmappedWorkshopIds'])));
+        $io->writeln(sprintf('updates available:    [%s]', implode(', ', $d['updates'])));
+        $io->writeln(sprintf('left over on disk:    [%s]', implode(', ', $d['leftOver'])));
         $io->writeln(sprintf('load order:           %s changed=%s [%s]',
             $d['loadOrder']['state'],
             $d['loadOrder']['changed'] ? 'yes' : 'no',

@@ -629,7 +629,10 @@
       "moderation.unban": "Ban revocato",
       "panel.updated": "Pannello aggiornato",
       "server.reachable": "Server di nuovo raggiungibile",
-      "server.unreachable": "Server non raggiungibile"
+      "server.unreachable": "Server non raggiungibile",
+      "mods.added": "Mod aggiunta",
+      "mods.removed": "Mod rimossa",
+      "mods.update": "Aggiornamento mod disponibile"
     },
     "events": {
       "activeCount_one": "Una notifica è attiva",
@@ -2243,6 +2246,12 @@
     "requirementsBody_other": "It requires {{count}} mods that are not installed. Without them, it will load and do nothing.",
     "addWithRequirements_one": "Add both",
     "addWithRequirements_other": "Add all {{count}} plus this one",
-    "addAlone": "Add this one only"
+    "addAlone": "Add this one only",
+    "updatesTitle_one": "{{count}} mod has an update waiting",
+    "updatesTitle_other": "{{count}} mods have updates waiting",
+    "updatesBody": "Steam holds a newer copy than the one on disk. The server fetches it at its next start; nothing needs doing here.",
+    "leftOverTitle_one": "{{count}} mod is still on disk but no longer used",
+    "leftOverTitle_other": "{{count}} mods are still on disk but no longer used",
+    "leftOverBody": "Steam does not delete an item when it leaves the list, so these take up {{size}} for nothing. They do no harm."
   }
 }

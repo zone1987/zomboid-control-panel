@@ -18,6 +18,8 @@ use App\Server\Discord\CommandCatalogue;
 use App\Server\Discord\DiscordClientInterface;
 use App\Server\Discord\DiscordException;
 use App\Server\Discord\DiscordMessage;
+use App\Server\Mods\ModEmbed;
+use App\Server\Mods\WorkshopSource;
 use App\Server\Discord\MessageTemplate;
 use App\Server\Discord\NotifiableEvents;
 use App\Settings\SettingsProvider;
@@ -34,6 +36,17 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(Permission::ManageDiscord->value)]
 final class DiscordController extends AbstractController
 {
+    /**
+     * Two real, long-standing workshop items for the test message.
+     *
+     * Two rather than one, because an add usually carries a
+     * requirement with it and the message has to look like the real
+     * thing — including a card for each.
+     *
+     * @var list<string>
+     */
+    private const SAMPLE_MODS = ['2875848298', '3770149036'];
+
     public function __construct(
         private readonly GameServerRepository $servers,
         private readonly DiscordNotificationRepository $notifications,
@@ -43,6 +56,8 @@ final class DiscordController extends AbstractController
         private readonly EntityManagerInterface $entityManager,
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(APP_PUBLIC_URL)%')]
         private readonly string $publicUrl,
+        private readonly \App\Server\Bridge\BridgeInstaller $bridge,
+        private readonly WorkshopSource $workshop,
     ) {
     }
 
@@ -206,7 +221,7 @@ final class DiscordController extends AbstractController
     }
 
     /** One event's switch, channel and wording. */
-    #[Route('/events/{type}', name: 'api_discord_event', methods: ['PUT'], requirements: ['type' => '[a-z.]+'])]
+    #[Route('/events/{type}', name: 'api_discord_event', methods: ['PUT'], requirements: ['type' => '[A-Za-z._]+'])]
     public function event(string $id, string $type, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -260,7 +275,7 @@ final class DiscordController extends AbstractController
     }
 
     /** Sends the wording being edited, to the channel it would use. */
-    #[Route('/events/{type}/test', name: 'api_discord_event_test', methods: ['POST'], requirements: ['type' => '[a-z.]+'])]
+    #[Route('/events/{type}/test', name: 'api_discord_event_test', methods: ['POST'], requirements: ['type' => '[A-Za-z._]+'])]
     public function testEvent(string $id, string $type, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -286,6 +301,12 @@ final class DiscordController extends AbstractController
             ? $payload['template']
             : ($setting?->getTemplate() ?? NotifiableEvents::defaultTemplate($type) ?? '');
 
+        $sample = [];
+
+        foreach ($this->workshop->itemsById(self::SAMPLE_MODS)->items as $item) {
+            $sample[$item->workshopId] = $item;
+        }
+
         // Example values, so the operator sees the shape of the real
         // thing rather than a sentence full of empty gaps.
         $content = (new MessageTemplate())->render($template, [
@@ -295,11 +316,32 @@ final class DiscordController extends AbstractController
             'reason' => 'zur Probe',
             'detail' => 'Testnachricht',
             'action' => 'test',
-            'input.version' => '0.21.0',
+            // Read rather than written out: a literal here was still
+            // showing 0.21.0 after the bridge moved on.
+            'input.version' => $this->bridge->version(),
+            // The same mods the cards below show: naming two and
+            // picturing one is exactly the contradiction this preview
+            // exists to avoid.
+            'input.mods' => implode(', ', array_map(
+                static fn (string $id): string => $sample[$id]?->title ?? $id,
+                self::SAMPLE_MODS,
+            )),
         ]);
 
+        // A mod event carries an embed in real life, so the test has to
+        // as well — otherwise it shows something the operator will
+        // never actually receive.
+        $embeds = [];
+
+        if (str_starts_with($type, 'mods.')) {
+            // Real mods rather than invented ones, so the operator sees
+            // exactly the shape they will receive. Steam being
+            // unreachable costs the cards, not the test.
+            $embeds = ModEmbed::forAll(self::SAMPLE_MODS, $sample);
+        }
+
         try {
-            $this->discord->sendMessage($channelId, new DiscordMessage($content));
+            $this->discord->sendMessage($channelId, new DiscordMessage($content, $embeds));
         } catch (DiscordException $exception) {
             return new JsonResponse([
                 'status' => 'failed',
