@@ -96,7 +96,7 @@ export type ModDetail = {
 export type ModChange = {
   status:
     | 'written' | 'notVerified' | 'keysMissing' | 'refused'
-    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'cycle'
+    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'alreadyListed' | 'cycle'
     | ModFileState
   missingKeys: string[]
   written?: string[]
@@ -126,6 +126,8 @@ export type ModIdVerdict = {
   /** Where each was read from, so the operator can check. */
   paths: string[]
   versionMin: string | null
+  /** Map folders this item ships; `Map=` takes these. */
+  maps: string[]
 }
 
 export type LoadOrderVerdict = {
@@ -147,6 +149,8 @@ export type ModDiagnosis = {
   orphanedModIds: string[]
   /** Installed but absent from Mods=, so downloaded and never loaded. */
   unmappedWorkshopIds: string[]
+  /** Shipped by an installed mod but absent from Map=, so invisible. */
+  unlistedMaps: string[]
 }
 
 export function diagnoseMods(serverId: string): Promise<ModDiagnosis> {
@@ -163,6 +167,7 @@ export function hasFindings(diagnosis: ModDiagnosis | undefined): boolean {
     diagnosis.missingDependencies.length > 0
     || diagnosis.orphanedModIds.length > 0
     || diagnosis.unmappedWorkshopIds.length > 0
+    || diagnosis.unlistedMaps.length > 0
     || diagnosis.loadOrder.state === 'cycle'
     || diagnosis.loadOrder.changed
   )
@@ -196,6 +201,10 @@ export function searchMods(
 
 export function modDetail(serverId: string, workshopId: string): Promise<ModDetail> {
   return apiFetch<ModDetail>(`/servers/${serverId}/mods/${encodeURIComponent(workshopId)}`)
+}
+
+export function listMaps(serverId: string): Promise<ModChange> {
+  return apiFetch<ModChange>(`/servers/${serverId}/mods/maps`, { method: 'POST', body: {} })
 }
 
 export function applyLoadOrder(serverId: string): Promise<ModChange & { tangled?: string[] }> {

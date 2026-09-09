@@ -2229,6 +2229,12 @@
     "orphanedTitle_one": "{{count}} entry in Mods= belongs to nothing installed",
     "orphanedTitle_other": "{{count}} entries in Mods= belong to nothing installed",
     "orphanedBody": "The server tries to load these and will not find them. Either the id is misspelt or the item was removed.",
-    "truncated": "The requirement chain was followed only so far, so there may be more."
+    "truncated": "The requirement chain was followed only so far, so there may be more.",
+    "unlistedMapTitle_one": "{{count}} map is installed but not switched on",
+    "unlistedMapTitle_other": "{{count}} maps are installed but not switched on",
+    "unlistedMapBody": "A map mod loads like any other, but its map only appears once the folder is named in Map= as well. Until then it downloads, loads and stays invisible.",
+    "addToMapLine": "Add to Map=",
+    "mapsListed": "Added to Map=. It takes effect at the next server start.",
+    "alreadyListed": "Every installed map is already listed; nothing was changed."
   }
 }

@@ -2229,6 +2229,12 @@
     "orphanedTitle_one": "{{count}} Eintrag in Mods= gehört zu nichts Installiertem",
     "orphanedTitle_other": "{{count}} Einträge in Mods= gehören zu nichts Installiertem",
     "orphanedBody": "Der Server versucht sie zu laden und wird sie nicht finden. Entweder ist die ID falsch geschrieben oder das Item wurde entfernt.",
-    "truncated": "Die Kette der Voraussetzungen wurde nur begrenzt weit verfolgt, es können also mehr sein."
+    "truncated": "Die Kette der Voraussetzungen wurde nur begrenzt weit verfolgt, es können also mehr sein.",
+    "unlistedMapTitle_one": "{{count}} Karte ist installiert, aber nicht eingeschaltet",
+    "unlistedMapTitle_other": "{{count}} Karten sind installiert, aber nicht eingeschaltet",
+    "unlistedMapBody": "Ein Karten-Mod wird wie jeder andere geladen — die Karte erscheint aber erst, wenn ihr Ordner auch in Map= steht. Bis dahin wird sie heruntergeladen, geladen und bleibt unsichtbar.",
+    "addToMapLine": "In Map= eintragen",
+    "mapsListed": "In Map= eingetragen. Greift beim nächsten Serverstart.",
+    "alreadyListed": "Alle installierten Karten stehen bereits drin; es wurde nichts geändert."
   }
 }

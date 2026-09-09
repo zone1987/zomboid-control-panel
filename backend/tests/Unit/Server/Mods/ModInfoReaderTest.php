@@ -100,6 +100,56 @@ final class ModInfoReaderTest extends TestCase
     }
 
     /**
+     * A map mod loads like any other, but its map only appears when the
+     * folder is named in `Map=` as well — so it downloads, loads, and
+     * stays invisible. Nothing in mod.info names it; the directory is
+     * the only source.
+     */
+    public function testReadsTheMapFoldersAModShips(): void
+    {
+        $reader = new ModInfoReader($this->browser([
+            'steamapps/workshop/content/108600' => [],
+            'steamapps/workshop/content/108600/321' => [
+                ['name' => 'mods', 'path' => 'm/mods', 'type' => 'directory'],
+            ],
+            'm/mods' => [['name' => 'Bedford', 'path' => 'm/mods/Bedford', 'type' => 'directory']],
+            'm/mods/Bedford' => [
+                ['name' => 'mod.info', 'path' => 'm/mods/Bedford/mod.info', 'type' => 'file'],
+            ],
+            'm/mods/Bedford/media/maps' => [
+                ['name' => 'Bedford Falls, KY', 'path' => 'm/mods/Bedford/media/maps/Bedford Falls, KY', 'type' => 'directory'],
+            ],
+        ], [
+            'm/mods/Bedford/mod.info' => "name=Bedford Falls
+id=BedfordFalls
+",
+        ]));
+
+        $verdict = $reader->read(self::config(), '321');
+
+        self::assertSame(['BedfordFalls'], $verdict->ids);
+        self::assertSame(['Bedford Falls, KY'], $verdict->maps);
+    }
+
+    /** A mod that ships no map has none, which is not a fault. */
+    public function testAModWithoutMapsReportsNone(): void
+    {
+        $reader = new ModInfoReader($this->browser([
+            'steamapps/workshop/content/108600' => [],
+            'steamapps/workshop/content/108600/654' => [
+                ['name' => 'mods', 'path' => 'n/mods', 'type' => 'directory'],
+            ],
+            'n/mods' => [['name' => 'Plain', 'path' => 'n/mods/Plain', 'type' => 'directory']],
+            'n/mods/Plain' => [
+                ['name' => 'mod.info', 'path' => 'n/mods/Plain/mod.info', 'type' => 'file'],
+            ],
+        ], ['n/mods/Plain/mod.info' => "id=Plain
+"]));
+
+        self::assertSame([], $reader->read(self::config(), '654')->maps);
+    }
+
+    /**
      * The commonest case and a benign one: the server downloads an item
      * at its next start, not when it is configured.
      */

@@ -20,6 +20,7 @@ import {
   addMod,
   applyLoadOrder,
   diagnoseMods,
+  listMaps,
   categoriesOf,
   listInstalled,
   matchesSearch,
@@ -78,6 +79,22 @@ export function ModsPage() {
         toast.error(t('mods.notVerified'))
       } else {
         toast.success(t('mods.orderApplied'))
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['mods', id] })
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  const maps = useMutation({
+    mutationFn: () => listMaps(id),
+    onSuccess: async (result) => {
+      if (result.status === 'alreadyListed') {
+        toast.success(t('mods.alreadyListed'))
+      } else if (result.status === 'notVerified') {
+        toast.error(t('mods.notVerified'))
+      } else {
+        toast.success(t('mods.mapsListed'))
       }
 
       await queryClient.invalidateQueries({ queryKey: ['mods', id] })
@@ -193,6 +210,8 @@ export function ModsPage() {
                 installed={installed.data?.items ?? []}
                 applying={order.isPending}
                 onApplyOrder={() => order.mutate()}
+                listingMaps={maps.isPending}
+                onListMaps={() => maps.mutate()}
               />
 
               <SearchField

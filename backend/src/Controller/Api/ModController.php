@@ -260,6 +260,34 @@ final class ModController extends AbstractController
         return new JsonResponse($outcome, $status);
     }
 
+    /** Adds the map folders an installed map mod ships to `Map=`. */
+    #[Route('/maps', name: 'api_mods_list_maps', methods: ['POST'])]
+    public function listMaps(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $outcome = $this->mods->listMaps($server);
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+
+        $status = match ($outcome['status']) {
+            'written', 'alreadyListed' => Response::HTTP_OK,
+            'keysMissing' => Response::HTTP_UNPROCESSABLE_ENTITY,
+            default => Response::HTTP_BAD_GATEWAY,
+        };
+
+        return new JsonResponse($outcome, $status);
+    }
+
     #[Route('/installed', name: 'api_mods_add', methods: ['POST'])]
     public function add(string $id, Request $request): JsonResponse
     {

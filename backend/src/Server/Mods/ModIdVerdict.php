@@ -24,6 +24,8 @@ final readonly class ModIdVerdict
         public array $ids = [],
         public array $paths = [],
         public ?string $versionMin = null,
+        /** Map folders this item ships; `Map=` takes these. */
+        public array $maps = [],
     ) {
     }
 
@@ -31,9 +33,13 @@ final readonly class ModIdVerdict
      * @param list<string> $ids
      * @param list<string> $paths
      */
-    public static function found(array $ids, array $paths, ?string $versionMin = null): self
-    {
-        return new self('found', $ids, $paths, $versionMin);
+    public static function found(
+        array $ids,
+        array $paths,
+        ?string $versionMin = null,
+        array $maps = [],
+    ): self {
+        return new self('found', $ids, $paths, $versionMin, $maps);
     }
 
     /**
@@ -86,6 +92,7 @@ final readonly class ModIdVerdict
             'ids' => $this->ids,
             'paths' => $this->paths,
             'versionMin' => $this->versionMin,
+            'maps' => $this->maps,
         ];
     }
 }

@@ -63,6 +63,7 @@ final readonly class ModInfoReader
             }
 
             $found = [];
+            $maps = [];
 
             foreach ($this->modInfoPaths($config, $root, self::MAX_DEPTH) as $path) {
                 $raw = $this->files->readTail($config, $path, self::MAX_BYTES);
@@ -70,6 +71,18 @@ final readonly class ModInfoReader
 
                 if ($entry['id'] !== null) {
                     $found[] = ['id' => $entry['id'], 'path' => $path, 'versionMin' => $entry['versionMin']];
+                }
+
+                // A map mod ships `media/maps/<name>`, and that folder
+                // name is what `Map=` takes — the game reads its own
+                // maps the same way. Nothing in mod.info names it, so
+                // the directory is the only source.
+                $modRoot = \dirname($path);
+
+                foreach ($this->mapNames($config, $modRoot.'/media/maps') as $map) {
+                    if (!\in_array($map, $maps, true)) {
+                        $maps[] = $map;
+                    }
                 }
             }
         } catch (StorageException) {
@@ -93,7 +106,7 @@ final readonly class ModInfoReader
             $versionMin ??= $entry['versionMin'];
         }
 
-        return ModIdVerdict::found($ids, $paths, $versionMin);
+        return ModIdVerdict::found($ids, $paths, $versionMin, $maps);
     }
 
     /**
@@ -127,6 +140,34 @@ final readonly class ModInfoReader
         }
 
         return $paths;
+    }
+
+    /**
+     * The map folders a mod ships, which are what `Map=` takes.
+     *
+     * @return list<string>
+     */
+    private function mapNames(FtpConfig $config, string $directory): array
+    {
+        try {
+            if (!$this->files->directoryExists($config, $directory)) {
+                return [];
+            }
+
+            $names = [];
+
+            foreach ($this->files->listDirectory($config, $directory)['entries'] as $entry) {
+                if (\in_array($entry['type'], ['directory', 'dir'], true)) {
+                    $names[] = $entry['name'];
+                }
+            }
+
+            return $names;
+        } catch (StorageException) {
+            // A map that could not be listed is not a map that is
+            // absent; the caller already reports the transfer state.
+            return [];
+        }
     }
 
     /**

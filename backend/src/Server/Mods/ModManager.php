@@ -147,6 +147,7 @@ final readonly class ModManager
             return [
                 'state' => $location->state,
                 'modIds' => [],
+                'unlistedMaps' => [],
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -164,6 +165,7 @@ final readonly class ModManager
             return [
                 'state' => 'unreachable',
                 'modIds' => [],
+                'unlistedMaps' => [],
                 'missingDependencies' => [],
                 'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
                 'truncated' => false,
@@ -193,9 +195,23 @@ final readonly class ModManager
 
         $order = LoadOrder::sort($list->modIds, self::modIdEdges($resolution->edges, $byWorkshopId));
 
+        // A map mod loads like any other, but its map only appears when
+        // the folder is named in `Map=` as well — so it is downloaded,
+        // loaded, and invisible. Easy to miss and hard to diagnose.
+        $unlistedMaps = [];
+
+        foreach ($byWorkshopId as $verdict) {
+            foreach ($verdict['maps'] ?? [] as $map) {
+                if (!\in_array($map, $list->maps, true) && !\in_array($map, $unlistedMaps, true)) {
+                    $unlistedMaps[] = $map;
+                }
+            }
+        }
+
         return [
             'state' => 'found',
             'modIds' => $byWorkshopId,
+            'unlistedMaps' => $unlistedMaps,
             'missingDependencies' => $missing,
             'loadOrder' => $order->toArray(),
             'truncated' => $resolution->truncated,
@@ -251,6 +267,42 @@ final readonly class ModManager
 
         $list = $this->reader->read($config, (string) $location->path);
         $next = new ModList($list->workshopIds, $order['order'], $list->maps);
+
+        return $this->writer->write($config, (string) $location->path, $next);
+    }
+
+    /**
+     * Adds the map folders a mod ships to `Map=`.
+     *
+     * Appended rather than inserted: the order in `Map=` decides which
+     * map wins where two overlap, and the existing first entry is
+     * usually the base map somebody chose deliberately.
+     *
+     * @return array<string, mixed>
+     */
+    public function listMaps(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return ['status' => $location->state, 'missingKeys' => []];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        $unlisted = $this->diagnose($server)['unlistedMaps'] ?? [];
+
+        if ($unlisted === []) {
+            return ['status' => 'alreadyListed', 'missingKeys' => []];
+        }
+
+        $list = $this->reader->read($config, (string) $location->path);
+        $next = $list;
+
+        foreach ($unlisted as $map) {
+            $next = $next->withMap($map);
+        }
 
         return $this->writer->write($config, (string) $location->path, $next);
     }

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ArrowDownUp, Check, HelpCircle, Link2Off, PackageX } from 'lucide-react'
+import { AlertTriangle, ArrowDownUp, Check, HelpCircle, Link2Off, Map, PackageX } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -20,11 +20,15 @@ export function DiagnosisCard({
   installed,
   onApplyOrder,
   applying,
+  onListMaps,
+  listingMaps,
 }: {
   diagnosis: ModDiagnosis | undefined
   installed: Mod[]
   onApplyOrder: () => void
   applying: boolean
+  onListMaps: () => void
+  listingMaps: boolean
 }) {
   const { t } = useTranslation()
 
@@ -96,6 +100,31 @@ export function DiagnosisCard({
 
               <Button type="button" size="sm" disabled={applying} onClick={onApplyOrder}>
                 {t('mods.applyOrder')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* A map mod loads like any other and stays invisible: the
+            folder has to be named in Map= as well. Worth its own
+            action, since the panel knows the exact name. */}
+        {diagnosis.unlistedMaps.length > 0 && (
+          <Alert variant="warning">
+            <Map className="size-4" />
+            <AlertTitle>{t('mods.unlistedMapTitle', { count: diagnosis.unlistedMaps.length })}</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>{t('mods.unlistedMapBody')}</p>
+
+              <div className="flex flex-wrap gap-1">
+                {diagnosis.unlistedMaps.map((map) => (
+                  <Badge key={map} variant="outline" className="text-xs">
+                    {map}
+                  </Badge>
+                ))}
+              </div>
+
+              <Button type="button" size="sm" disabled={listingMaps} onClick={onListMaps}>
+                {t('mods.addToMapLine')}
               </Button>
             </AlertDescription>
           </Alert>
