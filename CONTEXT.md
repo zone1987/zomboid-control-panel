@@ -9521,3 +9521,95 @@ the previous build and looked like a broken selector.
    28×28), reversed `StorageException` arguments at
    `ServerFileBrowser.php:117`, the React Router `HydrateFallback`
    warning, and production `APP_PUBLIC_URL` carrying `http://`.
+
+## 2026-09-09 — credential fields show their value
+
+The user reported the Steam Web API key field on `/app/settings`: nothing
+could be typed into it and no value was shown, and named it the
+prerequisite for the mod manager — correctly, because without a key
+Steam's `QueryFiles` answers 403 and `GetDetails` 401, so there would be
+no workshop search at all.
+
+### Two separate faults, both measured in the browser
+
+**1. A stale container, not a code fault.** `GET
+/api/settings/reveal/steam.api_key` answered **404** while
+`/api/settings/cache` and `/api/settings/steam/test` — routes in the same
+controller — answered 401. `router:match` and `debug:router` both found
+the route, because the CLI rebuilds the container while FPM keeps the old
+one. `php bin/console cache:clear` fixed it; the endpoint then answered
+200. This is rule 10g0's third point, and it cost the first twenty
+minutes of the session. Nothing was changed in the backend for it.
+
+**2. The field only fetched its secret on focus.** `CredentialField`
+called `revealSecret` from an `onFocus` handler, so the field looked
+empty until somebody clicked into it — and after a save the draft was
+cleared and it looked empty again. The user asked for the general rule:
+**"eingabefelder sollten grundsätzlich ihren wert anzeigen. Bei
+passwortfeldern eben durch punkte."**
+
+### What changed
+
+- **`CLAUDE.md`** — new rule **6f**, "A field shows its value, always — a
+  secret as dots", with the user's wording and the reasoning: focus is
+  not a gesture anybody makes to read, and blankness adds no protection
+  over `type="password"` while costing the operator the one thing they
+  came to check.
+- **`frontend/src/features/settings/credential-field.tsx`** —
+  `useMutation` on focus replaced by `useQuery` with
+  `enabled: readable` and infinite `staleTime`, keyed
+  `['settings', 'reveal', name]`. The displayed value is **derived**
+  (`value !== '' ? value : stored.data?.value ?? ''`), never copied into
+  state by an effect, so a refetch cannot overwrite what somebody is
+  typing (rule 10g2). A failed read is its own state, shown as text at
+  the field rather than as an empty input (rule 6c); the `sonner` toast
+  and its import are gone.
+- **`frontend/src/features/settings/settings-page.tsx`** — a comment
+  recording that the existing `invalidateQueries({ queryKey: ['settings'] })`
+  after a save also invalidates the revealed secrets, because they share
+  the prefix. No behavioural change; the note exists so the prefix is not
+  narrowed later without noticing.
+
+### One bug I introduced and then found by reading the diff
+
+The first version wrote `disabled={!mayEdit || stored.isPending}`. In
+TanStack Query v5 a query held back by `enabled: false` stays
+`status: 'pending'` **forever** — only `fetchStatus` goes idle. So every
+secret that is *not yet stored* got a permanently disabled field: exactly
+the fault the user had reported, reintroduced one tab away. Measured on
+the Coolify tab: `deploy-webhook-token` came back `disabled: true`.
+`isFetching` is the correct predicate and now carries a comment saying
+why.
+
+### Verification — measured, not inferred
+
+| Case | Result |
+|---|---|
+| `steam-api-key` on load, no click | filled, 32 chars, `type=password` |
+| `steam-api-key` after saving | still filled |
+| `discord-bot-token` on tab switch | filled |
+| `deploy-webhook-token` (nothing stored) | empty, **enabled**, typing works |
+
+Frontend: 414 tests in 37 files green. `npx tsc --noEmit` silent. Lint 0
+errors, 23 warnings — the same 23 recorded before this work. Build green.
+**The backend was not changed and not retested.**
+
+Method notes that cost time and are worth keeping: the panel serves a
+built bundle, so a change is invisible until `npm run build` **and** the
+service worker plus `Network.clearBrowserCache` are cleared — both halves
+of rule 10g0c fired in this session, the second as a MIME-type error on a
+chunk that no longer existed. And `npm` must run inside ddev; on the host
+vitest fails with a native binding error.
+
+### Open
+
+1. Committed on `fix/credential-fields-show-their-value`, branched from
+   `main` (not from `docs/coolify-step-gone`, which carries an unrelated
+   unpushed commit `fa91b31`). PR pending.
+2. The Steam API key was displayed in clear text during measurement,
+   which is what the reveal endpoint exists for. The user was told and
+   **has already rotated it** — the value changed between two
+   measurements in this session.
+3. `docs/coolify-step-gone` still holds `fa91b31` unpushed, with no open
+   PR.
+4. Next: the mod manager, planned in three stages. See the plan file.

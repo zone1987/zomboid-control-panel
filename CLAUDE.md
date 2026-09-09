@@ -338,6 +338,28 @@ Two rules follow from it:
   with a blank page. Unregistering the service worker was not enough —
   `Network.clearBrowserCache` was. So rule 10g0c has a second half.
 
+## 6f. A field shows its value, always — a secret as dots
+
+Stated by the user after the Steam key field came back blank from a
+save: **"eingabefelder sollten grundsätzlich ihren wert anzeigen. Bei
+passwortfeldern eben durch punkte."** Having to click into a field to
+find out what it holds is not a disclosure control, it is a field that
+lies about being empty.
+
+- **A stored secret is loaded with the page, not on focus.** Focus is a
+  gesture nobody makes to *read*; an operator checking a saved token
+  clicked, saw nothing, and reasonably concluded the save had failed.
+- **After a save the field keeps showing what was saved.** Clearing the
+  draft must not drop the display back to a placeholder — that reads as
+  "it did not take".
+- **A password field shows dots, which is the whole point.** The masking
+  is the browser's job and the reveal toggle already exists; blankness
+  adds no protection over `type="password"` and costs the operator the
+  one thing they came to check.
+- **Empty and unknown stay distinct** (rule 6c). Nothing stored is an
+  empty field with its placeholder; a value that could not be read is
+  said out loud, never drawn as empty.
+
 ## 6d. Send only what changed
 
 The reference panel's interface resent the entire settings object on

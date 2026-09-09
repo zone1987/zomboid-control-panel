@@ -82,6 +82,10 @@ export function SettingsPage() {
     mutationFn: (values: Draft) => updateSettings(values),
     onSuccess: async () => {
       setDraft({})
+      // Invalidates the revealed secrets too -- they share the
+      // ['settings', ...] prefix -- so a saved key is re-read and the
+      // field keeps showing what was stored rather than falling back
+      // to a placeholder (rule 6f).
       await queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success(t('settings.saved'))
     },
