@@ -35,39 +35,39 @@ export function ModTile({
   return (
     <div
       className={cn(
-        // The whole tile is the target, so the border says so rather
-        // than an underline, which reads as a link inside a card that
-        // is itself a link.
-        'pz-mod-tile flex gap-3 rounded-md border p-3',
+        // The whole tile is the target, and the border says so rather
+        // than an underline, which read as a link inside a card that is
+        // itself one.
+        'pz-mod-tile relative flex gap-3 rounded-md border p-3',
         installed ? 'border-primary/40 bg-primary/5' : 'hover:bg-accent/40',
       )}
     >
+      {/* One button covering the card, underneath everything else: a
+          nested button is invalid HTML and a click handler on the div
+          would leave the card unreachable by keyboard. The add button
+          and the title sit above it and keep their own clicks. */}
       <button
         type="button"
         onClick={onOpen}
-        className="shrink-0 rounded-sm focus-visible:outline-none"
         aria-label={t('mods.openDetail', { name: displayName(mod) })}
-      >
-        <ModCover mod={mod} className="size-16" />
-      </button>
+        className="absolute inset-0 z-0 rounded-md focus-visible:outline-none"
+      />
+
+      <ModCover mod={mod} className="pointer-events-none relative z-10 size-16 shrink-0" />
 
       {/* min-w-0 so a long title truncates inside the card instead of
           widening the grid column (rule 10g1). */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div className="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex items-start gap-2">
-          <button
-            type="button"
-            onClick={onOpen}
-            className="min-w-0 flex-1 text-left text-sm font-medium"
-          >
+          <span className="pointer-events-none min-w-0 flex-1 text-sm font-medium">
             <span className="line-clamp-2">{displayName(mod)}</span>
-          </button>
+          </span>
 
           <Button
             type="button"
             variant={installed ? 'ghost' : 'outline'}
             size="icon"
-            className="size-8 shrink-0"
+            className="pointer-events-auto relative z-10 size-8 shrink-0"
             disabled={pending}
             onClick={onToggle}
             aria-label={installed ? t('mods.remove') : t('mods.add')}
@@ -124,7 +124,7 @@ export function ModTile({
             ))}
         </div>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="pointer-events-none text-xs text-muted-foreground">
           {updated !== null && t('mods.updatedOn', { date: updated })}
           {updated !== null && size !== null && ' · '}
           {size}
