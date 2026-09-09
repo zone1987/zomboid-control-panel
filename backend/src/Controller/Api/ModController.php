@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Entity\GameServer;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
+use App\Server\Mods\CoverStore;
 use App\Server\Mods\GameBuild;
 use App\Server\Mods\ModManager;
 use App\Server\Mods\ModPresenter;
@@ -28,7 +29,60 @@ final class ModController extends AbstractController
         private readonly GameServerRepository $servers,
         private readonly ModManager $mods,
         private readonly WorkshopSource $workshop,
+        private readonly CoverStore $covers,
     ) {
+    }
+
+    /**
+     * A mod's cover, served by the panel rather than by Steam.
+     *
+     * Steam has no resized variant — its store's resize parameters
+     * answer with an error page on that host — so a grid of forty tiles
+     * would pull originals measured at up to 738 KB each. Fetching once
+     * and shrinking also keeps `img-src 'self'` intact and every
+     * viewer's address away from Valve.
+     */
+    #[Route(
+        '/{workshopId}/cover',
+        name: 'api_mods_cover',
+        methods: ['GET'],
+        requirements: ['workshopId' => '\d+'],
+    )]
+    public function cover(string $id, string $workshopId): Response
+    {
+        if (!$this->servers->find($id) instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        $path = $this->covers->pathFor($workshopId);
+
+        if ($path === null) {
+            return $this->notFound();
+        }
+
+        if (!$this->covers->has($workshopId)) {
+            $item = $this->workshop->itemsById([$workshopId])->first();
+
+            if ($item === null || !$this->covers->fetch($item)) {
+                // 404 rather than a placeholder image: the interface
+                // already draws one, and a body here would be cached as
+                // though it were the cover.
+                return $this->notFound();
+            }
+        }
+
+        $response = new Response(
+            (string) file_get_contents($path),
+            Response::HTTP_OK,
+            ['Content-Type' => 'image/webp'],
+        );
+
+        // A workshop id addresses one picture forever; a mod's cover
+        // changing is rare enough to be worth a stale week.
+        $response->setPublic();
+        $response->headers->set('Cache-Control', 'public, max-age=604800');
+
+        return $response;
     }
 
     /** What the server's own file lists, described where the workshop can. */
@@ -96,7 +150,12 @@ final class ModController extends AbstractController
             'gameBuild' => $server->getGameBuild(),
             'buildFilter' => $buildTag,
             'items' => array_map(
-                static fn ($item): array => ModPresenter::present($item->workshopId, $item, $build),
+                fn ($item): array => ModPresenter::present(
+                    $item->workshopId,
+                    $item,
+                    $build,
+                    $this->coverBase($id),
+                ),
                 $result->items,
             ),
         ]);
@@ -133,12 +192,13 @@ final class ModController extends AbstractController
             'state' => $result->state->value,
             'hasKey' => $this->workshop->hasKey(),
             'gameBuild' => $server->getGameBuild(),
-            'item' => ModPresenter::present($item->workshopId, $item, $build),
+            'item' => ModPresenter::present($item->workshopId, $item, $build, $this->coverBase($id)),
             'dependencies' => array_map(
-                static fn ($dependency): array => ModPresenter::present(
+                fn ($dependency): array => ModPresenter::present(
                     $dependency->workshopId,
                     $dependency,
                     $build,
+                    $this->coverBase($id),
                 ),
                 $dependencies,
             ),
@@ -195,6 +255,12 @@ final class ModController extends AbstractController
         };
 
         return new JsonResponse($outcome, $status);
+    }
+
+    /** Where this server's covers are served from. */
+    private function coverBase(string $serverId): string
+    {
+        return '/api/servers/'.$serverId.'/mods';
     }
 
     private function notFound(): JsonResponse

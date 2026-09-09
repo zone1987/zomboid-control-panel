@@ -19,6 +19,7 @@ final readonly class ModPresenter
         string $workshopId,
         ?WorkshopItem $item,
         ?GameBuild $build = null,
+        ?string $coverBase = null,
     ): array {
         if ($item === null) {
             // Installed but undescribed. Saying so beats an empty card:
@@ -54,7 +55,12 @@ final readonly class ModPresenter
             'resolved' => true,
             'title' => $item->title,
             'description' => $item->description,
-            'previewUrl' => $item->previewUrl,
+            // The panel's own address, never Steam's: the CSP allows
+            // only `self` for images, and pointing at Valve would leak
+            // every viewer's address for a thumbnail.
+            'previewUrl' => $item->previewUrl === null || $coverBase === null
+                ? null
+                : rtrim($coverBase, '/').'/'.$item->workshopId.'/cover',
             'tags' => $item->tags,
             'fileSize' => $item->fileSize,
             'createdAt' => $item->createdAt?->format(\DATE_ATOM),

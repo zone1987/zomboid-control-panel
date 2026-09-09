@@ -98,7 +98,12 @@ final readonly class ModManager
         foreach ($list->workshopIds as $workshopId) {
             $item = $byId[$workshopId] ?? null;
 
-            $items[] = ModPresenter::present($workshopId, $item, $build);
+            $items[] = ModPresenter::present(
+                $workshopId,
+                $item,
+                $build,
+                '/api/servers/'.$server->getId()->toRfc4122().'/mods',
+            );
         }
 
         return [

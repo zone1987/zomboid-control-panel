@@ -133,6 +133,13 @@ services:
             # nothing of the server's own data is kept.
             $workingDirectory: '%kernel.project_dir%/var/vehicles'
 
+    App\Server\Mods\CoverStore:
+        arguments:
+            # Out of git and outside the document root, like the icons:
+            # these are other people's cover art, fetched from Steam and
+            # kept only so the panel can serve them itself.
+            $directory: '%kernel.project_dir%/var/mod-covers'
+
     App\Server\Bridge\BridgeInstaller:
         arguments:
             $bridgeSourcePath: '%kernel.project_dir%/resources/bridge/ZomboidControlBridge.lua'

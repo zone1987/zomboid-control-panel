@@ -29,6 +29,7 @@ final class ModProbeCommand extends Command
         private readonly ConfigFileLocator $locator,
         private readonly ModListReader $reader,
         private readonly WorkshopClient $workshop,
+        private readonly \App\Server\Mods\CoverStore $covers,
     ) {
         parent::__construct();
     }
@@ -135,6 +136,24 @@ final class ModProbeCommand extends Command
                 \count($first?->dependencies ?? []),
                 $first?->isCollection === true ? 'yes' : 'no',
                 mb_substr($first?->title ?? '-', 0, 30),
+            ));
+        }
+
+        $io->section('Covers');
+        $probe = $this->workshop->itemsById(['3795847162', '3789551122', '3794362162']);
+
+        foreach ($probe->items as $found) {
+            $before = microtime(true);
+            $stored = $this->covers->fetch($found);
+            $path = $this->covers->pathFor($found->workshopId);
+
+            $io->writeln(sprintf(
+                '  %-12s stored=%-3s %7s bytes  %4.0f ms  %s',
+                $found->workshopId,
+                $stored ? 'yes' : 'no',
+                $stored && $path !== null ? number_format((int) filesize($path)) : '-',
+                (microtime(true) - $before) * 1000,
+                mb_substr($found->title, 0, 28),
             ));
         }
 
