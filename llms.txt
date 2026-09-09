@@ -35,7 +35,7 @@ chooses to write to disk for the panel to read.
   that works without installing anything.
 - **FTP/SFTP** — the server's files. The INI, sandbox settings, logs, the
   save game, and the bridge mod itself. Read *and* write.
-- **The Lua bridge** (`ZomboidControlBridge`, currently 0.21.0) — a mod
+- **The Lua bridge** (`ZomboidControlBridge`, currently 0.22.0) — a mod
   the panel uploads. It writes what only code inside the game can know
   (player health, skills, positions, the world's climate, the list of
   vehicle scripts this server actually loaded, mods included) to JSON

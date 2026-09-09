@@ -22,7 +22,7 @@
     restart it. The panel uploads this file for you.
 ]]
 
-local BRIDGE_VERSION = "0.21.0"
+local BRIDGE_VERSION = "0.22.0"
 
 -- getFileWriter writes into ~/Zomboid/Lua, which is documented.
 -- getModFileWriter targets the mod's own common/ directory instead, and
@@ -457,6 +457,33 @@ local function writeServerInfo()
 
         if ok then table.insert(parts, value) end
     end
+
+    -- The game's own version, so the panel need not be told which build
+    -- a server runs. `getVersion()` and `getGameVersion()` both read the
+    -- static `gameVersion` field and return it -- checked in the
+    -- bytecode, so unlike sendPlayerStatsChange there is no client-only
+    -- early return here.
+    --
+    -- The whole version is reported, not just the build: the panel
+    -- filters the workshop by major, which is all Steam tags, but
+    -- "42.20.1" is what an operator recognises and wants shown.
+    local ok, value = pcall(function()
+        local core = getCore()
+        local version = core:getGameVersion()
+
+        return string.format(
+            "\"game\":{\"version\":\"%s\",\"major\":%d,\"minor\":%d,\"suffix\":\"%s\",\"full\":\"%s\"}",
+            escape(tostring(version)),
+            version:getMajor(),
+            version:getMinor(),
+            escape(tostring(version:getSuffix() or "")),
+            -- getVersion() appends the git revision, which identifies an
+            -- exact build where the version number alone does not.
+            escape(tostring(core:getVersion()))
+        )
+    end)
+
+    if ok then table.insert(parts, value) end
 
     -- The bare global getMaxPlayers() takes an argument on the server and
     -- throws "Not enough arguments" without one -- its documented

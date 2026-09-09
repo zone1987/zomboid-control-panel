@@ -147,7 +147,8 @@ final class ModController extends AbstractController
         }
 
         $tags = array_values(array_filter($request->query->all('tags'), \is_string(...)));
-        $build = GameBuild::of($server->getGameBuild());
+        $reading = $this->mods->build($server);
+        $build = $reading->build;
 
         // Filtered at Steam rather than afterwards: asking for a page of
         // thirty and then dropping the wrong build would leave gaps that
@@ -172,7 +173,8 @@ final class ModController extends AbstractController
             'total' => $result->total,
             // Said out loud so the screen can explain why it is showing
             // everything: an unknown build filters nothing.
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $reading->build->number,
+            'buildReading' => $reading->toArray(),
             'buildFilter' => $buildTag,
             'items' => array_map(
                 fn ($item): array => ModPresenter::present(
@@ -196,7 +198,7 @@ final class ModController extends AbstractController
             return $this->notFound();
         }
 
-        $build = GameBuild::of($server->getGameBuild());
+        $build = $this->mods->build($server)->build;
 
         $result = $this->workshop->details($workshopId);
         $item = $result->first();
@@ -216,7 +218,7 @@ final class ModController extends AbstractController
         return new JsonResponse([
             'state' => $result->state->value,
             'hasKey' => $this->workshop->hasKey(),
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $build->number,
             'item' => ModPresenter::present($item->workshopId, $item, $build, $this->coverBase($id)),
             'dependencies' => array_map(
                 fn ($dependency): array => ModPresenter::present(

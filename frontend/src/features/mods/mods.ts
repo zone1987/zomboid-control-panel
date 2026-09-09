@@ -83,6 +83,69 @@ export type ModChange = {
   restored?: boolean
 }
 
+/**
+ * Why a workshop item's mod ids are unknown.
+ *
+ * `notDownloaded` is the benign one and by far the commonest: the
+ * server fetches an item at its next start, so it resolves itself.
+ */
+export type ModIdState =
+  | 'found'
+  | 'notDownloaded'
+  | 'noModInfo'
+  | 'noWorkshopDirectory'
+  | 'noTransfer'
+  | 'unreachable'
+
+export type ModIdVerdict = {
+  state: ModIdState
+  /** The `id=` values, which are what `Mods=` needs. */
+  ids: string[]
+  /** Where each was read from, so the operator can check. */
+  paths: string[]
+  versionMin: string | null
+}
+
+export type LoadOrderVerdict = {
+  state: 'sorted' | 'cycle'
+  order: string[]
+  /** False when the file already holds this order — nothing to apply. */
+  changed: boolean
+  tangled: string[]
+}
+
+export type ModDiagnosis = {
+  state: ModFileState | 'unreachable'
+  modIds: Record<string, ModIdVerdict>
+  missingDependencies: string[]
+  loadOrder: LoadOrderVerdict
+  /** The dependency walk hit its depth limit, so this is not the whole set. */
+  truncated: boolean
+  /** In Mods= but belonging to no installed item. */
+  orphanedModIds: string[]
+  /** Installed but absent from Mods=, so downloaded and never loaded. */
+  unmappedWorkshopIds: string[]
+}
+
+export function diagnoseMods(serverId: string): Promise<ModDiagnosis> {
+  return apiFetch<ModDiagnosis>(`/servers/${serverId}/mods/diagnosis`)
+}
+
+/** Whether anything here is worth putting in front of the operator. */
+export function hasFindings(diagnosis: ModDiagnosis | undefined): boolean {
+  if (diagnosis === undefined || diagnosis.state !== 'found') {
+    return false
+  }
+
+  return (
+    diagnosis.missingDependencies.length > 0
+    || diagnosis.orphanedModIds.length > 0
+    || diagnosis.unmappedWorkshopIds.length > 0
+    || diagnosis.loadOrder.state === 'cycle'
+    || diagnosis.loadOrder.changed
+  )
+}
+
 export type SortOrder = 'trend' | 'subscriptions' | 'updated' | 'recent'
 
 export function listInstalled(serverId: string): Promise<InstalledMods> {

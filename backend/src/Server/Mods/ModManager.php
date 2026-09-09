@@ -25,7 +25,14 @@ final readonly class ModManager
         private WorkshopSource $workshop,
         private ModInfoReader $modInfo,
         private DependencyGraph $graph,
+        private BuildSource $builds,
     ) {
+    }
+
+    /** Which build this server runs, and where that was learnt. */
+    public function build(GameServer $server): BuildReading
+    {
+        return $this->builds->resolve($server);
     }
 
     public function locate(GameServer $server): ModFileLocation
@@ -95,7 +102,8 @@ final readonly class ModManager
 
         // Driven by the file, not by the workshop answer: an id Steam
         // cannot describe is still an id the server will try to load.
-        $build = GameBuild::of($server->getGameBuild());
+        $reading = $this->builds->resolve($server);
+        $build = $reading->build;
 
         foreach ($list->workshopIds as $workshopId) {
             $item = $byId[$workshopId] ?? null;
@@ -116,7 +124,8 @@ final readonly class ModManager
             'hasKey' => $this->workshop->hasKey(),
             'maps' => $list->maps,
             'modIds' => $list->modIds,
-            'gameBuild' => $server->getGameBuild(),
+            'gameBuild' => $reading->build->number,
+            'buildReading' => $reading->toArray(),
             'items' => $items,
         ];
     }
@@ -282,6 +291,7 @@ final readonly class ModManager
             'maps' => [],
             'modIds' => [],
             'gameBuild' => null,
+            'buildReading' => null,
             'items' => [],
         ];
     }
