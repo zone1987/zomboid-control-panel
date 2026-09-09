@@ -269,13 +269,16 @@ final readonly class ModManager
     private function announce(GameServer $server, string $workshopId, array $extra, bool $add): void
     {
         $ids = [$workshopId, ...$extra];
-        $names = [];
+        $described = [];
 
         foreach ($this->workshop->itemsById($ids)->items as $item) {
-            $names[$item->workshopId] = $item->title;
+            $described[$item->workshopId] = $item;
         }
 
-        $labels = array_map(static fn (string $id): string => $names[$id] ?? $id, $ids);
+        $labels = array_map(
+            static fn (string $id): string => $described[$id]?->title ?? $id,
+            $ids,
+        );
 
         $this->events->collect(PanelEvent::ofServer(
             $add ? 'mods.added' : 'mods.removed',
@@ -284,6 +287,10 @@ final readonly class ModManager
                 'admin' => $this->security->getUser()?->getUserIdentifier() ?? '—',
                 'input.mods' => implode(', ', $labels),
             ],
+            // The mod that was asked for, not a requirement dragged in
+            // with it: one embed, and it should show what the operator
+            // actually clicked.
+            ModEmbed::of($described[$workshopId] ?? null),
         ));
     }
 

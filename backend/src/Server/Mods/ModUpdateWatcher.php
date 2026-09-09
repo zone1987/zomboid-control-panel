@@ -85,26 +85,27 @@ final readonly class ModUpdateWatcher
             return [];
         }
 
-        $this->events->dispatch(PanelEvent::ofServer('mods.update', $server, [
-            'input.mods' => implode(', ', $this->name($fresh)),
-        ]));
+        $described = [];
 
-        return $fresh;
-    }
-
-    /**
-     * @param list<string> $ids
-     *
-     * @return list<string>
-     */
-    private function name(array $ids): array
-    {
-        $titles = [];
-
-        foreach ($this->workshop->itemsById($ids)->items as $item) {
-            $titles[$item->workshopId] = $item->title;
+        foreach ($this->workshop->itemsById($fresh)->items as $item) {
+            $described[$item->workshopId] = $item;
         }
 
-        return array_map(static fn (string $id): string => $titles[$id] ?? $id, $ids);
+        $labels = array_map(
+            static fn (string $id): string => $described[$id]?->title ?? $id,
+            $fresh,
+        );
+
+        $this->events->dispatch(PanelEvent::ofServer(
+            'mods.update',
+            $server,
+            ['input.mods' => implode(', ', $labels)],
+            // Only when a single mod is involved: Discord shows one
+            // embed per message, and picking one of five would say the
+            // wrong thing about the other four.
+            \count($fresh) === 1 ? ModEmbed::of($described[$fresh[0]] ?? null) : null,
+        ));
+
+        return $fresh;
     }
 }

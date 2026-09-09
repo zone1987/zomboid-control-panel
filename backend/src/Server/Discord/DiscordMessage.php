@@ -18,17 +18,30 @@ final readonly class DiscordMessage
     /** Discord refuses a message body longer than this. */
     public const MAX_LENGTH = 2000;
 
-    public function __construct(public string $content)
-    {
+    /**
+     * @param array<string, mixed>|null $embed a Discord embed, or none
+     */
+    public function __construct(
+        public string $content,
+        public ?array $embed = null,
+    ) {
     }
 
     /** @return array<string, mixed> */
     public function toPayload(): array
     {
-        return [
+        $payload = [
             'content' => self::fit($this->content),
+            // Applies to the embed too: Discord parses mentions in an
+            // embed's description exactly as it does in the content.
             'allowed_mentions' => ['parse' => []],
         ];
+
+        if ($this->embed !== null) {
+            $payload['embeds'] = [$this->embed];
+        }
+
+        return $payload;
     }
 
     /**

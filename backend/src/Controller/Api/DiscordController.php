@@ -18,6 +18,8 @@ use App\Server\Discord\CommandCatalogue;
 use App\Server\Discord\DiscordClientInterface;
 use App\Server\Discord\DiscordException;
 use App\Server\Discord\DiscordMessage;
+use App\Server\Mods\ModEmbed;
+use App\Server\Mods\WorkshopSource;
 use App\Server\Discord\MessageTemplate;
 use App\Server\Discord\NotifiableEvents;
 use App\Settings\SettingsProvider;
@@ -34,6 +36,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(Permission::ManageDiscord->value)]
 final class DiscordController extends AbstractController
 {
+    /** A real, long-standing workshop item, for the test message's embed. */
+    private const SAMPLE_MOD = '2875848298';
+
     public function __construct(
         private readonly GameServerRepository $servers,
         private readonly DiscordNotificationRepository $notifications,
@@ -44,6 +49,7 @@ final class DiscordController extends AbstractController
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(APP_PUBLIC_URL)%')]
         private readonly string $publicUrl,
         private readonly \App\Server\Bridge\BridgeInstaller $bridge,
+        private readonly WorkshopSource $workshop,
     ) {
     }
 
@@ -302,8 +308,18 @@ final class DiscordController extends AbstractController
             'input.mods' => 'Fitted Sheets, Common Sense',
         ]);
 
+        // A mod event carries an embed in real life, so the test has to
+        // as well — otherwise it shows something the operator will
+        // never actually receive.
+        $embed = str_starts_with($type, 'mods.')
+            // A real mod rather than an invented one, so the operator
+            // sees exactly the shape they will receive. Steam being
+            // unreachable simply costs the embed, not the test.
+            ? ModEmbed::of($this->workshop->itemsById([self::SAMPLE_MOD])->first())
+            : null;
+
         try {
-            $this->discord->sendMessage($channelId, new DiscordMessage($content));
+            $this->discord->sendMessage($channelId, new DiscordMessage($content, $embed));
         } catch (DiscordException $exception) {
             return new JsonResponse([
                 'status' => 'failed',
