@@ -932,6 +932,35 @@ one component can carry all of them.
   claiming every past action succeeded is worse than one admitting it
   does not know.
 
+## 10m. ddev ships what the image does not
+
+Twice now the panel worked throughout development and failed only in
+production, both times because a PHP extension was richer in ddev than
+in the built image. Neither failure said anything: the interface
+reported "upload failed" once and drew placeholders the other time.
+
+- **gd was missing entirely**, so `imagecreatefromstring` was undefined
+  and item icons died with a fatal error.
+- **gd was present but built without webp**, so `imagewebp` did not
+  exist and every mod cover failed to save in silence.
+
+The second was the first one's lesson, one level finer — having an
+extension is not having its features.
+
+- **Configure flags and runtime libraries are two separate edits.**
+  `--with-webp` on `docker-php-ext-configure` compiles it; `libwebp7`
+  in the runtime stage lets it load. With only the first, gd stopped
+  loading altogether — worse than before the change.
+- **Prove it in the image, not in ddev.** `docker build` then
+  `docker run --rm --entrypoint php <image> -r '…'`, and write a real
+  file rather than checking that a function exists. The entrypoint
+  refuses to start without configuration, which is why `--entrypoint
+  php` is part of the recipe.
+- **A capability the code assumes gets a guard that says so.** Every
+  one of these failures was silent because the calling code treated
+  "could not" as "nothing to do". One `function_exists` check and one
+  log line turn an afternoon of guessing into a sentence.
+
 ## 10h2. A 200 in the test environment can be a 500 in dev
 
 The Discord page failed to load with `Undefined array key`. A functional

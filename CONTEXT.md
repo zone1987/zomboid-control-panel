@@ -10196,3 +10196,77 @@ event-console tests into 500s. New optional parameters go last.
 4. Still true: nothing reads `WorkshopResult::cacheSeconds()`, the
    apply-order button and map detection rest on unit tests, and
    `docs/coolify-step-gone` holds `fa91b31` unpushed.
+
+## 2026-09-09 (after 1.4.0) — two faults production showed and ddev hid
+
+On `fix/mod-id-slashes`, unmerged. **1.4.0 is released and live**; both
+of these were found on it.
+
+### Mod covers were blank in production, fine in ddev
+
+The user opened the deployed panel and every tile carried a
+placeholder. The cause is the same shape as the gd failure the
+Dockerfile already documents, one level finer: gd was built
+`--with-freetype --with-jpeg` and **no webp**, so `imagewebp()` did not
+exist and `CoverStore::write()` returned false for every cover —
+silently, because the interface draws a placeholder when there is no
+image.
+
+**Adding `--with-webp` alone made it worse.** Built and run:
+
+```
+Unable to load dynamic library 'gd'
+  (libwebp.so.7: cannot open shared object file)
+```
+
+The `-dev` package compiles it; the runtime stage needs `libwebp7` or
+gd stops loading altogether. Both edits are in now, and the image was
+built and made to write a real 198-byte webp before this was believed.
+
+`CoverStore` logs once and loudly when `imagewebp` is absent, rather
+than returning false in silence. **New rule 10m in CLAUDE.md** records
+the pattern, since this is the second time it has cost an afternoon.
+
+### `Mods=\PZ_Map`, and what the game does with it
+
+Investigated with the installation mounted, at the user's request.
+
+- **PZ_Map appears nowhere in the game's own files** — no directory, no
+  mention. The installation ships exactly one mod, `examplemod`. So it
+  is not something the game provides, and the diagnosis was right to
+  flag it.
+- It is the `id=` of workshop item **3770149036** ("PZ Map" by qwerto),
+  read from its own mod.info on the server.
+- **The slash breaks it.** `ZomboidFileSystem.getModDir` is a
+  `Map.get()` keyed by that `id=` line — an exact match, not a path
+  resolution — so `\PZ_Map` finds nothing and the mod never loads.
+  `ActiveMods` only `trim()`s, which takes whitespace and not slashes.
+- **The panel did not write it.** `IniWriter` applies `preg_quote` to
+  the *key* only; nothing escapes a value.
+
+The diagnosis now separates a fixable entry from a wrong one:
+`fixableModIds` maps `\PZ_Map → PZ_Map` and only entries that become a
+**real, installed** id once trimmed are offered for repair. Ids are
+corrected in place so the load order is not rearranged. `POST
+/api/servers/{id}/mods/repair` does it; the card shows the exact change
+before the click.
+
+Verified in the browser against the real server: the offer appeared
+with `\PZ_Map → PZ_Map`, the click wrote `Mods=PZ_Map`, and the warning
+went. **The user's ini now reads `Mods=PZ_Map`** — deliberately changed,
+because the previous value could not work.
+
+### Verification
+
+- **1011 backend tests, 14,794 assertions, green.** 438 frontend tests
+  green, lint 0 errors.
+- The image built and proved to write webp, which is the only evidence
+  that counts for this one.
+
+### Open
+
+1. **Unmerged, no PR yet**, and worth a patch release: production
+   cannot show a single mod cover until this ships.
+2. Everything still open from the stage 3 entry: collections, the
+   mod-set backup, `cacheSeconds()` unread, and the apply-order button
+   and map detection resting on unit tests.
