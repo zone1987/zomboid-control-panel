@@ -9934,3 +9934,158 @@ it.
 
 Not built yet; recorded so stage 3 starts from the manifest rather than
 from a new entity.
+
+## 2026-09-09 (evening) — mod manager stage 2, and the bridge reads the game version
+
+On `feat/mod-dependencies`, eight commits, unmerged. Stage 1 shipped as
+**v1.3.0** earlier the same day and is live.
+
+### The bridge now knows which build the game is
+
+**BRIDGE_VERSION 0.21.0 → 0.22.0, uploaded and restarted by the user.**
+The panel had no way to know a server's build, so an operator typed it.
+
+Asked the class before writing any Lua (rule 10f). `zombie.core.Core`
+has `getVersion()`, `getVersionNumber()` and `getGameVersion()`, and
+`GameVersion` carries `getMajor()`/`getMinor()`/`getSuffix()`. The
+bytecode settled the real question — all three are `getstatic
+gameVersion` followed by `areturn`, so unlike `sendPlayerStatsChange`
+there is **no client-only early return**. Every access is a method, not
+a field, so `testNoPublicJavaFieldIsIndexed` stays green.
+
+`writeServerInfo()` emits a `game` block in its own `pcall`, like every
+other block there. **The whole version, not just the build**, at the
+user's request — the workshop only tags by major, but they want
+`42.20.4` shown in the panel later.
+
+Measured against the running server after their upload:
+
+```
+build:     42          source:   bridge
+reported:  42          entered:  -
+full:      42.20.4 b0bbce05d5
+```
+
+and the workshop search narrowed itself from 61,831 to **24,387** with
+nobody typing anything.
+
+`BuildReading` keeps the two sources apart rather than merging them:
+the bridge reports what the game *is*, a typed value is what somebody
+*believes*, and "the server says 42 but you typed 41" is worth saying.
+Reported wins; typed remains the only answer on an older bridge or a
+server that has not restarted. `GameVersionReading` is a one-method
+interface so `BuildSource` does not take the whole final
+`ServerInfoReader` (rule 10i).
+
+### The three pieces stage 2 rests on
+
+- **`ModInfoReader`** reads the ids `Mods=` needs. The file is
+  **`mod.info`**, not `info.txt` as the game's own settings tooltip
+  still claims (`ServerIniSchema.php:1967`) — both spellings accepted,
+  since the tooltip is what an operator reads. The layout varies and a
+  fixed path finds only half: measured on the user's server, one item
+  keeps it at `mods/CommonSense/mod.info`, another at
+  `mods/PZ_Map/42/mod.info` where the extra level is the build, and the
+  first has a **second copy** under `42.0/` carrying the same id. So the
+  walk is bounded-depth, ids are reported once, and every file is still
+  named. It also reads `versionMin` and the `media/maps/<name>` folders.
+- **`DependencyGraph`** follows requirements through the chain, bounded
+  by depth and by cycle protection. A truncated walk says so. A
+  collection's children are skipped — that field means contents there.
+- **`LoadOrder`** sorts topologically. A cycle refuses and names the
+  tangled mods rather than throwing or emitting some order anyway. Mods
+  with no relation keep the file's order, so an already-correct list
+  comes back unchanged.
+
+### What the screen now catches
+
+`/diagnosis`, its own endpoint because it costs several workshop
+lookups and an FTP walk per mod while the list itself is polled. Five
+findings, each a **silent** fault — nothing crashes, nothing is logged,
+the mod just does not do what was expected:
+
+| Finding | Why it matters |
+|---|---|
+| installed but absent from `Mods=` | downloaded, never loaded, takes space |
+| in `Mods=` but nothing installed | server tries to load it and fails |
+| required mod not installed | the dependent one loads and does nothing |
+| load order wrong | `Mods=` is positional; a mod loads before what it needs |
+| map installed but not in `Map=` | loads and stays invisible |
+
+The last one has no source but the directory: a map mod ships
+`media/maps/<name>`, which is how the game reads its own. Appended
+rather than inserted, because order in `Map=` decides which map wins.
+
+**Found on the user's own server, both real:** two items downloaded
+with neither listed in `Mods=`, and `Mods=\PZ_Map` — a leading
+backslash matching no mod id, so the server tries to load something
+that does not exist. Both predate this work and were left untouched.
+
+### Requirements are offered with the mod
+
+At the user's request: adding a mod asks Steam what else it needs and
+puts the answer in front of the operator. Adding it alone stays
+possible — they may know the requirement is met another way, and
+refusing would be the panel overruling them.
+
+**And only when something is actually missing**, which the user asked
+for specifically: `requirementsFor()` subtracts what is installed, so
+the commonest case stays one click. Verified by installing the
+dependency alone and watching the next add go straight through
+(`missingCount: 0`, no dialog, both mods in the ini).
+
+### Two faults no unit test could have shown
+
+1. **The dependency walk asked the wrong endpoint.** It read
+   `itemsById`, and the public batch endpoint **does not carry
+   `children` at all** — measured against a mod that really has one. So
+   it would have found nothing, ever. The double answered both
+   endpoints alike, which is exactly why the tests stayed green. It
+   reads `details` now, one call per mod.
+2. **Adding by id skipped the requirement check** entirely: anything
+   pasted into the search box went straight to the write.
+
+Both found by clicking, per rule 6b.
+
+### Interface work the user asked for while watching
+
+- **Search fires as you type**, 400ms after the last keystroke
+  (`hooks/use-debounced.ts`), the magnifier becoming a spinner. The
+  button remains only for adding a pasted id.
+- **A tile's border warms instead of its title underlining** — the
+  whole card is the target, so an underline read as a link inside
+  something already clickable. Measured with the pointer held: 7% white
+  → 55% accent plus a 1px halo, 200ms, `1e-05s` under reduced motion.
+- **The whole tile is clickable.** It was not: a click on the date line
+  reached nothing. One button covers the card *underneath* everything
+  else — a nested button is invalid HTML and a div with `onClick` is
+  unreachable by keyboard — with the content passing clicks through and
+  the add button taking them back via `pointer-events-auto`. Probed at
+  four points, then clicked for real: empty area navigates, plus button
+  installs and stays.
+
+### Verification
+
+- **986 backend tests, 14,717 assertions, green** (was 955 at v1.3.0).
+- **438 frontend tests, 39 files, green.** Lint 0 errors, 23 warnings.
+- Against the user's server and the live workshop: the game version,
+  the build filter narrowing itself, both diagnosis states, the
+  requirements dialog resolving Arcadia → Lifestyle: Hobbies, both mods
+  written to the real ini, the skip when already satisfied, and the
+  tile's two click targets. **The ini is back as it was** —
+  `WorkshopItems=` empty, `Mods=\PZ_Map` and `Map=Muldraugh, KY`
+  untouched.
+
+### Open
+
+1. **Unmerged, no PR yet.**
+2. **Two things could not be exercised in the browser** and rest on
+   their unit tests: the apply-order button (no installed mod declares
+   a dependency, so there is no wrong order to fix) and map detection
+   (neither is a map mod).
+3. **Stage 3 is untouched**: update detection, health overview,
+   collections, the mod-set backup, the three Discord events. The
+   `appworkshop_108600.acf` find recorded in the previous entry is
+   where update detection should start.
+4. Still true from before: nothing reads `WorkshopResult::cacheSeconds()`,
+   and `docs/coolify-step-gone` holds `fa91b31` unpushed.
