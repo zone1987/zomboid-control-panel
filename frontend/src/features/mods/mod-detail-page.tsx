@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Eye,
   Heart,
+  Images,
   Link2,
   Map,
   Plus,
@@ -26,7 +27,8 @@ import { Empty } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ModCover } from './mod-cover'
 import { BbcodeText } from './bbcode-text'
-import { DependencyTree } from './dependency-tree'
+import { hasRemoteImages } from './bbcode'
+import { DependencyList } from './dependency-list'
 import {
   addMod,
   displayName,
@@ -135,7 +137,18 @@ export function ModDetailPage() {
               </div>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="space-y-3">
+              {/* Above the description, not under it: this says the
+                  reader's browser is about to fetch from servers the
+                  panel does not control, and said afterwards in grey
+                  small print it is read once the fetching is done. */}
+              {hasRemoteImages(mod.description ?? '') && (
+                <Alert>
+                  <Images className="size-4" />
+                  <AlertDescription>{t('mods.remoteImages')}</AlertDescription>
+                </Alert>
+              )}
+
               <BbcodeText text={mod.description ?? ''} />
             </CardContent>
           </Card>
@@ -274,7 +287,7 @@ function DependencyCard({
           <p className="text-sm text-muted-foreground">{t('mods.noDependencies')}</p>
         ) : (
           <>
-            <DependencyTree
+            <DependencyList
               nodes={tree?.nodes ?? []}
               installedIds={installedIds}
               onOpen={onOpen}

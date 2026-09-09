@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { categoriesOf, displayName, formatSize, matchesSearch, readWorkshopId, type Mod } from './mods'
+import {
+  categoriesOf,
+  displayName,
+  formatSize,
+  matchesSearch,
+  readWorkshopId,
+  requirementsOf,
+  type DependencyNode,
+  type Mod,
+} from './mods'
 
 const mod = (overrides: Partial<Mod> = {}): Mod => ({
   workshopId: '123',
@@ -133,5 +142,85 @@ describe('showing a file size', () => {
   it('says nothing when there is no size', () => {
     expect(formatSize(null)).toBeNull()
     expect(formatSize(0)).toBeNull()
+  })
+})
+
+describe('requirementsOf', () => {
+  const node = (
+    workshopId: string,
+    title: string | null,
+    children: DependencyNode[] = [],
+    overrides: Partial<DependencyNode> = {},
+  ): DependencyNode => ({
+    workshopId,
+    title,
+    resolved: true,
+    repeats: false,
+    children,
+    ...overrides,
+  })
+
+  it('names a mod once however many paths reach it', () => {
+    const tree = [
+      node('root', 'Root', [
+        node('a', 'A', [node('shared', 'Shared')]),
+        node('b', 'B', [node('shared', 'Shared')]),
+      ]),
+    ]
+
+    expect(requirementsOf(tree).map((r) => r.workshopId)).toEqual(['a', 'shared', 'b'])
+  })
+
+  it('reports two mods that require each other as two entries, not six', () => {
+    const tree = [
+      node('root', 'Root', [
+        node('a', 'A', [node('b', 'B', [node('a', 'A', [], { repeats: true })])]),
+        node('b', 'B', [node('a', 'A', [node('b', 'B', [], { repeats: true })])]),
+      ]),
+    ]
+
+    const requirements = requirementsOf(tree)
+
+    expect(requirements).toHaveLength(2)
+    expect(requirements.every((r) => r.mutual)).toBe(true)
+  })
+
+  it('stops at a repeat rather than walking a circle it cannot end', () => {
+    // The repeat carries a child the walk must not reach: descending
+    // through a closed circle invents a requirement nobody declared.
+    const tree = [
+      node('root', 'Root', [
+        node('a', 'A', [
+          node('b', 'B', [node('a', 'A', [node('ghost', 'Ghost')], { repeats: true })]),
+        ]),
+      ]),
+    ]
+
+    expect(requirementsOf(tree).map((r) => r.workshopId)).toEqual(['a', 'b'])
+  })
+
+  it('does not call a one-way requirement mutual', () => {
+    const tree = [node('root', 'Root', [node('a', 'A', [node('b', 'B')])])]
+
+    expect(requirementsOf(tree).map((r) => [r.workshopId, r.mutual])).toEqual([
+      ['a', false],
+      ['b', false],
+    ])
+  })
+
+  it('keeps a mod the workshop could not describe, marked unresolved', () => {
+    const tree = [node('root', 'Root', [node('a', null, [], { resolved: false })])]
+
+    expect(requirementsOf(tree)).toEqual([
+      { workshopId: 'a', title: null, resolved: false, mutual: false },
+    ])
+  })
+
+  it('is empty for a mod that requires nothing', () => {
+    expect(requirementsOf([node('root', 'Root')])).toEqual([])
+  })
+
+  it('is empty when there is no tree at all', () => {
+    expect(requirementsOf([])).toEqual([])
   })
 })
