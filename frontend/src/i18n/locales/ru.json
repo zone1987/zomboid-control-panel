@@ -645,7 +645,10 @@
       "moderation.unban": "Бан снят",
       "panel.updated": "Панель обновлена",
       "server.reachable": "Сервер снова доступен",
-      "server.unreachable": "Сервер недоступен"
+      "server.unreachable": "Сервер недоступен",
+      "mods.added": "Мод добавлен",
+      "mods.removed": "Мод удалён",
+      "mods.updateAvailable": "Доступно обновление мода"
     },
     "events": {
       "activeCount_one": "Активно {{count}} уведомление",

@@ -629,7 +629,10 @@
       "moderation.unban": "Bannissement levé",
       "panel.updated": "Panneau mis à jour",
       "server.reachable": "Serveur de nouveau joignable",
-      "server.unreachable": "Serveur injoignable"
+      "server.unreachable": "Serveur injoignable",
+      "mods.added": "Mod ajouté",
+      "mods.removed": "Mod retiré",
+      "mods.updateAvailable": "Mise à jour de mod disponible"
     },
     "events": {
       "activeCount_one": "Une notification est active",

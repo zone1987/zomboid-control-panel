@@ -645,7 +645,10 @@
       "moderation.unban": "Zdjęto bana",
       "panel.updated": "Panel zaktualizowany",
       "server.reachable": "Serwer znów osiągalny",
-      "server.unreachable": "Serwer nieosiągalny"
+      "server.unreachable": "Serwer nieosiągalny",
+      "mods.added": "Dodano moda",
+      "mods.removed": "Usunięto moda",
+      "mods.updateAvailable": "Dostępna aktualizacja moda"
     },
     "events": {
       "activeCount_one": "Aktywne jest jedno powiadomienie",

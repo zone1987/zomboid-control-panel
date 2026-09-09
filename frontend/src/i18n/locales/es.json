@@ -629,7 +629,10 @@
       "moderation.unban": "Baneo levantado",
       "panel.updated": "Panel actualizado",
       "server.reachable": "El servidor vuelve a responder",
-      "server.unreachable": "El servidor no responde"
+      "server.unreachable": "El servidor no responde",
+      "mods.added": "Mod añadido",
+      "mods.removed": "Mod eliminado",
+      "mods.updateAvailable": "Actualización de mod disponible"
     },
     "events": {
       "activeCount_one": "Hay una notificación activa",

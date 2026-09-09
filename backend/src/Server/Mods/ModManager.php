@@ -259,6 +259,35 @@ final readonly class ModManager
     }
 
     /**
+     * Tells Discord what changed, naming the mods rather than their ids.
+     *
+     * One message for the whole change, not one per mod: five added
+     * together are one decision, and five lines would bury it.
+     *
+     * @param list<string> $extra
+     */
+    private function announce(GameServer $server, string $workshopId, array $extra, bool $add): void
+    {
+        $ids = [$workshopId, ...$extra];
+        $names = [];
+
+        foreach ($this->workshop->itemsById($ids)->items as $item) {
+            $names[$item->workshopId] = $item->title;
+        }
+
+        $labels = array_map(static fn (string $id): string => $names[$id] ?? $id, $ids);
+
+        $this->events->collect(PanelEvent::ofServer(
+            $add ? 'mods.added' : 'mods.removed',
+            $server,
+            [
+                'admin' => $this->security->getUser()?->getUserIdentifier() ?? '—',
+                'input.mods' => implode(', ', $labels),
+            ],
+        ));
+    }
+
+    /**
      * Writes the sorted load order back to `Mods=`.
      *
      * Refuses on a cycle rather than writing some order anyway: an
@@ -461,7 +490,16 @@ final readonly class ModManager
             return ['status' => $add ? 'alreadyInstalled' : 'notInstalled', 'missingKeys' => []];
         }
 
-        return $this->writer->write($config, (string) $location->path, $next);
+        $outcome = $this->writer->write($config, (string) $location->path, $next);
+
+        // Announced only once the file was written *and* read back:
+        // a message for a change that did not land would be worse
+        // than no message at all.
+        if ($outcome['status'] === 'written') {
+            $this->announce($server, $workshopId, $withRequirements, $add);
+        }
+
+        return $outcome;
     }
 
     /**

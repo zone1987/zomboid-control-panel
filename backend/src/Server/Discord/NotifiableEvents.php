@@ -49,6 +49,12 @@ final class NotifiableEvents
         'panel.updated' => 'ℹ️ Das Dashboard wurde aktualisiert.',
         'bridge.updated' => 'ℹ️ **{server}**: Die Bridge wurde auf {input.version} aktualisiert.',
 
+        // Mods. Announced after the file was written *and* read back,
+        // so a message here means the change is really in the ini.
+        'mods.added' => '📦 **{admin}** hat **{input.mods}** zu **{server}** hinzugefügt.',
+        'mods.removed' => '🗑️ **{admin}** hat **{input.mods}** von **{server}** entfernt.',
+        'mods.updateAvailable' => '⬆️ **{server}**: Für **{input.mods}** liegt ein Update bereit.',
+
         // Who comes and goes: the two most-wanted, and the only
         // moderation types that are not about somebody intervening.
         'moderation.'.ModerationAction::JOIN => '➡️ **{player}** ist **{server}** beigetreten.',
@@ -108,6 +114,12 @@ final class NotifiableEvents
     public static function tokensFor(string $type): array
     {
         $common = ['server'];
+
+        // A mod change names who made it and what changed, so it needs
+        // the admin token that otherwise only moderation carries.
+        if (str_starts_with($type, 'mods.')) {
+            return [...$common, 'admin', 'input.mods'];
+        }
 
         if (!str_starts_with($type, 'moderation.')) {
             return [...$common, 'input.version'];

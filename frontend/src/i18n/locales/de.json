@@ -629,7 +629,10 @@
       "moderation.unban": "Sperre aufgehoben",
       "panel.updated": "Dashboard aktualisiert",
       "server.reachable": "Server wieder erreichbar",
-      "server.unreachable": "Server nicht erreichbar"
+      "server.unreachable": "Server nicht erreichbar",
+      "mods.added": "Mod hinzugefügt",
+      "mods.removed": "Mod entfernt",
+      "mods.updateAvailable": "Mod-Update verfügbar"
     },
     "events": {
       "activeCount_one": "Eine Meldung ist aktiv",
