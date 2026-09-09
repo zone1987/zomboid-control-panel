@@ -10089,3 +10089,110 @@ Both found by clicking, per rule 6b.
    where update detection should start.
 4. Still true from before: nothing reads `WorkshopResult::cacheSeconds()`,
    and `docs/coolify-step-gone` holds `fa91b31` unpushed.
+
+## 2026-09-09 (night) — mod manager stage 3: updates and Discord
+
+On `feat/mod-updates`, six commits, rebased onto main after stage 2
+merged as PR #25. Collections and the mod-set backup are **not** built.
+
+### Update detection, measured rather than remembered
+
+`appworkshop_108600.acf` is Valve's own bookkeeping in VDF, and it
+answers what the plan wanted a new table for. `timeupdated` is what is
+on disk, `latest_timeupdated` is what Steam has, and the difference is
+the answer.
+
+`ManifestReader` parses it by hand — a partial read of a well-known
+shape beats a general parser for a file under a kilobyte. Three things
+the format forces, each found by running it:
+
+- **The blocks nest**, so a regex reaching for the first closing brace
+  stops inside the first item. Brace-counted instead.
+- **`latest_timeupdated` is 0 until Steam has checked**, and comparing
+  that as a number reads as "older than everything" — unknown rather
+  than out of date (rule 6c).
+- **PHP turns a numeric array key into an int**, the same silent
+  coercion that once lost a single workshop id out of the ini.
+
+Measured on the user's server: both items parsed, 2.9 MB and 23.0 MB of
+26.0 MB total, dates correct, neither out of date.
+
+The same file answers a second question: **what is downloaded is not
+what `WorkshopItems=` asks for**, because Steam never deletes an item
+that leaves the list. Two mods occupy 26.0 MB there while the ini line
+is empty — shown with the size read from the manifest, and deliberately
+*not* dressed as a fault. An update is news and needs no button either;
+only the third state gets a warning colour.
+
+### Discord
+
+Three events in the existing registry (`mods.added`, `mods.removed`,
+`mods.update`), each switchable on its own. Announced only after the
+file was written **and read back**, and one message per change rather
+than one per mod.
+
+`ModUpdateWatcher` follows `BridgeWatcher`: only a change is announced,
+never the state. A first run remembers and stays quiet — otherwise
+every server would announce its whole backlog the moment this shipped.
+The marker at `events.mods.<server>` is a position rather than a cache,
+so `ServerCacheCleaner` leaves it alone and now says so.
+
+Scheduled every 30 minutes: Steam checks on its own schedule, so
+polling faster only re-reads the same file.
+
+### Embeds, at the user's request
+
+A line of text names a mod; a card shows it. Title linking to the
+workshop page, cover as thumbnail, size, last update as Discord's own
+`<t:…:d>` so each reader sees local time, and the declared build.
+
+**The image points at Steam, not at the panel.** Discord fetches it
+from its own servers, so a cover served from here would have to be
+reachable from the internet, which a local or private deployment is
+not (rule 10j). The panel keeps serving its shrunk copies to browsers;
+only Discord gets Steam's URL.
+
+### Four faults, three of them older than this work
+
+1. **`moderation.access_level` has never been switchable.** The route
+   saving an event required `[a-z.]+` and the underscore never matched,
+   so the toggle answered 404 and did nothing — no error to act on.
+   `mods.updateAvailable` had the same problem through its capital A.
+   The requirement is widened rather than the names changed, since
+   renaming would orphan what operators already configured, and
+   `testEveryEventTypeMatchesTheRouteThatSavesIt` now fails for the
+   next one here rather than in somebody's browser.
+2. **The test message knew nothing of `{input.mods}`** and left the
+   placeholder in the text — visible in the user's own channel.
+3. **Its bridge version was the literal `0.21.0`**, still there after
+   the bridge moved to 0.22.0. Read from the shipped file now.
+4. **A card for every mod, not one.** The user spotted the text naming
+   two mods while one card appeared. Not only the preview: the real
+   announcement did the same whenever an add carried a requirement.
+   `DiscordMessage` takes a list now, capped at Discord's ten.
+
+One I made and fixed: the embed parameter first went into `PanelEvent`
+**before** `$failed`, which broke every positional call and turned five
+event-console tests into 500s. New optional parameters go last.
+
+### Verification
+
+- **1008 backend tests, 14,790 assertions, green** (993 before this).
+- **438 frontend tests green.**
+- Against the user's own Discord: all three messages arrive in the
+  channel, both tokens filled, and the cards appear — confirmed by
+  screenshot each time.
+- Against their server: the manifest parsed, the left-over downloads
+  named with their real size.
+
+### Open
+
+1. **Unmerged, no PR yet.**
+2. **Not built from stage 3**: collections, and the mod-set backup.
+3. **`PZ_Map` may be a mod the game ships.** If so, the diagnosis is
+   reporting a fault that is not one: it compares `Mods=` only against
+   downloaded workshop items, never against the installation's own
+   mods. The user raised it and asked to look at it later.
+4. Still true: nothing reads `WorkshopResult::cacheSeconds()`, the
+   apply-order button and map detection rest on unit tests, and
+   `docs/coolify-step-gone` holds `fa91b31` unpushed.
