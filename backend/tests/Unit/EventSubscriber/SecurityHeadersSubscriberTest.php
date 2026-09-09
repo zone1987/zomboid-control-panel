@@ -44,6 +44,28 @@ final class SecurityHeadersSubscriberTest extends TestCase
         self::assertStringContainsString("object-src 'none'", $policy);
     }
 
+    /**
+     * A workshop description's pictures sit on whichever host their
+     * author chose, so images are the one directive that is wide.
+     */
+    public function testImagesMayComeFromAnyHttpsHostButScriptsMayNot(): void
+    {
+        $policy = (string) $this->respondTo(
+            Request::create('https://panel.test/'),
+        )->headers->get('Content-Security-Policy');
+
+        // `https:` as a source of its own, not as the start of a named
+        // host: `https://tiles...` would satisfy a looser check while
+        // allowing nothing new at all.
+        self::assertMatchesRegularExpression('/img-src[^;]*\shttps:(?![^\s;])/', $policy);
+
+        // The widening must not have leaked into anything executable.
+        self::assertStringContainsString("script-src 'self'", $policy);
+        self::assertDoesNotMatchRegularExpression('/script-src[^;]*\shttps:(?![^\s;])/', $policy);
+        self::assertDoesNotMatchRegularExpression('/connect-src[^;]*\shttps:(?![^\s;])/', $policy);
+        self::assertStringContainsString("default-src 'self'", $policy);
+    }
+
     /** Sent over plain HTTP it is ignored, and it would pin a dev host. */
     public function testSendsStrictTransportSecurityOnlyOverHttps(): void
     {
