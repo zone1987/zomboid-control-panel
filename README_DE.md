@@ -7,7 +7,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](frontend/package.json)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-green)](LICENSE)
 
-> 🇬🇧 [English version](README.md)
+> 🇬🇧 [English version](README.md) · 🗺️ [Roadmap](ROADMAP.md)
 
 **Verwalte deinen Project-Zomboid-Server im Browser.**
 
@@ -46,53 +46,364 @@ Danach geht es für beide Wege gleich weiter.
 
 ## Inhalt
 
-1. [Was das Panel kann](#was-das-panel-kann)
-2. [Was du von deinem Spielserver brauchst](#was-du-von-deinem-spielserver-brauchst)
-3. [Weg A: Coolify (empfohlen)](#weg-a-coolify-empfohlen)
-4. [Weg B: Docker auf deinem Rechner](#weg-b-docker-auf-deinem-rechner)
-5. [Das erste Mal anmelden](#das-erste-mal-anmelden)
-6. [Deinen Spielserver verbinden](#deinen-spielserver-verbinden)
-7. [Die Lua-Bridge — das Stück, das sich lohnt](#die-lua-bridge--das-stück-das-sich-lohnt)
-8. [Discord anbinden](#discord-anbinden)
-9. [Aktualisieren](#aktualisieren)
-10. [Sicherungen](#sicherungen)
-11. [Wenn etwas nicht funktioniert](#wenn-etwas-nicht-funktioniert)
-12. [Alle Einstellungen auf einen Blick](#alle-einstellungen-auf-einen-blick)
-13. [Was das Panel bewusst nicht kann](#was-das-panel-bewusst-nicht-kann)
-14. [Spielinhalte und Lizenz](#spielinhalte-und-lizenz)
+1. [Ein Blick darauf](#ein-blick-darauf)
+2. [Was das Panel kann](#was-das-panel-kann)
+3. [Was du von deinem Spielserver brauchst](#was-du-von-deinem-spielserver-brauchst)
+4. [Weg A: Coolify (empfohlen)](#weg-a-coolify-empfohlen)
+5. [Weg B: Docker auf deinem Rechner](#weg-b-docker-auf-deinem-rechner)
+6. [Das erste Mal anmelden](#das-erste-mal-anmelden)
+7. [Deinen Spielserver verbinden](#deinen-spielserver-verbinden)
+8. [Die Lua-Bridge — das Stück, das sich lohnt](#die-lua-bridge--das-stück-das-sich-lohnt)
+9. [Discord anbinden](#discord-anbinden)
+10. [Aktualisieren](#aktualisieren)
+11. [Sicherungen](#sicherungen)
+12. [Wenn etwas nicht funktioniert](#wenn-etwas-nicht-funktioniert)
+13. [Alle Einstellungen auf einen Blick](#alle-einstellungen-auf-einen-blick)
+14. [Was das Panel bewusst nicht kann](#was-das-panel-bewusst-nicht-kann)
+15. [Spielinhalte und Lizenz](#spielinhalte-und-lizenz)
+16. [Roadmap](ROADMAP.md) — was als Nächstes geplant ist
+
+---
+
+## Ein Blick darauf
+
+### Das Dashboard — alles auf einen Blick
+
+[![Das Dashboard](docs/images/dashboard.webp)](docs/images/dashboard.webp)
+
+Wer online ist, wie das Wetter gerade steht, Datum und Uhrzeit im Spiel,
+und ob RCON, FTP und die Bridge antworten — jedes einzeln gemeldet, weil
+sie auch einzeln ausfallen. Die Aktivitätsleiste darunter hält
+Beitritte, Abgänge und jede Admin-Aktion fest: „wer hat das gemacht, und
+wann" ist ein Blick statt einer Protokolldatei.
+
+<br>
+
+### Die Karte — die Welt, mit deinen Leuten darauf
+
+[![Die Karte](docs/images/map.webp)](docs/images/map.webp)
+
+Die echte Karte zum Verschieben und Zoomen, mit Spielern und Fahrzeugen
+genau dort, wo sie stehen — die Fahrzeuge aus den 3D-Modellen des
+Spiels, keine Symbole. Zufluchtsorte und beanspruchte Gebiete erscheinen
+als Flächen. Tipp einen Namen oder ein Koordinatenpaar ein, um
+hinzuspringen, und kopier jede Position für einen Teleport wieder
+heraus.
+
+<br>
+
+### Mods — der Steam Workshop im Panel
+
+[![Den Steam Workshop durchstöbern](docs/images/mods.webp)](docs/images/mods.webp)
+
+Nach Namen suchen, nach Kategorie filtern, nach beliebt oder zuletzt
+aktualisiert sortieren — und einen Mod über den Knopf auf seiner Kachel
+zum Server hinzufügen. Angeboten werden nur Mods für den Build deines
+Servers, und dieser Build kommt von der Bridge statt aus einer
+Vermutung. Kein Kopieren von IDs aus Browser-Tabs: das Panel hält
+`WorkshopItems=` und `Mods=` im Gleichlauf und liest die echten Mod-IDs
+von deinem Server.
+
+<br>
+
+### Abhängigkeiten — für dich aufgelöst
+
+<img src="docs/images/mod-dependencies.webp" alt="Die Abhängigkeiten eines Mods" width="300" align="left" hspace="12">
+
+Ein Mod, der andere Mods braucht, sagt das — und das Panel bietet an,
+sie gleich mitzuinstallieren. Was schon auf deinem Server liegt, wird
+erkannt, also fragt es nicht zweimal, und zwei Mods, die sich
+gegenseitig brauchen, stehen einmal mit einem Hinweis da statt als
+endloser Baum.
+
+Das Panel ist ehrlich über die Grenze: das sind die Abhängigkeiten, die
+Steam kennt, und Autoren nennen weitere oft nur in der Beschreibung.
+
+<br clear="all">
+
+### Spieler — ein Dossier für jeden
+
+[![Der Charakter eines Spielers](docs/images/player-character.webp)](docs/images/player-character.webp)
+
+Der Beruf mit den Boni, die er gewährt, Eigenschaften getrennt nach Vor-
+und Nachteilen mit den Wertungen des Spiels, und Reiter für Zustand,
+Fertigkeiten, Moderation und Admin.
+
+Im Reiter **Fertigkeiten** setzt du eine Stufe, indem du die gewünschte
+Markierung anklickst — Klick auf Stufe 7 bei Zimmerei, und sie ist
+gesetzt. **Moderation** hält Kicks, Banns, Zugriffsstufen und Teleports
+bereit. **Admin** die Unverwundbarkeit, Unsichtbarkeit und den Rest,
+jeweils als *unbekannt* angezeigt, solange das Panel sie nicht selbst
+gesetzt hat — denn das Spiel gibt sie nicht zurück.
+
+<br>
+
+### Konfiguration — deine Einstellungsdateien als Oberfläche
+
+[![Der Konfigurationseditor](docs/images/config.webp)](docs/images/config.webp)
+
+Alle 270 Sandbox-Werte und die komplette Server-INI, gruppiert und
+erklärt, mit dem passenden Bedienelement für jeden Wert — eine Auswahl,
+wo das Spiel eine Auswahl anbietet, ein Schalter, wo es an oder aus ist,
+ein Zahlenfeld, wo es eine Zahl ist. Unter jeder Option steht der echte
+Schlüssel, du weißt also immer, was du gerade änderst.
+
+Das Panel sichert die Datei vor dem Schreiben, liest sie danach zurück,
+und sagt dir, welche Änderungen einen Neustart brauchen und welche das
+Spiel im Betrieb übernimmt.
+
+<br>
+
+### Fahrzeuge — nach Aussehen auswählen
+
+[![Der Fahrzeugkatalog](docs/images/vehicles.webp)](docs/images/vehicles.webp)
+
+Alle 241 Fahrzeuge des Grundspiels plus alles, was deine Mods
+mitbringen, aus den Modellen des Spiels gezeichnet, mit jeder
+Lackierung, die eine Karosserie hat — Polizei, Taxi, Krankenwagen, und
+die Wrack-Varianten. Nach Typ filtern, Favoriten markieren, und dann
+eines neben einem Spieler erzeugen, der online ist.
+
+<br>
+
+### Wetter — sieh es, bevor du es änderst
+
+[![Wetter und Ereignisse](docs/images/weather.webp)](docs/images/weather.webp)
+
+Oben stehen die aktuellen Bedingungen — Datum, Uhrzeit, Temperatur,
+Wind, Jahreszeit — und die Vorlagen darunter setzen Regen, Gewitter,
+Schnee, Nebel oder klaren Himmel mit einem Klick. Darunter lassen sich
+die Wetter-Phasen des Spiels für eine gewählte Stundenzahl starten, auf
+demselben Weg, den auch die Admin-Konsole nimmt. Klänge, Zombie- und
+Weltereignisse haben ihre eigenen Seiten daneben.
 
 ---
 
 ## Was das Panel kann
 
-- **Spieler** — wer online ist, Gesundheit, Infektion, Fertigkeiten,
-  Eigenschaften, Position. Kicken, bannen (per Name oder SteamID),
-  entbannen, teleportieren, auf die Weiße Liste setzen.
-- **Karte** — die Welt mit deinen Spielern und Fahrzeugen darauf. Die
-  Fahrzeuge werden aus den echten Modellen des Spiels gezeichnet.
-- **Fahrzeuge** — alle 241 Fahrzeuge des Grundspiels plus alles, was Mods
-  hinzufügen, mit ihren Lackierungen und den echten Platzangaben aus dem
-  Spiel. Direkt neben einem Spieler erzeugen.
-- **Gegenstände** — die echte Gegenstandsliste deines Servers, mit den
-  Symbolen aus dem Spiel.
-- **Wetter und Ereignisse** — Regen, Sturm, Schnee, Nebel, Blitz,
-  Hubschrauber, Horden. Mit Vorschau, bevor du etwas auslöst.
-- **Konsole** — die Fernsteuerung des Spiels, mit der Befehlsliste deines
-  eigenen Servers.
-- **Chat** — mitlesen und hineinschreiben.
-- **Servereinstellungen** — die komplette Konfiguration und jeder
-  Sandbox-Wert, mit Erklärungen und in sinnvollen Gruppen statt als
-  Textdatei.
-- **Discord** — Meldungen in deinen Kanal, Chat-Spiegelung und
-  Slash-Befehle.
-- **Benutzerverwaltung** — mehrere Konten, Zwei-Faktor-Anmeldung,
-  Passkeys, Rollen mit Rechten pro Seite, und ein Protokoll jeder Aktion.
-- **Sieben Sprachen** — Deutsch und Englisch sind von Hand geschrieben.
-  Spanisch, Französisch, Italienisch, Polnisch und Russisch sind
-  maschinell übersetzt und im Umschalter auch so gekennzeichnet;
-  Korrekturen sind als Issue sehr willkommen. Die Namen von Items und
-  Fahrzeugen kommen aus deiner eigenen Spielinstallation, heißen also
-  genau so wie im Spiel.
+Die kurze Fassung: alles, was über Dateien und RCON erreichbar ist — und
+mit der [Lua-Bridge](#die-lua-bridge--das-stück-das-sich-lohnt) ist das
+der weitaus größte Teil des Spiels. Was mit **Bridge** markiert ist,
+braucht sie; alles andere funktioniert auch ohne.
+
+### Spieler
+
+- **Wer online ist**, in Echtzeit, mit Zugriffsstufe und seit wann
+  jemand verbunden ist.
+- **Gesundheit und Zustand** — alle 24 Werte, die das Spiel führt.
+  Hunger, Durst, Erschöpfung, Ausdauer, Schmerz, Panik, Stress,
+  Krankheit und Infektion stehen vorn, der Rest ist einen Klick
+  entfernt. Jede Ober- und Untergrenze wird aus dem Spiel gelesen statt
+  angenommen: die Werte laufen je nach Statistik von 0–1, 0–100, −1–1
+  oder 20–40. **Bridge**
+- **Fertigkeiten und Eigenschaften** — alle Skills mit Stufe und
+  Erfahrung, dazu Eigenschaften und Beruf des Charakters. **Bridge**
+- **Einen Charakter verändern** — Fertigkeitsstufe setzen, Erfahrung
+  vergeben, Eigenschaften hinzufügen oder entfernen, heilen und das
+  Traggewicht setzen. Jedes Bedienelement zeigt den angefragten Wert
+  schon an, während er noch unbestätigt ist. **Bridge**
+- **Position auf der Karte** und was um einen Spieler herum ist.
+  **Bridge**
+- **Kicken**, **bannen** und **entbannen** — per Name oder SteamID, mit
+  Grund, dauerhaft oder für eine Anzahl Tage. Abgelaufene Sperren
+  werden automatisch aufgehoben.
+- **Teleportieren** — einen Spieler zu einem anderen bringen.
+- **Zugriffsstufen** — von Beobachter bis Administrator.
+- **Items geben**, in beliebiger Menge.
+- **Notizen pro Spieler**, damit das Panel sich merkt, warum jemand
+  verwarnt wurde.
+- **Bannliste** und eine **Historie** von allem, was je mit einem Konto
+  gemacht wurde.
+- **Aufbewahrungsfrist** für Spieler, die seit Monaten niemand gesehen
+  hat — von dir gesetzt und **standardmäßig aus**. Die Bannliste bleibt
+  davon unberührt.
+- **Datenschutz pro Spieler** — die Daten eines Spielers exportieren
+  oder löschen, ohne die Datenbank zu öffnen.
+
+### Karte
+
+- **Die Welt**, mit deinen Spielern und Fahrzeugen darauf, zum
+  Verschieben und Zoomen.
+- **Fahrzeuge aus den echten Modellen des Spiels gezeichnet**, nicht
+  als Symbole.
+- **Zufluchtsorte und Fraktionen** als Flächen. **Bridge**
+
+### Fahrzeuge
+
+- **Alle 241 Fahrzeuge des Grundspiels** plus alles, was deine Mods
+  mitbringen, mit den echten Platzangaben, Sitzzahlen und Teilelisten
+  aus dem Spiel. **Bridge**
+- **Nach Aussehen auswählen** — Karosserie-Ansichten und ein
+  Lackierungsraster statt einer Liste von `Base.*`-Namen.
+- **Direkt neben einem Spieler erzeugen**, in der gewählten Lackierung.
+
+### Gegenstände
+
+- **Die echte Gegenstandsliste deines Servers** — Grundspiel plus alles
+  aus den Mods, mit den Symbolen aus deiner eigenen Installation.
+  **Bridge**
+- **Suchen und filtern**, und von derselben Seite aus austeilen.
+- **Namen in deiner Sprache**, aus den Übersetzungsdateien des Spiels
+  gelesen statt ins Panel getippt.
+
+### Mods und der Steam Workshop
+
+- **Den Workshop im Panel durchstöbern** — nach Namen suchen, nach
+  Kategorie filtern, und Titelbild, Autor, Bewertung und Kategorien auf
+  einen Blick sehen. Die Suche braucht einen
+  [Steam-Web-API-Schlüssel](#alle-einstellungen-auf-einen-blick); ohne
+  ihn fügst du Mods per ID oder Link hinzu, und das Panel sagt das,
+  statt einen Fehler zu zeigen.
+- **Eine Detailseite pro Mod** — Galerie, Beschreibung, Autor, Größe,
+  Veröffentlichungs- und Änderungsdatum, Änderungsprotokoll und Links
+  zu den Diskussionen und Kommentaren im Workshop.
+- **Hinzufügen und entfernen mit einem Klick.** Das Panel hält
+  `WorkshopItems=` und `Mods=` im Gleichlauf und liest die Mod-IDs aus
+  den `mod.info`-Dateien auf deinem Server, statt sie zu raten.
+- **Abhängigkeiten, aufgelöst** — das Panel liest, was ein Mod
+  voraussetzt, zeichnet den Baum und bietet an, das Fehlende gleich
+  mitzuinstallieren. Was schon installiert ist, wird erkannt, also
+  fragt es nicht zweimal.
+- **Ladereihenfolge** — eine topologische Sortierung, die
+  Abhängigkeiten vor das stellt, was sie braucht, mit Vorschau, bevor
+  etwas geschrieben wird. Ein Zirkelbezug wird als solcher gemeldet und
+  nicht stillschweigend umsortiert.
+- **Diagnose** — eine Workshop-ID ohne Mod-ID, eine Mod-ID ohne
+  Download, ein verirrtes Zeichen in einem Eintrag. Jeder Fall wird
+  einzeln benannt, und „noch nicht heruntergeladen" wird von „fehlt"
+  unterschieden.
+- **Reparieren** — Mod-IDs in Ordnung bringen, die ein vorangestellter
+  Schrägstrich unbrauchbar gemacht hat.
+- **Karten-Mods** werden erkannt, und `Map=` wird mitgepflegt.
+- **Build-Filter** — es werden nur Mods für den Build deines Servers
+  angeboten. Der Build kommt von der Bridge; ist er unbekannt, filtert
+  das Panel gar nicht, statt zu raten. **Bridge**
+- **Update-Überwachung** — das Panel merkt, wenn ein installierter Mod
+  auf Steam aktualisiert wurde, und kann es in Discord melden.
+- **Titelbilder werden im Panel zwischengespeichert**, verkleinert und
+  neu kodiert, mit einer Obergrenze für den belegten Platz.
+
+### Wetter, Ereignisse und Welt
+
+- **Wetter** — Regen, Sturm, Schnee, Nebel und Aufklaren, mit Stärke in
+  der Einheit, die auch angezeigt wird, und dem aus dem Spiel
+  zurückgelesenen Zustand. **Bridge**
+- **Alle dreizehn Klimawerte** als Zustand zum Ansehen und Ändern, nicht
+  als dreizehn Knöpfe zum Auslösen. **Bridge**
+- **Ereignisse** — Blitz, Donner, Hubschrauber, Schüsse, Sirenen und
+  die übrigen Klang- und Weltereignisse des Spiels.
+- **Zombie-Ereignisse** — Horden und die Auslöser des Spiels.
+- **Tageszeit** als Bogen von Mitternacht zu Mitternacht, mit dem
+  Tageslicht darunter, weil beides zusammenwirkt.
+- **Strom und Wasser** an oder aus.
+- **Eine Vorschau, bevor etwas passiert**, und danach eine Rückmeldung
+  vom Server statt „der Aufruf hat nicht geworfen".
+
+### Serverkonfiguration
+
+- **Die komplette Server-INI**, mit Erklärung zu jeder Option, sinnvoll
+  gruppiert und typisiert — eine Zahl ist ein Zahlenfeld, eine Auswahl
+  ist eine Auswahl.
+- **Jeder Sandbox-Wert**, genauso.
+- **Das Panel sagt, welche Änderungen einen Neustart brauchen** und
+  welche das Spiel im Betrieb übernimmt. Es hat das gemessen, nicht
+  angenommen.
+- **Vor jedem Schreiben eine Sicherung**, und danach wird die Datei
+  zurückgelesen, um zu bestätigen, was angekommen ist.
+- **Es wird nur gesendet, was du geändert hast** — ein unangetastetes
+  RCON-Passwort wird also nie mit seiner eigenen Maskierung
+  überschrieben.
+- **Ein Dateibrowser** über FTP/SFTP, damit du dich zu einem Pfad
+  klickst, statt ihn zu tippen.
+
+### Konsole und Chat
+
+- **Die Fernsteuerung des Spiels**, mit der Befehlsliste deines eigenen
+  Servers und einer Historie.
+- **Den Chat mitlesen** aus den Protokolldateien, und hineinschreiben.
+- **Den Chat nach Discord spiegeln**, wahlweise.
+
+### Protokolle
+
+- **Die Protokolldateien deines Servers im Panel lesen** — das Ende
+  einer Datei wird nachgeladen, ohne sie ganz herunterzuladen.
+
+### Discord
+
+- **Meldungen** in einen Kanal deiner Wahl — jedes Ereignis einzeln
+  schaltbar, und **zunächst ist alles aus**.
+- **Welche Ereignisse**: Beitritt und Verlassen, Kicks, Banns,
+  Entbannungen, Änderungen der Zugriffsstufe, Konsolenbefehle,
+  Rundnachrichten, ausgegebene Items, Teleports, ausgelöste Ereignisse,
+  Heilungen, Fertigkeiten, Eigenschaften, Statistiken und Erfahrung —
+  dazu Server nicht erreichbar oder wieder erreichbar, Bridge
+  verstummt oder wieder da, Panel oder Bridge aktualisiert, und Mods
+  hinzugefügt, entfernt oder mit verfügbarem Update.
+- **Jede Meldung ist eine Vorlage, die du bearbeiten kannst**, mit den
+  Platzhaltern neben dem Feld.
+- **Mod-Meldungen bringen eine Karte mit** — Titelbild, Name, Version
+  und ein Link direkt auf die Workshop-Seite.
+- **Chat-Spiegelung** aus dem Spiel in einen Kanal.
+- **Slash-Befehle** — `/spieler`, `/welt`, `/wetter` und `/server` mit
+  Unterbefehlen für Spielerliste, Kicks, Banns, Teleports, Items,
+  Zugriffsstufen, Uhrzeit, Strom, Wasser, Wetter, Serverstatus,
+  Rundnachrichten, Speichern und RCON. Spieler- und Itemnamen
+  vervollständigen sich beim Tippen.
+- **Rechte pro Befehl.** Wer in Discord Administrator ist, darf alles;
+  darüber hinaus weist du pro Befehl Discord-Rollen zu, und jeder
+  Befehl kostet dieselbe Panel-Berechtigung wie der entsprechende
+  Knopf. Discord ist nie eine Abkürzung an den Rechten vorbei.
+- **Ein Testversand** für jede Meldungsart, bevor du sie einschaltest.
+
+### Benutzer, Rollen und Sicherheit
+
+- **Mehrere Konten**, jedes mit eigener Rolle.
+- **Rollen mit Rechten pro Seite** — 22 Stück, gruppiert, und die,
+  die mehr weitergeben als es scheint, sind als solche markiert.
+- **Einladungen per E-Mail**, mit Ablaufdatum.
+- **Zwei-Faktor-Anmeldung** — Authenticator-Apps und **Passkeys**, mit
+  einmalig angezeigten Notfallcodes.
+- **Anmeldung mit Google** oder mit **Steam**, wahlweise, und mit einem
+  bestehenden Konto verknüpfbar.
+- **Passwort zurücksetzen** per E-Mail.
+- **Ein Aktionsprotokoll** — wer wann was mit wem gemacht hat.
+- **FTP-, RCON- und TOTP-Geheimnisse werden verschlüsselt** (sie müssen
+  wieder lesbar sein); Passwörter, Notfallcodes und Einladungstoken
+  werden gehasht.
+
+### Das Panel selbst
+
+- **Ein Dashboard** mit dem Zustand jedes Servers auf einen Blick.
+- **Verbindungsstatus pro Server**, aufgeteilt nach dem, was wirklich
+  funktioniert: RCON, FTP, Bridge und Discord werden getrennt gemeldet,
+  weil sie unabhängig voneinander ausfallen.
+- **Bridge-Verwaltung** — aus dem Panel hochladen, und drei Dinge
+  auseinandergehalten: was dieses Panel mitliefert, was auf der
+  Festplatte liegt, und was **im Spiel läuft**. Nur das Dritte
+  antwortet auf Befehle.
+- **Update-Hinweis** im Kopfbereich, wenn es eine neuere Version gibt,
+  und **automatisches Ausrollen** über den Coolify-Webhook, wenn du es
+  einschaltest.
+- **E-Mail-Einrichtung im Panel**, mit Vorlagen für die gängigen
+  Anbieter, einem Testversand und einer Prüfung deiner SPF-, DKIM- und
+  DMARC-Einträge.
+- **Eine Cache-Seite**, die benennt, was sie leert, und sagt, was sie
+  in Ruhe lässt — denn manche dieser Schlüssel sind Positionen und kein
+  Zwischenspeicher.
+- **Sieben Sprachen** — Deutsch und Englisch von Hand geschrieben;
+  Spanisch, Französisch, Italienisch, Polnisch und Russisch maschinell
+  übersetzt und im Umschalter auch so gekennzeichnet. Korrekturen sind
+  als Issue sehr willkommen.
+- **Helles und dunkles Design.**
+- **Auf Barrierefreiheit gebaut** — BFSG-konform, Kontraste gerechnet
+  statt geschätzt, keine Bedeutung allein durch Farbe, und
+  `prefers-reduced-motion` wird beachtet. Lighthouse 100 in allen vier
+  Wertungen ist das Ziel.
+- **Funktioniert auf dem Handy** — kein seitliches Scrollen, Tabellen
+  werden zu Karten, und jedes anklickbare Element ist mindestens 32 px
+  groß.
+- **Keine Analytik, keine CDN-Schriften, keine Tracker.** Die Content
+  Security Policy setzt das durch.
 
 ---
 

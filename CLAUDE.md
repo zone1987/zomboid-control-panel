@@ -45,6 +45,30 @@ What works instead, and is therefore the rule:
 - **After a compact, read CONTEXT.md before anything else.** Section 0
   already says this; it is the other half of the same rule.
 
+## 0c. ROADMAP.md holds the ideas, and is kept current
+
+`ROADMAP.md` in this directory is what the project intends to build
+next. It is linked from both READMEs, so it is read by people who are
+not us — which is what makes keeping it honest worth the effort.
+
+- **Features only.** A bug being fixed is a patch release, not a
+  roadmap entry. If it is in the "what is planned" list because it is
+  broken, it is in the wrong file — that belongs in `CONTEXT.md`.
+- **An idea that comes up gets written down**, in the session it comes
+  up in. An intention nobody recorded is an intention that is gone by
+  the next compact.
+- **A shipped entry moves to *Shipped* with its version**, rather than
+  being deleted. What was promised and then delivered is the part
+  people check.
+- **Say what is deliberately not planned, and why.** The table of
+  refusals is the most useful section in the file: it answers the
+  feature requests that would otherwise be opened, closed and reopened.
+- **No dates.** This is built in the evenings, and a month promised is
+  a month invented.
+
+`CONTEXT.md` and `ROADMAP.md` do not overlap: the first is the record
+of what happened and what is broken, the second is the intention.
+
 ## 1. All code is English
 
 Identifiers, file names, comments, commit messages, test names and
