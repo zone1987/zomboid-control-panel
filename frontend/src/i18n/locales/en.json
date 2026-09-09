@@ -541,6 +541,8 @@
     "models": "Vehicle models and textures",
     "modelsWhere": "From the game installation, uploaded by the operator. Shown on the vehicles page and the map.",
     "mods": "Mod content belongs to its authors. Uploading a mod's artwork into this panel needs their permission — the Indie Stone Terms do not cover it.",
+    "artwork": "Artwork in this panel",
+    "artworkBody": "The backdrop in the corner is an AI-generated image in the style of the game. It is not Project Zomboid artwork and was not taken from the game's files.",
     "openPage": "Open as its own page",
     "originalWording": "Wording from the terms",
     "terms": "The Indie Stone Terms",

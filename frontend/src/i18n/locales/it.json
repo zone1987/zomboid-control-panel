@@ -541,6 +541,8 @@
     "models": "Modelli e texture dei veicoli",
     "modelsWhere": "Dall'installazione del gioco, caricati da chi gestisce il server. Mostrati nella pagina dei veicoli e sulla mappa.",
     "mods": "I contenuti dei mod appartengono ai loro autori. Caricare le immagini di un mod in questo pannello richiede il loro permesso — i Termini di The Indie Stone non lo coprono.",
+    "artwork": "Materiale grafico di questo pannello",
+    "artworkBody": "L'immagine di sfondo nell'angolo è un'immagine generata dall'IA nello stile del gioco. Non è materiale grafico di Project Zomboid e non proviene dai file del gioco.",
     "openPage": "Apri come pagina a sé",
     "originalWording": "Testo dei termini di utilizzo",
     "terms": "Termini di utilizzo di The Indie Stone",

@@ -553,6 +553,8 @@
     "models": "Modele i tekstury pojazdów",
     "modelsWhere": "Z instalacji gry, wgrane przez operatora. Pokazywane na stronie pojazdów i na mapie.",
     "mods": "Zawartość modów należy do ich autorów. Wgranie grafik moda do tego panelu wymaga ich zgody — warunki The Indie Stone tego nie obejmują.",
+    "artwork": "Grafika w tym panelu",
+    "artworkBody": "Obraz w tle w rogu to grafika wygenerowana przez SI w stylu gry. Nie jest to grafika Project Zomboid i nie pochodzi z plików gry.",
     "openPage": "Otwórz jako osobną stronę",
     "originalWording": "Brzmienie z warunków",
     "terms": "The Indie Stone Terms",

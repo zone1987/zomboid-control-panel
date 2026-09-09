@@ -541,6 +541,8 @@
     "models": "Modèles et textures de véhicules",
     "modelsWhere": "Depuis l'installation du jeu, envoyés par l'opérateur. Affichés sur la page des véhicules et sur la carte.",
     "mods": "Le contenu des mods appartient à ses auteurs. Utiliser leurs images dans ce panneau demande leur autorisation — les conditions d'Indie Stone ne la couvrent pas.",
+    "artwork": "Illustrations de ce panneau",
+    "artworkBody": "L'image d'arrière-plan dans le coin est une image générée par IA dans le style du jeu. Ce n'est pas une illustration de Project Zomboid et elle ne provient pas des fichiers du jeu.",
     "openPage": "Ouvrir comme page à part",
     "originalWording": "Texte des conditions",
     "terms": "Conditions de The Indie Stone",

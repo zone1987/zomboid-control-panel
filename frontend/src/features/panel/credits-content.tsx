@@ -104,6 +104,15 @@ export function CreditsContent({ className }: { className?: string }) {
         <p className="text-xs text-muted-foreground">{t('credits.mods')}</p>
       </section>
 
+      {/* Named apart from the extracted assets above on purpose: the
+          backdrop was generated, not taken from the game, and listing it
+          beside them would claim a provenance it does not have. */}
+      <section className="max-w-2xl space-y-3 rounded-md border p-4">
+        <SectionMark label={t('credits.artwork')} />
+
+        <p className="text-sm text-muted-foreground">{t('credits.artworkBody')}</p>
+      </section>
+
       <section className="max-w-2xl space-y-3 rounded-md border p-4">
         <SectionMark label={t('credits.dataProtection')} />
 
