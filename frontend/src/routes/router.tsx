@@ -96,6 +96,20 @@ export const router = createBrowserRouter(
                       lazy: lazyRoute(() => import('@/features/logs/logs-page'), 'LogsPage'),
                     },
                     {
+                      path: 'servers/:id/mods',
+                      lazy: lazyRoute(() => import('@/features/mods/mods-page'), 'ModsPage'),
+                    },
+                    {
+                      // Its own route rather than a column: a gallery, a
+                      // description and a dependency tree need the width,
+                      // and a link to one mod has to be shareable.
+                      path: 'servers/:id/mods/:workshopId',
+                      lazy: lazyRoute(
+                        () => import('@/features/mods/mod-detail-page'),
+                        'ModDetailPage',
+                      ),
+                    },
+                    {
                       path: 'servers/:id/items',
                       lazy: lazyRoute(() => import('@/features/items/items-page'), 'ItemsPage'),
                     },

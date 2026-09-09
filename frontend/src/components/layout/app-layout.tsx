@@ -16,6 +16,27 @@ export function AppLayout() {
           bars and the content read as one surface rather than three
           panels that happen to touch. */}
       <SidebarProvider className="pz-page-field">
+        {/* Decorative only, so it carries no alt text and is hidden from
+            assistive technology: describing scenery to a screen reader
+            is noise between the reader and the page. */}
+        <div className="pz-page-scene" aria-hidden="true">
+          <picture>
+            {/* Both formats offered by type, as the logos are: a
+                browser without AVIF takes the WebP rather than nothing,
+                and the img is the last fallback for either. */}
+            <source srcSet="/app/brand/scene.avif" type="image/avif" />
+            <source srcSet="/app/brand/scene.webp" type="image/webp" />
+            <img
+              src="/app/brand/scene.webp"
+              alt=""
+              width={1400}
+              height={1332}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+        </div>
+
         <AppSidebar />
 
         {/* Capped at the viewport so the bars stay put and only the

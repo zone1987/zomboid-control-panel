@@ -17,7 +17,14 @@ const INDIE_STONE_TERMS = 'https://theindiestone.com/forums/index.php?/tos/'
  * somebody who was never shown the dialog — so the dialog is a
  * convenience over it, never a replacement.
  */
-export function CreditsContent({ className }: { className?: string }) {
+export function CreditsContent({
+  className,
+  onNavigate,
+}: {
+  className?: string
+  /** Given by the dialog so an internal link can close it first. */
+  onNavigate?: () => void
+}) {
   const { t } = useTranslation()
 
   return (
@@ -104,12 +111,25 @@ export function CreditsContent({ className }: { className?: string }) {
         <p className="text-xs text-muted-foreground">{t('credits.mods')}</p>
       </section>
 
+      {/* Named apart from the extracted assets above on purpose: the
+          backdrop was generated, not taken from the game, and listing it
+          beside them would claim a provenance it does not have. */}
+      <section className="max-w-2xl space-y-3 rounded-md border p-4">
+        <SectionMark label={t('credits.artwork')} />
+
+        <p className="text-sm text-muted-foreground">{t('credits.artworkBody')}</p>
+      </section>
+
       <section className="max-w-2xl space-y-3 rounded-md border p-4">
         <SectionMark label={t('credits.dataProtection')} />
 
         <p className="text-sm text-muted-foreground">{t('credits.dataProtectionBody')}</p>
 
-        <Link to="/settings" className="inline-block text-sm text-primary hover:underline">
+        <Link
+          to="/settings"
+          onClick={onNavigate}
+          className="inline-block text-sm text-primary hover:underline"
+        >
           {t('credits.dataProtectionLink')}
         </Link>
       </section>

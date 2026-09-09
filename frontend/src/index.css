@@ -664,6 +664,61 @@
     );
 }
 
+/* The Muldraugh scene in the top right corner.
+   Its own element rather than a third pseudo-element: ::before holds
+   the glow pools and ::after the hatch, and it has to sit above both
+   while staying below every piece of content. */
+.pz-page-scene {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* A tablet keeps only ~549px of content beside an open sidebar, so a
+     width tuned for the desktop sat behind the heading and the first
+     card rather than beside them. Narrow here, generous from `lg`. */
+  width: min(30rem, 55vw);
+  max-width: 100%;
+  /* The picture's own alpha already fades its left edge; this takes the
+     bottom too, so it settles into the page instead of ending on a line. */
+  mask-image: linear-gradient(to bottom, black 42%, transparent 92%);
+  -webkit-mask-image: linear-gradient(to bottom, black 42%, transparent 92%);
+}
+
+.pz-page-scene img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Pixel art: smoothing it turns the lettering to mush. */
+  image-rendering: pixelated;
+  /* On a light page a dark picture reads as a smudge, so it stays
+     fainter here than it can afford to be on a dark one -- but not so
+     faint that only the tree line survives. */
+  opacity: 0.1;
+}
+
+/* The theme is a class on <html> in this project, not a data attribute
+   -- see the `dark` custom variant at the top of this file. Writing it
+   the other way round left the dark page on the light value. */
+.dark .pz-page-scene img {
+  opacity: 0.16;
+}
+
+/* A phone has no room to spare: the scene would sit under the first
+   card rather than beside it. */
+@media (max-width: 48rem) {
+  .pz-page-scene {
+    display: none;
+  }
+}
+
+/* From `lg` the content column stops growing and the corner is free. */
+@media (min-width: 64rem) {
+  .pz-page-scene {
+    width: min(72rem, 78vw);
+  }
+}
+
 /* The hatch: 2px lines at 8% of a percent of the foreground, which is
    below the threshold of noticing and above the threshold of banding. */
 .pz-page-field::after {

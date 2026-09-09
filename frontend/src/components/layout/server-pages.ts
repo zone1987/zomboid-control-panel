@@ -5,6 +5,7 @@ import {
   Map,
   MessagesSquare,
   Package,
+  Puzzle,
   MessageCircle,
   ScrollText,
   Skull,
@@ -94,6 +95,15 @@ export const SERVER_PAGES: ServerPage[] = [
     icon: MessageCircle,
     permission: 'discord.manage',
     section: 'config',
+  },
+  // Under "Betrieb" rather than with the content pages: a mod list is
+  // something an operator maintains, not a catalogue they browse.
+  {
+    path: 'mods',
+    label: 'nav.mods',
+    icon: Puzzle,
+    permission: 'mods.manage',
+    section: 'live',
   },
   {
     path: 'console',

@@ -541,6 +541,8 @@
     "models": "Fahrzeugmodelle und -texturen",
     "modelsWhere": "Aus der Spielinstallation, vom Betreiber selbst hochgeladen. Gezeigt auf der Fahrzeugseite und der Karte.",
     "mods": "Inhalte aus Mods gehören ihren jeweiligen Autoren. Wer Mod-Grafiken in dieses Panel lädt, braucht deren Erlaubnis — die Bedingungen von The Indie Stone deckten das nicht ab.",
+    "artwork": "Bildmaterial in diesem Panel",
+    "artworkBody": "Das Hintergrundbild in der Ecke ist ein KI-erzeugtes Bild im Stil des Spiels. Es ist kein Project-Zomboid-Bildmaterial und stammt nicht aus den Dateien des Spiels.",
     "openPage": "Als eigene Seite öffnen",
     "originalWording": "Wortlaut der Nutzungsbedingungen",
     "terms": "Nutzungsbedingungen von The Indie Stone",
@@ -1119,7 +1121,8 @@
     "theme": "Design",
     "toggleSection": "{{section}} ein- oder ausklappen",
     "users": "Benutzer",
-    "vehicles": "Fahrzeuge"
+    "vehicles": "Fahrzeuge",
+    "mods": "Mods"
   },
   "panel": {
     "reloadForUpdate": "Neue Version laden",
@@ -1589,6 +1592,9 @@
       "vehicles.view": {
         "description": "Alle Fahrzeuge der Welt auf der Karte sehen, mit Position, Ausrichtung und Zustand.",
         "title": "Fahrzeuge sehen"
+      },
+      "mods": {
+        "manage": "Mods verwalten"
       }
     },
     "saved": "Rolle gespeichert.",
@@ -1915,7 +1921,56 @@
     "cacheNothing": "Es ist kein Server eingerichtet, also war nichts zu leeren.",
     "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden.",
     "noPermission": "Zum Ändern fehlt dir die Berechtigung „Einstellungen bearbeiten“.",
-    "revealFailed": "Der gespeicherte Wert konnte nicht gelesen werden."
+    "revealFailed": "Der gespeicherte Wert konnte nicht gelesen werden.",
+    "connectionsTab": "Verbindungen",
+    "connectionsTitle": "Ausgehende Verbindungen",
+    "connectionsDescription": "Alle Dienste, mit denen dieses Panel spricht, und wer die Verbindung aufbaut. Eine Anfrage des Panels trägt dessen Adresse, eine deines Browsers deine eigene.",
+    "connectionsNoTracking": "Es gibt keine Analyse, keinen Tracker und keine Schrift oder Skripte von Dritten. Alles Übrige liefert das Panel selbst aus.",
+    "connectionOptional": "nur wenn eingerichtet",
+    "origin": {
+      "panel": "vom Panel",
+      "browser": "von deinem Browser"
+    },
+    "connection": {
+      "steamLogin": "Steam-Anmeldung",
+      "steamApi": "Steam Web API",
+      "mapTiles": "Kartenkacheln",
+      "github": "Update-Prüfung",
+      "discord": "Discord",
+      "google": "Google-Anmeldung",
+      "coolify": "Deployment",
+      "gameServer": "Dein Spielserver"
+    },
+    "connectionWhat": {
+      "steamLogin": "Wird nur geöffnet, wenn sich jemand mit Steam anmeldet. Steam sieht dabei die Adresse deines Browsers und liefert die SteamID zurück.",
+      "steamApi": "Fragt Spielernamen ab und durchsucht den Workshop. Gesendet werden der API-Schlüssel und die Anfrage, keine Spielerdaten.",
+      "mapTiles": "Die Weltkarte wird von diesem Anbieter geladen. Beim Öffnen der Karte erreicht ihn die Adresse deines Browsers.",
+      "github": "Fragt stündlich, ob eine neuere Version vorliegt. Sendet nichts über dich oder den Server.",
+      "discord": "Sendet Chatnachrichten und Benachrichtigungen und empfängt Slash-Befehle.",
+      "google": "Wird nur geöffnet, wenn sich jemand mit Google anmeldet.",
+      "coolify": "Weist deine eigene Hosting-Plattform an, eine neue Version zu laden. Die Adresse hast du selbst eingetragen.",
+      "gameServer": "FTP oder SFTP und RCON zu dem Server, den du verwaltest, über die von dir hinterlegten Zugangsdaten."
+    },
+    "assetsTitle": "Hier gezeigte Bilder",
+    "assetsDescription": "Was jedes Bild ist, woher es stammt und ob es erzeugt wurde.",
+    "assetGenerated": "KI-erzeugt",
+    "asset": {
+      "scene": "Hintergrundbild in der Ecke",
+      "mark": "Panel-Logo",
+      "models": "Fahrzeugmodelle und -texturen",
+      "tiles": "Bodenkacheln",
+      "icons": "Item-Symbole",
+      "mapTiles": "Weltkarte"
+    },
+    "assetOrigin": {
+      "scene": "Eine Ansicht von Muldraugh im Stil des Spiels, mit KI erzeugt. Kein Project-Zomboid-Bildmaterial und nicht aus den Dateien des Spiels.",
+      "mark": "Für dieses Projekt als Inline-SVG gezeichnet — deshalb nimmt es die Akzentfarbe an.",
+      "models": "Aus der Spielinstallation, vom Betreiber hochgeladen. © The Indie Stone.",
+      "tiles": "Aus den Texturpaketen des Spiels. © The Indie Stone.",
+      "icons": "Aus den Sprite-Atlanten des Spiels. © The Indie Stone.",
+      "mapTiles": "Wird von projectzomboidmap.com geladen und hier nicht gespeichert."
+    },
+    "assetsCredits": "Die vollständige Nennung und die Bedingungen, auf denen sie beruht, stehen unter"
   },
   "setup": {
     "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen.",
@@ -2088,5 +2143,70 @@
     "temperature": "Temperatur",
     "time": "Uhrzeit",
     "wind": "Wind"
+  },
+  "mods": {
+    "description": "Den Steam-Workshop durchsuchen und die Modliste dieses Servers pflegen.",
+    "installedTab": "Installiert ({{count}})",
+    "discoverTab": "Entdecken",
+    "filterInstalled": "Installierte Mods filtern",
+    "search": "Suchen",
+    "allCategories": "Alle",
+    "addById": "Hinzufügen",
+    "add": "Zum Server hinzufügen",
+    "remove": "Vom Server entfernen",
+    "installed": "Installiert",
+    "added": "Hinzugefügt. Beim nächsten Serverstart wird der Mod heruntergeladen.",
+    "removed": "Entfernt. Beim nächsten Serverstart wird der Mod nicht mehr geladen.",
+    "notVerified": "Die Datei wurde geschrieben, konnte aber nicht zurückgelesen werden — was sie enthält, ist damit ungewiss. Die Sicherung wurde wiederhergestellt.",
+    "keysMissing": "In der Konfigurationsdatei fehlt die Zeile {{keys}}, deshalb kann nichts hineingeschrieben werden. Lege die Zeile einmal an und versuche es erneut.",
+    "transferFailed": "Die Konfigurationsdatei des Servers war nicht erreichbar.",
+    "openDetail": "{{name}} öffnen",
+    "noneInstalled": "Noch keine Mods. Unter „Entdecken\" findest du welche.",
+    "noMatches": "Kein installierter Mod passt dazu.",
+    "noResults": "Der Workshop hat dazu nichts geliefert.",
+    "resultCount": "{{shown}} von {{total}}",
+    "noKeyTitle": "Für die Suche wird ein Steam-Schlüssel gebraucht",
+    "noKeyBody": "Ohne ihn lässt sich der Workshop nicht durchsuchen. Das Hinzufügen über ID oder Link funktioniert trotzdem. Den Schlüssel trägst du unter Einstellungen → Steam ein.",
+    "buildNotice": "Auf diesem Server läuft Build {{build}}. Es werden nur Mods für diesen Build angezeigt.",
+    "noBuildTitle": "Für diesen Server ist kein Build hinterlegt",
+    "noBuildBody": "Es wird nichts gefiltert, deshalb erscheinen auch Mods für andere Builds. Trage den Build auf der Serverseite ein, damit das Panel die Liste eingrenzt.",
+    "buildMismatch": "Für Build {{builds}}",
+    "isMap": "Karte",
+    "needsCount": "Braucht {{count}}",
+    "updatedOn": "Aktualisiert {{date}}",
+    "workshopId": "Workshop-ID",
+    "size": "Größe",
+    "updated": "Aktualisiert",
+    "published": "Veröffentlicht",
+    "openOnSteam": "Kommentare und Diskussionen auf Steam",
+    "backToList": "Alle Mods",
+    "dependencies": "Abhängigkeiten",
+    "noDependencies": "Dieser Mod gibt keine an.",
+    "dependenciesNeedKey": "Zum Lesen der Abhängigkeiten wird ein Steam-Schlüssel gebraucht.",
+    "dependenciesCaveat": "Das sind die Abhängigkeiten, die Steam kennt. Autoren nennen weitere oft nur in der Beschreibung.",
+    "mapNoticeTitle": "Eine Karte braucht eine Zeile mehr",
+    "mapNoticeBody": "Karten-Mods werden erst geladen, wenn ihr Ordner auch in Map= steht — und die Reihenfolge dort entscheidet, welche Karte gewinnt.",
+    "fileHint": "Ohne die Konfigurationsdatei des Servers lässt sich die Modliste weder lesen noch schreiben.",
+    "file": {
+      "noTransfer": "Für diesen Server sind keine Zugangsdaten hinterlegt",
+      "noFile": "Auf diesem Server wurde keine Konfigurationsdatei gefunden",
+      "ambiguous": "Es wurden mehrere Konfigurationsdateien gefunden, deshalb wurde keine gewählt"
+    },
+    "lookup": {
+      "notFound": "Der Workshop kennt diesen Mod nicht. Vielleicht wurde er entfernt oder auf privat gestellt.",
+      "noKey": "Zum Anzeigen dieses Mods wird ein Steam-Schlüssel gebraucht.",
+      "rateLimited": "Steam lehnt gerade weitere Anfragen ab. Versuche es gleich noch einmal.",
+      "unreachable": "Steam war nicht erreichbar.",
+      "ok": "Nichts anzuzeigen."
+    },
+    "sort": {
+      "trend": "Beliebt",
+      "subscriptions": "Am häufigsten abonniert",
+      "updated": "Zuletzt aktualisiert",
+      "recent": "Neu"
+    },
+    "categories": "Kategorien",
+    "searchOrId": "Workshop durchsuchen oder ID bzw. Link einfügen",
+    "idRecognised": "Workshop-ID {{id}} erkannt — der Knopf fügt sie dem Server hinzu."
   }
 }

@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -24,8 +25,13 @@ import { CreditsContent } from './credits-content'
 export function CreditsDialog() {
   const { t } = useTranslation()
 
+  // Controlled so a link inside can close it. Uncontrolled, the route
+  // changed underneath and the dialog stayed up covering the page it
+  // had just navigated to -- measured, not assumed.
+  const [open, setOpen] = useState(false)
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-normal sm:h-6">
           {t('nav.credits')}
@@ -38,14 +44,20 @@ export function CreditsDialog() {
           <DialogDescription>{t('credits.description')}</DialogDescription>
         </DialogHeader>
 
-        <CreditsContent className="[&_section]:max-w-none" />
+        <CreditsContent
+          className="[&_section]:max-w-none"
+          onNavigate={() => setOpen(false)}
+        />
 
         <Link
           to="/credits"
+          onClick={() => setOpen(false)}
           className="inline-flex items-center gap-1.5 self-start text-sm text-primary hover:underline"
         >
           {t('credits.openPage')}
-          <ExternalLink className="size-3" />
+          {/* An arrow, not an external-link glyph: this stays in the
+              panel and opens no tab, and the icon is the promise. */}
+          <ArrowRight className="size-3" />
         </Link>
       </DialogContent>
     </Dialog>

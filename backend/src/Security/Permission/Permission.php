@@ -29,6 +29,7 @@ enum Permission: string
     case EditServers = 'servers.edit';
     case ManageBridge = 'servers.bridge';
     case EditServerConfig = 'servers.config';
+    case ManageMods = 'mods.manage';
     case InviteUsers = 'users.invite';
     case ManageUsers = 'users.manage';
     case EditSettings = 'settings.edit';
@@ -66,6 +67,7 @@ enum Permission: string
                 self::EditServers,
                 self::ManageBridge,
                 self::EditServerConfig,
+                self::ManageMods,
             ],
             'administration' => [
                 self::InviteUsers,

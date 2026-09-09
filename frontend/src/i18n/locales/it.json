@@ -541,6 +541,8 @@
     "models": "Modelli e texture dei veicoli",
     "modelsWhere": "Dall'installazione del gioco, caricati da chi gestisce il server. Mostrati nella pagina dei veicoli e sulla mappa.",
     "mods": "I contenuti dei mod appartengono ai loro autori. Caricare le immagini di un mod in questo pannello richiede il loro permesso — i Termini di The Indie Stone non lo coprono.",
+    "artwork": "Materiale grafico di questo pannello",
+    "artworkBody": "L'immagine di sfondo nell'angolo è un'immagine generata dall'IA nello stile del gioco. Non è materiale grafico di Project Zomboid e non proviene dai file del gioco.",
     "openPage": "Apri come pagina a sé",
     "originalWording": "Testo dei termini di utilizzo",
     "terms": "Termini di utilizzo di The Indie Stone",
@@ -1119,7 +1121,8 @@
     "theme": "Tema",
     "toggleSection": "Espandi o riduci {{section}}",
     "users": "Utenti",
-    "vehicles": "Veicoli"
+    "vehicles": "Veicoli",
+    "mods": "Mods"
   },
   "panel": {
     "reloadForUpdate": "Carica la nuova versione",
@@ -1589,6 +1592,9 @@
       "vehicles.view": {
         "description": "Ogni veicolo del mondo sulla mappa, con posizione, orientamento e condizione.",
         "title": "Vedere i veicoli"
+      },
+      "mods": {
+        "manage": "Gestire le mod"
       }
     },
     "saved": "Ruolo salvato.",
@@ -1915,7 +1921,56 @@
     "cacheNothing": "Non è configurato alcun server, quindi non c’era nulla da svuotare.",
     "cacheFailed": "Non è stato possibile svuotare la cache.",
     "noPermission": "Per modificarlo serve il permesso «modifica impostazioni».",
-    "revealFailed": "Non è stato possibile leggere il valore salvato."
+    "revealFailed": "Non è stato possibile leggere il valore salvato.",
+    "connectionsTab": "Connections",
+    "connectionsTitle": "Outgoing connections",
+    "connectionsDescription": "Every service this panel talks to, and who makes the call. A request the panel makes carries the panel’s address; one your browser makes carries yours.",
+    "connectionsNoTracking": "There is no analytics, no tracker and no font or script loaded from a third party. Everything else is served by the panel itself.",
+    "connectionOptional": "only when configured",
+    "origin": {
+      "panel": "from the panel",
+      "browser": "from your browser"
+    },
+    "connection": {
+      "steamLogin": "Steam sign-in",
+      "steamApi": "Steam Web API",
+      "mapTiles": "Map tiles",
+      "github": "Update check",
+      "discord": "Discord",
+      "google": "Google sign-in",
+      "coolify": "Deployment",
+      "gameServer": "Your game server"
+    },
+    "connectionWhat": {
+      "steamLogin": "Opened only when somebody signs in with Steam. Steam sees your browser’s address and returns the SteamID.",
+      "steamApi": "Looks up player names and searches the Workshop. Sends the API key and what is being asked for, never player data.",
+      "mapTiles": "The world map is loaded from this provider, so opening the map exposes your browser’s address to it.",
+      "github": "Asks hourly whether a newer release exists. Sends nothing about you or the server.",
+      "discord": "Sends chat messages and notifications, and receives slash commands.",
+      "google": "Opened only when somebody signs in with Google.",
+      "coolify": "Tells your own hosting platform to pull a new release. The address is the one you configured.",
+      "gameServer": "FTP or SFTP and RCON to the server you administer, over the credentials you entered."
+    },
+    "assetsTitle": "Pictures shown here",
+    "assetsDescription": "What each picture is, where it came from, and whether it was generated.",
+    "assetGenerated": "AI-generated",
+    "asset": {
+      "scene": "Backdrop in the corner",
+      "mark": "Panel logo",
+      "models": "Vehicle models and textures",
+      "tiles": "Ground tiles",
+      "icons": "Item icons",
+      "mapTiles": "World map"
+    },
+    "assetOrigin": {
+      "scene": "A view of Muldraugh in the style of the game, generated with AI. Not Project Zomboid artwork and not taken from the game’s files.",
+      "mark": "Drawn for this project as an inline SVG, which is why it takes the accent colour.",
+      "models": "From the game installation, uploaded by the operator. © The Indie Stone.",
+      "tiles": "From the game’s own texture packs. © The Indie Stone.",
+      "icons": "From the game’s sprite atlases. © The Indie Stone.",
+      "mapTiles": "Loaded from projectzomboidmap.com, not stored here."
+    },
+    "assetsCredits": "The full attribution and the terms it rests on are on"
   },
   "setup": {
     "alreadyCompleted": "La configurazione iniziale è già stata completata.",
@@ -2088,5 +2143,70 @@
     "temperature": "Temperatura",
     "time": "Ora",
     "wind": "Vento"
+  },
+  "mods": {
+    "description": "Browse the Steam Workshop and keep this server’s mod list.",
+    "installedTab": "Installed ({{count}})",
+    "discoverTab": "Discover",
+    "filterInstalled": "Filter the installed mods",
+    "search": "Search",
+    "allCategories": "All",
+    "addById": "Add",
+    "add": "Add to the server",
+    "remove": "Remove from the server",
+    "installed": "Installed",
+    "added": "Added. It is downloaded at the next server start.",
+    "removed": "Removed. It stops loading at the next server start.",
+    "notVerified": "The file was written but could not be read back, so it is not certain what it holds. The backup was restored.",
+    "keysMissing": "The settings file has no {{keys}} line, so nothing can be written into it. Add the line once and try again.",
+    "transferFailed": "The server’s settings file could not be reached.",
+    "openDetail": "Open {{name}}",
+    "noneInstalled": "No mods yet. Find some under Discover.",
+    "noMatches": "No installed mod matches.",
+    "noResults": "The workshop returned nothing for this.",
+    "resultCount": "{{shown}} of {{total}}",
+    "noKeyTitle": "Searching needs a Steam key",
+    "noKeyBody": "Without one the workshop cannot be searched. Adding a mod by its ID or link works regardless. The key is entered under Settings → Steam.",
+    "buildNotice": "This server runs build {{build}}. Only mods for that build are shown.",
+    "noBuildTitle": "No build set for this server",
+    "noBuildBody": "Nothing filters the list, so mods for other builds are shown too. Enter the build on the server page to have the panel narrow it.",
+    "buildMismatch": "For build {{builds}}",
+    "isMap": "Map",
+    "needsCount": "Needs {{count}}",
+    "updatedOn": "Updated {{date}}",
+    "workshopId": "Workshop ID",
+    "size": "Size",
+    "updated": "Updated",
+    "published": "Published",
+    "openOnSteam": "Comments and discussions on Steam",
+    "backToList": "All mods",
+    "dependencies": "Dependencies",
+    "noDependencies": "This mod declares none.",
+    "dependenciesNeedKey": "A Steam key is needed to read dependencies.",
+    "dependenciesCaveat": "These are the ones Steam knows about. Authors often name further requirements only in the description.",
+    "mapNoticeTitle": "A map needs one more line",
+    "mapNoticeBody": "Map mods are only loaded once their folder is listed in Map= as well, and the order there decides which map wins.",
+    "fileHint": "Without the server’s settings file the mod list can be neither read nor written.",
+    "file": {
+      "noTransfer": "This server has no transfer credentials",
+      "noFile": "No settings file was found on this server",
+      "ambiguous": "Several settings files were found, so none was chosen"
+    },
+    "lookup": {
+      "notFound": "The workshop does not know this mod. It may have been removed or made private.",
+      "noKey": "A Steam key is needed to show this mod.",
+      "rateLimited": "Steam is refusing further requests for the moment. Try again shortly.",
+      "unreachable": "Steam could not be reached.",
+      "ok": "Nothing to show."
+    },
+    "sort": {
+      "trend": "Popular",
+      "subscriptions": "Most subscribed",
+      "updated": "Recently updated",
+      "recent": "New"
+    },
+    "categories": "Categorie",
+    "searchOrId": "Search the workshop, or paste an ID or link",
+    "idRecognised": "Workshop ID {{id}} recognised — the button adds it to the server."
   }
 }
