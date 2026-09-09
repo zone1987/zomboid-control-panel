@@ -153,6 +153,12 @@ when@test:
             alias: App\Server\Rcon\SourceRconClient
             public: true
 
+        # And again for the workshop: a test asserting the mod
+        # endpoints' shape must not depend on Valve being reachable.
+        App\Server\Mods\WorkshopSource:
+            alias: App\Server\Mods\WorkshopClient
+            public: true
+
         # Same reason: a functional test of the interaction endpoint has
         # to see what would have been sent to Discord, and there is no
         # Discord to send it to.

@@ -34,6 +34,16 @@ class GameServer
     #[ORM\OneToOne(targetEntity: DiscordConfig::class, mappedBy: 'server', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?DiscordConfig $discordConfig = null;
 
+    /**
+     * Which game build this server runs, at workshop granularity ("42").
+     *
+     * Null means nobody has said, which is not the same as a build the
+     * panel could not read: an unknown build filters no mods and warns
+     * about none, because guessing would hide mods that are fine.
+     */
+    #[ORM\Column(type: 'string', length: 8, nullable: true)]
+    private ?string $gameBuild = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -98,6 +108,16 @@ class GameServer
     public function setDiscordConfig(?DiscordConfig $discordConfig): void
     {
         $this->discordConfig = $discordConfig;
+    }
+
+    public function getGameBuild(): ?string
+    {
+        return $this->gameBuild;
+    }
+
+    public function setGameBuild(?string $gameBuild): void
+    {
+        $this->gameBuild = $gameBuild === null || trim($gameBuild) === '' ? null : trim($gameBuild);
     }
 
     public function getCreatedAt(): \DateTimeImmutable

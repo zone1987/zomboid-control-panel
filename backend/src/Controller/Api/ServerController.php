@@ -110,6 +110,22 @@ final class ServerController extends AbstractController
             $server->setDescription($this->stringOrNull($payload['description']));
         }
 
+        if (\array_key_exists('gameBuild', $payload)) {
+            $build = $this->stringOrNull($payload['gameBuild']);
+
+            // Refused rather than coerced: a value nobody recognises
+            // would filter the workshop down to nothing and look like a
+            // broken search (rule 6c).
+            if ($build !== null && preg_match('/^\d{1,3}(\.\d{1,3}){0,2}$/', $build) !== 1) {
+                return new JsonResponse([
+                    'status' => 'failed',
+                    'errors' => ['gameBuild' => 'validation.invalid'],
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $server->setGameBuild($build);
+        }
+
         if (isset($payload['ftp']) && \is_array($payload['ftp'])) {
             $this->applyFtp($server, $payload['ftp']);
         }
@@ -386,6 +402,9 @@ final class ServerController extends AbstractController
             'id' => $server->getId()->toRfc4122(),
             'name' => $server->getName(),
             'description' => $server->getDescription(),
+            // Null means nobody has said, which the mods screen shows as
+            // "no build filter" rather than pretending to know.
+            'gameBuild' => $server->getGameBuild(),
             'createdAt' => $server->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'ftp' => $ftp === null ? null : [
                 'protocol' => $ftp->getProtocol(),

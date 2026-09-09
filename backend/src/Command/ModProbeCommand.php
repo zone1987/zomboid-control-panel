@@ -92,9 +92,27 @@ final class ModProbeCommand extends Command
             }
         }
 
-        $io->section('Search (needs the key)');
+        $io->section('Search filtered by build');
+
+        foreach ([['Build 42'], ['Build 41'], []] as $tags) {
+            $probe = $this->workshop->search('fire', $tags, 'trend', 1, 3);
+            $io->writeln(sprintf(
+                '  tags=%-12s state=%-6s total=%d',
+                implode(',', $tags) ?: '(none)',
+                $probe->state->value,
+                $probe->total,
+            ));
+
+            foreach ($probe->items as $found) {
+                $io->writeln(sprintf(
+                    '      %-40s builds=%s',
+                    mb_substr($found->title, 0, 40),
+                    implode('/', $found->declaredBuilds()) ?: '-',
+                ));
+            }
+        }
+
         $search = $this->workshop->search('fire', ['Build 42'], 'trend', 1, 5);
-        $io->writeln(sprintf('state=%s total=%d shown=%d', $search->state->value, $search->total, \count($search->items)));
 
         foreach ($search->items as $item) {
             $io->writeln(sprintf(

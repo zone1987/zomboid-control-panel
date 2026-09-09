@@ -15,7 +15,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * key. Without one the panel still works from an id, so `NoKey` is a
  * state the interface explains rather than an error it reports.
  */
-final class WorkshopClient
+final class WorkshopClient implements WorkshopSource
 {
     private const APP_ID = 108600;
 

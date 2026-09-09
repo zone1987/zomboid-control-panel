@@ -42,20 +42,36 @@ final readonly class WorkshopItem
     }
 
     /**
-     * Which game build the author declared, if any.
+     * Every game build the author declared.
+     *
+     * A list rather than one value: a mod supporting 41 and 42 carries
+     * both tags, and reading only the first would call it a mismatch on
+     * whichever server asked second.
+     *
+     * @return list<string>
+     */
+    public function declaredBuilds(): array
+    {
+        $builds = [];
+
+        foreach ($this->tags as $tag) {
+            if (preg_match('/^Build (\d+)$/', $tag, $matches) === 1) {
+                $builds[] = $matches[1];
+            }
+        }
+
+        return $builds;
+    }
+
+    /**
+     * The build to show when there is room for one.
      *
      * Null rather than a guess: plenty of items carry no build tag, and
      * warning about a mismatch nobody declared would be noise.
      */
     public function declaredBuild(): ?string
     {
-        foreach ($this->tags as $tag) {
-            if (preg_match('/^Build (\d+)$/', $tag, $matches) === 1) {
-                return $matches[1];
-            }
-        }
-
-        return null;
+        return $this->declaredBuilds()[0] ?? null;
     }
 
     /** Map mods need a `Map=` entry as well, which is easy to forget. */
