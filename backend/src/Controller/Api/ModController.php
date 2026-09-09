@@ -106,6 +106,31 @@ final class ModController extends AbstractController
     }
 
     /**
+     * What is wrong with this server's mod list.
+     *
+     * Separate from `/installed` because it costs several workshop
+     * lookups and an FTP walk per mod, while the list itself is polled.
+     */
+    #[Route('/diagnosis', name: 'api_mods_diagnosis', methods: ['GET'])]
+    public function diagnosis(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            return new JsonResponse($this->mods->diagnose($server));
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+    }
+
+    /**
      * Searches the workshop.
      *
      * Answers 200 with `state: noKey` rather than an error status: a

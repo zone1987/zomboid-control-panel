@@ -23,6 +23,8 @@ final readonly class ModManager
         private ModListReader $reader,
         private ModListWriter $writer,
         private WorkshopSource $workshop,
+        private ModInfoReader $modInfo,
+        private DependencyGraph $graph,
     ) {
     }
 
@@ -117,6 +119,116 @@ final readonly class ModManager
             'gameBuild' => $server->getGameBuild(),
             'items' => $items,
         ];
+    }
+
+    /**
+     * What is wrong with this server's mod list, if anything.
+     *
+     * Its own call rather than part of `installed()`: this costs
+     * several workshop lookups and an FTP walk per mod, and the list
+     * itself has to stay quick enough to poll.
+     *
+     * @return array<string, mixed>
+     */
+    public function diagnose(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return [
+                'state' => $location->state,
+                'modIds' => [],
+                'missingDependencies' => [],
+                'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
+                'truncated' => false,
+                'orphanedModIds' => [],
+                'unmappedWorkshopIds' => [],
+            ];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        try {
+            $list = $this->reader->read($config, (string) $location->path);
+        } catch (StorageException) {
+            return [
+                'state' => 'unreachable',
+                'modIds' => [],
+                'missingDependencies' => [],
+                'loadOrder' => LoadOrderVerdict::sorted([], false)->toArray(),
+                'truncated' => false,
+                'orphanedModIds' => [],
+                'unmappedWorkshopIds' => [],
+            ];
+        }
+
+        // Which mod ids each workshop item actually contains. Read per
+        // item because only the item itself knows.
+        $byWorkshopId = [];
+        $allModIds = [];
+
+        foreach ($list->workshopIds as $workshopId) {
+            $verdict = $this->modInfo->read($config, $workshopId);
+            $byWorkshopId[$workshopId] = $verdict->toArray();
+
+            foreach ($verdict->ids as $modId) {
+                $allModIds[] = $modId;
+            }
+        }
+
+        $resolution = $this->graph->resolve($list->workshopIds);
+        $missing = $resolution->succeeded()
+            ? DependencyGraph::missing($list->workshopIds, $resolution->required)
+            : [];
+
+        $order = LoadOrder::sort($list->modIds, self::modIdEdges($resolution->edges, $byWorkshopId));
+
+        return [
+            'state' => 'found',
+            'modIds' => $byWorkshopId,
+            'missingDependencies' => $missing,
+            'loadOrder' => $order->toArray(),
+            'truncated' => $resolution->truncated,
+            // In Mods= but belonging to no installed workshop item: the
+            // server will try to load something it never downloaded.
+            'orphanedModIds' => array_values(array_diff($list->modIds, $allModIds)),
+            // Downloaded but absent from Mods=, so the item is fetched
+            // and then never loaded — a silent way to wonder why a mod
+            // "does nothing".
+            'unmappedWorkshopIds' => array_values(array_filter(
+                $list->workshopIds,
+                static function (string $workshopId) use ($byWorkshopId, $list): bool {
+                    $known = $byWorkshopId[$workshopId]['ids'] ?? [];
+
+                    return $known !== [] && array_diff($known, $list->modIds) === $known;
+                },
+            )),
+        ];
+    }
+
+    /**
+     * Turns workshop-id edges into mod-id edges, which is what `Mods=`
+     * is ordered by.
+     *
+     * @param list<array{0: string, 1: string}> $edges
+     * @param array<string, array<string, mixed>> $byWorkshopId
+     *
+     * @return list<array{0: string, 1: string}>
+     */
+    private static function modIdEdges(array $edges, array $byWorkshopId): array
+    {
+        $out = [];
+
+        foreach ($edges as [$parent, $child]) {
+            foreach ($byWorkshopId[$parent]['ids'] ?? [] as $parentModId) {
+                foreach ($byWorkshopId[$child]['ids'] ?? [] as $childModId) {
+                    $out[] = [$parentModId, $childModId];
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**
