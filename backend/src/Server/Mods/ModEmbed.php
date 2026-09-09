@@ -26,6 +26,32 @@ final readonly class ModEmbed
     private const COLOUR = 0x34D399;
 
     /**
+     * One card per mod, in the order they were named.
+     *
+     * Every mod the message mentions gets one: naming two and showing
+     * one says something false about the second.
+     *
+     * @param list<string>                $ids
+     * @param array<string, WorkshopItem> $described
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function forAll(array $ids, array $described): array
+    {
+        $embeds = [];
+
+        foreach ($ids as $id) {
+            $embed = self::of($described[$id] ?? null);
+
+            if ($embed !== null) {
+                $embeds[] = $embed;
+            }
+        }
+
+        return $embeds;
+    }
+
+    /**
      * @return array<string, mixed>|null null when there is nothing worth showing
      */
     public static function of(?WorkshopItem $item): ?array

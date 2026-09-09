@@ -287,10 +287,10 @@ final readonly class ModManager
                 'admin' => $this->security->getUser()?->getUserIdentifier() ?? '—',
                 'input.mods' => implode(', ', $labels),
             ],
-            // The mod that was asked for, not a requirement dragged in
-            // with it: one embed, and it should show what the operator
-            // actually clicked.
-            ModEmbed::of($described[$workshopId] ?? null),
+            // One card per mod named in the text, requirements
+            // included: naming two and showing one would say something
+            // false about the second.
+            ModEmbed::forAll($ids, $described),
         ));
     }
 

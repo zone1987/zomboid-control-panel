@@ -100,10 +100,7 @@ final readonly class ModUpdateWatcher
             'mods.update',
             $server,
             ['input.mods' => implode(', ', $labels)],
-            // Only when a single mod is involved: Discord shows one
-            // embed per message, and picking one of five would say the
-            // wrong thing about the other four.
-            \count($fresh) === 1 ? ModEmbed::of($described[$fresh[0]] ?? null) : null,
+            ModEmbed::forAll($fresh, $described),
         ));
 
         return $fresh;

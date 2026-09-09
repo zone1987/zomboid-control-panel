@@ -36,8 +36,16 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(Permission::ManageDiscord->value)]
 final class DiscordController extends AbstractController
 {
-    /** A real, long-standing workshop item, for the test message's embed. */
-    private const SAMPLE_MOD = '2875848298';
+    /**
+     * Two real, long-standing workshop items for the test message.
+     *
+     * Two rather than one, because an add usually carries a
+     * requirement with it and the message has to look like the real
+     * thing — including a card for each.
+     *
+     * @var list<string>
+     */
+    private const SAMPLE_MODS = ['2875848298', '3770149036'];
 
     public function __construct(
         private readonly GameServerRepository $servers,
@@ -293,6 +301,12 @@ final class DiscordController extends AbstractController
             ? $payload['template']
             : ($setting?->getTemplate() ?? NotifiableEvents::defaultTemplate($type) ?? '');
 
+        $sample = [];
+
+        foreach ($this->workshop->itemsById(self::SAMPLE_MODS)->items as $item) {
+            $sample[$item->workshopId] = $item;
+        }
+
         // Example values, so the operator sees the shape of the real
         // thing rather than a sentence full of empty gaps.
         $content = (new MessageTemplate())->render($template, [
@@ -305,21 +319,29 @@ final class DiscordController extends AbstractController
             // Read rather than written out: a literal here was still
             // showing 0.21.0 after the bridge moved on.
             'input.version' => $this->bridge->version(),
-            'input.mods' => 'Fitted Sheets, Common Sense',
+            // The same mods the cards below show: naming two and
+            // picturing one is exactly the contradiction this preview
+            // exists to avoid.
+            'input.mods' => implode(', ', array_map(
+                static fn (string $id): string => $sample[$id]?->title ?? $id,
+                self::SAMPLE_MODS,
+            )),
         ]);
 
         // A mod event carries an embed in real life, so the test has to
         // as well — otherwise it shows something the operator will
         // never actually receive.
-        $embed = str_starts_with($type, 'mods.')
-            // A real mod rather than an invented one, so the operator
-            // sees exactly the shape they will receive. Steam being
-            // unreachable simply costs the embed, not the test.
-            ? ModEmbed::of($this->workshop->itemsById([self::SAMPLE_MOD])->first())
-            : null;
+        $embeds = [];
+
+        if (str_starts_with($type, 'mods.')) {
+            // Real mods rather than invented ones, so the operator sees
+            // exactly the shape they will receive. Steam being
+            // unreachable costs the cards, not the test.
+            $embeds = ModEmbed::forAll(self::SAMPLE_MODS, $sample);
+        }
 
         try {
-            $this->discord->sendMessage($channelId, new DiscordMessage($content, $embed));
+            $this->discord->sendMessage($channelId, new DiscordMessage($content, $embeds));
         } catch (DiscordException $exception) {
             return new JsonResponse([
                 'status' => 'failed',

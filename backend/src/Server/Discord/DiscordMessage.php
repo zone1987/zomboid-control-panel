@@ -18,12 +18,15 @@ final readonly class DiscordMessage
     /** Discord refuses a message body longer than this. */
     public const MAX_LENGTH = 2000;
 
+    /** Discord refuses a message carrying more than this many. */
+    public const MAX_EMBEDS = 10;
+
     /**
-     * @param array<string, mixed>|null $embed a Discord embed, or none
+     * @param list<array<string, mixed>> $embeds cards to show under the text
      */
     public function __construct(
         public string $content,
-        public ?array $embed = null,
+        public array $embeds = [],
     ) {
     }
 
@@ -37,8 +40,10 @@ final readonly class DiscordMessage
             'allowed_mentions' => ['parse' => []],
         ];
 
-        if ($this->embed !== null) {
-            $payload['embeds'] = [$this->embed];
+        if ($this->embeds !== []) {
+            // Past the limit Discord refuses the whole message, so the
+            // rest are dropped rather than the message lost.
+            $payload['embeds'] = \array_slice($this->embeds, 0, self::MAX_EMBEDS);
         }
 
         return $payload;

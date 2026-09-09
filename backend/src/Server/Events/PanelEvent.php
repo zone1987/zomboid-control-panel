@@ -43,15 +43,15 @@ final readonly class PanelEvent
         /** True when the server refused it; null when nobody checked. */
         public ?bool $failed = null,
         /**
-         * A Discord embed to send alongside the text, or none.
+         * Discord cards to send alongside the text.
          *
          * Carried on the event rather than built in the notifier: only
          * whatever raised it knows what it is about. Last, because the
          * existing factories pass their arguments positionally.
          *
-         * @var array<string, mixed>|null
+         * @var list<array<string, mixed>>
          */
-        public ?array $embed = null,
+        public array $embeds = [],
     ) {
     }
 
@@ -120,8 +120,8 @@ final readonly class PanelEvent
         GameServer $server,
         /** @var array<string, scalar|null> */
         array $tokens = [],
-        /** @var array<string, mixed>|null */
-        ?array $embed = null,
+        /** @var list<array<string, mixed>> */
+        array $embeds = [],
     ): self {
         return new self(
             $type,
@@ -131,7 +131,7 @@ final readonly class PanelEvent
             null,
             ['server' => $server->getName()] + $tokens,
             new \DateTimeImmutable(),
-            embed: $embed,
+            embeds: $embeds,
         );
     }
 }

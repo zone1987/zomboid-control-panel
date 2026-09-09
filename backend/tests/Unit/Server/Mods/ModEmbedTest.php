@@ -87,6 +87,31 @@ final class ModEmbedTest extends TestCase
     }
 
     /**
+     * The fault the user spotted: the text named two mods and only one
+     * card appeared, which says something false about the second.
+     */
+    public function testEveryNamedModGetsItsOwnCard(): void
+    {
+        $described = [
+            '1' => self::item(title: 'First'),
+            '2' => self::item(title: 'Second'),
+        ];
+
+        $embeds = ModEmbed::forAll(['1', '2'], $described);
+
+        self::assertCount(2, $embeds);
+        self::assertSame(['First', 'Second'], array_column($embeds, 'title'));
+    }
+
+    /** A mod the workshop could not describe simply has no card. */
+    public function testAModThatCouldNotBeDescribedIsSkippedRatherThanEmpty(): void
+    {
+        $embeds = ModEmbed::forAll(['1', 'missing'], ['1' => self::item()]);
+
+        self::assertCount(1, $embeds);
+    }
+
+    /**
      * @param list<string> $tags
      */
     private static function item(

@@ -66,7 +66,7 @@ final readonly class EventNotifier
 
         $this->discord->sendMessage(
             (string) $setting->getChannelId(),
-            new DiscordMessage($content, $event->embed),
+            new DiscordMessage($content, $event->embeds),
         );
     }
 }
