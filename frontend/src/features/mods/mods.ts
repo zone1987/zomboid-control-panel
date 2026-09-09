@@ -107,6 +107,69 @@ export type DependencyTree = {
   truncated: boolean
 }
 
+/** One required mod, named once however many paths lead to it. */
+export type Requirement = {
+  workshopId: string
+  title: string | null
+  resolved: boolean
+  /** Something it requires also requires it. */
+  mutual: boolean
+}
+
+/**
+ * The requirement chain flattened to the question it answers.
+ *
+ * A tree drew `A → B → A` and then `B → A → B`, which is one pair of
+ * mods rendered as six rows — the operator asking "what do I install"
+ * counted four names and found two. Each mod appears once here, in the
+ * order first reached, with a circle reported as a fact about the pair
+ * rather than as another level.
+ */
+export function requirementsOf(nodes: DependencyNode[]): Requirement[] {
+  const found = new Map<string, Requirement>()
+  const requires = new Map<string, Set<string>>()
+
+  const walk = (node: DependencyNode, parent: string | null) => {
+    if (parent !== null) {
+      const edges = requires.get(parent) ?? new Set<string>()
+      edges.add(node.workshopId)
+      requires.set(parent, edges)
+    }
+
+    // A repeat carries no new information: it is the circle closing.
+    if (node.repeats) {
+      return
+    }
+
+    if (!found.has(node.workshopId)) {
+      found.set(node.workshopId, {
+        workshopId: node.workshopId,
+        title: node.title,
+        resolved: node.resolved,
+        mutual: false,
+      })
+    }
+
+    for (const child of node.children) {
+      walk(child, node.workshopId)
+    }
+  }
+
+  const root = nodes[0]
+
+  for (const child of root?.children ?? []) {
+    walk(child, root?.workshopId ?? null)
+  }
+
+  for (const entry of found.values()) {
+    entry.mutual = [...(requires.get(entry.workshopId) ?? [])].some((target) =>
+      requires.get(target)?.has(entry.workshopId) === true,
+    )
+  }
+
+  return [...found.values()]
+}
+
 export type ModDetail = {
   state: WorkshopState
   hasKey: boolean

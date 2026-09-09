@@ -40,7 +40,21 @@ final readonly class SecurityHeadersSubscriber implements EventSubscriberInterfa
         'upgrade-insecure-requests',
     ];
 
-    private const IMAGE_SOURCES = "'self' data: blob: https://tiles.projectzomboidmap.com";
+    /**
+     * `https:` is here for one thing: the pictures inside a workshop
+     * description.
+     *
+     * Measured across ten mods, their 48 images sat on six different
+     * hosts — imgur, raw.githubusercontent, ibb, postimg, Steam's own,
+     * and one author's private domain. An allow-list would be stale
+     * after the next mod, and a description whose pictures carry its
+     * meaning is not a description without them.
+     *
+     * Widened for images alone. `script-src` and `connect-src` stay on
+     * this origin, so a picture is a picture: it cannot run and cannot
+     * read anything back.
+     */
+    private const IMAGE_SOURCES = "'self' data: blob: https:";
 
     private const CONNECT_SOURCES = "'self' https://tiles.projectzomboidmap.com";
 
