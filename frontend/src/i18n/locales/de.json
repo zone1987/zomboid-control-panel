@@ -1917,7 +1917,56 @@
     "cacheNothing": "Es ist kein Server eingerichtet, also war nichts zu leeren.",
     "cacheFailed": "Der Zwischenspeicher konnte nicht geleert werden.",
     "noPermission": "Zum Ändern fehlt dir die Berechtigung „Einstellungen bearbeiten“.",
-    "revealFailed": "Der gespeicherte Wert konnte nicht gelesen werden."
+    "revealFailed": "Der gespeicherte Wert konnte nicht gelesen werden.",
+    "connectionsTab": "Verbindungen",
+    "connectionsTitle": "Ausgehende Verbindungen",
+    "connectionsDescription": "Alle Dienste, mit denen dieses Panel spricht, und wer die Verbindung aufbaut. Eine Anfrage des Panels trägt dessen Adresse, eine deines Browsers deine eigene.",
+    "connectionsNoTracking": "Es gibt keine Analyse, keinen Tracker und keine Schrift oder Skripte von Dritten. Alles Übrige liefert das Panel selbst aus.",
+    "connectionOptional": "nur wenn eingerichtet",
+    "origin": {
+      "panel": "vom Panel",
+      "browser": "von deinem Browser"
+    },
+    "connection": {
+      "steamLogin": "Steam-Anmeldung",
+      "steamApi": "Steam Web API",
+      "mapTiles": "Kartenkacheln",
+      "github": "Update-Prüfung",
+      "discord": "Discord",
+      "google": "Google-Anmeldung",
+      "coolify": "Deployment",
+      "gameServer": "Dein Spielserver"
+    },
+    "connectionWhat": {
+      "steamLogin": "Wird nur geöffnet, wenn sich jemand mit Steam anmeldet. Steam sieht dabei die Adresse deines Browsers und liefert die SteamID zurück.",
+      "steamApi": "Fragt Spielernamen ab und durchsucht den Workshop. Gesendet werden der API-Schlüssel und die Anfrage, keine Spielerdaten.",
+      "mapTiles": "Die Weltkarte wird von diesem Anbieter geladen. Beim Öffnen der Karte erreicht ihn die Adresse deines Browsers.",
+      "github": "Fragt stündlich, ob eine neuere Version vorliegt. Sendet nichts über dich oder den Server.",
+      "discord": "Sendet Chatnachrichten und Benachrichtigungen und empfängt Slash-Befehle.",
+      "google": "Wird nur geöffnet, wenn sich jemand mit Google anmeldet.",
+      "coolify": "Weist deine eigene Hosting-Plattform an, eine neue Version zu laden. Die Adresse hast du selbst eingetragen.",
+      "gameServer": "FTP oder SFTP und RCON zu dem Server, den du verwaltest, über die von dir hinterlegten Zugangsdaten."
+    },
+    "assetsTitle": "Hier gezeigte Bilder",
+    "assetsDescription": "Was jedes Bild ist, woher es stammt und ob es erzeugt wurde.",
+    "assetGenerated": "KI-erzeugt",
+    "asset": {
+      "scene": "Hintergrundbild in der Ecke",
+      "mark": "Panel-Logo",
+      "models": "Fahrzeugmodelle und -texturen",
+      "tiles": "Bodenkacheln",
+      "icons": "Item-Symbole",
+      "mapTiles": "Weltkarte"
+    },
+    "assetOrigin": {
+      "scene": "Eine Ansicht von Muldraugh im Stil des Spiels, mit KI erzeugt. Kein Project-Zomboid-Bildmaterial und nicht aus den Dateien des Spiels.",
+      "mark": "Für dieses Projekt als Inline-SVG gezeichnet — deshalb nimmt es die Akzentfarbe an.",
+      "models": "Aus der Spielinstallation, vom Betreiber hochgeladen. © The Indie Stone.",
+      "tiles": "Aus den Texturpaketen des Spiels. © The Indie Stone.",
+      "icons": "Aus den Sprite-Atlanten des Spiels. © The Indie Stone.",
+      "mapTiles": "Wird von projectzomboidmap.com geladen und hier nicht gespeichert."
+    },
+    "assetsCredits": "Die vollständige Nennung und die Bedingungen, auf denen sie beruht, stehen unter"
   },
   "setup": {
     "alreadyCompleted": "Die Einrichtung ist bereits abgeschlossen.",

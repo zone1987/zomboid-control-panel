@@ -1917,7 +1917,56 @@
     "cacheNothing": "No server is set up, so there was nothing to clear.",
     "cacheFailed": "The cache could not be cleared.",
     "noPermission": "Changing this needs the \"edit settings\" permission.",
-    "revealFailed": "The stored value could not be read."
+    "revealFailed": "The stored value could not be read.",
+    "connectionsTab": "Connections",
+    "connectionsTitle": "Outgoing connections",
+    "connectionsDescription": "Every service this panel talks to, and who makes the call. A request the panel makes carries the panel’s address; one your browser makes carries yours.",
+    "connectionsNoTracking": "There is no analytics, no tracker and no font or script loaded from a third party. Everything else is served by the panel itself.",
+    "connectionOptional": "only when configured",
+    "origin": {
+      "panel": "from the panel",
+      "browser": "from your browser"
+    },
+    "connection": {
+      "steamLogin": "Steam sign-in",
+      "steamApi": "Steam Web API",
+      "mapTiles": "Map tiles",
+      "github": "Update check",
+      "discord": "Discord",
+      "google": "Google sign-in",
+      "coolify": "Deployment",
+      "gameServer": "Your game server"
+    },
+    "connectionWhat": {
+      "steamLogin": "Opened only when somebody signs in with Steam. Steam sees your browser’s address and returns the SteamID.",
+      "steamApi": "Looks up player names and searches the Workshop. Sends the API key and what is being asked for, never player data.",
+      "mapTiles": "The world map is loaded from this provider, so opening the map exposes your browser’s address to it.",
+      "github": "Asks hourly whether a newer release exists. Sends nothing about you or the server.",
+      "discord": "Sends chat messages and notifications, and receives slash commands.",
+      "google": "Opened only when somebody signs in with Google.",
+      "coolify": "Tells your own hosting platform to pull a new release. The address is the one you configured.",
+      "gameServer": "FTP or SFTP and RCON to the server you administer, over the credentials you entered."
+    },
+    "assetsTitle": "Pictures shown here",
+    "assetsDescription": "What each picture is, where it came from, and whether it was generated.",
+    "assetGenerated": "AI-generated",
+    "asset": {
+      "scene": "Backdrop in the corner",
+      "mark": "Panel logo",
+      "models": "Vehicle models and textures",
+      "tiles": "Ground tiles",
+      "icons": "Item icons",
+      "mapTiles": "World map"
+    },
+    "assetOrigin": {
+      "scene": "A view of Muldraugh in the style of the game, generated with AI. Not Project Zomboid artwork and not taken from the game’s files.",
+      "mark": "Drawn for this project as an inline SVG, which is why it takes the accent colour.",
+      "models": "From the game installation, uploaded by the operator. © The Indie Stone.",
+      "tiles": "From the game’s own texture packs. © The Indie Stone.",
+      "icons": "From the game’s sprite atlases. © The Indie Stone.",
+      "mapTiles": "Loaded from projectzomboidmap.com, not stored here."
+    },
+    "assetsCredits": "The full attribution and the terms it rests on are on"
   },
   "setup": {
     "alreadyCompleted": "Setup has already been completed.",

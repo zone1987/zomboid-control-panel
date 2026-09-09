@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TabGroupLabel } from '@/components/ui/tab-group-label'
 import { CacheCard } from './cache-card'
+import { ConnectionsCard } from './connections-card'
+import { AssetsCard } from './assets-card'
 import { DeployCard } from './deploy-card'
 import { RetentionCard } from './retention-card'
 import { EncryptionKeyCard } from './encryption-key-card'
@@ -64,6 +66,7 @@ const SECTIONS: { id: string; label: (t: (key: string) => string) => string }[] 
   { id: 'deploy', label: () => 'Coolify' },
   { id: 'cache', label: (t) => t('settings.cacheTab') },
   { id: 'privacy', label: (t) => t('settings.privacyTab') },
+  { id: 'connections', label: (t) => t('settings.connectionsTab') },
   { id: 'security', label: (t) => t('settings.securityTab') },
 ]
 
@@ -256,6 +259,10 @@ export function SettingsPage() {
           <TabsTrigger value="privacy" className="justify-start py-2 lg:py-1">
             {t('settings.privacyTab')}
           </TabsTrigger>
+          <TabsTrigger value="connections" className="justify-start py-2 lg:py-1">
+            {t('settings.connectionsTab')}
+          </TabsTrigger>
+
           <TabsTrigger value="security" className="justify-start py-2 lg:py-1">
             {t('settings.securityTab')}
           </TabsTrigger>
@@ -311,6 +318,11 @@ export function SettingsPage() {
 
         <TabsContent value="privacy">
           <RetentionCard {...field(SETTING_KEYS.playerRetentionDays)} />
+        </TabsContent>
+
+        <TabsContent value="connections" className="space-y-4">
+          <ConnectionsCard />
+          <AssetsCard />
         </TabsContent>
 
         <TabsContent value="security">

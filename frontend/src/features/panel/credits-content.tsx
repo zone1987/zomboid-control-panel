@@ -17,7 +17,14 @@ const INDIE_STONE_TERMS = 'https://theindiestone.com/forums/index.php?/tos/'
  * somebody who was never shown the dialog — so the dialog is a
  * convenience over it, never a replacement.
  */
-export function CreditsContent({ className }: { className?: string }) {
+export function CreditsContent({
+  className,
+  onNavigate,
+}: {
+  className?: string
+  /** Given by the dialog so an internal link can close it first. */
+  onNavigate?: () => void
+}) {
   const { t } = useTranslation()
 
   return (
@@ -118,7 +125,11 @@ export function CreditsContent({ className }: { className?: string }) {
 
         <p className="text-sm text-muted-foreground">{t('credits.dataProtectionBody')}</p>
 
-        <Link to="/settings" className="inline-block text-sm text-primary hover:underline">
+        <Link
+          to="/settings"
+          onClick={onNavigate}
+          className="inline-block text-sm text-primary hover:underline"
+        >
           {t('credits.dataProtectionLink')}
         </Link>
       </section>
