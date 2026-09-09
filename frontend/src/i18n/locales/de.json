@@ -2252,6 +2252,12 @@
     "updatesBody": "Steam hat eine neuere Fassung als die auf der Platte. Der Server holt sie beim nächsten Start; hier ist nichts zu tun.",
     "leftOverTitle_one": "{{count}} Mod liegt noch auf der Platte, wird aber nicht mehr genutzt",
     "leftOverTitle_other": "{{count}} Mods liegen noch auf der Platte, werden aber nicht mehr genutzt",
-    "leftOverBody": "Steam löscht ein Item nicht, wenn es aus der Liste fällt — diese belegen {{size}} ohne Nutzen. Schaden richten sie keinen an."
+    "leftOverBody": "Steam löscht ein Item nicht, wenn es aus der Liste fällt — diese belegen {{size}} ohne Nutzen. Schaden richten sie keinen an.",
+    "slashBody_one": "Bei {{count}} davon fehlt nur ein verirrter Schrägstrich zum richtigen Namen: {{corrections}}.",
+    "slashBody_other": "Bei {{count}} davon fehlen nur verirrte Schrägstriche zum richtigen Namen: {{corrections}}.",
+    "repairSlashes_one": "Schrägstrich entfernen",
+    "repairSlashes_other": "Schrägstriche entfernen",
+    "slashesRepaired": "Korrigiert. Greift beim nächsten Serverstart.",
+    "nothingToRepair": "Es gab nichts zu korrigieren."
   }
 }

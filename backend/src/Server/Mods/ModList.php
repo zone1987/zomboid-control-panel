@@ -124,6 +124,24 @@ final readonly class ModList
     }
 
     /**
+     * The same id without leading slashes, when that makes it a real one.
+     *
+     * `Mods=\PZ_Map` was found on a live server. The game looks a mod id
+     * up in a map keyed by the `id=` line of its mod.info — an exact
+     * match, not a path — so a leading slash simply finds nothing and
+     * the mod never loads. Checked in `ZomboidFileSystem.getModDir`.
+     *
+     * Null when trimming changes nothing or leaves nothing, so a caller
+     * can tell "this is fixable" from "this is just wrong".
+     */
+    public static function withoutLeadingSlashes(string $modId): ?string
+    {
+        $trimmed = ltrim($modId, '\\/');
+
+        return $trimmed !== '' && $trimmed !== $modId ? $trimmed : null;
+    }
+
+    /**
      * @param list<string> $values
      *
      * @return list<string>

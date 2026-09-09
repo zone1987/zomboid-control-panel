@@ -119,7 +119,8 @@ export type ModDetail = {
 export type ModChange = {
   status:
     | 'written' | 'notVerified' | 'keysMissing' | 'refused'
-    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'alreadyListed' | 'cycle'
+    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'alreadyListed'
+    | 'nothingToRepair' | 'cycle'
     | ModFileState
   missingKeys: string[]
   written?: string[]
@@ -170,6 +171,8 @@ export type ModDiagnosis = {
   truncated: boolean
   /** In Mods= but belonging to no installed item. */
   orphanedModIds: string[]
+  /** Of those, the ones a leading slash explains: wrong → right. */
+  fixableModIds: Record<string, string>
   /** Installed but absent from Mods=, so downloaded and never loaded. */
   unmappedWorkshopIds: string[]
   /** Shipped by an installed mod but absent from Map=, so invisible. */
@@ -243,6 +246,10 @@ export function searchMods(
 
 export function modDetail(serverId: string, workshopId: string): Promise<ModDetail> {
   return apiFetch<ModDetail>(`/servers/${serverId}/mods/${encodeURIComponent(workshopId)}`)
+}
+
+export function repairModIds(serverId: string): Promise<ModChange> {
+  return apiFetch<ModChange>(`/servers/${serverId}/mods/repair`, { method: 'POST', body: {} })
 }
 
 export function listMaps(serverId: string): Promise<ModChange> {

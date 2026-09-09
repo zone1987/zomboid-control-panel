@@ -23,6 +23,7 @@ import {
   applyLoadOrder,
   diagnoseMods,
   listMaps,
+  repairModIds,
   modDetail,
   modRequirements,
   categoriesOf,
@@ -90,6 +91,22 @@ export function ModsPage() {
         toast.error(t('mods.notVerified'))
       } else {
         toast.success(t('mods.orderApplied'))
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['mods', id] })
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
+  const repair = useMutation({
+    mutationFn: () => repairModIds(id),
+    onSuccess: async (result) => {
+      if (result.status === 'nothingToRepair') {
+        toast.success(t('mods.nothingToRepair'))
+      } else if (result.status === 'notVerified') {
+        toast.error(t('mods.notVerified'))
+      } else {
+        toast.success(t('mods.slashesRepaired'))
       }
 
       await queryClient.invalidateQueries({ queryKey: ['mods', id] })
@@ -287,6 +304,8 @@ export function ModsPage() {
                 onApplyOrder={() => order.mutate()}
                 listingMaps={maps.isPending}
                 onListMaps={() => maps.mutate()}
+                repairing={repair.isPending}
+                onRepair={() => repair.mutate()}
               />
 
               <SearchField

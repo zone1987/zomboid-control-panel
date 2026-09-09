@@ -32,6 +32,8 @@ export function DiagnosisCard({
   applying,
   onListMaps,
   listingMaps,
+  onRepair,
+  repairing,
 }: {
   diagnosis: ModDiagnosis | undefined
   installed: Mod[]
@@ -39,6 +41,8 @@ export function DiagnosisCard({
   applying: boolean
   onListMaps: () => void
   listingMaps: boolean
+  onRepair: () => void
+  repairing: boolean
 }) {
   const { t } = useTranslation()
 
@@ -56,6 +60,8 @@ export function DiagnosisCard({
       </p>
     )
   }
+
+  const fixable = Object.entries(diagnosis.fixableModIds)
 
   const titleOf = (workshopId: string) =>
     installed.find((mod) => mod.workshopId === workshopId)?.title ?? workshopId
@@ -179,12 +185,43 @@ export function DiagnosisCard({
         )}
 
         {diagnosis.orphanedModIds.length > 0 && (
-          <Finding
-            icon={<Link2Off className="size-4" />}
-            title={t('mods.orphanedTitle', { count: diagnosis.orphanedModIds.length })}
-            body={t('mods.orphanedBody')}
-            entries={diagnosis.orphanedModIds}
-          />
+          <Alert variant="warning">
+            <Link2Off className="size-4" />
+            <AlertTitle>
+              {t('mods.orphanedTitle', { count: diagnosis.orphanedModIds.length })}
+            </AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p>{t('mods.orphanedBody')}</p>
+
+              <div className="flex flex-wrap gap-1">
+                {diagnosis.orphanedModIds.map((modId) => (
+                  <Badge key={modId} variant="outline" className="max-w-full font-mono text-xs">
+                    <span className="truncate">{modId}</span>
+                  </Badge>
+                ))}
+              </div>
+
+              {/* Only where a leading slash explains it. An entry that
+                  is simply wrong stays reported and unrepaired: the
+                  panel cannot know what was meant. */}
+              {fixable.length > 0 && (
+                <>
+                  <p>
+                    {t('mods.slashBody', {
+                      count: fixable.length,
+                      corrections: fixable
+                        .map(([wrong, right]) => `${wrong} → ${right}`)
+                        .join(', '),
+                    })}
+                  </p>
+
+                  <Button type="button" size="sm" disabled={repairing} onClick={onRepair}>
+                    {t('mods.repairSlashes', { count: fixable.length })}
+                  </Button>
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Not a fault either: Steam simply never deletes what leaves
