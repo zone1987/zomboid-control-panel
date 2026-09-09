@@ -43,6 +43,23 @@ export type Mod = {
 /** Where the mod list lives, or why there is none to write. */
 export type ModFileState = 'found' | 'noTransfer' | 'noFile' | 'ambiguous'
 
+/**
+ * Which build the server runs, and where that was learnt.
+ *
+ * Two sources kept apart on purpose: the bridge reports what the game
+ * *is*, a typed value is what somebody *believes*, and where they
+ * disagree that is worth saying rather than silently preferring one.
+ */
+export type BuildReading = {
+  build: string | null
+  source: 'bridge' | 'entered' | 'unknown'
+  reported: string | null
+  entered: string | null
+  /** The whole version, for showing rather than filtering. */
+  fullVersion: string | null
+  disagrees: boolean
+}
+
 export type InstalledMods = {
   state: ModFileState
   path: string | null
@@ -53,6 +70,7 @@ export type InstalledMods = {
   maps: string[]
   modIds: string[]
   gameBuild: string | null
+  buildReading: BuildReading | null
   items: Mod[]
 }
 
@@ -61,6 +79,7 @@ export type ModSearch = {
   hasKey: boolean
   total: number
   gameBuild: string | null
+  buildReading: BuildReading | null
   /** The tag the server's build added, so the screen can say so. */
   buildFilter: string | null
   items: Mod[]
@@ -75,7 +94,10 @@ export type ModDetail = {
 }
 
 export type ModChange = {
-  status: 'written' | 'notVerified' | 'keysMissing' | 'refused' | 'alreadyInstalled' | 'notInstalled' | ModFileState
+  status:
+    | 'written' | 'notVerified' | 'keysMissing' | 'refused'
+    | 'alreadyInstalled' | 'notInstalled' | 'alreadyOrdered' | 'cycle'
+    | ModFileState
   missingKeys: string[]
   written?: string[]
   verified?: boolean
@@ -174,6 +196,13 @@ export function searchMods(
 
 export function modDetail(serverId: string, workshopId: string): Promise<ModDetail> {
   return apiFetch<ModDetail>(`/servers/${serverId}/mods/${encodeURIComponent(workshopId)}`)
+}
+
+export function applyLoadOrder(serverId: string): Promise<ModChange & { tangled?: string[] }> {
+  return apiFetch<ModChange & { tangled?: string[] }>(`/servers/${serverId}/mods/order`, {
+    method: 'POST',
+    body: {},
+  })
 }
 
 export function addMod(serverId: string, workshopId: string): Promise<ModChange> {

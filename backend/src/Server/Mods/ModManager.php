@@ -217,6 +217,45 @@ final readonly class ModManager
     }
 
     /**
+     * Writes the sorted load order back to `Mods=`.
+     *
+     * Refuses on a cycle rather than writing some order anyway: an
+     * order that cannot be right is worse than the one already there,
+     * which at least the operator knows about.
+     *
+     * @return array<string, mixed>
+     */
+    public function applyLoadOrder(GameServer $server): array
+    {
+        $location = $this->locate($server);
+
+        if (!$location->isUsable()) {
+            return ['status' => $location->state, 'missingKeys' => []];
+        }
+
+        $config = $server->getFtpConfig();
+        \assert($config !== null);
+
+        $diagnosis = $this->diagnose($server);
+        $order = $diagnosis['loadOrder'];
+
+        if ($order['state'] !== 'sorted') {
+            return ['status' => 'cycle', 'missingKeys' => [], 'tangled' => $order['tangled']];
+        }
+
+        if ($order['changed'] !== true) {
+            // Saying so beats writing the same value and reporting
+            // success, which would look like it had done something.
+            return ['status' => 'alreadyOrdered', 'missingKeys' => []];
+        }
+
+        $list = $this->reader->read($config, (string) $location->path);
+        $next = new ModList($list->workshopIds, $order['order'], $list->maps);
+
+        return $this->writer->write($config, (string) $location->path, $next);
+    }
+
+    /**
      * Turns workshop-id edges into mod-id edges, which is what `Mods=`
      * is ordered by.
      *

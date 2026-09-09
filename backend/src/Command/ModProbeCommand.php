@@ -141,6 +141,15 @@ final class ModProbeCommand extends Command
             ));
         }
 
+        $io->section('Game version from the bridge');
+        $reading = $this->mods->build($server);
+        $io->writeln(sprintf('build:       %s', $reading->build->number ?? '(unknown)'));
+        $io->writeln(sprintf('source:      %s', $reading->source()));
+        $io->writeln(sprintf('reported:    %s', $reading->reported ?? '-'));
+        $io->writeln(sprintf('entered:     %s', $reading->entered ?? '-'));
+        $io->writeln(sprintf('full:        %s', $reading->fullVersion ?? '-'));
+        $io->writeln(sprintf('disagrees:   %s', $reading->disagrees() ? 'yes' : 'no'));
+
         $io->section('Diagnosis');
         $d = $this->mods->diagnose($server);
         $io->writeln(sprintf('state:                %s', $d['state']));

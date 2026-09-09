@@ -232,6 +232,34 @@ final class ModController extends AbstractController
         ]);
     }
 
+    /** Writes the sorted load order back to `Mods=`. */
+    #[Route('/order', name: 'api_mods_apply_order', methods: ['POST'])]
+    public function applyOrder(string $id): JsonResponse
+    {
+        $server = $this->servers->find($id);
+
+        if (!$server instanceof GameServer) {
+            return $this->notFound();
+        }
+
+        try {
+            $outcome = $this->mods->applyLoadOrder($server);
+        } catch (StorageException) {
+            return new JsonResponse(
+                ['status' => 'failed', 'error' => 'mods.transferFailed'],
+                Response::HTTP_BAD_GATEWAY,
+            );
+        }
+
+        $status = match ($outcome['status']) {
+            'written', 'alreadyOrdered' => Response::HTTP_OK,
+            'cycle', 'keysMissing' => Response::HTTP_UNPROCESSABLE_ENTITY,
+            default => Response::HTTP_BAD_GATEWAY,
+        };
+
+        return new JsonResponse($outcome, $status);
+    }
+
     #[Route('/installed', name: 'api_mods_add', methods: ['POST'])]
     public function add(string $id, Request $request): JsonResponse
     {

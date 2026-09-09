@@ -15,8 +15,11 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ModTile } from './mod-tile'
+import { DiagnosisCard } from './diagnosis-card'
 import {
   addMod,
+  applyLoadOrder,
+  diagnoseMods,
   categoriesOf,
   listInstalled,
   matchesSearch,
@@ -56,6 +59,32 @@ export function ModsPage() {
     enabled: tab === 'discover',
   })
 
+  // Its own query: it costs several workshop lookups and an FTP walk
+  // per mod, so it must not slow the list down.
+  const diagnosis = useQuery({
+    queryKey: ['mods', id, 'diagnosis'],
+    queryFn: () => diagnoseMods(id),
+    enabled: tab === 'installed',
+  })
+
+  const order = useMutation({
+    mutationFn: () => applyLoadOrder(id),
+    onSuccess: async (result) => {
+      if (result.status === 'alreadyOrdered') {
+        toast.success(t('mods.alreadyOrdered'))
+      } else if (result.status === 'cycle') {
+        toast.error(t('mods.cycleTitle'))
+      } else if (result.status === 'notVerified') {
+        toast.error(t('mods.notVerified'))
+      } else {
+        toast.success(t('mods.orderApplied'))
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['mods', id] })
+    },
+    onError: () => toast.error(t('errors.generic')),
+  })
+
   const change = useMutation({
     mutationFn: ({ workshopId, add }: { workshopId: string; add: boolean }) =>
       add ? addMod(id, workshopId) : removeMod(id, workshopId),
@@ -70,7 +99,8 @@ export function ModsPage() {
         toast.success(variables.add ? t('mods.added') : t('mods.removed'))
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['mods', id, 'installed'] })
+      // The whole prefix: a change to the list changes its diagnosis.
+      await queryClient.invalidateQueries({ queryKey: ['mods', id] })
     },
     onError: (error) => {
       toast.error(
@@ -83,6 +113,9 @@ export function ModsPage() {
     // drops the card to its stale state for one render.
     onSettled: () => setPending(null),
   })
+
+  // Either tab can carry it; whichever loaded first is the same answer.
+  const reading = installed.data?.buildReading ?? results.data?.buildReading ?? null
 
   const installedIds = new Set((installed.data?.items ?? []).map((mod) => mod.workshopId))
 
@@ -108,13 +141,29 @@ export function ModsPage() {
       {/* Stated at the top of both tabs, because it explains every count
           below it: an unfiltered list on an unknown build is not the
           same list as a filtered one. */}
-      {installed.data?.gameBuild != null && (
+      {reading?.build != null && (
         <p className="text-sm text-muted-foreground">
-          {t('mods.buildNotice', { build: installed.data.gameBuild })}
+          {reading.source === 'bridge'
+            ? t('mods.buildFromBridge', { version: reading.fullVersion ?? reading.build })
+            : t('mods.buildNotice', { build: reading.build })}
         </p>
       )}
 
-      {installed.data?.gameBuild == null && installed.isSuccess && (
+      {/* The game says one thing and somebody typed another. Preferring
+          one silently would leave the wrong list looking right. */}
+      {reading?.disagrees === true && (
+        <Alert variant="warning">
+          <AlertTitle>{t('mods.buildDisagreesTitle')}</AlertTitle>
+          <AlertDescription>
+            {t('mods.buildDisagreesBody', {
+              reported: reading.reported,
+              entered: reading.entered,
+            })}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {reading?.build == null && installed.isSuccess && (
         <Alert>
           <AlertTitle>{t('mods.noBuildTitle')}</AlertTitle>
           <AlertDescription>{t('mods.noBuildBody')}</AlertDescription>
@@ -139,6 +188,13 @@ export function ModsPage() {
             </Alert>
           ) : (
             <>
+              <DiagnosisCard
+                diagnosis={diagnosis.data}
+                installed={installed.data?.items ?? []}
+                applying={order.isPending}
+                onApplyOrder={() => order.mutate()}
+              />
+
               <SearchField
                 value={needle}
                 onChange={setNeedle}
