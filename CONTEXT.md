@@ -9736,3 +9736,166 @@ comment in `setUp` says why.
    the page-wide field, top right, above the gradient and below all
    content, softly faded, with light/dark opacity considered separately.
 5. `docs/coolify-step-gone` still holds `fa91b31` unpushed.
+
+## 2026-09-09 (later) — mod manager stage 1 complete, plus two side pieces
+
+Continues the entry above, which covered the backend only. Everything
+here is on `feat/mod-manager`, eight commits, nothing merged yet.
+
+### The covers, and why the panel serves them itself
+
+Steam offers **no resized variant** — the resize parameters its store
+pages use (`?imw=268&imh=151`) answer with a 92-byte error page on
+`images.steamusercontent.com`. So a grid of thirty tiles would pull the
+originals: one measured cover is a **738 KB, 512×512 GIF**.
+
+`CoverStore` fetches each cover once, scales it to 320px and writes
+WebP. Measured on three real mods: **4.7 KB, 12.9 KB, 18.1 KB**, and the
+second request for the same cover takes **0 ms**. Thirty-three of them
+occupy 524 KB.
+
+Beyond size, this is what keeps `img-src 'self'` intact — the CSP in
+`SecurityHeadersSubscriber.php:43` does not list Steam — and keeps every
+viewer's address away from Valve.
+
+**G-Portal was checked and is not a model.** The user supplied their
+saved page: it loads covers straight from `steamusercontent.com` and
+also carries Twitter, Bing, Google Tag Manager, Clarity and StackAdapt.
+The file was deleted after reading, at the user's request.
+
+**The store is capped at ~314 MB** (`MAX_STORE_BYTES = 335_544_320`),
+about every build 42 mod there is, which the user accepted explicitly as
+the worst case after asking about the storage cost. Past it the least
+recently used covers go, keyed on **read** time so a cover shown daily
+outlives one fetched while paging past it. The sweep runs on average
+every 50th write, not every write.
+
+`previewUrl` in `ModPresenter` therefore points at
+`/api/servers/{id}/mods/{workshopId}/cover`, never at Steam.
+
+### The interface
+
+`frontend/src/features/mods/`: `mods.ts`, `mods.test.ts` (19 cases),
+`mods-page.tsx`, `mod-detail-page.tsx`, `mod-tile.tsx`, `mod-cover.tsx`,
+`bbcode-text.tsx`. Routes in `routes/router.tsx`, sidebar entry in
+`server-pages.ts` with **`section: 'live'`** (the "Betrieb" group, the
+user's choice), permission `mods.manage` in `features/auth/types.ts`,
+translations in all seven locales including `roles.permissions.mods.manage`.
+
+**Shaped by four rounds of the user looking at it**, each measured
+afterwards:
+
+1. **Categories as a rail, not chips.** 24 tags wrapped to three rows
+   and pushed the mods off screen. Steam's own shape, for the same
+   reason. On a phone a rail is wrong again — it collapses to one line
+   below `lg`, always open above it.
+2. **One search field, not two.** A separate "paste an id" box made the
+   operator choose before typing. The single field reads what was
+   pasted: an id or a workshop link offers *add*, anything else
+   searches, and a line says which before the click.
+3. **Columns auto-fill rather than breakpoints.** The sidebar and the
+   rail both eat width, so what matters is the space left, not the
+   viewport: measured **1, 2, 3, 5 columns** at 390 / 1280 / 1920 /
+   2560px. A first attempt with `min-[1600px]:grid-cols-4` produced no
+   CSS at all and stayed at 3 — measured, not assumed.
+4. **Search spans the page, the split begins beneath it.** Side by side
+   the rail's heading and the search field sat at different heights.
+   Then two alignments to 0px: the result count carries the same box as
+   the rail's heading, and the category list takes the same 16px the
+   results column puts above its grid, so the first category begins
+   exactly with the first tile.
+
+**Discover is the default tab** and comes first — an operator arriving
+here wants to find something, and an empty installed list is a dead end.
+
+### Four faults found by clicking, not by reading
+
+1. **A single workshop id came back as an `int`.** `IniWriter::read`
+   coerces a bare number, so `WorkshopItems=3798399158` parsed to an
+   integer while `123;456` parsed to a string — and `ModListReader`
+   read only strings. That lost exactly the commonest case: the first
+   mod somebody adds. The interface showed "Installiert (0)" while the
+   file held the id. Test added:
+   `testASingleIdSurvivesBeingReadAsANumber`.
+2. **`GetDetails` returns no description at all** — measured **0
+   characters against 2450** from the public endpoint for the same mod.
+   `WorkshopClient::details()` now joins the two: dependencies from the
+   authenticated endpoint, description from the public one, via
+   `WorkshopItem::withDescription()`.
+3. **The search draft was not held against its term** — `tsc` caught it
+   as an unused prop, and the real fault was rule 10g2: the box would
+   have stranded a stale word after a tab switch.
+4. **BBCode descriptions arrive with CRLF**, so splitting paragraphs on
+   `\n{2,}` matched nothing and the whole description collapsed.
+
+### Dates
+
+`frontend/src/lib/dates.ts` + `dates.test.ts` (5 cases): `formatDate`
+and `formatDateTime` pad day and month, in the reader's language. Asked
+for by the user — 9.9.2026 reads worse than 09.09.2026 and makes a
+column ragged. Applied in the mod tile, the mod detail page and
+`player-list.tsx`. **Left alone deliberately:** `world-strip.tsx`, where
+a padded day beside a month name ("9. Sep. 2026") would look wrong, and
+`dashboard-page.tsx`, which already pads.
+
+### Two side pieces the user asked for mid-session
+
+**The Muldraugh scene** (`b4122cf`): a backdrop the user supplied,
+1.6 MB PNG → **112 KB AVIF / 143 KB WebP**, both offered by type. Its
+own element in `app-layout.tsx` because `.pz-page-field`'s `::before`
+and `::after` are taken. Three things measured: the theme is a **class**
+on `<html>` here, not a data attribute, so the first version left the
+dark page on the light opacity (0.16 dark / 0.10 light); a tablet keeps
+only ~549px of content so one width put the water tower behind the
+heading (`min(30rem,55vw)`, `min(72rem,78vw)` from `lg`); and a phone
+has no free corner, so it is hidden below 48rem.
+
+**It was generated with ChatGPT**, which the user said after supplying
+it. It is therefore *not* Indie Stone artwork and is named apart from
+the extracted assets on the credits page — rule 10b covers what is
+extracted from the operator's own installation, and listing it beside
+the models would claim a provenance it does not have.
+
+**The connections tab** (`3809b01`): under the privacy group, naming
+every outgoing connection with the field that matters — **who makes the
+call**. A request the panel makes carries the panel's address; one the
+browser makes carries the operator's own, so opening the map exposes
+their address to the tile provider while the update check exposes
+nothing. Beside it, what each picture is and where it came from, with
+generated artwork marked.
+
+It also fixed a real bug: **the credits dialog was uncontrolled**, so a
+link inside changed the route while the dialog stayed up covering the
+page it had just navigated to. From `/settings` that looked like a dead
+link; measuring from another page showed the navigation had worked all
+along. Controlled now, every internal link closes it, and the
+"open as its own page" link lost its external-link glyph.
+
+### Verification
+
+- **955 backend tests, 14,665 assertions, green.**
+- **438 frontend tests in 39 files, green.** Lint 0 errors, 23 warnings
+  (the same pre-existing 23).
+- **Against the user's own server**: searched 24,379 build 42 mods,
+  opened a mod, added it, saw `WorkshopItems=3798399158` appear in the
+  real `servertest.ini`, and removed it again. **The file is back as it
+  was** — `WorkshopItems` empty, `Map=Muldraugh, KY` untouched — and
+  `game_build` was reset to NULL after the filter test.
+- No horizontal scrollbar at 390 / 820 / 1512px on any of the screens
+  touched.
+
+### Open
+
+1. **Stage 1 is complete and unmerged.** Eight commits, no PR yet.
+2. **Stages 2 and 3 are not started**: dependencies as a graph, load
+   order, `info.txt` over FTP for the real mod ids, `Map=` writing,
+   update detection, health overview, collections, the mod-set backup,
+   and the three Discord events. See the plan file.
+3. **`ModList` can write `Map=` but nothing calls it yet.** The reader
+   reads all three keys; only `WorkshopItems` is written so far.
+4. **Nothing reads `WorkshopResult::cacheSeconds()`.** The value exists;
+   no cache pool is wired to it.
+5. **The game build still cannot be detected**, only entered. Reading it
+   would need the bridge to report it — an upload and a restart only the
+   user can do (CLAUDE.md 11).
+6. `docs/coolify-step-gone` still holds `fa91b31` unpushed.
