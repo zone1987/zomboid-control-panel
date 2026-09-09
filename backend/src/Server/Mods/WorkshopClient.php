@@ -194,7 +194,21 @@ final class WorkshopClient implements WorkshopSource
             return WorkshopResult::failed(WorkshopState::NotFound);
         }
 
-        return WorkshopResult::ok([$this->toItem($raw)]);
+        $item = $this->toItem($raw);
+
+        // GetDetails carries the dependencies and nothing else does, but
+        // it returns no description at all -- measured: 0 characters
+        // against 2450 from the public endpoint for the same mod. So
+        // each endpoint supplies what it actually has.
+        if ($item->description === '') {
+            $public = $this->itemsById([$workshopId])->first();
+
+            if ($public !== null && $public->description !== '') {
+                $item = $item->withDescription($public->description);
+            }
+        }
+
+        return WorkshopResult::ok([$item]);
     }
 
     /**

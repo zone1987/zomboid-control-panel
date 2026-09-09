@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { formatDate } from '@/lib/dates'
 import { Search } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -167,7 +169,7 @@ export function PlayerList({
                   <span className="truncate">
                     {player.online
                       ? t('players.online')
-                      : new Date(player.lastSeenAt).toLocaleDateString(i18n.language)}
+                      : formatDate(player.lastSeenAt, i18n.language)}
                   </span>
 
                   {player.hoursSurvived !== null && (
@@ -239,7 +241,7 @@ function BannedRows({ bans }: { bans: Ban[] }) {
               ? t('players.permanent')
               : ban.expiresAt !== null
                 ? t('players.until', {
-                    when: new Date(ban.expiresAt).toLocaleDateString(i18n.language),
+                    when: formatDate(ban.expiresAt, i18n.language),
                   })
                 : '—'}
           </p>

@@ -139,6 +139,20 @@ final class ModProbeCommand extends Command
             ));
         }
 
+        $io->section('Raw ini values');
+        $raw = $this->reader->read($ftp, $path);
+        $io->writeln(sprintf('workshopIds: [%s]', implode(', ', $raw->workshopIds)));
+        $io->writeln(sprintf('modIds:      [%s]', implode(', ', $raw->modIds)));
+        $io->writeln(sprintf('maps:        [%s]', implode(', ', $raw->maps)));
+
+        $io->section('Description via GetDetails');
+        $rich = $this->workshop->details('3798399158')->first();
+        $io->writeln(sprintf('description length: %d', mb_strlen($rich?->description ?? '')));
+        $io->writeln(sprintf('first 80: %s', mb_substr($rich?->description ?? '(empty)', 0, 80)));
+
+        $public = $this->workshop->itemsById(['3798399158'])->first();
+        $io->writeln(sprintf('public endpoint length: %d', mb_strlen($public?->description ?? '')));
+
         $io->section('Covers');
         $probe = $this->workshop->itemsById(['3795847162', '3789551122', '3794362162']);
 

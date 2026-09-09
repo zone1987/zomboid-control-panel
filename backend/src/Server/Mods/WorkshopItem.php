@@ -35,6 +35,32 @@ final readonly class WorkshopItem
     ) {
     }
 
+    /**
+     * The same item with a description from elsewhere.
+     *
+     * Needed because the endpoint carrying dependencies carries no
+     * description, so the two have to be joined after the fact.
+     */
+    public function withDescription(string $description): self
+    {
+        return new self(
+            workshopId: $this->workshopId,
+            title: $this->title,
+            description: $description,
+            previewUrl: $this->previewUrl,
+            tags: $this->tags,
+            fileSize: $this->fileSize,
+            createdAt: $this->createdAt,
+            updatedAt: $this->updatedAt,
+            subscriptions: $this->subscriptions,
+            favourites: $this->favourites,
+            views: $this->views,
+            dependencies: $this->dependencies,
+            isCollection: $this->isCollection,
+            creatorSteamId: $this->creatorSteamId,
+        );
+    }
+
     /** The workshop page, which is where comments and discussions stay. */
     public function url(): string
     {

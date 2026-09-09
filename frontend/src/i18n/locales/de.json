@@ -1121,7 +1121,8 @@
     "theme": "Design",
     "toggleSection": "{{section}} ein- oder ausklappen",
     "users": "Benutzer",
-    "vehicles": "Fahrzeuge"
+    "vehicles": "Fahrzeuge",
+    "mods": "Mods"
   },
   "panel": {
     "reloadForUpdate": "Neue Version laden",
@@ -1591,6 +1592,9 @@
       "vehicles.view": {
         "description": "Alle Fahrzeuge der Welt auf der Karte sehen, mit Position, Ausrichtung und Zustand.",
         "title": "Fahrzeuge sehen"
+      },
+      "mods": {
+        "manage": "Mods verwalten"
       }
     },
     "saved": "Rolle gespeichert.",
@@ -2139,5 +2143,70 @@
     "temperature": "Temperatur",
     "time": "Uhrzeit",
     "wind": "Wind"
+  },
+  "mods": {
+    "description": "Den Steam-Workshop durchsuchen und die Modliste dieses Servers pflegen.",
+    "installedTab": "Installiert ({{count}})",
+    "discoverTab": "Entdecken",
+    "filterInstalled": "Installierte Mods filtern",
+    "search": "Suchen",
+    "allCategories": "Alle",
+    "addById": "Hinzufügen",
+    "add": "Zum Server hinzufügen",
+    "remove": "Vom Server entfernen",
+    "installed": "Installiert",
+    "added": "Hinzugefügt. Beim nächsten Serverstart wird der Mod heruntergeladen.",
+    "removed": "Entfernt. Beim nächsten Serverstart wird der Mod nicht mehr geladen.",
+    "notVerified": "Die Datei wurde geschrieben, konnte aber nicht zurückgelesen werden — was sie enthält, ist damit ungewiss. Die Sicherung wurde wiederhergestellt.",
+    "keysMissing": "In der Konfigurationsdatei fehlt die Zeile {{keys}}, deshalb kann nichts hineingeschrieben werden. Lege die Zeile einmal an und versuche es erneut.",
+    "transferFailed": "Die Konfigurationsdatei des Servers war nicht erreichbar.",
+    "openDetail": "{{name}} öffnen",
+    "noneInstalled": "Noch keine Mods. Unter „Entdecken\" findest du welche.",
+    "noMatches": "Kein installierter Mod passt dazu.",
+    "noResults": "Der Workshop hat dazu nichts geliefert.",
+    "resultCount": "{{shown}} von {{total}}",
+    "noKeyTitle": "Für die Suche wird ein Steam-Schlüssel gebraucht",
+    "noKeyBody": "Ohne ihn lässt sich der Workshop nicht durchsuchen. Das Hinzufügen über ID oder Link funktioniert trotzdem. Den Schlüssel trägst du unter Einstellungen → Steam ein.",
+    "buildNotice": "Auf diesem Server läuft Build {{build}}. Es werden nur Mods für diesen Build angezeigt.",
+    "noBuildTitle": "Für diesen Server ist kein Build hinterlegt",
+    "noBuildBody": "Es wird nichts gefiltert, deshalb erscheinen auch Mods für andere Builds. Trage den Build auf der Serverseite ein, damit das Panel die Liste eingrenzt.",
+    "buildMismatch": "Für Build {{builds}}",
+    "isMap": "Karte",
+    "needsCount": "Braucht {{count}}",
+    "updatedOn": "Aktualisiert {{date}}",
+    "workshopId": "Workshop-ID",
+    "size": "Größe",
+    "updated": "Aktualisiert",
+    "published": "Veröffentlicht",
+    "openOnSteam": "Kommentare und Diskussionen auf Steam",
+    "backToList": "Alle Mods",
+    "dependencies": "Abhängigkeiten",
+    "noDependencies": "Dieser Mod gibt keine an.",
+    "dependenciesNeedKey": "Zum Lesen der Abhängigkeiten wird ein Steam-Schlüssel gebraucht.",
+    "dependenciesCaveat": "Das sind die Abhängigkeiten, die Steam kennt. Autoren nennen weitere oft nur in der Beschreibung.",
+    "mapNoticeTitle": "Eine Karte braucht eine Zeile mehr",
+    "mapNoticeBody": "Karten-Mods werden erst geladen, wenn ihr Ordner auch in Map= steht — und die Reihenfolge dort entscheidet, welche Karte gewinnt.",
+    "fileHint": "Ohne die Konfigurationsdatei des Servers lässt sich die Modliste weder lesen noch schreiben.",
+    "file": {
+      "noTransfer": "Für diesen Server sind keine Zugangsdaten hinterlegt",
+      "noFile": "Auf diesem Server wurde keine Konfigurationsdatei gefunden",
+      "ambiguous": "Es wurden mehrere Konfigurationsdateien gefunden, deshalb wurde keine gewählt"
+    },
+    "lookup": {
+      "notFound": "Der Workshop kennt diesen Mod nicht. Vielleicht wurde er entfernt oder auf privat gestellt.",
+      "noKey": "Zum Anzeigen dieses Mods wird ein Steam-Schlüssel gebraucht.",
+      "rateLimited": "Steam lehnt gerade weitere Anfragen ab. Versuche es gleich noch einmal.",
+      "unreachable": "Steam war nicht erreichbar.",
+      "ok": "Nichts anzuzeigen."
+    },
+    "sort": {
+      "trend": "Beliebt",
+      "subscriptions": "Am häufigsten abonniert",
+      "updated": "Zuletzt aktualisiert",
+      "recent": "Neu"
+    },
+    "categories": "Kategorien",
+    "searchOrId": "Workshop durchsuchen oder ID bzw. Link einfügen",
+    "idRecognised": "Workshop-ID {{id}} erkannt — der Knopf fügt sie dem Server hinzu."
   }
 }

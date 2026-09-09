@@ -59,12 +59,23 @@ final readonly class ModListReader
     }
 
     /**
+     * The raw value of one key, whatever type the parser made of it.
+     *
+     * `IniWriter::read` coerces a bare number, so a single workshop id
+     * comes back as an **int** while two separated by a semicolon come
+     * back as a string. Reading only strings therefore lost exactly the
+     * commonest case -- the first mod somebody adds.
+     *
      * @param array<string, bool|float|int|string> $held
      */
     private static function stringOf(array $held, string $key): ?string
     {
         $value = $held[$key] ?? null;
 
-        return \is_string($value) ? $value : null;
+        if ($value === null || \is_bool($value)) {
+            return null;
+        }
+
+        return (string) $value;
     }
 }

@@ -1121,7 +1121,8 @@
     "theme": "Thème",
     "toggleSection": "Déplier ou replier {{section}}",
     "users": "Utilisateurs",
-    "vehicles": "Véhicules"
+    "vehicles": "Véhicules",
+    "mods": "Mods"
   },
   "panel": {
     "reloadForUpdate": "Charger la nouvelle version",
@@ -1591,6 +1592,9 @@
       "vehicles.view": {
         "description": "Tous les véhicules du monde sur la carte, avec position, orientation et état.",
         "title": "Voir les véhicules"
+      },
+      "mods": {
+        "manage": "Gérer les mods"
       }
     },
     "saved": "Rôle enregistré.",
@@ -2139,5 +2143,70 @@
     "temperature": "Température",
     "time": "Heure",
     "wind": "Vent"
+  },
+  "mods": {
+    "description": "Browse the Steam Workshop and keep this server’s mod list.",
+    "installedTab": "Installed ({{count}})",
+    "discoverTab": "Discover",
+    "filterInstalled": "Filter the installed mods",
+    "search": "Search",
+    "allCategories": "All",
+    "addById": "Add",
+    "add": "Add to the server",
+    "remove": "Remove from the server",
+    "installed": "Installed",
+    "added": "Added. It is downloaded at the next server start.",
+    "removed": "Removed. It stops loading at the next server start.",
+    "notVerified": "The file was written but could not be read back, so it is not certain what it holds. The backup was restored.",
+    "keysMissing": "The settings file has no {{keys}} line, so nothing can be written into it. Add the line once and try again.",
+    "transferFailed": "The server’s settings file could not be reached.",
+    "openDetail": "Open {{name}}",
+    "noneInstalled": "No mods yet. Find some under Discover.",
+    "noMatches": "No installed mod matches.",
+    "noResults": "The workshop returned nothing for this.",
+    "resultCount": "{{shown}} of {{total}}",
+    "noKeyTitle": "Searching needs a Steam key",
+    "noKeyBody": "Without one the workshop cannot be searched. Adding a mod by its ID or link works regardless. The key is entered under Settings → Steam.",
+    "buildNotice": "This server runs build {{build}}. Only mods for that build are shown.",
+    "noBuildTitle": "No build set for this server",
+    "noBuildBody": "Nothing filters the list, so mods for other builds are shown too. Enter the build on the server page to have the panel narrow it.",
+    "buildMismatch": "For build {{builds}}",
+    "isMap": "Map",
+    "needsCount": "Needs {{count}}",
+    "updatedOn": "Updated {{date}}",
+    "workshopId": "Workshop ID",
+    "size": "Size",
+    "updated": "Updated",
+    "published": "Published",
+    "openOnSteam": "Comments and discussions on Steam",
+    "backToList": "All mods",
+    "dependencies": "Dependencies",
+    "noDependencies": "This mod declares none.",
+    "dependenciesNeedKey": "A Steam key is needed to read dependencies.",
+    "dependenciesCaveat": "These are the ones Steam knows about. Authors often name further requirements only in the description.",
+    "mapNoticeTitle": "A map needs one more line",
+    "mapNoticeBody": "Map mods are only loaded once their folder is listed in Map= as well, and the order there decides which map wins.",
+    "fileHint": "Without the server’s settings file the mod list can be neither read nor written.",
+    "file": {
+      "noTransfer": "This server has no transfer credentials",
+      "noFile": "No settings file was found on this server",
+      "ambiguous": "Several settings files were found, so none was chosen"
+    },
+    "lookup": {
+      "notFound": "The workshop does not know this mod. It may have been removed or made private.",
+      "noKey": "A Steam key is needed to show this mod.",
+      "rateLimited": "Steam is refusing further requests for the moment. Try again shortly.",
+      "unreachable": "Steam could not be reached.",
+      "ok": "Nothing to show."
+    },
+    "sort": {
+      "trend": "Popular",
+      "subscriptions": "Most subscribed",
+      "updated": "Recently updated",
+      "recent": "New"
+    },
+    "categories": "Catégories",
+    "searchOrId": "Search the workshop, or paste an ID or link",
+    "idRecognised": "Workshop ID {{id}} recognised — the button adds it to the server."
   }
 }

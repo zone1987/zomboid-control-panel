@@ -111,6 +111,16 @@ final class ModListTest extends TestCase
         self::assertSame('', $changes['Map']);
     }
 
+    /**
+     * The parser coerces a bare number, so one workshop id arrives as an
+     * int while two arrive as a string. Reading only strings lost the
+     * commonest case there is: the first mod somebody adds.
+     */
+    public function testASingleIdSurvivesBeingReadAsANumber(): void
+    {
+        self::assertSame(['3798399158'], ModList::split((string) 3798399158));
+    }
+
     public function testAMapNameSurvivesItsComma(): void
     {
         self::assertSame(['Muldraugh, KY'], ModList::split('Muldraugh, KY'));

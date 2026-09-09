@@ -20,6 +20,7 @@ export type Permission =
   | 'users.invite'
   | 'users.manage'
   | 'settings.edit'
+  | 'mods.manage'
 
 export type AuthenticatedUser = {
   id: string
