@@ -30,6 +30,7 @@ final class ModProbeCommand extends Command
         private readonly ModListReader $reader,
         private readonly WorkshopClient $workshop,
         private readonly \App\Server\Mods\CoverStore $covers,
+        private readonly \App\Server\Mods\ModInfoReader $modInfo,
     ) {
         parent::__construct();
     }
@@ -137,6 +138,23 @@ final class ModProbeCommand extends Command
                 $first?->isCollection === true ? 'yes' : 'no',
                 mb_substr($first?->title ?? '-', 0, 30),
             ));
+        }
+
+        $io->section('Mod ids from mod.info');
+
+        foreach (['2875848298', '3770149036', '999999999'] as $probe) {
+            $verdict = $this->modInfo->read($ftp, $probe);
+            $io->writeln(sprintf(
+                '  %-12s state=%-18s ids=[%s] versionMin=%s',
+                $probe,
+                $verdict->state,
+                implode(', ', $verdict->ids),
+                $verdict->versionMin ?? '-',
+            ));
+
+            foreach ($verdict->paths as $path) {
+                $io->writeln('       '.$path);
+            }
         }
 
         $io->section('Raw ini values');
