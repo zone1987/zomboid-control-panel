@@ -9613,3 +9613,126 @@ vitest fails with a native binding error.
 3. `docs/coolify-step-gone` still holds `fa91b31` unpushed, with no open
    PR.
 4. Next: the mod manager, planned in three stages. See the plan file.
+
+## 2026-09-09 — mod manager, stage 1: the backend
+
+Planned in three stages (plan file
+`~/.claude/plans/nun-m-chte-ich-als-shiny-kahn.md`); this entry covers the
+backend of stage 1, on `feat/mod-manager`, two commits: `4be42ac` and
+`c1e43fd`.
+
+### What Steam actually gives, probed rather than assumed
+
+| Purpose | Endpoint | Key needed |
+|---|---|---|
+| title, author, cover, description, tags, size, dates | `ISteamRemoteStorage/GetPublishedFileDetails/v1` | **no** |
+| search, sort, category filter | `IPublishedFileService/QueryFiles/v1` | **yes**, else 403 |
+| dependencies (`children`), votes, extra previews | `IPublishedFileService/GetDetails/v1` | **yes**, else 401 |
+| comments, discussions, awards | — | **dropped** |
+
+The user chose to link comments and discussions on Steam rather than
+scrape them, so nothing here depends on Valve's HTML.
+
+**The key is a precondition, not a nicety** — which is why the settings
+field had to be fixed first. Measured with the user's own key: "fire"
+filtered to Build 42 returns **1435** results, to Build 41 **973**, and
+unfiltered **2439**.
+
+### The build filter, at the user's request
+
+Stated mid-session: mods shown must match the build of the *selected*
+server, "nicht die exakte version sondern beispielsweise nur um Build
+42.20" — so build granularity, which is also all the workshop tags.
+
+- `GameBuild` parses "42.20.1", "42.20", "42" and "Build 42" to `42`.
+- **Filtered in the query, not on the answer.** Dropping wrong-build
+  items from a page of thirty would leave gaps that grow while paging
+  and make `total` a lie. `ModController::search` appends the build tag
+  to `requiredtags`.
+- **A mod may declare several builds.** Reading only the first tag was a
+  real bug, caught by probing: `'82 Pontiac Firebird` carries Build 41
+  *and* Build 42 and belongs in both filters. `WorkshopItem::declaredBuilds()`
+  returns the list; `declaredBuild()` is the first, for display only.
+- **A mod declaring no build is shown**, because many small ones carry no
+  tag and work anyway; hiding them would look like a broken search.
+- Four states, not a boolean: `match`, `mismatch`, `undeclared`,
+  `unknown` (`ModPresenter::buildVerdict`).
+
+**Where the build comes from, and why it is a column.** Nothing in the
+panel knows the game version: RCON refused (`Connection refused` — the
+server is stopped), `app:server:find` found only `backups/version/backup_1.zip`,
+and the bridge reports **its own** version (0.21.0), not the game's. So
+`GameServer::$gameBuild` is nullable and set by the operator
+(`PATCH /api/servers/{id}` with `gameBuild`, refusing anything that is
+not `\d{1,3}(\.\d{1,3}){0,2}`), migration `Version20260909073007`,
+applied to dev **and** test. Null filters nothing and warns about
+nothing — guessing would hide mods that are fine.
+
+### Files added
+
+`backend/src/Server/Mods/`: `WorkshopState`, `WorkshopResult`,
+`WorkshopItem`, `WorkshopSource` (interface), `WorkshopClient`,
+`SteamCredentials` + `SettingsSteamCredentials`, `ModList`,
+`ModListReader`, `ModListWriter`, `ModFileLocation`, `ModManager`,
+`ModPresenter`, `GameBuild`.
+Plus `backend/src/Controller/Api/ModController.php`,
+`backend/src/Command/ModProbeCommand.php`, `Permission::ManageMods`
+(`mods.manage`, in the `servers` group).
+
+Five routes, `/installed` declared before `/{workshopId}` so the detail
+route cannot swallow it, with a digit requirement as a second guard.
+
+### Decisions worth keeping
+
+- **`ConfigWriter` is enough.** It refuses keys absent from the file, so
+  a second write path was planned — then the live server showed all
+  three keys present (`Mods=` and `WorkshopItems=` empty, `Map=Muldraugh, KY`).
+  `ModListWriter` therefore wraps it and only *names* the refusal
+  (`keysMissing`) instead of working around it.
+- **Two narrow interfaces rather than unsealing a final class** (rule
+  10i): `SteamCredentials` is one method, `WorkshopSource` is three.
+- **`ConfigFileLocator::locate()` returns a list**, because several ini
+  files is its own state. Both the probe command and `ModManager::locate`
+  treat >1 as `ambiguous` rather than picking the first.
+- **Failures cache for 120s, facts for 86400s** (`WorkshopResult::cacheSeconds`),
+  so "no key" cannot outlive the key being entered. **Not yet wired to a
+  cache pool** — the value exists, nothing reads it.
+
+### One test that passed for the wrong reason
+
+`ModEndpointTest` swapped a double into the container and still got
+`noKey` from the *real* client: without `$client->disableReboot()` the
+kernel rebuilds its container per request and throws the double away.
+So the first green run had been talking to Valve. Fixed, and the
+comment in `setUp` says why.
+
+### Verification
+
+- **954 backend tests, 14664 assertions, green** (was 951 before the
+  build work, 921 at the start of the session).
+- `ModListTest` 13 cases, `GameBuildTest` 10 cases, `ModEndpointTest` 10.
+- Container lint green in dev **and** test.
+- Probed live: workshop search, build filtering, a real declared
+  dependency (`Arcadia Lifestyle: Hobbies`, 1 child), and the user's own
+  server read over FTP — `Map=Muldraugh, KY` with its comma intact.
+- **No frontend yet.** No route, no page, no translations.
+
+### Open
+
+1. **The frontend of stage 1 is the next step**: two tabs (Installed /
+   Discover) under the sidebar group **Betrieb** (`section: 'live'`, the
+   user's choice), and a detail page at its own route `/app/mods/{id}`.
+   `nav.mods` needs all seven locales.
+2. **Nothing reads `cacheSeconds()` yet.**
+3. **The game build cannot be detected**, only entered. If it should be
+   read automatically, the bridge would have to report it — which means
+   an upload and a server restart only the user can do (CLAUDE.md 11).
+4. **A decorative image for the top right** was supplied by the user
+   mid-session and is **not yet built**: a Muldraugh scene, "HOPE STILL
+   LIVES". The user then said it was **generated with ChatGPT**, so it is
+   *not* Indie Stone artwork and must not be credited as such — rule 10b
+   covers assets extracted from the operator's own installation. The file
+   was not on disk yet; the user is placing it. Agreed placement: part of
+   the page-wide field, top right, above the gradient and below all
+   content, softly faded, with light/dark opacity considered separately.
+5. `docs/coolify-step-gone` still holds `fa91b31` unpushed.
