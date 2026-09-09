@@ -10270,3 +10270,136 @@ because the previous value could not work.
 2. Everything still open from the stage 3 entry: collections, the
    mod-set backup, `cacheSeconds()` unread, and the apply-order button
    and map detection resting on unit tests.
+
+---
+
+## 2026-09-09 (afternoon) — the workshop description, the readmes, and a roadmap
+
+Two pull requests, both merged: **#30** the code, **#31** the
+documentation. Released as **1.4.2**.
+
+### The description arrived as three lines out of 1573 characters
+
+The user asked why a mod's description was so short beside Steam's own
+page. Four separate causes, each measured rather than reasoned about.
+
+**1. Five of eight paragraphs rendered as nothing.** They were
+`[url=…][img]…[/img][/url]` — a link wrapped around a banner. The old
+renderer stripped `[img]` first, leaving an empty `[url]`, which
+`inline()` reduced to `''`, and the empty-paragraph filter then dropped.
+The author's Ko-fi, Discord and bug tracker vanished silently. Measured
+by replaying the real description through the old regexes: `EMPTY 5 of
+8`.
+
+**2. `img-src 'self'` blocked all 96 images.** The decisive finding is
+that **not one image is hosted at Steam**. Across ten mods their 48
+images sat on six hosts:
+
+```
+  16  steamuserimages-a.akamaihd.net
+  12  i.imgur.com
+   8  raw.githubusercontent.com
+   6  i.ibb.co
+   3  stalwartfox.net          <- one author's private domain
+   3  i.postimg.cc
+```
+
+An allow-list would be stale after the next mod. `img-src` now takes
+`https:`; `script-src` and `connect-src` stay on this origin.
+`SecurityHeadersSubscriberTest::testImagesMayComeFromAnyHttpsHostButScriptsMayNot`
+guards the boundary — and its first version was **wrong**: `/img-src[^;]*\bhttps:/`
+matched `https://tiles.projectzomboidmap.com`, so it passed with the
+widening reverted. Now `/img-src[^;]*\shttps:(?![^\s;])/`, proven by
+reverting.
+
+**3. `whitespace-pre-line` was missing.** Steam writes `Workshop ID:` and
+`Mod ID:` on two lines separated by a *single* newline. Splitting on
+`\n{2,}` alone kept them in one paragraph, and CSS then collapsed the
+newline.
+
+**4. `[h1]\n[h2]` was one block.** Same root cause: two headings
+separated by a single newline. Neither matched `/^\[h(\d)\](.*)\[\/h\1\]$/`,
+so both rendered as grey prose. A pre-pass now surrounds every heading
+with blank lines.
+
+**Steam's own numbers, read from its stylesheet** (not guessed):
+`bb_h1` 20px, `bb_h2` 18px, `bb_h3` 16px — and the weights go *down*
+as the level rises (`bb_h3` is `font-weight: 300`, lighter than body
+text). Three sizes now, all as `<p>`: **the user was explicit that
+`bb_h2` must not become an `<h2>`**, and they are right — the heading
+outline belongs to the panel, not to text a stranger wrote.
+
+**Inline tags, counted across ten descriptions**: url 108, img 96, b 66,
+`[*]` 41, h1 26, h2 12, h3 10, list 10, i 8, quote 6, code 4. All are
+handled now. The 108 links were the quiet loss: "get the patch
+[url=…]here[/url]" rendered as "here", pointing nowhere.
+
+### Files
+
+- `frontend/src/features/mods/bbcode.ts` — **new**, parsing split from
+  rendering so it is testable. `blocksOf()` returns typed blocks;
+  `hasRemoteImages()` drives the notice.
+- `frontend/src/features/mods/bbcode.test.ts` — **new**, 16 cases
+  including the real description as a regression.
+- `frontend/src/features/mods/bbcode-text.tsx` — renders blocks, decides
+  nothing.
+- `backend/src/EventSubscriber/SecurityHeadersSubscriber.php:44` —
+  `IMAGE_SOURCES` now `"'self' data: blob: https:"`.
+
+**Two traps worth remembering.** `plain()` trimmed every run, so "get
+the patch here first" became "get the patchherefirst" — trimming belongs
+at the two ends of the sequence, never between runs. And `http` images
+are **kept**, not dropped: the panel's own CSP carries
+`upgrade-insecure-requests`, so the browser fetches them over https
+anyway.
+
+### The dependency list
+
+The user: *"das sieht sehr verwirrend aus"* — and they were right. Two
+mods requiring each other were drawn as **six rows repeating two
+names**, so an operator counting what to install counted four.
+
+`requirementsOf()` in `mods.ts` flattens the tree: each mod once, in the
+order first reached, with `mutual` as a fact about the pair.
+`dependency-tree.tsx` → `dependency-list.tsx`.
+
+**A guard that did not guard.** The first cycle test stayed green with
+the `repeats` check deleted, because the Map deduplicates anyway. The
+test that actually fails hangs a `ghost` child off the repeat — the walk
+must not reach it. Proven by reverting.
+
+### Documentation
+
+- **Feature lists** in both readmes, derived from the code: eleven
+  sections, every bridge-dependent entry marked.
+- **Eight screenshots** in `docs/images/`, WebP: 8.3 MB of PNG → **656
+  KB (7%)**. Each has a heading and an explaining paragraph. A demo
+  account (`demo@example.com`) exists locally for this; server address,
+  SteamID and the user's own address are masked by a `TreeWalker` that
+  re-runs every 150ms, since React re-renders undo it.
+- **No tables.** GitHub strips `style` and `border`, so a borderless
+  table is impossible — verified through its own `/markdown` API. The
+  one two-column block floats instead, with `hspace="12"` (which pads
+  *both* sides; `24` visibly inset the picture and the user spotted it).
+- **`ROADMAP.md`**, linked from both readmes, plus rule `0c` in
+  CLAUDE.md keeping it current and keeping bugs out of it.
+
+### Verification
+
+- **1012 backend tests**, 14,799 assertions. **465 frontend tests.**
+  `tsc` silent, lint 0 errors, build green.
+- Both new guards proven by reverting the code they protect.
+- **In the browser**: all 10 pictures of Skill Recovery Journal load,
+  6 previously dead links work, headings separate, and at 390px nothing
+  overflows.
+
+### Open
+
+1. **Collections and the mod-set backup** — still unbuilt from stage 3,
+   now recorded in `ROADMAP.md` under *Next*.
+2. `WorkshopResult::cacheSeconds()` still unread by anything.
+3. The apply-order button and map detection still rest on unit tests
+   alone.
+4. `docs/coolify-step-gone` still holds `fa91b31` unpushed.
+5. The screenshots show **1.4.1** in the status bar. Harmless, but they
+   will need retaking whenever the panel's shell changes.
