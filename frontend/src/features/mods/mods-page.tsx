@@ -168,27 +168,29 @@ export function ModsPage() {
         </TabsContent>
 
         <TabsContent value="discover">
-          {/* Steam's own shape, and for the same reason: 24 categories
-              as chips ran to three rows and pushed the mods off the
-              screen. `minmax(0,1fr)` so a long title cannot widen the
-              page (rule 10g1). */}
-          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start">
-            <CategoryRail
-              categories={categories}
-              tags={tags}
-              onTags={setTags}
-              className="lg:sticky lg:top-4"
+          {/* The search spans the page and the split begins beneath it.
+              Side by side, the rail's heading and the search field sat
+              at different heights and read as misaligned. */}
+          <div className="space-y-4">
+            <DiscoverControls
+              term={term}
+              onTerm={setTerm}
+              sort={sort}
+              onSort={setSort}
+              onAddById={(workshopId) => toggle(workshopId, true)}
             />
 
-            <div className="min-w-0 space-y-4">
-          <DiscoverControls
-            term={term}
-            onTerm={setTerm}
-            sort={sort}
-            onSort={setSort}
-            onAddById={(workshopId) => toggle(workshopId, true)}
-          />
+            {/* `minmax(0,1fr)` so a long title cannot widen the page
+                (rule 10g1). */}
+            <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start">
+              <CategoryRail
+                categories={categories}
+                tags={tags}
+                onTags={setTags}
+                className="lg:sticky lg:top-4"
+              />
 
+              <div className="min-w-0 space-y-4">
           {results.data?.state === 'noKey' ? (
             <Alert>
               <KeyRound className="size-4" />
@@ -201,7 +203,9 @@ export function ModsPage() {
             <Empty>{t('mods.noResults')}</Empty>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
+              {/* Same height as the rail's heading beside it: both are
+                  the first line of their column. */}
+              <p className="flex items-center px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase lg:py-1">
                 {t('mods.resultCount', {
                   shown: results.data.items.length,
                   total: results.data.total,
@@ -227,6 +231,7 @@ export function ModsPage() {
               </div>
             </>
           )}
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -286,7 +291,10 @@ function CategoryRail({
         <CollapsibleContent forceMount className={cn('lg:block', !open && 'hidden')}>
       {/* Capped and scrollable rather than endless: the rail must not
           push the page taller than the results beside it. */}
-      <ul className="max-h-[22rem] space-y-0.5 overflow-y-auto pr-1 lg:max-h-[28rem]">
+      {/* The same 16px the results column puts between its count and
+            the grid, so the first category lines up with the first
+            tile rather than sitting above it. */}
+        <ul className="max-h-[22rem] space-y-0.5 overflow-y-auto pr-1 lg:mt-4 lg:max-h-[28rem]">
         <li>
           <CategoryEntry
             label={t('mods.allCategories')}
