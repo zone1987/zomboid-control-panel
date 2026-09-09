@@ -53,7 +53,7 @@ final class NotifiableEvents
         // so a message here means the change is really in the ini.
         'mods.added' => '📦 **{admin}** hat **{input.mods}** zu **{server}** hinzugefügt.',
         'mods.removed' => '🗑️ **{admin}** hat **{input.mods}** von **{server}** entfernt.',
-        'mods.updateAvailable' => '⬆️ **{server}**: Für **{input.mods}** liegt ein Update bereit.',
+        'mods.update' => '⬆️ **{server}**: Für **{input.mods}** liegt ein Update bereit.',
 
         // Who comes and goes: the two most-wanted, and the only
         // moderation types that are not about somebody intervening.

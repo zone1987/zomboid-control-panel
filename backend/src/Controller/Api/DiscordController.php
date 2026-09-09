@@ -206,7 +206,7 @@ final class DiscordController extends AbstractController
     }
 
     /** One event's switch, channel and wording. */
-    #[Route('/events/{type}', name: 'api_discord_event', methods: ['PUT'], requirements: ['type' => '[a-z.]+'])]
+    #[Route('/events/{type}', name: 'api_discord_event', methods: ['PUT'], requirements: ['type' => '[A-Za-z._]+'])]
     public function event(string $id, string $type, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);
@@ -260,7 +260,7 @@ final class DiscordController extends AbstractController
     }
 
     /** Sends the wording being edited, to the channel it would use. */
-    #[Route('/events/{type}/test', name: 'api_discord_event_test', methods: ['POST'], requirements: ['type' => '[a-z.]+'])]
+    #[Route('/events/{type}/test', name: 'api_discord_event_test', methods: ['POST'], requirements: ['type' => '[A-Za-z._]+'])]
     public function testEvent(string $id, string $type, Request $request): JsonResponse
     {
         $server = $this->servers->find($id);

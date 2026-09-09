@@ -632,7 +632,7 @@
       "server.unreachable": "Server nicht erreichbar",
       "mods.added": "Mod hinzugefügt",
       "mods.removed": "Mod entfernt",
-      "mods.updateAvailable": "Mod-Update verfügbar"
+      "mods.update": "Mod-Update verfügbar"
     },
     "events": {
       "activeCount_one": "Eine Meldung ist aktiv",

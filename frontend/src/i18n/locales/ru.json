@@ -648,7 +648,7 @@
       "server.unreachable": "Сервер недоступен",
       "mods.added": "Мод добавлен",
       "mods.removed": "Мод удалён",
-      "mods.updateAvailable": "Доступно обновление мода"
+      "mods.update": "Доступно обновление мода"
     },
     "events": {
       "activeCount_one": "Активно {{count}} уведомление",

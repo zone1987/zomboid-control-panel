@@ -648,7 +648,7 @@
       "server.unreachable": "Serwer nieosiągalny",
       "mods.added": "Dodano moda",
       "mods.removed": "Usunięto moda",
-      "mods.updateAvailable": "Dostępna aktualizacja moda"
+      "mods.update": "Dostępna aktualizacja moda"
     },
     "events": {
       "activeCount_one": "Aktywne jest jedno powiadomienie",

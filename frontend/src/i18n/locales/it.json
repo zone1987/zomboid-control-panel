@@ -632,7 +632,7 @@
       "server.unreachable": "Server non raggiungibile",
       "mods.added": "Mod aggiunta",
       "mods.removed": "Mod rimossa",
-      "mods.updateAvailable": "Aggiornamento mod disponibile"
+      "mods.update": "Aggiornamento mod disponibile"
     },
     "events": {
       "activeCount_one": "Una notifica è attiva",

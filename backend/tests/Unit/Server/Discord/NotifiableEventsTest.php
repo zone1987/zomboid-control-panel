@@ -77,4 +77,24 @@ final class NotifiableEventsTest extends TestCase
     {
         self::assertNull(NotifiableEvents::defaultTemplate('moderation.invented'));
     }
+
+    /**
+     * A type the route cannot match answers 404, and the switch simply
+     * does nothing — no error the operator can act on.
+     *
+     * Two events were in that state: `mods.update` while it was called
+     * `mods.updateAvailable`, and `moderation.access_level`, which has
+     * been unswitchable since it was added. Both found by clicking, so
+     * this guard exists to make the next one fail here instead.
+     */
+    public function testEveryEventTypeMatchesTheRouteThatSavesIt(): void
+    {
+        foreach (NotifiableEvents::all() as $type) {
+            self::assertMatchesRegularExpression(
+                '/^[A-Za-z._]+$/',
+                $type,
+                sprintf('"%s" cannot be saved: the route requires [A-Za-z._]+', $type),
+            );
+        }
+    }
 }
