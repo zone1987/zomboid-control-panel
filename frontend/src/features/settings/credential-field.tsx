@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { ChevronDown, Lock } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
@@ -38,37 +37,31 @@ export function CredentialField({
 
   const mayEdit = can('settings.edit')
 
-  /**
-   * Puts the stored secret into the field on first focus.
-   *
-   * Otherwise an operator could never see what they had entered, and
-   * the only way to check a token was to paste it again. It travels
-   * only when the field is actually touched, not on every page view.
-   */
-  const reveal = useMutation({
-    mutationFn: () => revealSecret(name ?? ''),
-    onSuccess: (answer) => {
-      if (answer.value !== null) {
-        onChange(answer.value)
-      }
-    },
-    onError: () => toast.error(t('settings.revealFailed')),
+  // A stored secret is fetched with the page rather than on focus:
+  // focus is not a gesture anybody makes to *read*, so the field
+  // looked empty and a saved key looked lost. See rule 6f.
+  const readable =
+    name !== undefined
+    && state?.secret === true
+    && state.configured
+    && !state.fromEnvironment
+    && mayEdit
+
+  const stored = useQuery({
+    queryKey: ['settings', 'reveal', name],
+    queryFn: () => revealSecret(name ?? ''),
+    enabled: readable,
+    staleTime: Number.POSITIVE_INFINITY,
   })
 
-  const fetchStoredValue = () => {
-    if (
-      name === undefined
-      || value !== ''
-      || state?.configured !== true
-      || state.fromEnvironment
-      || !mayEdit
-      || reveal.isPending
-    ) {
-      return
-    }
+  // Derived, never copied into state: an effect writing the answer into
+  // the draft would overwrite whatever somebody is typing on every
+  // refetch (rule 10g2). The edit wins while it exists.
+  const shown = value !== '' ? value : (stored.data?.value ?? '')
 
-    reveal.mutate()
-  }
+  // "Could not read it" is its own state and must not be drawn as an
+  // empty field, which would read as "nothing is stored" (rule 6c).
+  const unreadable = readable && stored.isError
 
   return (
     <div className="flex h-full flex-col space-y-2">
@@ -118,11 +111,13 @@ export function CredentialField({
         <PasswordInput
           id={id}
           autoComplete="off"
-          disabled={!mayEdit || reveal.isPending}
-          value={value}
+          // `isFetching`, not `isPending`: a query held back by
+          // `enabled` stays pending forever, which would disable the
+          // field of every secret that is not stored yet.
+          disabled={!mayEdit || stored.isFetching}
+          value={shown}
           placeholder={state.configured ? t('settings.unchangedPlaceholder') : placeholder}
           onChange={(event) => onChange(event.target.value)}
-          onFocus={fetchStoredValue}
         />
       ) : (
         <Input
@@ -138,6 +133,10 @@ export function CredentialField({
 
       {!mayEdit && (
         <p className="text-muted-foreground text-xs">{t('settings.noPermission')}</p>
+      )}
+
+      {unreadable && (
+        <p className="text-xs text-destructive">{t('settings.revealFailed')}</p>
       )}
 
       {state?.fromEnvironment && !showInstructions && (
