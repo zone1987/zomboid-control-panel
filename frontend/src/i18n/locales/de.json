@@ -2235,6 +2235,9 @@
     "unlistedMapBody": "Ein Karten-Mod wird wie jeder andere geladen — die Karte erscheint aber erst, wenn ihr Ordner auch in Map= steht. Bis dahin wird sie heruntergeladen, geladen und bleibt unsichtbar.",
     "addToMapLine": "In Map= eintragen",
     "mapsListed": "In Map= eingetragen. Greift beim nächsten Serverstart.",
-    "alreadyListed": "Alle installierten Karten stehen bereits drin; es wurde nichts geändert."
+    "alreadyListed": "Alle installierten Karten stehen bereits drin; es wurde nichts geändert.",
+    "repeats": "Steht weiter oben schon — diese Mods brauchen sich gegenseitig",
+    "unresolvedDependency": "Der Workshop konnte diesen Mod nicht beschreiben",
+    "notInstalledYet": "Nicht installiert"
   }
 }

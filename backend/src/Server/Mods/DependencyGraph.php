@@ -45,15 +45,29 @@ final readonly class DependencyGraph
         }
 
         for ($depth = 0; $depth < self::MAX_DEPTH && $frontier !== []; ++$depth) {
-            $answer = $this->workshop->itemsById($frontier);
+            $items = [];
 
-            if (!$answer->succeeded()) {
-                return DependencyResolution::failed($answer->state);
+            // One call per mod, because only the authenticated endpoint
+            // carries `children` -- the batch one omits the field
+            // entirely, so asking it would always find no dependencies
+            // at all. Measured against a mod that really has one.
+            foreach ($frontier as $id) {
+                $answer = $this->workshop->details($id);
+
+                if (!$answer->succeeded()) {
+                    return DependencyResolution::failed($answer->state);
+                }
+
+                $found = $answer->first();
+
+                if ($found !== null) {
+                    $items[] = $found;
+                }
             }
 
             $next = [];
 
-            foreach ($answer->items as $item) {
+            foreach ($items as $item) {
                 // A collection's children are its contents rather than
                 // its requirements; walking them would pull in a whole
                 // curated list as though the mod needed all of it.
@@ -84,6 +98,85 @@ final readonly class DependencyGraph
         }
 
         return DependencyResolution::resolved($required, $edges, $truncated);
+    }
+
+    /**
+     * The requirement chain of one mod, as a tree the interface can draw.
+     *
+     * Depth and cycles are bounded the same way as `resolve`, and a mod
+     * already seen higher up is marked rather than expanded again — a
+     * circle would otherwise draw forever, and a diamond would repeat
+     * the same subtree twice for no gain.
+     *
+     * @return array<string, mixed>
+     */
+    public function tree(string $workshopId): array
+    {
+        $resolution = $this->resolve([$workshopId]);
+
+        if (!$resolution->succeeded()) {
+            return ['state' => $resolution->state->value, 'nodes' => [], 'truncated' => false];
+        }
+
+        $ids = [$workshopId, ...$resolution->required];
+        $described = $this->workshop->itemsById($ids);
+        $byId = [];
+
+        foreach ($described->items as $item) {
+            $byId[$item->workshopId] = $item;
+        }
+
+        $children = [];
+
+        foreach ($resolution->edges as [$parent, $child]) {
+            $children[$parent][] = $child;
+        }
+
+        return [
+            'state' => WorkshopState::Ok->value,
+            'nodes' => [$this->node($workshopId, $children, $byId, [], 0)],
+            'truncated' => $resolution->truncated,
+        ];
+    }
+
+    /**
+     * @param array<string, list<string>>       $children
+     * @param array<string, WorkshopItem>       $byId
+     * @param list<string>                      $ancestors
+     *
+     * @return array<string, mixed>
+     */
+    private function node(string $id, array $children, array $byId, array $ancestors, int $depth): array
+    {
+        $item = $byId[$id] ?? null;
+
+        // Already above us in this branch: expanding it again is what a
+        // circle does, so it is named and left closed instead.
+        $repeats = \in_array($id, $ancestors, true);
+
+        $node = [
+            'workshopId' => $id,
+            'title' => $item?->title,
+            'resolved' => $item !== null,
+            'repeats' => $repeats,
+            'children' => [],
+        ];
+
+        if ($repeats || $depth >= self::MAX_DEPTH) {
+            return $node;
+        }
+
+        foreach (array_unique($children[$id] ?? []) as $childId) {
+            $node['children'][] = $this->node(
+                $childId,
+                $children,
+                $byId,
+                [...$ancestors, $id],
+                $depth + 1,
+            );
+        }
+
+        return $node;
     }
 
     /**

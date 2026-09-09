@@ -88,6 +88,60 @@ final class DependencyGraphTest extends TestCase
         self::assertSame(['Shared'], $graph->resolve(['A', 'B'])->required);
     }
 
+    public function testBuildsATreeTheInterfaceCanDraw(): void
+    {
+        $graph = new DependencyGraph($this->workshop([
+            'A' => ['B', 'C'], 'B' => ['D'], 'C' => [], 'D' => [],
+        ]));
+
+        $tree = $graph->tree('A');
+        $root = $tree['nodes'][0];
+
+        self::assertSame('A', $root['workshopId']);
+        self::assertCount(2, $root['children']);
+        self::assertSame('D', $root['children'][0]['children'][0]['workshopId']);
+    }
+
+    /**
+     * Expanding a mod already above it in the branch is what a circle
+     * does. It is marked and left closed instead of drawn forever.
+     */
+    public function testMarksARepeatRatherThanExpandingItAgain(): void
+    {
+        $graph = new DependencyGraph($this->workshop(['A' => ['B'], 'B' => ['A']]));
+
+        $tree = $graph->tree('A');
+        $repeat = $tree['nodes'][0]['children'][0]['children'][0];
+
+        self::assertSame('A', $repeat['workshopId']);
+        self::assertTrue($repeat['repeats']);
+        self::assertSame([], $repeat['children']);
+    }
+
+    /**
+     * A mod the workshop cannot describe is still a requirement, so it
+     * appears in the tree saying so rather than being dropped.
+     */
+    public function testKeepsARequirementTheWorkshopCouldNotDescribe(): void
+    {
+        $graph = new DependencyGraph($this->workshop(['A' => ['Gone']]));
+
+        $child = $graph->tree('A')['nodes'][0]['children'][0];
+
+        self::assertSame('Gone', $child['workshopId']);
+        self::assertFalse($child['resolved']);
+    }
+
+    public function testATreeSaysSoWhenTheWalkWasCutShort(): void
+    {
+        $graph = new DependencyGraph($this->workshop([
+            'A' => ['B'], 'B' => ['C'], 'C' => ['D'],
+            'D' => ['E'], 'E' => ['F'], 'F' => [],
+        ]));
+
+        self::assertTrue($graph->tree('A')['truncated']);
+    }
+
     /** Already-installed mods are not requirements to add. */
     public function testAnAlreadyInstalledRequirementIsNotMissing(): void
     {
@@ -113,9 +167,11 @@ final class DependencyGraphTest extends TestCase
                 return WorkshopResult::ok([]);
             }
 
+            // The walk reads this one, because it is the only endpoint
+            // that carries `children` at all.
             public function details(string $workshopId): WorkshopResult
             {
-                return WorkshopResult::ok([]);
+                return WorkshopResult::failed(WorkshopState::Unreachable);
             }
         });
 

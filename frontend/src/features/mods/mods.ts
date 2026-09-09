@@ -85,12 +85,35 @@ export type ModSearch = {
   items: Mod[]
 }
 
+/**
+ * One mod in the requirement chain.
+ *
+ * `repeats` marks a mod already above it in the branch: expanding it
+ * again is what a circle does, so it is named and left closed.
+ */
+export type DependencyNode = {
+  workshopId: string
+  title: string | null
+  /** False when the workshop could not describe it — still required. */
+  resolved: boolean
+  repeats: boolean
+  children: DependencyNode[]
+}
+
+export type DependencyTree = {
+  state: WorkshopState
+  nodes: DependencyNode[]
+  /** The walk hit its depth limit, so the chain may go further. */
+  truncated: boolean
+}
+
 export type ModDetail = {
   state: WorkshopState
   hasKey: boolean
   gameBuild: string | null
   item: Mod | null
   dependencies: Mod[]
+  tree: DependencyTree | null
 }
 
 export type ModChange = {

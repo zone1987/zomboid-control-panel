@@ -26,7 +26,16 @@ import { Empty } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ModCover } from './mod-cover'
 import { BbcodeText } from './bbcode-text'
-import { addMod, displayName, formatSize, listInstalled, modDetail, removeMod, type Mod } from './mods'
+import { DependencyTree } from './dependency-tree'
+import {
+  addMod,
+  displayName,
+  formatSize,
+  listInstalled,
+  modDetail,
+  removeMod,
+  type DependencyTree as DependencyTreeShape,
+} from './mods'
 
 export function ModDetailPage() {
   const { t, i18n } = useTranslation()
@@ -224,7 +233,7 @@ export function ModDetailPage() {
           </Card>
 
           <DependencyCard
-            dependencies={detail.data?.dependencies ?? []}
+            tree={detail.data?.tree ?? null}
             hasKey={detail.data?.hasKey ?? false}
             installedIds={new Set((installed.data?.items ?? []).map((entry) => entry.workshopId))}
             onOpen={(dependencyId) => void navigate(`/servers/${id}/mods/${dependencyId}`)}
@@ -236,17 +245,18 @@ export function ModDetailPage() {
 }
 
 function DependencyCard({
-  dependencies,
+  tree,
   hasKey,
   installedIds,
   onOpen,
 }: {
-  dependencies: Mod[]
+  tree: DependencyTreeShape | null
   hasKey: boolean
   installedIds: Set<string>
   onOpen: (workshopId: string) => void
 }) {
   const { t } = useTranslation()
+  const children = tree?.nodes[0]?.children ?? []
 
   return (
     <Card>
@@ -260,29 +270,20 @@ function DependencyCard({
       <CardContent className="space-y-3">
         {!hasKey ? (
           <p className="text-sm text-muted-foreground">{t('mods.dependenciesNeedKey')}</p>
-        ) : dependencies.length === 0 ? (
+        ) : children.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('mods.noDependencies')}</p>
         ) : (
-          <ul className="space-y-2">
-            {dependencies.map((dependency) => (
-              <li key={dependency.workshopId}>
-                <button
-                  type="button"
-                  onClick={() => onOpen(dependency.workshopId)}
-                  className="flex w-full items-center gap-2 rounded-sm p-1 text-left text-sm hover:bg-accent/50"
-                >
-                  <ModCover mod={dependency} className="size-8 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{displayName(dependency)}</span>
+          <>
+            <DependencyTree
+              nodes={tree?.nodes ?? []}
+              installedIds={installedIds}
+              onOpen={onOpen}
+            />
 
-                  {installedIds.has(dependency.workshopId) ? (
-                    <Check className="size-4 shrink-0 text-primary" />
-                  ) : (
-                    <TriangleAlert className="size-4 shrink-0 text-amber-500" />
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+            {tree?.truncated === true && (
+              <p className="text-xs text-muted-foreground">{t('mods.truncated')}</p>
+            )}
+          </>
         )}
 
         {/* Steam's dependency links are maintained by hand, so the panel

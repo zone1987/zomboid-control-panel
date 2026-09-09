@@ -8,6 +8,7 @@ use App\Entity\GameServer;
 use App\Repository\GameServerRepository;
 use App\Security\Permission\Permission;
 use App\Server\Mods\CoverStore;
+use App\Server\Mods\DependencyGraph;
 use App\Server\Mods\GameBuild;
 use App\Server\Mods\ModManager;
 use App\Server\Mods\ModPresenter;
@@ -30,6 +31,7 @@ final class ModController extends AbstractController
         private readonly ModManager $mods,
         private readonly WorkshopSource $workshop,
         private readonly CoverStore $covers,
+        private readonly DependencyGraph $graph,
     ) {
     }
 
@@ -219,6 +221,9 @@ final class ModController extends AbstractController
             'state' => $result->state->value,
             'hasKey' => $this->workshop->hasKey(),
             'gameBuild' => $build->number,
+            // The whole chain, not just what this mod names directly:
+            // a requirement's own requirements are just as missing.
+            'tree' => $this->graph->tree($workshopId),
             'item' => ModPresenter::present($item->workshopId, $item, $build, $this->coverBase($id)),
             'dependencies' => array_map(
                 fn ($dependency): array => ModPresenter::present(

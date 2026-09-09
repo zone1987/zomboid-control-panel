@@ -2289,6 +2289,9 @@
     "unlistedMapBody": "A map mod loads like any other, but its map only appears once the folder is named in Map= as well. Until then it downloads, loads and stays invisible.",
     "addToMapLine": "Add to Map=",
     "mapsListed": "Added to Map=. It takes effect at the next server start.",
-    "alreadyListed": "Every installed map is already listed; nothing was changed."
+    "alreadyListed": "Every installed map is already listed; nothing was changed.",
+    "repeats": "Already listed further up — these mods require each other",
+    "unresolvedDependency": "The workshop could not describe this one",
+    "notInstalledYet": "Not installed"
   }
 }
